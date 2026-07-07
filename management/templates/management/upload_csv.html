@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Vehicle CSV - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .page-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .page-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 1rem;
+        }
+
+        body.light-mode .page-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .upload-container {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        body.light-mode .upload-container {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        body.light-mode .file-upload-area {
+            border-color: #cbd5e1;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(37, 99, 235, 0.1);
+        }
+
+        .file-upload-icon {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .file-upload-text {
+            color: var(--dark-text-secondary);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        body.light-mode .file-upload-text {
+            color: var(--light-text-secondary);
+        }
+
+        .file-upload-subtext {
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        body.light-mode .file-upload-subtext {
+            color: var(--light-text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .csv-format {
+            background: var(--dark-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        body.light-mode .csv-format {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .format-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.light-mode .format-title {
+            color: var(--light-text);
+        }
+
+        .format-example {
+            background: var(--dark-bg);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: var(--dark-text-secondary);
+            overflow-x: auto;
+        }
+
+        body.light-mode .format-example {
+            background: var(--light-surface);
+            color: var(--light-text-secondary);
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-surface);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        .messages {
+            margin-bottom: 2rem;
+        }
+
+        .message {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+
+        .message.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .upload-container {
+                padding: 1.5rem;
+            }
+
+            .file-upload-area {
+                padding: 2rem;
+            }
+
+            .file-upload-icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'management/base.html' %}
+    
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-upload" style="color: var(--primary-color);"></i>
+                Upload Vehicle CSV
+            </h1>
+            <p class="page-subtitle">Bulk import vehicle configurations from CSV file</p>
+        </div>
+
+        {% comment %} {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="fas fa-times-circle"></i>
+                        {% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %} {% endcomment %}
+
+        <div class="upload-container">
+            <h2 class="section-title">
+                <i class="fas fa-file-csv"></i>
+                Upload CSV File
+            </h2>
+
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                
+                <div class="file-upload-area" id="dropZone">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="file-upload-text">
+                        <strong>Click to upload</strong> or drag and drop
+                    </div>
+                    <div class="file-upload-subtext">
+                        CSV files only (Max 10MB)
+                    </div>
+                    <input type="file" name="csv_file" id="csvFile" class="file-input" accept=".csv" required>
+                </div>
+
+                <a href="{% url 'add_car_details' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Vehicle Management
+                </a>
+
+                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                    <i class="fas fa-upload"></i>
+                    Upload CSV File
+                </button>
+            </form>
+        </div>
+
+        <div class="csv-format">
+            <h3 class="format-title">
+                <i class="fas fa-info-circle"></i>
+                Required CSV Format
+            </h3>
+            <p style="color: var(--dark-text-secondary); margin-bottom: 1rem;">
+                Your CSV file must include the following columns in this exact order:
+            </p>
+            <div class="format-example">
+brand,model,sub_model,year_start,year_end,number_of_seats,number_of_doors,layout_code
+BMW,X5,Sport,2020,2025,5,4,BMW_X5_SPORT_20_25
+Mercedes,C-Class,Luxury,2019,2024,5,4,MERC_C_LUX_19_24
+Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
+            </div>
+            <p style="color: var(--dark-text-secondary); margin-top: 1rem; font-size: 0.875rem;">
+                <strong>Note:</strong> Use "-" for empty sub_model values. Layout codes must be unique.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // File upload handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('csvFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        // Drag and drop functionality
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                fileInput.files = files;
+                updateUploadArea(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                updateUploadArea(this.files[0]);
+            }
+        });
+
+        function updateUploadArea(file) {
+            const uploadText = dropZone.querySelector('.file-upload-text');
+            const uploadSubtext = dropZone.querySelector('.file-upload-subtext');
+            
+            uploadText.innerHTML = `<strong>${file.name}</strong>`;
+            uploadSubtext.textContent = `File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            
+            dropZone.style.borderColor = 'var(--success-color)';
+            dropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+        }
+
+        // Form submission
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            uploadBtn.disabled = true;
+        });
+
+        // Add active nav state
+        document.addEventListener('DOMContentLoaded', function() {
+            const vehicleLink = document.querySelector('a[href="{% url 'add_car_details' %}"]');
+            if (vehicleLink) {
+                vehicleLink.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

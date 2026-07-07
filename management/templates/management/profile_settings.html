@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Settings - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem;
+        }
+
+        .page-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .page-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), #f43f5e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .page-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 1rem;
+        }
+
+        body.light-mode .page-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Glassmorphism Card Style */
+        .profile-card {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        body.light-mode .profile-card {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Summary Avatar */
+        .avatar-container {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .profile-large-avatar {
+            width: 7.5rem;
+            height: 7.5rem;
+            margin: 0 auto 1.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), #f43f5e);
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-large-avatar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 100%);
+        }
+
+        .user-meta-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 0.25rem;
+        }
+
+        body.light-mode .user-meta-name {
+            color: var(--light-text);
+        }
+
+        .user-meta-role {
+            font-size: 0.875rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Detail List */
+        .profile-detail-list {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1.5rem;
+        }
+
+        body.light-mode .profile-detail-list {
+            border-top-color: #f1f5f9;
+        }
+
+        .profile-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .profile-detail-item {
+            color: var(--light-text-secondary);
+        }
+
+        .profile-detail-item i {
+            color: var(--primary-color);
+            width: 1.25rem;
+            text-align: center;
+        }
+
+        /* Forms Layout */
+        .settings-content-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .section-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.light-mode .section-header {
+            border-bottom-color: #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .section-title {
+            color: var(--light-text);
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+            pointer-events: none;
+            transition: color 0.2s ease;
+        }
+
+        body.light-mode .input-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        body.light-mode .form-input {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #cbd5e1;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+        }
+
+        .form-input:focus + .input-icon {
+            color: var(--primary-color);
+        }
+
+        .form-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Buttons styling */
+        .btn-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-decoration: none;
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-bg);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        @media (max-width: 900px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'management/base.html' %}
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-user-cog"></i> Profile Settings
+            </h1>
+            <p class="page-subtitle">Configure your personal information and adjust account security credentials</p>
+        </div>
+
+        <div class="profile-grid">
+            <!-- Sidebar summary card -->
+            <div class="profile-card">
+                <div class="avatar-container">
+                    <div class="profile-large-avatar">
+                        {{ request.user.username|first|upper }}
+                    </div>
+                    <div class="user-meta-name">
+                        {% if request.user.first_name %}
+                            {{ request.user.first_name }} {{ request.user.last_name }}
+                        {% else %}
+                            {{ request.user.username }}
+                        {% endif %}
+                    </div>
+                    <div class="user-meta-role">
+                        {% if request.user.is_superuser %}System Administrator{% else %}User Profile{% endif %}
+                    </div>
+                </div>
+
+                <div class="profile-detail-list">
+                    <div class="profile-detail-item">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Username: <strong>{{ request.user.username }}</strong></span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ request.user.email|default:"No email registered" }}</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Joined: {{ request.user.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <i class="fas fa-history"></i>
+                        <span>Last Login: {{ request.user.last_login|date:"M d, Y H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile forms stack -->
+            <div class="settings-content-stack">
+                <!-- Profile details form -->
+                <div class="profile-card">
+                    <div class="section-header">
+                        <span class="section-title">
+                            <i class="fas fa-id-card"></i> Account Details
+                        </span>
+                    </div>
+
+                    <form method="post" action="{% url 'profile_settings' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="update_profile" value="1">
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="username">Username (Read-only)</label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="username" class="form-input" value="{{ request.user.username }}" disabled>
+                                    <i class="fas fa-lock input-icon"></i>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="email">Email Address</label>
+                                <div class="input-wrapper">
+                                    <input type="email" name="email" id="email" class="form-input" value="{{ request.user.email }}" placeholder="Enter email address" required>
+                                    <i class="fas fa-envelope input-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-grid" style="margin-top: 0.5rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="first_name">First Name</label>
+                                <div class="input-wrapper">
+                                    <input type="text" name="first_name" id="first_name" class="form-input" value="{{ request.user.first_name }}" placeholder="Enter first name">
+                                    <i class="fas fa-user input-icon"></i>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="last_name">Last Name</label>
+                                <div class="input-wrapper">
+                                    <input type="text" name="last_name" id="last_name" class="form-input" value="{{ request.user.last_name }}" placeholder="Enter last name">
+                                    <i class="fas fa-user input-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="btn-group">
+                            <a href="{% url 'index' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Details
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Password update form -->
+                <div class="profile-card">
+                    <div class="section-header">
+                        <span class="section-title">
+                            <i class="fas fa-key"></i> Security & Password
+                        </span>
+                    </div>
+
+                    <form method="post" action="{% url 'profile_settings' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="change_password" value="1">
+
+                        <div class="form-group">
+                            <label class="form-label" for="id_old_password">Current Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" name="old_password" id="id_old_password" class="form-input" placeholder="Enter current password" required>
+                                <i class="fas fa-shield-alt input-icon"></i>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="id_new_password1">New Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" name="new_password1" id="id_new_password1" class="form-input" placeholder="Enter new password" required>
+                                    <i class="fas fa-lock input-icon"></i>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_new_password2">Confirm New Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" name="new_password2" id="id_new_password2" class="form-input" placeholder="Confirm new password" required>
+                                    <i class="fas fa-check-circle input-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sync-alt"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en"> 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel</title> 
+    {% load static %}
+
+   
+    <style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+    }
+
+    .admin-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .admin-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 30px 0;
+    }
+
+    .admin-header h1 {
+        color: #ffffff;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .admin-header p {
+        color: #a0a0b8;
+        font-size: 1.1rem;
+        margin-top: 10px;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .admin-section {
+        background: linear-gradient(145deg, #2a2a3d, #242438);
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        border: 1px solid rgba(79, 140, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .admin-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        border-color: rgba(79, 140, 255, 0.2);
+    }
+
+    .admin-section h2 {
+        color: #4f8cff;
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 0 0 20px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid rgba(79, 140, 255, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .admin-section h2::before {
+        content: '';
+        width: 4px;
+        height: 20px;
+        background: linear-gradient(135deg, #4f8cff, #6fa8ff);
+        border-radius: 2px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        color: #e0e0e8;
+        font-weight: 500;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #3a3a4f;
+        border-radius: 10px;
+        background: rgba(58, 58, 79, 0.8);
+        color: #ffffff;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #4f8cff;
+        box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.1);
+        background: rgba(58, 58, 79, 1);
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4f8cff, #6fa8ff);
+        color: white;
+        box-shadow: 0 4px 15px rgba(79, 140, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(79, 140, 255, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d, #8a9ba8);
+        color: white;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+        color: white;
+    }
+
+    .btn-edit {
+        background: linear-gradient(135deg, #28a745, #34ce57);
+        color: white;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        margin-right: 8px;
+    }
+
+    .btn-delete {
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+        color: white;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: linear-gradient(145deg, #2a2a3d, #242438);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .admin-table th {
+        background: linear-gradient(135deg, #1e1e2f, #252540);
+        color: #4f8cff;
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+        border-bottom: 2px solid rgba(79, 140, 255, 0.2);
+    }
+
+    .admin-table td {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        color: #e0e0e8;
+        vertical-align: middle;
+    }
+
+    .admin-table tr:hover {
+        background: rgba(79, 140, 255, 0.05);
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-true {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .status-false {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+
+    .permission-tag {
+        background: linear-gradient(135deg, #6c757d, #8a9ba8);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        margin: 2px;
+        display: inline-block;
+        font-weight: 500;
+    }
+
+    .activity-log-container {
+        background: linear-gradient(145deg, #2a2a3d, #242438);
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        border: 1px solid rgba(79, 140, 255, 0.1);
+        height: 400px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .activity-log-header {
+        color: #4f8cff;
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 0 0 20px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid rgba(79, 140, 255, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .activity-log-header::before {
+        content: '';
+        width: 4px;
+        height: 20px;
+        background: linear-gradient(135deg, #4f8cff, #6fa8ff);
+        border-radius: 2px;
+    }
+
+    .activity-log-list {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 10px;
+        margin-right: -10px;
+    }
+
+    .activity-log-list::-webkit-scrollbar {
+        width: 7px;
+    }
+
+    .activity-log-list::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.025);
+        border-radius: 999px;
+    }
+
+    .activity-log-list::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(248, 113, 113, 0.62), rgba(185, 28, 28, 0.68));
+        border: 2px solid rgba(18, 18, 20, 0.72);
+        border-radius: 999px;
+    }
+
+    .activity-log-list::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(252, 165, 165, 0.78), rgba(220, 38, 38, 0.82));
+    }
+
+    .activity-item {
+        background: rgba(30, 30, 47, 0.6);
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border-left: 4px solid #4f8cff;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .activity-item:hover {
+        background: rgba(30, 30, 47, 0.8);
+        transform: translateX(4px);
+    }
+
+    .activity-time {
+        color: #4f8cff;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+    }
+
+    .activity-description {
+        color: #e0e0e8;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .activity-user {
+        color: #6fa8ff;
+        font-weight: 600;
+    }
+
+    .active-users-list {
+        background: rgba(30, 30, 47, 0.4);
+        border-radius: 12px;
+        padding: 20px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .active-user-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .active-user-item:last-child {
+        border-bottom: none;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4f8cff, #6fa8ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+
+    .user-info {
+        flex: 1;
+    }
+
+    .user-name {
+        color: #e0e0e8;
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .user-login-time {
+        color: #a0a0b8;
+        font-size: 0.8rem;
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(5px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: linear-gradient(145deg, #2a2a3d, #242438);
+        border-radius: 16px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        border: 1px solid rgba(79, 140, 255, 0.2);
+        position: relative;
+    }
+
+    .modal-content h3 {
+        color: #4f8cff;
+        margin: 0 0 20px 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .close {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 24px;
+        color: #a0a0b8;
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+    .close:hover {
+        color: #4f8cff;
+    }
+
+    .full-width-section {
+        grid-column: 1 / -1;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: linear-gradient(145deg, #2a2a3d, #242438);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(79, 140, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(79, 140, 255, 0.3);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #4f8cff;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #a0a0b8;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 768px) {
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .admin-container {
+            padding: 10px;
+        }
+        
+        .admin-section {
+            padding: 20px;
+        }
+        
+        .admin-header h1 {
+            font-size: 2rem;
+        }
+    }
+    </style>
+    <script>
+function openEditGroupModal(id, name) {
+    document.getElementById('editGroupId').value = id;
+    document.getElementById('editGroupName').value = name;
+    document.getElementById('editGroupModal').style.display = 'flex';
+}
+
+function closeEditGroupModal() {
+    document.getElementById('editGroupModal').style.display = 'none';
+}
+
+function confirmDeleteGroup(id) {
+    document.getElementById('deleteGroupId').value = id;
+    document.getElementById('confirmDeleteGroupModal').style.display = 'flex';
+}
+
+function closeDeleteGroupModal() {
+    document.getElementById('confirmDeleteGroupModal').style.display = 'none';
+}
+
+function openEditUserModal(id, username, email) {
+    document.getElementById('editUserId').value = id;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editUserEmail').value = email;
+    document.getElementById('editUserModal').style.display = 'flex';
+}
+
+function closeEditUserModal() {
+    document.getElementById('editUserModal').style.display = 'none';
+}
+
+function confirmDeleteUser(id) {
+    document.getElementById('deleteUserId').value = id;
+    document.getElementById('confirmDeleteUserModal').style.display = 'flex';
+}
+
+function closeDeleteUserModal() {
+    document.getElementById('confirmDeleteUserModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+</script>
+    </head>
+<body>
+    {% include 'management/base.html' %}
+
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Admin Control Panel</h1>
+        <p>Manage users, groups, and monitor system activity</p>
+    </div>
+
+    <!-- Statistics Overview -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ users|length }}</div>
+            <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ groups|length }}</div>
+            <div class="stat-label">Groups</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ active_sessions|length }}</div>
+            <div class="stat-label">Active Sessions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ activity_logs|length }}</div>
+            <div class="stat-label">Recent Activities</div>
+        </div>
+    </div>
+
+    <div class="admin-grid">
+        <!-- User Management -->
+        <div class="admin-section">
+            <h2>Add New User</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ user_form.as_p }}
+                </div>
+                <button type="submit" name="add_user" class="btn btn-primary">Create User</button>
+            </form>
+        </div>
+
+        <!-- Group Management -->
+        <div class="admin-section">
+            <h2>Create New Group</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ group_form.as_p }}
+                </div>
+                <button type="submit" name="add_group" class="btn btn-primary">Create Group</button>
+            </form>
+        </div>
+
+        <!-- Assign Group -->
+        <div class="admin-section">
+            <h2>Assign User to Group</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ assign_form.as_p }}
+                </div>
+                <button type="submit" name="assign_group" class="btn btn-primary">Assign</button>
+            </form>
+        </div>
+
+        <!-- Active Users -->
+        <div class="admin-section">
+            <h2>Active Users</h2>
+            <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Time of Login</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in active_users %}
+                <tr>
+                    <td>
+                        <strong>{{ session.user.username }}</strong>
+                    </td>
+                    <td><em>{{ session.login_time }}</em> </td>
+                    <td>
+                        <code>{{ session.ip }}</code>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" style="text-align: center; color: #a0a0b8; padding: 40px;">No users found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <!-- Activity Log with Scrollable Container -->
+    <div class="activity-log-container">
+        <h2 class="activity-log-header">Activity Logs</h2>
+        {% if activity_logs %}
+        <div class="activity-log-list">
+            {% for log in activity_logs %}
+            <div class="activity-item">
+                <div class="activity-time">{{ log.timestamp|date:"Y-m-d H:i" }}</div>
+                <div class="activity-description">
+                    <span class="activity-user">{{ log.user.username }}</span> {{ log.action }} {{ log.object_type }} → {{ log.object_name }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <p style="color: #a0a0b8; text-align: center; padding: 40px;">No recent activity to display.</p>
+        {% endif %}
+    </div>
+
+    <!-- Users Table -->
+    <div class="admin-section full-width-section">
+        <h2>Existing Users</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Staff Status</th>
+                    <th>Admin Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="user-avatar">{{ user.username|first|upper }}</div>
+                            {{ user.username }}
+                        </div>
+                    </td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="status-badge {% if user.is_staff %}status-true{% else %}status-false{% endif %}">
+                            {% if user.is_staff %}Staff{% else %}Regular{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge {% if user.is_superuser %}status-true{% else %}status-false{% endif %}">
+                            {% if user.is_superuser %}Admin{% else %}User{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/admin/auth/user/"><button class="btn btn-edit">✏️ Edit</button></a>                        
+                        <button onclick="confirmDeleteUser('{{ user.id }}')" class="btn btn-delete">🗑️ Delete</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" style="text-align: center; color: #a0a0b8; padding: 40px;">No users found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Groups Table -->
+    <div class="admin-section full-width-section">
+        <h2>Existing Groups</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Group Name</th>
+                    <th>Permissions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in groups %}
+                <tr>
+                    <td>{{ group.name }}</td>
+                    <td>
+                        {% for perm in group.permissions.all %}
+                            <span class="permission-tag">{{ perm.name }}</span>
+                        {% empty %}
+                            <em style="color: #a0a0b8;">No permissions assigned</em>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <a href="/admin/auth/group/"><button class="btn btn-edit">✏️ Edit</button></a>  
+                        <button onclick="confirmDeleteGroup('{{ group.id }}')" class="btn btn-delete">🗑️ Delete</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" style="text-align: center; color: #a0a0b8; padding: 40px;">No groups found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div id="editGroupModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span onclick="closeEditGroupModal()" class="close">&times;</span>
+        <h3>Edit Group</h3>
+        <form id="editGroupForm" method="post" action="{% url 'edit_group' %}">
+            {% csrf_token %}
+            <input type="hidden" name="group_id" id="editGroupId">
+            <div class="form-group">
+                <label for="editGroupName">Group Name</label>
+                <input type="text" name="name" id="editGroupName" placeholder="Enter group name" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Confirm Delete Group Modal -->
+<div id="confirmDeleteGroupModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span onclick="closeDeleteGroupModal()" class="close">&times;</span>
+        <h3>Confirm Deletion</h3>
+        <p style="color: #e0e0e8; margin-bottom: 20px;">Are you sure you want to delete this group? This action cannot be undone.</p>
+        <form id="deleteGroupForm" method="post" action="{% url 'delete_group' %}">
+            {% csrf_token %}
+            <input type="hidden" name="group_id" id="deleteGroupId">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <button type="button" onclick="closeDeleteGroupModal()" class="btn btn-secondary" style="margin-left: 10px;">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span onclick="closeEditUserModal()" class="close">&times;</span>
+        <h3>Edit User</h3>
+        <form id="editUserForm" method="post" action="{% url 'edit_user' %}">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" id="editUserId">
+            <div class="form-group">
+                <label for="editUsername">Username</label>
+                <input type="text" name="username" id="editUsername" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label for="editUserEmail">Email</label>
+                <input type="email" name="email" id="editUserEmail" placeholder="Enter email address" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Confirm Delete User Modal -->
+<div id="confirmDeleteUserModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span onclick="closeDeleteUserModal()" class="close">&times;</span>
+        <h3>Confirm Deletion</h3>
+        <p style="color: #e0e0e8; margin-bottom: 20px;">Are you sure you want to delete this user? This action cannot be undone.</p>
+        <form id="deleteUserForm" method="post" action="{% url 'delete_user' %}">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" id="deleteUserId">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <button type="button" onclick="closeDeleteUserModal()" class="btn btn-secondary" style="margin-left: 10px;">Cancel</button>
+        </form>
+    </div>
+</div>
+</body>

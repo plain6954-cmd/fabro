@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaint List - Fabro Leather</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .page-container {
+            max-width: 1550px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .filter-section {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 46%),
+                rgba(30, 30, 34, 0.72);
+            backdrop-filter: blur(18px) saturate(130%);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        body.light-mode .filter-section {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .filter-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.light-mode .filter-title {
+            color: var(--light-text);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-input,
+        .filter-select {
+            padding: 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .filter-input,
+        body.light-mode .filter-select {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .table-container {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 40%),
+                rgba(30, 30, 34, 0.74);
+            backdrop-filter: blur(18px) saturate(130%);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        body.light-mode .table-container {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(244, 244, 245, 0.26)),
+                rgba(255, 255, 255, 0.2);
+            border-color: rgba(24, 24, 27, 0.16);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: rgba(18, 18, 20, 0.84);
+            color: var(--dark-text);
+            font-weight: 600;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .table th {
+            background: rgba(255, 255, 255, 0.58);
+            color: #111113;
+            border-bottom-color: rgba(24, 24, 27, 0.14);
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .table td {
+            color: #4b4b55;
+            border-bottom-color: rgba(24, 24, 27, 0.12);
+            font-weight: 500;
+        }
+
+        body.light-mode .table tr:hover {
+            background-color: rgba(220, 38, 38, 0.085);
+        }
+
+        .table tr:hover {
+            background-color: rgba(220, 38, 38, 0.075);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+
+        .status-open {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .status-closed {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        .status-on-hold,
+        .status-onhold {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        body.light-mode .status-badge {
+            font-weight: 800;
+            box-shadow: 0 8px 18px rgba(24, 24, 27, 0.08);
+        }
+
+        body.light-mode .status-open {
+            background-color: rgba(239, 68, 68, 0.3);
+            color: #b91c1c;
+        }
+
+        body.light-mode .status-closed {
+            background-color: rgba(16, 185, 129, 0.34);
+            color: #047857;
+        }
+
+        body.light-mode .status-on-hold,
+        body.light-mode .status-onhold {
+            background-color: rgba(245, 158, 11, 0.36);
+            color: #b45309;
+        }
+
+        body.light-mode .status-high {
+            background-color: rgba(220, 38, 38, 0.18);
+            color: #991b1b;
+        }
+
+        body.light-mode .status-medium {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #92400e;
+        }
+
+        body.light-mode .status-low {
+            background-color: rgba(59, 130, 246, 0.16);
+            color: #1d4ed8;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .delete-complaint-form {
+            margin: 0;
+        }
+
+        .action-btn {
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 0.75rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .action-btn.view {
+            background: linear-gradient(135deg, var(--primary-color), #f43f5e);
+            box-shadow: 0 10px 24px rgba(220, 38, 38, 0.28);
+        }
+
+        .action-btn.edit {
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            box-shadow: 0 10px 24px rgba(245, 158, 11, 0.22);
+        }
+
+        .action-btn.delete {
+            background: linear-gradient(135deg, var(--error-color), #b91c1c);
+            box-shadow: 0 10px 24px rgba(239, 68, 68, 0.25);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.32);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1300;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100dvh;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.is-open {
+            display: block;
+        }
+
+        .complaint-modal {
+            background:
+                radial-gradient(circle at 18% 20%, rgba(220, 38, 38, 0.18), transparent 34%),
+                rgba(10, 10, 12, 0.96);
+            backdrop-filter: blur(18px);
+            padding: 1.25rem;
+            animation: modalBackdropIn 0.28s ease both;
+        }
+
+        .complaint-modal.is-open {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--dark-surface);
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .complaint-modal .modal-content {
+            width: min(1560px, 100%);
+            max-width: none;
+            max-height: none;
+            height: calc(100vh - 2.5rem);
+            height: calc(100dvh - 2.5rem);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, rgba(30, 30, 32, 0.98), rgba(18, 18, 20, 0.98));
+            border: 1px solid rgba(220, 38, 38, 0.22);
+            border-radius: 18px;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            transform-origin: center;
+            animation: complaintPanelIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        body.light-mode .modal-content {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .complaint-modal .modal-header {
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            margin: -2rem -2rem 1.5rem;
+            padding: 1.25rem 2rem;
+            background: rgba(18, 18, 20, 0.94);
+            backdrop-filter: blur(14px);
+            border-bottom-color: rgba(220, 38, 38, 0.22);
+        }
+
+        body.light-mode .modal-header {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .modal-title {
+            color: var(--light-text);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .close-btn {
+            color: var(--light-text-secondary);
+        }
+
+        .close-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        .modal-body {
+            color: var(--dark-text-secondary);
+            line-height: 1.6;
+        }
+
+        .complaint-modal .modal-body {
+            overflow: auto;
+            padding-right: 0.35rem;
+        }
+
+        body.light-mode .modal-body {
+            color: var(--light-text-secondary);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .complaint-modal .section-title {
+            color: var(--dark-text);
+            margin: 1.25rem 0 0.85rem;
+        }
+
+        .detail-item {
+            background: var(--dark-card);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .complaint-modal .detail-item {
+            background: rgba(45, 45, 48, 0.72);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        body.light-mode .detail-item {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        body.light-mode .detail-label {
+            color: var(--light-text);
+        }
+
+        .detail-value {
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .detail-value {
+            color: var(--light-text-secondary);
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .media-item {
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .media-item:hover {
+            transform: scale(1.05);
+        }
+
+        .media-thumbnail {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        @keyframes modalBackdropIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes complaintPanelIn {
+            from {
+                opacity: 0;
+                transform: translate3d(0, 26px, 0) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--dark-text-secondary);
+        }
+
+        body.light-mode .empty-state {
+            color: var(--light-text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .header-actions {
+                justify-content: center;
+            }
+
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions {
+                justify-content: stretch;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table {
+                min-width: 900px;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                width: calc(100% - 2rem);
+            }
+
+            .complaint-modal {
+                padding: 0.75rem;
+            }
+
+            .complaint-modal .modal-content {
+                height: calc(100vh - 1.5rem);
+                height: calc(100dvh - 1.5rem);
+                border-radius: 14px;
+            }
+
+            .complaint-modal .modal-header {
+                margin: -2rem -2rem 1.25rem;
+                padding: 1rem 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'management/base.html' %}
+    
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-list-alt"></i>
+                Complaint Management
+            </h1>
+            <div class="header-actions">
+                <a href="{% url 'add_complaint' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Add Complaint
+                </a>
+                <a href="{% url 'export_complaints' %}?format=csv{{ request.GET.urlencode|safe }}" class="btn btn-success">
+                    <i class="fas fa-download"></i>
+                    Export CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3 class="filter-title">
+                <i class="fas fa-filter"></i>
+                Filters & Search
+            </h3>
+            
+            <form method="GET" id="filter-form">
+                <div class="filter-grid">
+                    <input type="text" name="search" placeholder="Search complaints..." 
+                           value="{{ search_query }}" class="filter-input">
+
+                    <select name="search_by" class="filter-select">
+                        <option value="complaint_id" {% if search_by == 'complaint_id' %}selected{% endif %}>Complaint ID</option>
+                        <option value="batch_order" {% if search_by == 'batch_order' %}selected{% endif %}>Batch Order</option>
+                        <option value="complaint_description" {% if search_by == 'complaint_description' %}selected{% endif %}>Description</option>
+                        <option value="justification_from_factory" {% if search_by == 'justification_from_factory' %}selected{% endif %}>Justification</option>
+                        <option value="action_from_factory" {% if search_by == 'action_from_factory' %}selected{% endif %}>Action</option>
+                        <option value="series" {% if search_by == 'series' %}selected{% endif %}>Series</option>
+                        <option value="material" {% if search_by == 'material' %}selected{% endif %}>Material</option>
+                    </select>
+
+                    <select name="channel" class="filter-select">
+                        <option value="">All Channels</option>
+                        {% for channel in channels %}
+                            <option value="{{ channel.id }}" {% if selected_channel == channel.id|stringformat:"s" %}selected{% endif %}>
+                                {{ channel.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="person" class="filter-select">
+                        <option value="">All Persons</option>
+                        {% for person in persons %}
+                            <option value="{{ person.id }}" {% if selected_person == person.id|stringformat:"s" %}selected{% endif %}>
+                                {{ person.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="country" class="filter-select">
+                        <option value="">All Countries</option>
+                        {% for country in countries %}
+                            <option value="{{ country.id }}" {% if selected_country == country.id|stringformat:"s" %}selected{% endif %}>
+                                {{ country.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="status" class="filter-select">
+                        <option value="">All Statuses</option>
+                        {% for status in statuses %}
+                            <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="priority" class="filter-select">
+                        <option value="">All Priorities</option>
+                        {% for priority in priorities %}
+                            <option value="{{ priority }}" {% if selected_priority == priority %}selected{% endif %}>{{ priority }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <input type="date" name="from_date" value="{{ from_date }}" class="filter-input">
+                    <input type="date" name="to_date" value="{{ to_date }}" class="filter-input">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Apply Filters
+                    </button>
+                    <a href="{% url 'complaint_list' %}" class="btn btn-danger">
+                        <i class="fas fa-times"></i>
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            {% if complaints %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Channel</th>
+                            <th>Country</th>
+                            <th>Type</th>
+                            <th>Reported By</th>
+                            <th>Brand</th>
+                            <th>Model</th>
+                            <th>Year</th>
+                            <th>Series</th>
+                            <th>Material</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Media</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in complaints %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ complaint.date|date:"d-M-y" }}</td>
+                            <td>{{ complaint.channel|default:"-" }}</td>
+                            <td>{{ complaint.country|default:"-" }}</td>
+                            <td>{{ complaint.case_sub_category|default:"-" }}</td>
+                            <td>{{ complaint.person.name|default:"-" }}</td>
+                            <td>{{ complaint.brand|default:"-" }}</td>
+                            <td>{{ complaint.model|default:"-" }}</td>
+                            <td>
+                                {% if complaint.year %}
+                                    {{ complaint.year.year_start|stringformat:"s"|slice:"-2:" }}-{{ complaint.year.year_end|stringformat:"s"|slice:"-2:" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ complaint.series|default:"-" }}</td>
+                            <td>{{ complaint.material|default:"-" }}</td>                          
+                            <td>
+                                <span class="status-badge status-{{ complaint.status|lower|cut:' ' }}">
+                                    {{ complaint.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ complaint.priority|lower|cut:' ' }}">
+                                    {{ complaint.priority }}
+                                </span>
+                            </td>
+                            <td>
+                                <i class="fas fa-paperclip"></i>
+                                {{ complaint.media_files.count }}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'delete_complaint' complaint.complaint_id %}" class="delete-complaint-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn delete" title="Delete"
+                                                onclick="return confirm('Are you sure you want to delete this complaint?');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Modal for each complaint -->
+                        <div id="modal-{{ complaint.complaint_id }}" class="modal complaint-modal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <div class="detail-value">
+                                                <h2>{{ complaint.date|date:"d-M-y" }} - 
+                                                <span class="status-badge status-{{ complaint.status|lower|cut:' ' }}">
+                                                    {{ complaint.status }}
+                                                </span> </h2>
+                                            </div>
+                                    <button class="close-btn" onclick="closeModal('{{ complaint.complaint_id }}')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- PRODUCT & SOURCE -->
+                                    <h3 class="section-title">Product & Source:</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <div class="detail-label">Country</div>
+                                            <div class="detail-value">{{ complaint.country|default:"-" }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Reported By</div>
+                                            <div class="detail-value">{{ complaint.person|default:"-" }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Type</div>
+                                            <div class="detail-value">{{ complaint.case_sub_category|default:"-" }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Vehicle</div>
+                                            <div class="detail-value">
+                                                {{ complaint.brand }} {{ complaint.model }}
+                                                {% if complaint.year %}
+                                                     {{ complaint.year.year_start|stringformat:"s"|slice:"-2:" }}-{{ complaint.year.year_end|stringformat:"s"|slice:"-2:" }}
+                                                {% else %}
+                                                     -
+                                                {% endif %}
+                                                 {{ complaint.sub_model|default:"-" }}
+                                            </div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Series</div>
+                                            <div class="detail-value">{{ complaint.series|default:"-" }}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- COMPLAINT DETAILS -->
+                                    <h3 class="section-title">Complaint Details:</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <div class="detail-label">Complaint Description</div>
+                                            <div class="detail-value">{{ complaint.complaint_description }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Batch/Order#</div>
+                                            <div class="detail-value">{{ complaint.batch_order }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">SKU</div>
+                                            <div class="detail-value">{{ complaint.sku|default:"-" }}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- FROM FACTORY -->
+                                    <h3 class="section-title">From Factory:</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <div class="detail-label">Reason</div>
+                                            <div class="detail-value">{{ complaint.justification_from_factory }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Resolution</div>
+                                            <div class="detail-value">{{ complaint.action_from_factory }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">CAD Date</div>
+                                            <div class="detail-value">
+                                                {% if complaint.cad_date %}
+                                                    {{ complaint.cad_date|date:"d-M-y" }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Updated Order#</div>
+                                            <div class="detail-value">{{ complaint.updated_order_no }}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- MEDIA FILES -->
+                                    {% if complaint.media_files.count > 0 %}
+                                        <h3 class="section-title">Media Files ({{ complaint.media_files.count }})</h3>
+                                        <div class="media-grid">
+                                            {% for media in complaint.media_files.all %}
+                                                {% if ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower %}
+                                                    <div class="media-item" onclick="enlargeImage('{{ media.file }}')">
+                                                        <img src="{{ media.file }}" class="media-thumbnail" alt="Complaint Image">
+                                                    </div>
+                                                {% elif ".mp4" in media.file|lower or ".webm" in media.file|lower %}
+                                                    <div class="media-item" onclick="enlargeVideo('{{ media.file }}')">
+                                                        <video class="media-thumbnail" muted>
+                                                            <source src="{{ media.file }}" type="video/mp4">
+                                                        </video>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <h3>No complaints found</h3>
+                    <p>Try adjusting your filters or add a new complaint to get started.</p>
+                    <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-plus"></i>
+                        Add First Complaint
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content" style="max-width: 90%; text-align: center;">
+            <div class="modal-header">
+                <h2 class="modal-title">Image Preview</h2>
+                <button class="close-btn" onclick="closeImageModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <img id="modalImage" style="max-width: 100%; max-height: 70vh; border-radius: 8px;">
+        </div>
+    </div>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="modal">
+        <div class="modal-content" style="max-width: 90%; text-align: center;">
+            <div class="modal-header">
+                <h2 class="modal-title">Video Preview</h2>
+                <button class="close-btn" onclick="closeVideoModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <video id="modalVideo" style="max-width: 100%; max-height: 70vh; border-radius: 8px;" controls>
+                <source id="modalVideoSource" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+        // Modal functions
+        function openModal(id) {
+            const modal = document.getElementById('modal-' + id);
+            if (modal && modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-modal', 'true');
+            document.body.style.overflow = 'hidden';
+            const closeButton = modal.querySelector('.close-btn');
+            if (closeButton) {
+                closeButton.focus({ preventScroll: true });
+            }
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById('modal-' + id);
+            modal.classList.remove('is-open');
+            modal.removeAttribute('aria-modal');
+            document.body.style.overflow = 'auto';
+        }
+
+        function enlargeImage(src) {
+            const modal = document.getElementById("imageModal");
+            const img = document.getElementById("modalImage");
+            img.src = src;
+            modal.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            document.getElementById("imageModal").classList.remove('is-open');
+            document.body.style.overflow = 'auto';
+        }
+
+        function enlargeVideo(src) {
+            const modal = document.getElementById("videoModal");
+            const video = document.getElementById("modalVideo");
+            const source = document.getElementById("modalVideoSource");
+            
+            source.src = src;
+            video.load();
+            modal.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById("videoModal");
+            const video = document.getElementById("modalVideo");
+            modal.classList.remove('is-open');
+            video.pause();
+            video.currentTime = 0;
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('is-open');
+                event.target.removeAttribute('aria-modal');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                document.querySelectorAll('.modal.is-open').forEach((modal) => {
+                    modal.classList.remove('is-open');
+                    modal.removeAttribute('aria-modal');
+                });
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // Auto-submit filters on change
+        document.addEventListener("DOMContentLoaded", function () {
+            const filterForm = document.getElementById("filter-form");
+            const filterElements = filterForm.querySelectorAll("select, input[type='date']");
+
+            filterElements.forEach(el => {
+                el.addEventListener("change", () => {
+                    filterForm.submit();
+                });
+            });
+
+            // Add active nav state
+            const complaintListLink = document.querySelector('a[href="{% url 'complaint_list' %}"]');
+            if (complaintListLink) {
+                complaintListLink.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

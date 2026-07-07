@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Complaint - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .page-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .page-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 1rem;
+        }
+
+        body.light-mode .page-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .form-container {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .form-container {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-section {
+            background: var(--dark-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        body.light-mode .form-section {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .form-input,
+        body.light-mode .form-select,
+        body.light-mode .form-textarea {
+            background-color: var(--light-surface);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        .date-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        body.light-mode .date-input {
+            background-color: var(--light-surface);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .date-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+        }
+
+        body.light-mode .date-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .media-section {
+            background: var(--dark-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        body.light-mode .media-section {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .media-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .media-item {
+            background: var(--dark-surface);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .media-item {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .media-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .media-preview {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .media-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-input {
+            width: 1rem;
+            height: 1rem;
+            accent-color: var(--error-color);
+        }
+
+        .checkbox-label {
+            font-size: 0.75rem;
+            color: var(--error-color);
+            font-weight: 500;
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.light-mode .file-upload-area {
+            border-color: #cbd5e1;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-text {
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .file-upload-text {
+            color: var(--light-text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-group {
+            border-top-color: #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-surface);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        .empty-media {
+            text-align: center;
+            padding: 2rem;
+            color: var(--dark-text-secondary);
+            font-style: italic;
+        }
+
+        body.light-mode .empty-media {
+            color: var(--light-text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .form-container {
+                padding: 1.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .media-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'management/base.html' %}
+    
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-edit" style="color: var(--primary-color);"></i>
+                Edit Complaint
+            </h1>
+            <p class="page-subtitle">Update complaint information and manage media files</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="form-container">
+            {% csrf_token %}
+
+            <div class="form-grid">
+                <!-- Basic Information -->
+                {{ form.as_p }}
+
+            <!-- Existing Media Section -->
+            <div class="media-section">
+                <h3 class="media-title">
+                    <i class="fas fa-images"></i>
+                    Existing Media Files
+                </h3>
+                
+                {% if media_files %}
+                    <div class="media-grid">
+                        {% for media in media_files %}
+                            <div class="media-item">
+                                {% if ".jpg" in media.file or ".jpeg" in media.file or ".png" in media.file %}
+                                    <img src="{{ media.file }}" class="media-preview" alt="Complaint Image">
+                                {% elif ".mp4" in media.file or ".webm" in media.file %}
+                                    <video class="media-preview" muted>
+                                        <source src="{{ media.file }}" type="video/mp4">
+                                    </video>
+                                {% endif %}
+                                <div class="media-checkbox">
+                                    <input type="checkbox" name="delete_media" value="{{ media.id }}" 
+                                           id="delete_{{ media.id }}" class="checkbox-input">
+                                    <label for="delete_{{ media.id }}" class="checkbox-label">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-media">
+                        <i class="fas fa-images" style="font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i>
+                        No media files attached to this complaint
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Add New Media Section -->
+            <div class="media-section">
+                <h3 class="media-title">
+                    <i class="fas fa-plus-circle"></i>
+                    Add New Media Files
+                </h3>
+                
+                <div class="file-upload-area">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="file-upload-text">
+                        <strong>Click to upload</strong> or drag and drop<br>
+                        Images and videos (Max 10MB each)
+                    </div>
+                    <input type="file" name="media_files" multiple class="file-input" accept="image/*,video/*">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <a href="{% url 'complaint_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Update Complaint
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+      function loadDependentData(url, targetId, emptyMessage) {
+        const targetSelect = document.getElementById(targetId);
+        targetSelect.innerHTML = `<option value="">${emptyMessage}</option>`;
+        targetSelect.disabled = true;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name || item.range;
+                    targetSelect.appendChild(option);
+                });
+                targetSelect.disabled = false;
+            });
+    }
+
+    document.getElementById('id_brand').addEventListener('change', function () {
+        const brandId = this.value;
+        loadDependentData(`/api/models/${brandId}/`, 'id_model', 'Select Model');
+        document.getElementById('id_sub_model').disabled = true;
+        document.getElementById('id_year').disabled = true;
+    });
+
+    document.getElementById('id_model').addEventListener('change', function () {
+        const modelId = this.value;
+        loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
+        document.getElementById('id_year').disabled = true;
+    });
+
+    document.getElementById('id_sub_model').addEventListener('change', function () {
+        const subModelId = this.value;
+        loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', 'Select Year');
+    });
+
+
+        // File upload handling
+        const fileInput = document.querySelector('.file-input');
+        const uploadArea = document.querySelector('.file-upload-area');
+
+        if (fileInput && uploadArea) {
+            fileInput.addEventListener('change', function() {
+                const files = this.files;
+                if (files.length > 0) {
+                    uploadArea.style.borderColor = 'var(--success-color)';
+                    uploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    document.querySelector('.file-upload-text').innerHTML = 
+                        `<strong>${files.length} file(s) selected</strong><br>Ready to upload`;
+                }
+            });
+        }
+
+         // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add active nav state
+            const complaintListLink = document.querySelector('a[href="{% url 'complaint_list' %}"]');
+            if (complaintListLink) {
+                complaintListLink.classList.add('active');
+            }
+        });
+
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        const brand = document.getElementById('id_brand');
+        const model = document.getElementById('id_model');
+        const subModel = document.getElementById('id_sub_model');
+        const year = document.getElementById('id_year');
+
+        const initialModel = "{{ form.instance.model.id|default:'' }}";
+        const initialSubModel = "{{ form.instance.sub_model.id|default:'' }}";
+        const initialYear = "{{ form.instance.year.id|default:'' }}";
+
+        if (brand.value) {
+            loadDependentData(`/api/models/${brand.value}/`, 'id_model', 'Select Model');
+        }
+
+        if (initialModel) {
+            setTimeout(() => {
+                loadDependentData(`/api/sub_models/${initialModel}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
+                setTimeout(() => {
+                    if (initialSubModel) {
+                        loadDependentData(`/api/year_ranges/${initialSubModel}/`, 'id_year', 'Select Year');
+                    }
+                }, 300);
+            }, 300);
+        }
+
+        // Set selected values after AJAX populates them
+        setTimeout(() => {
+            if (initialModel) model.value = initialModel;
+            if (initialSubModel) subModel.value = initialSubModel;
+            if (initialYear) year.value = initialYear;
+        }, 1000);
+    });
+
+
+
+    </script>
+</body>
+</html>

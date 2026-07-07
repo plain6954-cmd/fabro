@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Complaint - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .page-container {
+            max-width: 1720px;
+            margin: 0 auto;
+            padding: 0.9rem 1.35rem 1.35rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 0.85rem;
+        }
+
+        .page-title {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 0.2rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .page-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        body.light-mode .page-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .form-container {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr);
+            gap: 1rem;
+            align-items: start;
+        }
+
+        body.light-mode .form-container {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .form-grid {
+            display: contents;
+        }
+
+        .form-section {
+            background: var(--dark-card);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            min-height: 0;
+        }
+
+        body.light-mode .form-section {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.72rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.32rem;
+            font-size: 0.78rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            min-height: 2.45rem;
+            padding: 0.55rem 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            font-size: 0.82rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .form-input,
+        body.light-mode .form-select,
+        body.light-mode .form-textarea {
+            background-color: var(--light-surface);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 4.25rem;
+        }
+
+        .basic-info-card {
+            grid-column: 1;
+        }
+
+        .contact-info-card {
+            grid-column: 2;
+        }
+
+        .vehicle-info-card {
+            grid-column: 3;
+        }
+
+        .case-details-card {
+            grid-column: 4;
+        }
+
+        .complaint-details-card {
+            grid-column: 1 / 3;
+            margin-top: -9.35rem;
+            margin-bottom: 0 !important;
+        }
+
+        .media-files-card {
+            grid-column: 3 / 5;
+            margin-bottom: 0 !important;
+        }
+
+        .complaint-details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .complaint-details-grid .full-span {
+            grid-column: 1 / -1;
+        }
+
+        .complaint-details-grid .form-textarea {
+            min-height: 4.1rem;
+        }
+
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        .date-input {
+            width: 100%;
+            min-height: 2.45rem;
+            padding: 0.55rem 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            font-size: 0.82rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        body.light-mode .date-input {
+            background-color: var(--light-surface);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .date-icon {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+        }
+
+        body.light-mode .date-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            min-height: 8.5rem;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.85rem;
+        }
+
+        body.light-mode .file-upload-area {
+            border-color: #cbd5e1;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+
+        .file-upload-text {
+            color: var(--dark-text-secondary);
+            font-size: 0.78rem;
+            line-height: 1.35;
+            text-align: left;
+        }
+
+        body.light-mode .file-upload-text {
+            color: var(--light-text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .media-preview-strip {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+            gap: 0.5rem;
+            max-height: 5.8rem;
+            overflow: auto;
+            margin-top: 0.7rem;
+            padding-right: 0.25rem;
+        }
+
+        .media-preview-strip.has-files {
+            display: grid;
+        }
+
+        .media-preview-item {
+            min-height: 4rem;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(18, 18, 20, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--dark-text-secondary);
+            font-size: 0.68rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0.35rem;
+        }
+
+        .media-preview-item img,
+        .media-preview-item video {
+            width: 100%;
+            height: 100%;
+            min-height: 4rem;
+            object-fit: cover;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            align-items: center;
+            grid-column: 1 / -1;
+            margin-top: 0;
+            padding-top: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-group {
+            border-top-color: #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.62rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-surface);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            background: var(--dark-surface);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .loading-spinner {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        @media (max-width: 1180px) {
+            .form-container {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .basic-info-card,
+            .contact-info-card,
+            .vehicle-info-card,
+            .case-details-card,
+            .complaint-details-card,
+            .media-files-card {
+                grid-column: auto;
+            }
+
+            .complaint-details-card,
+            .media-files-card,
+            .btn-group {
+                grid-column: 1 / -1;
+            }
+
+            .complaint-details-card {
+                margin-top: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .form-container {
+                grid-template-columns: 1fr;
+                padding: 0.85rem;
+                gap: 0.85rem;
+            }
+
+            .complaint-details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .complaint-details-grid .full-span {
+                grid-column: auto;
+            }
+
+            .file-upload-area {
+                align-items: flex-start;
+                justify-content: flex-start;
+                min-height: 7rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'management/base.html' %}
+    
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+                Add New Complaint
+            </h1>
+            <p class="page-subtitle">Register a new customer complaint with detailed information</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="form-container">
+            {% csrf_token %}
+
+            <div class="form-grid">
+                <!-- Basic Information -->
+                <div class="form-section basic-info-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Basic Information
+                    </h3>
+                    
+                    {% comment %} <div class="form-group">
+                        <label class="form-label">{{ form.complaint_id.label }}</label>
+                        {{ form.complaint_id }}
+                    </div> {% endcomment %}
+                    
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <div class="date-input-wrapper">
+                            <div class="date-input" id="dateInput">
+                                {{ form.date }}
+                                <i class="fas fa-calendar-alt date-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.status.label }}</label>
+                        {{ form.status }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.priority.label }}</label>
+                        {{ form.priority }}
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="form-section contact-info-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-user"></i>
+                        Contact Information
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.channel.label }}</label>
+                        {{ form.channel }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.country.label }}</label>
+                        {{ form.country }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Reported By</label>
+                        {{ form.person }}
+                    </div>
+                </div>
+
+                <!-- Vehicle Information -->
+                <div class="form-section vehicle-info-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-car"></i>
+                        Vehicle Information
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.brand.label }}</label>
+                        {{ form.brand }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.model.label }}</label>
+                        <select id="id_model" name="model" class="form-select" disabled>
+                            <option value="">Select Model</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.sub_model.label }}</label>
+                        <select id="id_sub_model" name="sub_model" class="form-select" disabled>
+                            <option value="">Select Sub-Model (Optional)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.year.label }}</label>
+                        <select id="id_year" name="year" class="form-select" disabled>
+                            <option value="">Select Year</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">SKU</label>
+                        {{ form.sku }}
+                    </div>
+                </div>
+                <div class="form-section case-details-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        Case Details
+                    </h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        {{form.case_sub_category}}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.series.label }}</label>
+                        {{ form.series }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.material.label }}</label>
+                        {{ form.material }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.batch_order.label }}</label>
+                        {{ form.batch_order }}
+                    </div>
+                    
+                </div>
+            </div>
+            
+            
+                
+            <!-- Description Section -->
+            <div class="form-section complaint-details-card">
+                <h3 class="section-title">
+                    <i class="fas fa-file-alt"></i>
+                    Complaint Details
+                </h3>
+
+                <div class="complaint-details-grid">
+                    <div class="form-group full-span">
+                        <label class="form-label">{{ form.complaint_description.label }}</label>
+                        {{ form.complaint_description }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Update Order #</label>
+                        {{ form.updated_order_no }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CAD Date</label>
+                        <div class="date-input-wrapper">
+                            <div class="date-input">{{ form.cad_date }}
+                                <i class="fas fa-calendar-alt date-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Reason</label>
+                        {{ form.justification_from_factory }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Resolution</label>
+                        {{ form.action_from_factory }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Upload Section -->
+            <div class="form-section media-files-card">
+                <h3 class="section-title">
+                    <i class="fas fa-images"></i>
+                    Media Files
+                </h3>
+                
+                <div class="file-upload-area">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="file-upload-text">
+                        <strong>Click to upload</strong> or drag and drop<br>
+                        Images and videos (Max 10MB each)
+                    </div>
+                    <input type="file" name="media_files" id="media_files" multiple class="file-input" accept="image/*,video/*">
+                </div>
+                <div class="media-preview-strip" id="mediaPreviewStrip" aria-live="polite"></div>
+            </div>
+
+            <div class="btn-group">
+                <button type="reset" class="btn btn-secondary" id="clearComplaintForm">
+                    <i class="fas fa-eraser"></i>
+                    Clear
+                </button>
+                <a href="{% url 'complaint_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Save Complaint
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="loading"></div>
+            <p style="margin-top: 1rem;">Saving complaint...</p>
+        </div>
+    </div>
+
+    <script>
+        // Date picker functionality
+        function initDatePicker() {
+            const dateInput = document.getElementById('dateInput');
+            if (!dateInput) {
+                return;
+            }
+
+            let hiddenDateInput = document.getElementById('complaintDateHidden');
+            if (!hiddenDateInput) {
+                hiddenDateInput = document.createElement('input');
+                hiddenDateInput.type = 'hidden';
+                hiddenDateInput.name = 'date';
+                hiddenDateInput.id = 'complaintDateHidden';
+                dateInput.parentNode.appendChild(hiddenDateInput);
+            }
+
+            const today = new Date();
+            const formattedDate = formatDateDisplay(today);
+            dateInput.value = formattedDate;
+            hiddenDateInput.value = formatDateForSubmission(today);
+
+            if (dateInput.dataset.pickerInitialized === 'true') {
+                return;
+            }
+
+            dateInput.dataset.pickerInitialized = 'true';
+            dateInput.addEventListener('click', function() {
+                const activeHiddenDateInput = document.getElementById('complaintDateHidden');
+                const input = document.createElement('input');
+                input.type = 'date';
+                input.style.position = 'absolute';
+                input.style.left = '-9999px';
+                document.body.appendChild(input);
+
+                if (activeHiddenDateInput.value) {
+                    input.value = activeHiddenDateInput.value;
+                } else {
+                    input.value = formatDateForSubmission(new Date());
+                }
+
+                input.addEventListener('change', function() {
+                    if (this.value) {
+                        const selectedDate = new Date(this.value);
+                        dateInput.value = formatDateDisplay(selectedDate);
+                        activeHiddenDateInput.value = this.value;
+                    }
+                    document.body.removeChild(this);
+                });
+
+                input.click();
+            });
+        }
+        
+        function formatDateDisplay(date) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = months[date.getMonth()];
+            const year = String(date.getFullYear()).slice(-2);
+            return `${day}-${month}-${year}`;
+        }
+        
+        function formatDateForSubmission(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Dynamic form loading
+        function loadDependentData(url, targetId, emptyMessage) {
+            const targetSelect = document.getElementById(targetId);
+            targetSelect.innerHTML = `<option value="">${emptyMessage}</option>`;
+            targetSelect.disabled = true;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name || item.range;
+                        targetSelect.appendChild(option);
+                    });
+                    targetSelect.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    showToast('Error loading data', 'error');
+                });
+        }
+
+        document.getElementById('id_brand').addEventListener('change', function () {
+            const brandId = this.value;
+            if (brandId) {
+                loadDependentData(`/api/models/${brandId}/`, 'id_model', 'Select Model');
+            }
+            document.getElementById('id_sub_model').disabled = true;
+            document.getElementById('id_year').disabled = true;
+        });
+
+        document.getElementById('id_model').addEventListener('change', function () {
+            const modelId = this.value;
+            if (modelId) {
+                loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
+            }
+            document.getElementById('id_year').disabled = true;
+        });
+
+        document.getElementById('id_sub_model').addEventListener('change', function () {
+            const subModelId = this.value;
+            if (subModelId) {
+                loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', 'Select Year');
+            }
+        });
+
+        // File upload handling
+        const fileInput = document.getElementById('media_files');
+        const uploadArea = document.querySelector('.file-upload-area');
+        const uploadText = document.querySelector('.file-upload-text');
+        const mediaPreviewStrip = document.getElementById('mediaPreviewStrip');
+        const defaultUploadText = uploadText ? uploadText.innerHTML : '';
+
+        function clearMediaPreview() {
+            if (!mediaPreviewStrip) {
+                return;
+            }
+            mediaPreviewStrip.querySelectorAll('[data-object-url]').forEach((preview) => {
+                URL.revokeObjectURL(preview.dataset.objectUrl);
+            });
+            mediaPreviewStrip.innerHTML = '';
+            mediaPreviewStrip.classList.remove('has-files');
+        }
+
+        function renderMediaPreview(files) {
+            clearMediaPreview();
+            if (!mediaPreviewStrip || !files.length) {
+                return;
+            }
+
+            Array.from(files).slice(0, 6).forEach((file) => {
+                const item = document.createElement('div');
+                item.className = 'media-preview-item';
+
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.alt = file.name;
+                    img.dataset.objectUrl = url;
+                    item.appendChild(img);
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    const url = URL.createObjectURL(file);
+                    video.src = url;
+                    video.muted = true;
+                    video.dataset.objectUrl = url;
+                    item.appendChild(video);
+                } else {
+                    item.textContent = file.name;
+                }
+
+                mediaPreviewStrip.appendChild(item);
+            });
+
+            if (files.length > 6) {
+                const more = document.createElement('div');
+                more.className = 'media-preview-item';
+                more.textContent = `+${files.length - 6} more`;
+                mediaPreviewStrip.appendChild(more);
+            }
+
+            mediaPreviewStrip.classList.add('has-files');
+        }
+
+        fileInput.addEventListener('change', function() {
+            const files = this.files;
+            if (files.length > 0) {
+                uploadArea.style.borderColor = 'var(--success-color)';
+                uploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                uploadText.innerHTML =
+                    `<strong>${files.length} file(s) selected</strong><br>Ready to upload`;
+                renderMediaPreview(files);
+            }
+        });
+
+        const clearButton = document.getElementById('clearComplaintForm');
+        if (clearButton) {
+            clearButton.addEventListener('click', function() {
+                window.setTimeout(() => {
+                    initDatePicker();
+                    if (uploadArea) {
+                        uploadArea.style.borderColor = '';
+                        uploadArea.style.backgroundColor = '';
+                    }
+                    if (uploadText) {
+                        uploadText.innerHTML = defaultUploadText;
+                    }
+                    clearMediaPreview();
+                    ['id_model', 'id_sub_model', 'id_year'].forEach((id) => {
+                        const select = document.getElementById(id);
+                        if (select) {
+                            select.disabled = true;
+                        }
+                    });
+                }, 0);
+            });
+        }
+
+        // Form submission
+        document.querySelector('form').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initDatePicker();
+            
+            // Add active nav state
+            const addComplaintLink = document.querySelector('a[href="{% url 'add_complaint' %}"]');
+            if (addComplaintLink) {
+                addComplaintLink.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>
