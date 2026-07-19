@@ -10,7 +10,7 @@ This project now has two automated test layers:
 Install Python dependencies and keep the virtual environment available:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\env\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 Install Node test dependencies:
@@ -37,10 +37,14 @@ $env:E2E_EMAIL="your_email@example.com"
 
 ## Start The Website Locally
 
-Playwright starts Django automatically when you run the E2E tests. To run the site manually:
+Playwright starts an isolated Django test server automatically on port `8001`.
+It uses `.e2e.sqlite3` and `.e2e-media/`, so browser tests never modify the
+normal local database or media used by the website on port `8000`.
+
+To run the normal site manually:
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+.\start_fabro.bat
 ```
 
 Then open:

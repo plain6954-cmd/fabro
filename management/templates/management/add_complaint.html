@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Complaint - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1720px;
@@ -36,6 +37,72 @@
 
         body.light-mode .page-subtitle {
             color: var(--light-text-secondary);
+        }
+
+        .complaint-type-dock {
+            width: min(760px, calc(100% - 1rem));
+            margin: 0 auto 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.28rem;
+            padding: 0.36rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            -webkit-backdrop-filter: blur(16px) saturate(132%);
+            backdrop-filter: blur(16px) saturate(132%);
+        }
+
+        body.light-mode .complaint-type-dock {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(244, 244, 245, 0.5));
+            border-color: rgba(24, 24, 27, 0.12);
+            box-shadow: 0 18px 44px rgba(24, 24, 27, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        }
+
+        .complaint-type-tab {
+            border: 0;
+            min-height: 2.7rem;
+            padding: 0.62rem 1rem;
+            border-radius: 999px;
+            background: transparent;
+            color: var(--dark-text-secondary);
+            font-weight: 700;
+            font-size: 0.78rem;
+            letter-spacing: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms var(--motion-ease);
+        }
+
+        body.light-mode .complaint-type-tab {
+            color: var(--light-text-secondary);
+        }
+
+        .complaint-type-tab:hover {
+            color: #fff;
+            background: rgba(220, 38, 38, 0.18);
+            transform: translateY(-1px);
+        }
+
+        body.light-mode .complaint-type-tab:hover {
+            color: var(--primary-color);
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .complaint-type-tab.is-active {
+            color: #fff;
+            background: var(--primary-color);
+            box-shadow: 0 12px 26px rgba(220, 38, 38, 0.28);
+        }
+
+        .complaint-type-tab i {
+            font-size: 0.9rem;
         }
 
         .form-container {
@@ -454,6 +521,23 @@
             .btn {
                 justify-content: center;
             }
+
+            .complaint-type-dock {
+                width: 100%;
+                justify-content: flex-start;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+
+            .complaint-type-dock::-webkit-scrollbar {
+                display: none;
+            }
+
+            .complaint-type-tab {
+                flex: 0 0 auto;
+                font-size: 0.72rem;
+                padding-inline: 0.82rem;
+            }
         }
     </style>
 </head>
@@ -469,8 +553,26 @@
             <p class="page-subtitle">Register a new customer complaint with detailed information</p>
         </div>
 
+        <div class="complaint-type-dock" aria-label="Complaint window type">
+            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'pattern' %} is-active{% endif %}" data-complaint-type="pattern">
+                <i class="fas fa-draw-polygon"></i>
+                <span>PATTERN COMPLAINT</span>
+            </button>
+            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'production' %} is-active{% endif %}" data-complaint-type="production">
+                <i class="fas fa-industry"></i>
+                <span>PRODUCTION COMPLAINT</span>
+            </button>
+            {% if can_create_line %}
+            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'line' %} is-active{% endif %}" data-complaint-type="line">
+                <i class="fas fa-layer-group"></i>
+                <span>LINE COMPLAINT</span>
+            </button>
+            {% endif %}
+        </div>
+
         <form method="POST" enctype="multipart/form-data" class="form-container">
             {% csrf_token %}
+            <input type="hidden" name="complaint_type" id="id_complaint_type" value="{{ selected_complaint_type }}">
 
             <div class="form-grid">
                 <!-- Basic Information -->
@@ -615,24 +717,6 @@
                         <label class="form-label">Update Order #</label>
                         {{ form.updated_order_no }}
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">CAD Date</label>
-                        <div class="date-input-wrapper">
-                            <div class="date-input">{{ form.cad_date }}
-                                <i class="fas fa-calendar-alt date-icon"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Reason</label>
-                        {{ form.justification_from_factory }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Resolution</label>
-                        {{ form.action_from_factory }}
-                    </div>
                 </div>
             </div>
 
@@ -748,6 +832,32 @@
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        }
+
+        function initComplaintTypeDock() {
+            const tabs = Array.from(document.querySelectorAll('.complaint-type-tab'));
+            const typeInput = document.getElementById('id_complaint_type');
+            if (!tabs.length) {
+                return;
+            }
+
+            const syncActiveTab = () => {
+                const activeTab = tabs.find((tab) => tab.dataset.complaintType === typeInput.value) || tabs[0];
+                tabs.forEach((tab) => tab.classList.toggle('is-active', tab === activeTab));
+            };
+
+            tabs.forEach((tab) => {
+                if (tab.dataset.typeDockBound === 'true') {
+                    return;
+                }
+                tab.dataset.typeDockBound = 'true';
+                tab.addEventListener('click', () => {
+                    tabs.forEach((item) => item.classList.toggle('is-active', item === tab));
+                    typeInput.value = tab.dataset.complaintType;
+                });
+            });
+
+            syncActiveTab();
         }
 
         // Dynamic form loading
@@ -898,6 +1008,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             initDatePicker();
+            initComplaintTypeDock();
             
             // Add active nav state
             const addComplaintLink = document.querySelector('a[href="{% url 'add_complaint' %}"]');

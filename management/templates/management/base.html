@@ -1,15 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabro Leather - Car Seat Management</title>
-    {% load static %}
-    <link rel="icon" type="image/png" href="{% static 'FABRO__BRAND ICON_FINAL_CMYK.png' %}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
-    <style>
+{% load static %}
+<style>
         * {
             margin: 0;
             padding: 0;
@@ -94,21 +84,22 @@
         }
 
         .navbar {
-            background: linear-gradient(135deg, var(--dark-surface) 0%, var(--dark-card) 100%);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
+            background: transparent;
+            padding: 0.85rem clamp(1rem, 2.5vw, 2.25rem);
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) minmax(0, auto) minmax(180px, 1fr);
             align-items: center;
-            box-shadow: var(--shadow-lg);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            gap: clamp(0.65rem, 1.4vw, 1.1rem);
+            box-shadow: none;
+            border-bottom: 1px solid transparent;
             position: sticky;
             top: 0;
             z-index: 1000;
         }
 
         body.light-mode .navbar {
-            background: linear-gradient(135deg, var(--light-surface) 0%, var(--light-card) 100%);
-            border-bottom: 1px solid #e2e8f0;
+            background: transparent;
+            border-bottom-color: transparent;
         }
 
         .nav-brand {
@@ -119,31 +110,73 @@
             font-weight: 700;
             color: var(--primary-color);
             text-decoration: none;
+            justify-self: start;
+            min-width: 0;
+            min-height: 58px;
+            padding: 0.28rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(18, 18, 20, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.065);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+            -webkit-backdrop-filter: blur(12px) saturate(118%);
+            backdrop-filter: blur(12px) saturate(118%);
+            transition: transform var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) ease;
+        }
+
+        .nav-brand:hover {
+            transform: translateY(-1px);
+            border-color: rgba(220, 38, 38, 0.24);
         }
 
         .nav-brand-logo {
-            width: 10rem;
-            height: 6rem;
+            width: clamp(12.4rem, 14vw, 15.8rem);
+            height: 3.6rem;
             object-fit: contain;
+            display: block;
         }
 
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-self: center;
+            max-width: min(760px, 100%);
+            gap: 0.18rem;
+            padding: 0.42rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(18px) saturate(135%);
+            backdrop-filter: blur(18px) saturate(135%);
+        }
+
+        body.light-mode .nav-links {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(244, 244, 245, 0.46));
+            border-color: rgba(24, 24, 27, 0.12);
+            box-shadow: 0 18px 44px rgba(24, 24, 27, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.86);
         }
 
         .nav-link {
             color: var(--dark-text-secondary);
             text-decoration: none;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
+            min-height: 48px;
+            padding: 0.68rem 0.82rem;
+            border-radius: 999px;
             font-weight: 500;
-            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms var(--motion-ease);
             position: relative;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.42rem;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        .nav-link span {
+            overflow: hidden;
+            transition: opacity 120ms ease, transform 120ms var(--motion-ease), max-width 120ms ease;
+            max-width: 9rem;
         }
 
         body.light-mode .nav-link {
@@ -164,13 +197,15 @@
         .profile-dropdown {
             position: relative;
             display: inline-block;
+            justify-self: end;
         }
 
         .profile-trigger {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
+            gap: 0.58rem;
+            min-height: 58px;
+            padding: 0.48rem 0.78rem;
             background-color: var(--dark-card);
             border-radius: 50px;
             cursor: pointer;
@@ -189,8 +224,8 @@
         }
 
         .profile-avatar {
-            width: 2.5rem;
-            height: 2.5rem;
+            width: 2.25rem;
+            height: 2.25rem;
             background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
             border-radius: 50%;
             display: flex;
@@ -198,6 +233,20 @@
             justify-content: center;
             color: white;
             font-weight: 600;
+            font-size: 0.9rem;
+            flex: 0 0 auto;
+        }
+
+        .profile-trigger > div:not(.profile-avatar) {
+            line-height: 1.2;
+        }
+
+        .profile-trigger > div:not(.profile-avatar) > div:first-child {
+            font-size: 0.82rem !important;
+        }
+
+        .profile-trigger > div:not(.profile-avatar) > div:last-child {
+            font-size: 0.68rem !important;
         }
 
         .profile-dropdown-content {
@@ -356,7 +405,7 @@
         }
 
         html {
-            scroll-behavior: smooth;
+            scroll-behavior: auto;
         }
 
         .scroll-progress {
@@ -378,8 +427,8 @@
         }
 
         .navbar.is-scrolled {
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
-            border-bottom-color: rgba(220, 38, 38, 0.28);
+            box-shadow: none;
+            border-bottom-color: transparent;
         }
 
         .nav-brand-logo {
@@ -388,32 +437,158 @@
 
         .scroll-reveal {
             opacity: 0;
-            transform: translate3d(0, 18px, 0);
-            transition: opacity 0.52s ease, transform 0.52s cubic-bezier(0.2, 0.7, 0.2, 1);
+            clip-path: inset(10% 0 0 0 round 6px);
+            transition: opacity 0.38s ease, clip-path 0.38s cubic-bezier(0.2, 0.7, 0.2, 1);
             transition-delay: var(--scroll-delay, 0ms);
-            will-change: opacity, transform;
+            will-change: opacity, clip-path;
         }
 
         .scroll-reveal.is-visible {
             opacity: 1;
-            transform: translate3d(0, 0, 0);
+            clip-path: inset(0 round 6px);
             will-change: auto;
         }
 
         .scroll-reveal.reveal-left {
-            transform: translate3d(-14px, 0, 0);
+            clip-path: inset(0 0 0 8% round 6px);
         }
 
         .scroll-reveal.reveal-left.is-visible {
-            transform: translate3d(0, 0, 0);
+            clip-path: inset(0 round 6px);
         }
 
         .scroll-reveal.reveal-scale {
-            transform: translate3d(0, 14px, 0) scale(0.98);
+            clip-path: inset(8% 2% 0 2% round 8px);
         }
 
         .scroll-reveal.reveal-scale.is-visible {
-            transform: translate3d(0, 0, 0) scale(1);
+            clip-path: inset(0 round 8px);
+        }
+
+        .fabro-page-transition-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 998;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate3d(0, 0, 0) scaleX(0.96);
+            transform-origin: center;
+            background:
+                radial-gradient(circle at var(--fabro-transition-x, 50%) 18%, rgba(220, 38, 38, 0.2), transparent 34%),
+                linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.11), transparent);
+            -webkit-backdrop-filter: blur(0);
+            backdrop-filter: blur(0);
+            transition: opacity 220ms var(--motion-ease), transform 260ms var(--motion-ease), backdrop-filter 260ms var(--motion-ease);
+        }
+
+        #fabro-app-shell {
+            position: relative;
+            transform: translate3d(0, 0, 0);
+            will-change: transform, opacity;
+        }
+
+        #fabro-app-shell.is-routing {
+            pointer-events: none;
+        }
+
+        #fabro-app-shell.route-exit-next {
+            animation: fabroContentExitNext 80ms ease both;
+        }
+
+        #fabro-app-shell.route-exit-prev {
+            animation: fabroContentExitPrev 80ms ease both;
+        }
+
+        #fabro-app-shell.route-enter-next {
+            animation: fabroContentEnterNext 150ms var(--motion-ease) both;
+        }
+
+        #fabro-app-shell.route-enter-prev {
+            animation: fabroContentEnterPrev 150ms var(--motion-ease) both;
+        }
+
+        body.fabro-page-exiting .fabro-page-transition-layer {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scaleX(1);
+        }
+
+        .page-container,
+        .dashboard-container,
+        .container,
+        main,
+        .content,
+        .main-content {
+            transform-origin: 50% 18%;
+        }
+
+        body.fabro-page-entered:not(.fabro-ajax-routing) .page-container,
+        body.fabro-page-entered:not(.fabro-ajax-routing) .dashboard-container,
+        body.fabro-page-entered:not(.fabro-ajax-routing) .container,
+        body.fabro-page-entered:not(.fabro-ajax-routing) main,
+        body.fabro-page-entered:not(.fabro-ajax-routing) .content,
+        body.fabro-page-entered:not(.fabro-ajax-routing) .main-content {
+            animation: fabroWindowGlideIn 180ms var(--motion-ease) both;
+        }
+
+        body.fabro-page-exiting .page-container,
+        body.fabro-page-exiting .dashboard-container,
+        body.fabro-page-exiting .container,
+        body.fabro-page-exiting main,
+        body.fabro-page-exiting .content,
+        body.fabro-page-exiting .main-content {
+            opacity: 0;
+            transform: translate3d(-12px, 0, 0) scale(0.995);
+            transition: opacity 120ms ease, transform 140ms var(--motion-ease);
+        }
+
+        @keyframes fabroWindowGlideIn {
+            from {
+                opacity: 0;
+                transform: translate3d(10px, 0, 0) scale(0.996);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+
+        @keyframes fabroContentExitNext {
+            to {
+                opacity: 0;
+                transform: translate3d(-12px, 0, 0) scale(0.998);
+            }
+        }
+
+        @keyframes fabroContentExitPrev {
+            to {
+                opacity: 0;
+                transform: translate3d(12px, 0, 0) scale(0.998);
+            }
+        }
+
+        @keyframes fabroContentEnterNext {
+            from {
+                opacity: 0;
+                transform: translate3d(12px, 0, 0) scale(0.998);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+
+        @keyframes fabroContentEnterPrev {
+            from {
+                opacity: 0;
+                transform: translate3d(-12px, 0, 0) scale(0.998);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -424,49 +599,296 @@
             .scroll-progress,
             .navbar,
             .nav-brand-logo,
-            .scroll-reveal {
+            .scroll-reveal,
+            .fabro-page-transition-layer,
+            .page-container,
+            .dashboard-container,
+            .container,
+            main,
+            .content,
+            .main-content {
                 transition: none;
                 animation: none;
+                filter: none;
             }
 
             .scroll-reveal {
                 opacity: 1;
+                clip-path: none;
                 transform: none;
+            }
+        }
+
+        @media (max-width: 1180px) and (min-width: 769px) {
+            .navbar {
+                grid-template-columns: auto minmax(0, auto) auto;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .nav-brand-logo {
+                width: clamp(10.2rem, 12vw, 12.25rem);
+                height: 3.35rem;
+            }
+
+            .nav-link {
+                padding: 0.62rem 0.68rem;
+                font-size: 0.82rem;
+                gap: 0.34rem;
+            }
+
+            .nav-links {
+                max-width: 660px;
+                gap: 0.1rem;
+                padding: 0.34rem;
+            }
+
+            .profile-trigger {
+                padding: 0.65rem 0.8rem;
+            }
+        }
+
+        @media (max-width: 1040px) {
+            .navbar {
+                grid-template-columns: auto minmax(0, auto) auto;
+                justify-content: space-between;
+                gap: 0.55rem;
+            }
+
+            .nav-brand {
+                min-height: 56px;
+                padding: 0.18rem 0.55rem;
+            }
+
+            .nav-brand-logo {
+                width: clamp(8.2rem, 14vw, 10.8rem);
+                height: 3rem;
+            }
+
+            .nav-links {
+                max-width: min(560px, 100%);
+                padding: 0.34rem;
+                gap: 0.08rem;
+                contain: layout paint;
+            }
+
+            .nav-link {
+                min-width: 50px;
+                min-height: 48px;
+                justify-content: center;
+                padding: 0.6rem 0.72rem;
+                gap: 0;
+            }
+
+            .nav-link span {
+                max-width: 0;
+                opacity: 0;
+                transform: scale(0.92);
+                pointer-events: none;
+            }
+
+            .nav-link i {
+                font-size: 1rem;
+            }
+
+            .profile-trigger {
+                min-height: 56px;
+                padding: 0.42rem 0.58rem;
+            }
+
+            .profile-trigger > div:not(.profile-avatar),
+            .profile-trigger .fa-chevron-down {
+                display: none;
             }
         }
 
         @media (max-width: 768px) {
             .navbar {
-                padding: 1rem;
+                display: grid;
+                grid-template-columns: auto minmax(0, auto) auto;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.6rem 0.7rem;
+                gap: 0.45rem;
+                min-height: 72px;
+                overflow: visible;
+            }
+
+            .navbar::before {
+                display: none;
+            }
+
+            .navbar::after {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: none;
+            }
+
+            .nav-brand {
+                display: flex;
+                min-height: 52px;
+                padding: 0.08rem 0.45rem;
+            }
+
+            .nav-brand-logo {
+                width: clamp(6.6rem, 24vw, 8.5rem);
+                height: 2.75rem;
+                transform: none;
             }
 
             .nav-links {
+                position: relative;
+                inset: auto;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+                width: auto;
+                max-width: min(100%, 360px);
+                overflow-x: hidden;
+                overflow-y: hidden;
+                gap: 0.08rem;
+                padding: 0.32rem;
+                border-radius: 999px;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.045));
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.11);
+                -webkit-backdrop-filter: blur(18px) saturate(135%);
+                backdrop-filter: blur(18px) saturate(135%);
+                scrollbar-width: none;
+                contain: layout paint;
+                animation: none;
+            }
+
+            .nav-links::-webkit-scrollbar {
                 display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                background-color: var(--dark-surface);
-                flex-direction: column;
-                padding: 1rem;
-                box-shadow: var(--shadow-lg);
             }
 
             body.light-mode .nav-links {
-                background-color: var(--light-surface);
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(244, 244, 245, 0.5));
+                border-color: rgba(24, 24, 27, 0.12);
+                box-shadow: 0 18px 44px rgba(24, 24, 27, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.88);
             }
 
             .nav-links.active {
                 display: flex;
             }
 
-            .mobile-menu-toggle {
-                display: block;
+            .nav-link {
+                width: auto;
+                min-width: 46px;
+                min-height: 46px;
+                flex: 0 0 auto;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                gap: 0;
+                padding: 0.55rem 0.64rem;
+                border-radius: 999px;
+                font-size: 0.82rem;
+            }
+
+            .nav-link i {
+                font-size: 1rem;
+            }
+
+            .nav-link.active {
+                min-width: 54px;
+                background: var(--primary-color);
+                color: #fff;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 28px rgba(0, 0, 0, 0.22);
+            }
+
+            .nav-link.active i {
+                transform: scale(1.08);
+            }
+
+            body.light-mode .nav-link.active {
+                color: #fff;
+                background: var(--primary-color);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 12px 26px rgba(24, 24, 27, 0.12);
+            }
+
+            .profile-dropdown {
+                position: relative;
+                right: auto;
+                top: auto;
+                transform: none;
+                justify-self: end;
+            }
+
+            .profile-trigger {
+                width: 52px;
+                height: 52px;
+                min-height: 52px;
+                padding: 0.35rem;
+                border-radius: 999px;
+            }
+
+            .profile-trigger > div:not(.profile-avatar),
+            .profile-trigger .fa-chevron-down {
+                display: none;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .navbar {
+                padding: 0.55rem 0.45rem;
+                gap: 0.32rem;
+            }
+
+            .nav-brand {
+                min-height: 48px;
+                padding: 0.06rem 0.32rem;
+            }
+
+            .nav-brand-logo {
+                width: clamp(5.2rem, 21vw, 6.3rem);
+                height: 2.45rem;
+            }
+
+            .nav-links {
+                max-width: min(100%, 252px);
+                padding: 0.26rem;
+                gap: 0.04rem;
             }
 
             .nav-link {
-                width: 100%;
-                justify-content: flex-start;
+                min-width: 39px;
+                min-height: 42px;
+                padding: 0.46rem 0.5rem;
+            }
+
+            .nav-link.active {
+                min-width: 45px;
+            }
+
+            .profile-trigger {
+                width: 48px;
+                height: 48px;
+                min-height: 48px;
+                padding: 0.28rem;
+            }
+
+            .profile-avatar {
+                width: 2.05rem;
+                height: 2.05rem;
+            }
+        }
+
+        @keyframes fabroDockShrinkIn {
+            from {
+                opacity: 0;
+                transform: translate3d(0, -10px, 0) scaleX(1.12) scaleY(0.92);
+                filter: blur(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scaleX(1) scaleY(1);
+                filter: blur(0);
             }
         }
 
@@ -569,7 +991,6 @@
             opacity: 0.46;
         }
 
-        .navbar,
         .profile-dropdown-content,
         .messages,
         .toast,
@@ -598,7 +1019,6 @@
             backdrop-filter: blur(18px) saturate(130%);
         }
 
-        body.light-mode .navbar,
         body.light-mode .profile-dropdown-content,
         body.light-mode .form-section,
         body.light-mode .form-container,
@@ -734,6 +1154,13 @@
             transform: translate3d(0, -4px, 0) scale(1.01);
             border-color: var(--glass-border-hot);
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(220, 38, 38, 0.1), var(--glass-inner-light);
+        }
+
+        /* Action targets must remain stationary while the pointer enters them. */
+        .setting-item:hover,
+        .btn:hover,
+        .action-btn:hover {
+            transform: translate3d(0, 0, 0) !important;
         }
 
         body.light-mode .action-card-compact::before,
@@ -1011,8 +1438,12 @@
                 return;
             }
 
+            if (typeof window.__fabroScrollCleanup === 'function') {
+                window.__fabroScrollCleanup();
+            }
+
             const animationWindowMs = 20000;
-            const progress = document.createElement('div');
+            const progress = document.querySelector('.scroll-progress') || document.createElement('div');
             const navbar = document.querySelector('.navbar');
             const revealSelectors = [
                 '.page-header',
@@ -1035,21 +1466,21 @@
                 '.upload-container',
                 '.card',
                 '.category-card',
-                '.setting-item',
                 '.profile-card',
                 '.profile-detail-item',
                 '.car-card',
                 '.vehicle-card',
                 '.complaint-card',
                 '.settings-card',
-                '.btn-group',
-                '.btn'
+                '.btn-group'
             ];
             let ticking = false;
 
             progress.className = 'scroll-progress';
             progress.setAttribute('aria-hidden', 'true');
-            document.body.appendChild(progress);
+            if (!progress.parentElement) {
+                document.body.appendChild(progress);
+            }
 
             const updateScrollState = () => {
                 const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -1084,7 +1515,7 @@
                 if (element.matches('.section-header')) {
                     element.classList.add('reveal-left');
                 }
-                if (element.matches('.action-card-compact, .stat-card-compact, .card, .car-card, .vehicle-card, .complaint-card, .settings-card, .category-card, .setting-item, .profile-card, .profile-detail-item, .btn')) {
+                if (element.matches('.action-card-compact, .stat-card-compact, .card, .car-card, .vehicle-card, .complaint-card, .settings-card, .category-card, .profile-card, .profile-detail-item')) {
                     element.classList.add('reveal-scale');
                 }
                 element.style.setProperty('--scroll-delay', `${Math.min(index % 6, 5) * 45}ms`);
@@ -1106,12 +1537,20 @@
             window.addEventListener('scroll', onScroll, { passive: true });
             updateScrollState();
 
-            window.setTimeout(() => {
+            const cleanupTimer = window.setTimeout(() => {
                 observer.disconnect();
                 window.removeEventListener('scroll', onScroll);
                 revealItems.forEach((element) => element.classList.add('is-visible'));
                 progress.style.willChange = 'auto';
             }, animationWindowMs);
+
+            window.__fabroScrollCleanup = () => {
+                window.clearTimeout(cleanupTimer);
+                observer.disconnect();
+                window.removeEventListener('scroll', onScroll);
+                revealItems.forEach((element) => element.classList.add('is-visible'));
+                progress.style.willChange = 'auto';
+            };
         };
 
         const initPremiumInteractions = () => {
@@ -1129,12 +1568,14 @@
                 '.settings-card'
             ].join(',');
 
-            if (!reduceMotion && window.matchMedia('(pointer: fine)').matches) {
+            if (!window.__fabroPremiumGlobalReady && !reduceMotion && window.matchMedia('(pointer: fine)').matches) {
                 let pointerFrame = null;
-                const trail = document.createElement('span');
+                const trail = document.querySelector('.fabro-mouse-trail') || document.createElement('span');
                 trail.className = 'fabro-mouse-trail';
                 trail.setAttribute('aria-hidden', 'true');
-                document.body.appendChild(trail);
+                if (!trail.parentElement) {
+                    document.body.appendChild(trail);
+                }
                 let hideTrailTimer = null;
 
                 document.addEventListener('pointermove', (event) => {
@@ -1166,20 +1607,28 @@
                 }, { passive: true });
             }
 
-            document.addEventListener('pointerdown', (event) => {
-                const target = event.target.closest('.btn, .action-btn, .nav-link, .profile-btn, .action-card-compact, .stat-card-compact');
-                if (target) {
-                    target.classList.add('fabro-pressed');
-                }
-            }, { passive: true });
+            if (!window.__fabroPremiumGlobalReady) {
+                document.addEventListener('pointerdown', (event) => {
+                    const target = event.target.closest('.btn, .action-btn, .nav-link, .profile-btn, .action-card-compact, .stat-card-compact');
+                    if (target) {
+                        target.classList.add('fabro-pressed');
+                    }
+                }, { passive: true });
 
-            document.addEventListener('pointerup', () => {
-                document.querySelectorAll('.fabro-pressed').forEach((element) => {
-                    element.classList.remove('fabro-pressed');
-                });
-            }, { passive: true });
+                document.addEventListener('pointerup', () => {
+                    document.querySelectorAll('.fabro-pressed').forEach((element) => {
+                        element.classList.remove('fabro-pressed');
+                    });
+                }, { passive: true });
+
+                window.__fabroPremiumGlobalReady = true;
+            }
 
             document.querySelectorAll('form').forEach((form) => {
+                if (form.dataset.fabroSubmitBound === 'true') {
+                    return;
+                }
+                form.dataset.fabroSubmitBound = 'true';
                 form.addEventListener('submit', () => {
                     const submitter = form.querySelector('button[type="submit"], input[type="submit"]');
                     if (submitter && !submitter.disabled) {
@@ -1191,11 +1640,323 @@
             });
         };
 
+        const initWindowNavigationTransitions = () => {
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduceMotion) {
+                return;
+            }
+
+            const transitionLayer = document.createElement('div');
+            transitionLayer.className = 'fabro-page-transition-layer';
+            transitionLayer.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(transitionLayer);
+
+            window.requestAnimationFrame(() => {
+                document.body.classList.add('fabro-page-entered');
+            });
+
+            window.addEventListener('pageshow', () => {
+                document.body.classList.remove('fabro-page-exiting');
+                document.body.classList.add('fabro-page-entered');
+            });
+        };
+
+        const runWhenIdle = (callback, timeout = 1200) => {
+            if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(callback, { timeout });
+                return;
+            }
+            window.setTimeout(callback, Math.min(timeout, 500));
+        };
+
+        const initActiveWindowLabel = () => {
+            const navbar = document.querySelector('.navbar');
+            if (!navbar) {
+                return;
+            }
+
+            const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+            const navLinks = Array.from(document.querySelectorAll('.nav-links .nav-link'));
+            const activeLink = navLinks.find((link) => {
+                const linkPath = link.pathname.replace(/\/+$/, '') || '/';
+                return linkPath === currentPath;
+            });
+
+            navLinks.forEach((link) => link.classList.toggle('active', link === activeLink));
+
+            const fallbackTitle = document.querySelector('.page-title, .dashboard-title, h1');
+            const label = activeLink
+                ? activeLink.textContent.trim()
+                : fallbackTitle
+                    ? fallbackTitle.textContent.trim()
+                    : 'Dashboard';
+
+            navbar.setAttribute('data-active-window', label);
+        };
+
+        const initAppShellRouter = () => {
+            const navbar = document.querySelector('.navbar');
+            if (!navbar || !window.fetch || !window.DOMParser || window.__fabroRouterReady) {
+                return;
+            }
+            window.__fabroRouterReady = true;
+
+            let pendingRoute = null;
+
+            const routeLinks = () => Array.from(document.querySelectorAll('.nav-brand, .nav-links .nav-link'));
+            const normalizePath = (url) => new URL(url, window.location.href).pathname.replace(/\/+$/, '') || '/';
+
+            const ensureShell = () => {
+                let shell = document.getElementById('fabro-app-shell');
+                if (shell) {
+                    return shell;
+                }
+
+                shell = document.createElement('main');
+                shell.id = 'fabro-app-shell';
+                shell.setAttribute('aria-live', 'polite');
+
+                navbar.insertAdjacentElement('afterend', shell);
+
+                const nodesToMove = [];
+                let node = shell.nextSibling;
+                while (node) {
+                    const next = node.nextSibling;
+                    nodesToMove.push(node);
+                    node = next;
+                }
+
+                nodesToMove.forEach((item) => shell.appendChild(item));
+                return shell;
+            };
+
+            const canRoute = (anchor) => {
+                if (!anchor || anchor.target || anchor.hasAttribute('download')) {
+                    return false;
+                }
+
+                const href = anchor.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('#') || href.startsWith('javascript:')) {
+                    return false;
+                }
+
+                const url = new URL(href, window.location.href);
+                const isTopNav = anchor.matches('.nav-brand, .nav-links .nav-link');
+                return isTopNav && url.origin === window.location.origin && url.pathname !== window.location.pathname;
+            };
+
+            const getDirection = (targetHref) => {
+                const links = routeLinks().filter((link) => link.matches('.nav-links .nav-link'));
+                const currentPath = normalizePath(window.location.href);
+                const targetPath = normalizePath(targetHref);
+                const currentIndex = links.findIndex((link) => normalizePath(link.href) === currentPath);
+                const targetIndex = links.findIndex((link) => normalizePath(link.href) === targetPath);
+
+                if (currentIndex === -1 || targetIndex === -1 || targetIndex >= currentIndex) {
+                    return 'next';
+                }
+                return 'prev';
+            };
+
+            const extractContent = (doc) => {
+                const fetchedNav = doc.querySelector('.navbar');
+                const contentNodes = [];
+
+                if (fetchedNav) {
+                    let node = fetchedNav.nextSibling;
+                    while (node) {
+                        const next = node.nextSibling;
+                        contentNodes.push(node);
+                        node = next;
+                    }
+                } else {
+                    contentNodes.push(...Array.from(doc.body.childNodes));
+                }
+
+                const fragment = document.createDocumentFragment();
+                contentNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE && node.matches('.navbar, .messages')) {
+                        return;
+                    }
+                    fragment.appendChild(document.importNode(node, true));
+                });
+
+                return fragment;
+            };
+
+            const applyPageHead = (doc) => {
+                if (doc.title) {
+                    document.title = doc.title;
+                }
+
+                document.querySelectorAll('[data-fabro-page-style]').forEach((style) => style.remove());
+
+                doc.head.querySelectorAll('style').forEach((style) => {
+                    const nextStyle = document.createElement('style');
+                    nextStyle.dataset.fabroPageStyle = 'true';
+                    nextStyle.textContent = style.textContent;
+                    document.head.appendChild(nextStyle);
+                });
+            };
+
+            const executePageScripts = (container) => {
+                const scripts = Array.from(container.querySelectorAll('script'));
+                if (!scripts.length) {
+                    return;
+                }
+
+                const readyCallbacks = [];
+                const originalAddEventListener = document.addEventListener.bind(document);
+
+                document.addEventListener = function(type, listener, options) {
+                    if (type === 'DOMContentLoaded' && typeof listener === 'function') {
+                        readyCallbacks.push(listener);
+                        return;
+                    }
+                    originalAddEventListener(type, listener, options);
+                };
+
+                scripts.forEach((script) => {
+                    const replacement = document.createElement('script');
+                    Array.from(script.attributes).forEach((attr) => replacement.setAttribute(attr.name, attr.value));
+                    replacement.textContent = script.src
+                        ? script.textContent
+                        : script.textContent.replace(/\b(const|let)\b/g, 'var');
+                    script.replaceWith(replacement);
+                });
+
+                document.addEventListener = originalAddEventListener;
+
+                readyCallbacks.forEach((callback) => {
+                    try {
+                        callback.call(document, new Event('DOMContentLoaded'));
+                    } catch (error) {
+                        console.warn('Fabro page init skipped:', error);
+                    }
+                });
+            };
+
+            const replaceContent = async (href, options = {}) => {
+                const shell = ensureShell();
+                const direction = options.direction || getDirection(href);
+                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (shell.classList.contains('is-routing')) {
+                    // Keep the most recent click instead of dropping it while the
+                    // previous page finishes its short transition.
+                    pendingRoute = { href, options };
+                    return;
+                }
+
+                const finishRouting = () => {
+                    shell.classList.remove(
+                        'is-routing',
+                        'route-exit-next',
+                        'route-exit-prev',
+                        'route-enter-next',
+                        'route-enter-prev'
+                    );
+                    document.body.classList.remove('fabro-ajax-routing');
+
+                    const nextRoute = pendingRoute;
+                    pendingRoute = null;
+                    if (nextRoute && normalizePath(nextRoute.href) !== normalizePath(window.location.href)) {
+                        replaceContent(nextRoute.href, nextRoute.options);
+                    }
+                };
+
+                shell.classList.add('is-routing');
+                document.body.classList.add('fabro-ajax-routing');
+
+                try {
+                    const response = await fetch(href, {
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        headers: {
+                            'X-Requested-With': 'fetch',
+                            'Accept': 'text/html'
+                        }
+                    });
+
+                    if (!response.ok || response.redirected) {
+                        window.location.href = href;
+                        return;
+                    }
+
+                    const html = await response.text();
+
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const fragment = extractContent(doc);
+
+                    applyPageHead(doc);
+                    shell.replaceChildren(fragment);
+                    executePageScripts(shell);
+
+                    document.documentElement.style.overflow = '';
+                    document.body.style.overflow = '';
+                    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                    if (options.push !== false) {
+                        window.history.pushState({ fabroRoute: true }, '', href);
+                    }
+
+                    initTheme();
+                    initActiveWindowLabel();
+                    initPremiumInteractions();
+
+                    shell.classList.remove(`route-exit-${direction}`, `route-enter-${direction}`);
+                    if (shell.getAnimations) {
+                        shell.getAnimations().forEach((animation) => animation.cancel());
+                    }
+
+                    if (reduceMotion) {
+                        finishRouting();
+                        return;
+                    }
+
+                    void shell.offsetWidth;
+                    window.requestAnimationFrame(() => {
+                        shell.classList.add(`route-enter-${direction}`);
+                    });
+                    window.setTimeout(() => {
+                        finishRouting();
+                    }, 165);
+                } catch (error) {
+                    finishRouting();
+                    console.warn('Fabro smooth navigation fallback:', error);
+                    window.location.href = href;
+                }
+            };
+
+            ensureShell();
+
+            document.addEventListener('click', (event) => {
+                const anchor = event.target.closest('a');
+                if (!canRoute(anchor) || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                    return;
+                }
+
+                event.preventDefault();
+                if (anchor.matches('.nav-links .nav-link')) {
+                    document.querySelectorAll('.nav-links .nav-link').forEach((link) => {
+                        link.classList.toggle('active', link === anchor);
+                    });
+                    navbar.setAttribute('data-active-window', anchor.textContent.trim());
+                }
+                replaceContent(anchor.href, { push: true });
+            });
+
+            window.addEventListener('popstate', () => {
+                replaceContent(window.location.href, { push: false });
+            });
+        };
+
         // Initialize on DOM load
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
-            initScrollDynamics();
+            initActiveWindowLabel();
+            initWindowNavigationTransitions();
+            initAppShellRouter();
             initPremiumInteractions();
+            runWhenIdle(initScrollDynamics, 1400);
         });
 
         setTimeout(function () {
@@ -1207,9 +1968,6 @@
             }
         }, 6000);
     </script>
-</head>
-
-<body>
     {% if messages %}
     <div class="messages" id="flash-messages">
         {% for message in messages %}
@@ -1218,9 +1976,9 @@
     </div>
     {% endif %}
 
-    <nav class="navbar">
+    <nav class="navbar" data-active-window="Dashboard">
         <a href="{% url 'index' %}" class="nav-brand">
-            <img src="{% static 'bilingual logo.png' %}" alt="Fabro Leather Logo" class="nav-brand-logo">
+            <img src="{% static 'fabro-logo.png' %}" alt="Fabro Leather Logo" class="nav-brand-logo">
 
         </a>
 
@@ -1229,10 +1987,12 @@
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
+            {% if can_create_complaint %}
             <a href="{% url 'add_complaint' %}" class="nav-link">
                 <i class="fas fa-plus-circle"></i>
                 <span>Add Complaint</span>
             </a>
+            {% endif %}
             <a href="{% url 'complaint_list' %}" class="nav-link">
                 <i class="fas fa-list"></i>
                 <span>Complaints</span>
@@ -1245,10 +2005,12 @@
                 <i class="fas fa-barcode"></i>
                 <span>SKU</span>
             </a>
+            {% if can_manage_workflow %}
             <a href="{% url 'master_settings' %}" class="nav-link">
                 <i class="fas fa-cog"></i>
                 <span>Master</span>
             </a>
+            {% endif %}
         </div>
 
         <div class="profile-dropdown">
@@ -1258,7 +2020,7 @@
                 </div>
                 <div>
                     <div style="font-weight: 600; font-size: 0.875rem;">{{ request.user.username }}</div>
-                    <div style="font-size: 0.75rem; opacity: 0.7;">Administrator</div>
+                    <div style="font-size: 0.75rem; opacity: 0.7;">{{ workflow_role_label }}</div>
                 </div>
                 <i class="fas fa-chevron-down" style="font-size: 0.75rem; opacity: 0.7;"></i>
             </div>
@@ -1266,7 +2028,7 @@
             <div class="profile-dropdown-content">
                 <div class="dropdown-header">
                     <div style="font-weight: 600;">{{ request.user.username }}</div>
-                    <div style="font-size: 0.875rem; opacity: 0.7;">System Administrator</div>
+                    <div style="font-size: 0.875rem; opacity: 0.7;">{{ workflow_role_label }}</div>
                 </div>
 
                 <a href="{% url 'profile_settings' %}" class="dropdown-item">
@@ -1274,10 +2036,17 @@
                     <span>Profile Settings</span>
                 </a>
 
-                <a href="#" class="dropdown-item" onclick="showToast('You have no new notifications.', 'info'); return false;">
+                <a href="{% url 'notification_list' %}" class="dropdown-item">
                     <i class="fas fa-bell"></i>
                     <span>Notifications</span>
                 </a>
+
+                {% if is_workflow_approver %}
+                <a href="{% url 'approval_inbox' %}" class="dropdown-item">
+                    <i class="fas fa-user-check"></i>
+                    <span>Approval Inbox</span>
+                </a>
+                {% endif %}
 
                 <div class="theme-toggle">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -1303,6 +2072,3 @@
             <i class="fas fa-bars"></i>
         </button>
     </nav>
-</body>
-
-</html>

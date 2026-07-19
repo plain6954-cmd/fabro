@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile Settings - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1200px;
@@ -313,10 +314,42 @@
             color: var(--light-text);
         }
 
+        .admin-access-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .admin-access-copy {
+            color: var(--dark-text-secondary);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        body.light-mode .admin-access-copy {
+            color: var(--light-text-secondary);
+        }
+
+        .admin-panel-btn {
+            flex: 0 0 auto;
+            text-decoration: none;
+            min-width: 168px;
+        }
+
         @media (max-width: 900px) {
             .profile-grid {
                 grid-template-columns: 1fr;
                 gap: 2rem;
+            }
+
+            .admin-access-row {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .admin-panel-btn {
+                width: 100%;
             }
         }
     </style>
@@ -347,7 +380,7 @@
                         {% endif %}
                     </div>
                     <div class="user-meta-role">
-                        {% if request.user.is_superuser %}System Administrator{% else %}User Profile{% endif %}
+                        {{ workflow_role_label }}
                     </div>
                 </div>
 
@@ -474,6 +507,22 @@
                         </div>
                     </form>
                 </div>
+
+                {% if can_manage_workflow %}
+                <div class="profile-card" data-testid="administration-card">
+                    <div class="section-header">
+                        <span class="section-title">
+                            <i class="fas fa-user-shield"></i> Administration
+                        </span>
+                    </div>
+                    <div class="admin-access-row">
+                        <p class="admin-access-copy">Manage FABRO users, workflow roles, groups, permissions, and system activity.</p>
+                        <a href="{% url 'admin_panel' %}" class="btn btn-primary admin-panel-btn" data-testid="open-admin-panel">
+                            <i class="fas fa-cogs"></i> Admin Panel
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

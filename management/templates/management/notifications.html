@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
+</head>
+<body>
+    {% include 'management/base.html' %}
+
+    <main class="workflow-page">
+        <header class="workflow-header">
+            <div>
+                <h1 class="workflow-title"><i class="fas fa-bell"></i> Notifications</h1>
+                <p class="workflow-subtitle">Approval requests, factory assignments, rework, and closure updates.</p>
+            </div>
+            <div class="workflow-header-actions">
+                <form method="post" action="{% url 'mark_all_notifications_read' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="workflow-btn secondary"><i class="fas fa-check-double"></i> Mark All Read</button>
+                </form>
+                <a href="{% url 'index' %}" class="workflow-btn secondary"><i class="fas fa-home"></i> Dashboard</a>
+            </div>
+        </header>
+
+        <section class="workflow-panel">
+            {% if notifications %}
+                <div class="notification-list-page">
+                    {% for notification in notifications %}
+                        <a href="{% url 'open_notification' notification.id %}" class="notification-row {% if not notification.is_read %}unread{% endif %}">
+                            <span class="notification-icon">
+                                <i class="fas {% if notification.notification_type == 'approval' %}fa-user-check{% elif notification.notification_type == 'fully_approved' %}fa-flag-checkered{% elif notification.notification_type == 'rework' %}fa-rotate-left{% elif notification.notification_type == 'closed' %}fa-check-circle{% else %}fa-bell{% endif %}"></i>
+                            </span>
+                            <span>
+                                <strong>{{ notification.title }}</strong>
+                                <span>{% if notification.complaint %}{{ notification.complaint.complaint_id }} · {% endif %}{{ notification.message|default:"Workflow update available." }}</span>
+                            </span>
+                            <span class="status-pill {% if notification.is_read %}approved{% else %}pending{% endif %}">
+                                {% if notification.is_read %}Read{% else %}New{% endif %}
+                            </span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-workflow">
+                    <i class="fas fa-bell-slash"></i>
+                    <strong>No notifications yet</strong>
+                    <p>Workflow updates assigned to you will appear here.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

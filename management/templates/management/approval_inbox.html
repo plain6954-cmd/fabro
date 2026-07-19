@@ -1,0 +1,114 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approval Inbox - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
+</head>
+<body>
+    {% include 'management/base.html' %}
+
+    <main class="workflow-page">
+        <header class="workflow-header">
+            <div>
+                <h1 class="workflow-title"><i class="fas fa-user-check"></i> Approval Inbox</h1>
+                <p class="workflow-subtitle">{{ profile.get_approval_role_display }} reviews assigned to your account.</p>
+            </div>
+            <div class="workflow-header-actions">
+                <a href="{% url 'notification_list' %}" class="workflow-btn secondary">
+                    <i class="fas fa-bell"></i> Notifications
+                </a>
+                <a href="{% url 'complaint_list' %}" class="workflow-btn secondary">
+                    <i class="fas fa-list"></i> All Complaints
+                </a>
+            </div>
+        </header>
+
+        <section class="workflow-panel" aria-labelledby="pending-approvals-title">
+            <h2 class="workflow-section-title" id="pending-approvals-title">
+                <i class="fas fa-hourglass-half"></i> Active Reviews
+                <span class="status-pill pending">{{ active_approvals|length }} active</span>
+            </h2>
+
+            {% if active_approvals %}
+                <div class="workflow-items">
+                    {% for approval in active_approvals %}
+                        {% widthratio approval.progress.decided approval.progress.total 100 as progress_percent %}
+                        <article class="workflow-item">
+                            <div class="workflow-item-top">
+                                <div>
+                                    <h3 class="workflow-id">{{ approval.complaint.complaint_id }}</h3>
+                                    <div class="workflow-meta">
+                                        {{ approval.complaint.get_complaint_type_display }} | Round {{ approval.approval_round }}
+                                        {% if approval.review_stage == 'reconsideration' %}| Reconsideration{% endif %}
+                                    </div>
+                                </div>
+                                <span class="status-pill {{ approval.status }}">
+                                    <i class="fas {% if approval.status == 'approved' %}fa-check{% elif approval.status == 'rejected' %}fa-times{% else %}fa-clock{% endif %}"></i>
+                                    {{ approval.get_status_display }}
+                                </span>
+                            </div>
+
+                            <div class="workflow-facts">
+                                <div class="fact">
+                                    <span class="fact-label">Country</span>
+                                    <span class="fact-value">{{ approval.complaint.country|default:"-" }}</span>
+                                </div>
+                                <div class="fact">
+                                    <span class="fact-label">Factory Priority</span>
+                                    <span class="fact-value">{{ approval.complaint.get_factory_priority_display|default:"-" }}</span>
+                                </div>
+                            </div>
+
+                            <div class="progress-row" aria-label="{{ approval.progress.decided }} of {{ approval.progress.total }} reviews complete">
+                                <div class="progress-track"><div class="progress-fill" style="width: {{ progress_percent }}%;"></div></div>
+                                <span class="progress-copy">{{ approval.progress.decided }}/{{ approval.progress.total }}</span>
+                            </div>
+
+                            <div class="workflow-actions">
+                                <a href="{% url 'approval_review' approval.id %}" class="workflow-btn">
+                                    <i class="fas fa-clipboard-check"></i>
+                                    {% if approval.review_stage == 'reconsideration' %}
+                                        Reconsider Complaint
+                                    {% elif approval.status == 'pending' %}Review Complaint{% else %}Edit My Review{% endif %}
+                                </a>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-workflow">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>No reviews waiting</strong>
+                    <p>New approval requests will appear here.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="workflow-panel" style="margin-top: 1rem;" aria-labelledby="recent-decisions-title">
+            <h2 class="workflow-section-title" id="recent-decisions-title">
+                <i class="fas fa-history"></i> Recent Decisions
+            </h2>
+            {% if recent_decisions %}
+                <div class="approval-rail">
+                    {% for approval in recent_decisions %}
+                        <div class="approval-step {{ approval.status }}">
+                            <div class="approval-role">{{ approval.approver_role }}</div>
+                            <div class="approval-person">
+                                <strong>{{ approval.complaint.complaint_id }} | Round {{ approval.approval_round }}{% if approval.review_stage == 'reconsideration' %} | Reconsideration{% endif %}</strong>
+                                <span>{{ approval.comment|default:"No comment provided"|truncatechars:110 }}</span>
+                            </div>
+                            <span class="status-pill {{ approval.status }}">{{ approval.get_status_display }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-workflow">No decisions submitted yet.</div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

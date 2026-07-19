@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Complaint - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1000px;
@@ -421,12 +422,16 @@
                     <div class="media-grid">
                         {% for media in media_files %}
                             <div class="media-item">
-                                {% if ".jpg" in media.file or ".jpeg" in media.file or ".png" in media.file %}
-                                    <img src="{{ media.file }}" class="media-preview" alt="Complaint Image">
-                                {% elif ".mp4" in media.file or ".webm" in media.file %}
-                                    <video class="media-preview" muted>
-                                        <source src="{{ media.file }}" type="video/mp4">
-                                    </video>
+                                {% if media.is_available %}
+                                    {% if ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower %}
+                                        <img src="{{ media.url }}" class="media-preview" alt="Complaint Image">
+                                    {% elif ".mp4" in media.file|lower or ".webm" in media.file|lower %}
+                                        <video class="media-preview" muted>
+                                            <source src="{{ media.url }}" type="video/mp4">
+                                        </video>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="media-preview">File unavailable</div>
                                 {% endif %}
                                 <div class="media-checkbox">
                                     <input type="checkbox" name="delete_media" value="{{ media.id }}" 

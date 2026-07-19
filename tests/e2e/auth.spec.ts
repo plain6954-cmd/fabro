@@ -18,7 +18,7 @@ test.describe('authentication', () => {
     await page.goto(routes.login);
     await page.getByLabel('Username').fill(testUser.username);
     await page.getByLabel('Password').fill('wrong-password');
-    await page.getByRole('button', { name: /sign in/i }).click({ noWaitAfter: true });
+    await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByText(/Invalid username or password/i)).toBeVisible();
     await expectNoDjangoError(page);
     await diagnostics.assertClean();

@@ -1,8 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
+import { existsSync } from 'fs';
 
-const pythonCommand = process.env.PYTHON || (process.platform === 'win32'
-  ? '.\\.venv\\Scripts\\python.exe'
-  : './.venv/bin/python');
+const localPython = process.platform === 'win32'
+  ? (existsSync('.\\env\\Scripts\\python.exe') ? '.\\env\\Scripts\\python.exe' : '.\\.venv\\Scripts\\python.exe')
+  : (existsSync('./env/bin/python') ? './env/bin/python' : './.venv/bin/python');
+const pythonCommand = process.env.PYTHON || localPython;
+const e2ePort = process.env.E2E_PORT || '8001';
+const e2eBaseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${e2ePort}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -18,17 +22,27 @@ export default defineConfig({
   ],
   globalSetup: './tests/helpers/globalSetup.ts',
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:8000',
-    trace: 'retain-on-failure',
+    baseURL: e2eBaseURL,
+    reducedMotion: 'reduce',
+    trace: 'off',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',
     actionTimeout: 12_000,
     navigationTimeout: 20_000
   },
   webServer: {
-    command: `${pythonCommand} manage.py runserver 127.0.0.1:8000`,
-    url: 'http://127.0.0.1:8000/login/',
-    reuseExistingServer: true,
+    command: `${pythonCommand} manage.py runserver 127.0.0.1:${e2ePort} --noreload`,
+    url: `${e2eBaseURL}/health/`,
+    env: {
+      E2E_TESTING: 'True'
+    },
+    reuseExistingServer: false,
+    gracefulShutdown: {
+      signal: 'SIGTERM',
+      timeout: 1_000
+    },
+    stdout: 'ignore',
+    stderr: 'ignore',
     timeout: 120_000
   },
   projects: [

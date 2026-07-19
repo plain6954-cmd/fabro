@@ -1,11 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complaint List - Fabro Leather</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1550px;
@@ -158,9 +159,10 @@
                 rgba(30, 30, 34, 0.74);
             backdrop-filter: blur(18px) saturate(130%);
             border-radius: var(--border-radius);
-            overflow: hidden;
+            overflow: auto;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.12);
+            position: relative;
         }
 
         body.light-mode .table-container {
@@ -172,7 +174,10 @@
 
         .table {
             width: 100%;
-            border-collapse: collapse;
+            min-width: 0;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0;
         }
 
         .table th {
@@ -183,6 +188,7 @@
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 0.875rem;
+            word-break: break-word;
         }
 
         body.light-mode .table th {
@@ -195,7 +201,27 @@
             padding: 1rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             color: var(--dark-text-secondary);
-            font-size: 0.875rem;
+            font-size: 0.82rem;
+            word-break: break-word;
+        }
+
+        .actions-column {
+            width: 14.5rem;
+            min-width: 14.5rem;
+            text-align: center;
+            background:
+                rgba(18, 18, 20, 0.92);
+            box-shadow: -8px 0 18px rgba(0, 0, 0, 0.14);
+        }
+
+        th.actions-column {
+            color: var(--dark-text);
+        }
+
+        body.light-mode .actions-column {
+            background:
+                rgba(255, 255, 255, 0.96);
+            box-shadow: -14px 0 24px rgba(24, 24, 27, 0.08);
         }
 
         body.light-mode .table td {
@@ -279,7 +305,11 @@
 
         .action-buttons {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.35rem;
+            justify-content: center;
+            align-items: center;
+            min-width: max-content;
+            flex-wrap: nowrap;
         }
 
         .delete-complaint-form {
@@ -287,7 +317,7 @@
         }
 
         .action-btn {
-            padding: 0.5rem;
+            padding: 0.46rem 0.52rem;
             border-radius: 6px;
             border: none;
             cursor: pointer;
@@ -298,8 +328,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 2rem;
+            gap: 0.32rem;
+            min-width: 3.55rem;
+            width: auto;
             height: 2rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .action-btn .action-label {
+            font-size: 0.64rem;
+            line-height: 1;
         }
 
         .action-btn.view {
@@ -312,6 +351,21 @@
             box-shadow: 0 10px 24px rgba(245, 158, 11, 0.22);
         }
 
+        .action-btn.review {
+            background: linear-gradient(135deg, #7c3aed, #ef4444);
+            box-shadow: 0 10px 24px rgba(124, 58, 237, 0.22);
+        }
+
+        .action-btn.approve {
+            background: linear-gradient(135deg, #2563eb, #0ea5e9);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+        }
+
+        .action-btn.execute {
+            background: linear-gradient(135deg, #15803d, #22c55e);
+            box-shadow: 0 10px 24px rgba(34, 197, 94, 0.24);
+        }
+
         .action-btn.delete {
             background: linear-gradient(135deg, var(--error-color), #b91c1c);
             box-shadow: 0 10px 24px rgba(239, 68, 68, 0.25);
@@ -320,6 +374,357 @@
         .action-btn:hover {
             transform: translateY(-2px) scale(1.04);
             box-shadow: 0 16px 32px rgba(0, 0, 0, 0.32);
+        }
+
+        .journey-column {
+            grid-column: 1 / 4;
+            display: block !important;
+            min-height: 0 !important;
+            padding: 0.6rem 0.75rem 0.7rem !important;
+            overflow: hidden;
+        }
+
+        .journey-column::before {
+            display: none;
+        }
+
+        .journey-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .journey-title {
+            color: var(--dark-text);
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .journey-current {
+            color: #fca5a5;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        .journey-track {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            align-items: start;
+        }
+
+        .journey-step {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.28rem;
+            min-width: 0;
+            color: rgba(161, 161, 170, 0.7);
+            text-align: center;
+        }
+
+        .journey-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            z-index: 0;
+            top: 0.48rem;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: rgba(161, 161, 170, 0.22);
+        }
+
+        .journey-step.completed:not(:last-child)::after {
+            background: rgba(239, 68, 68, 0.82);
+        }
+
+        .journey-dot {
+            position: relative;
+            z-index: 1;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(161, 161, 170, 0.44);
+            border-radius: 50%;
+            background: #222225;
+        }
+
+        .journey-step.completed .journey-dot {
+            border-color: #ef4444;
+            background: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.13);
+        }
+
+        .journey-step.current,
+        .journey-step.completed {
+            color: var(--dark-text);
+        }
+
+        .journey-step.current .journey-dot {
+            border-color: #fb7185;
+            background: #111113;
+            box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18), 0 0 14px rgba(244, 63, 94, 0.48);
+            animation: journeyPulse 1.8s ease-in-out infinite;
+        }
+
+        .journey-step.attention {
+            color: #fcd34d;
+        }
+
+        .journey-step.attention .journey-dot {
+            border-color: #f59e0b;
+            background: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.16);
+        }
+
+        .journey-label {
+            max-width: 100%;
+            font-size: 0.6rem;
+            font-weight: 700;
+            line-height: 1.15;
+            white-space: normal;
+        }
+
+        body.light-mode .journey-title,
+        body.light-mode .journey-step.current,
+        body.light-mode .journey-step.completed {
+            color: #18181b;
+        }
+
+        body.light-mode .journey-current {
+            color: #b91c1c;
+        }
+
+        body.light-mode .journey-dot {
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        @keyframes journeyPulse {
+            50% { transform: scale(1.12); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .journey-step.current .journey-dot { animation: none; }
+        }
+
+        @media (max-width: 1320px) {
+            .table th:nth-child(6),
+            .table td:nth-child(6),
+            .table th:nth-child(10),
+            .table td:nth-child(10),
+            .table th:nth-child(13),
+            .table td:nth-child(13),
+            .table th:nth-child(14),
+            .table td:nth-child(14) {
+                display: none;
+            }
+
+            .actions-column {
+                width: 13.5rem;
+                min-width: 13.5rem;
+            }
+        }
+
+        @media (min-width: 0px) {
+            .table-container {
+                overflow: visible;
+                background: transparent;
+                border: 0;
+                box-shadow: none;
+            }
+
+            .table {
+                display: block;
+                min-width: 0;
+                width: 100%;
+            }
+
+            .table thead {
+                display: none;
+            }
+
+            .table tbody {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.85rem;
+            }
+
+            .table tr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 10.5rem;
+                gap: 0.42rem;
+                padding: 0.65rem;
+                border-radius: 14px;
+                background:
+                    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 42%),
+                    rgba(30, 30, 34, 0.78);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+                backdrop-filter: blur(16px) saturate(128%);
+            }
+
+            body.light-mode .table tr {
+                background: rgba(255, 255, 255, 0.5);
+                border-color: rgba(24, 24, 27, 0.12);
+            }
+
+            .table td {
+                display: grid;
+                grid-template-columns: 4.9rem minmax(0, 1fr);
+                align-items: center;
+                gap: 0.35rem;
+                padding: 0.34rem 0.44rem;
+                min-height: 2.05rem;
+                border: 1px solid rgba(255, 255, 255, 0.07);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.045);
+                font-size: 0.74rem;
+                line-height: 1.25;
+            }
+
+            body.light-mode .table td {
+                background: rgba(255, 255, 255, 0.48);
+                border-color: rgba(24, 24, 27, 0.09);
+            }
+
+            .table td::before {
+                content: '';
+                color: var(--dark-text);
+                font-weight: 800;
+                font-size: 0.62rem;
+                text-transform: uppercase;
+                letter-spacing: 0.02em;
+            }
+
+            body.light-mode .table td::before {
+                color: var(--light-text);
+            }
+
+            .table td:nth-child(1)::before { content: '#'; }
+            .table td:nth-child(2)::before { content: 'Date'; }
+            .table td:nth-child(3)::before { content: 'Channel'; }
+            .table td:nth-child(4)::before { content: 'Country'; }
+            .table td:nth-child(5)::before { content: 'Type'; }
+            .table td:nth-child(6)::before { content: 'Reported'; }
+            .table td:nth-child(7)::before { content: 'Brand'; }
+            .table td:nth-child(8)::before { content: 'Model'; }
+            .table td:nth-child(9)::before { content: 'Year'; }
+            .table td:nth-child(10)::before { content: 'Series'; }
+            .table td:nth-child(11)::before { content: 'Material'; }
+            .table td:nth-child(12)::before { content: 'Status'; }
+            .table td:nth-child(13)::before { content: 'Priority'; }
+            .table td:nth-child(14)::before { content: 'Media'; }
+
+            .table th:nth-child(6),
+            .table td:nth-child(6),
+            .table th:nth-child(10),
+            .table td:nth-child(10),
+            .table th:nth-child(13),
+            .table td:nth-child(13),
+            .table th:nth-child(14),
+            .table td:nth-child(14) {
+                display: grid;
+            }
+
+            .actions-column {
+                display: flex !important;
+                grid-column: 3;
+                grid-row: 1 / span 7;
+                align-self: stretch;
+                align-items: stretch;
+                width: auto;
+                min-width: 0;
+                padding: 0.42rem;
+                background: rgba(220, 38, 38, 0.075);
+                box-shadow: none;
+            }
+
+            .actions-column::before {
+                display: none;
+            }
+
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 0.42rem;
+                min-width: 0;
+                width: 100%;
+            }
+
+            .delete-complaint-form {
+                width: 100%;
+            }
+
+            .action-btn {
+                min-width: 0;
+                width: 100%;
+                height: 2.18rem;
+            }
+
+            .action-btn.review {
+                grid-column: auto;
+            }
+
+            .table td:nth-child(14) {
+                grid-column: 1 / 3;
+                min-height: 3.1rem;
+            }
+        }
+
+        @media (max-width: 1180px) {
+            .table tbody {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .page-container {
+                padding-inline: 0.75rem;
+            }
+
+            .table tr {
+                grid-template-columns: 1fr;
+                padding: 0.75rem;
+            }
+
+            .table td {
+                grid-template-columns: 5.5rem minmax(0, 1fr);
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .actions-column,
+            .table td:nth-child(14) {
+                grid-column: 1;
+                grid-row: auto;
+            }
+
+            .actions-column {
+                display: block !important;
+            }
+
+            .journey-column {
+                grid-column: 1;
+                padding-inline: 0.4rem !important;
+            }
+
+            .journey-summary {
+                align-items: flex-start;
+            }
+
+            .journey-label {
+                font-size: 0.53rem;
+            }
+
+            .action-buttons {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
         }
 
         .modal {
@@ -507,6 +912,32 @@
             color: var(--light-text-secondary);
         }
 
+        .workflow-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 0.55rem;
+        }
+
+        .workflow-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border-radius: 999px;
+            padding: 0.35rem 0.58rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.16);
+            border: 1px solid rgba(248, 113, 113, 0.28);
+        }
+
+        body.light-mode .workflow-chip {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.11);
+            border-color: rgba(220, 38, 38, 0.22);
+        }
+
         .media-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -591,11 +1022,11 @@
             }
 
             .table-container {
-                overflow-x: auto;
+                overflow: visible;
             }
 
             .table {
-                min-width: 900px;
+                min-width: 0;
             }
 
             .modal-content {
@@ -634,7 +1065,7 @@
                     <i class="fas fa-plus"></i>
                     Add Complaint
                 </a>
-                <a href="{% url 'export_complaints' %}?format=csv{{ request.GET.urlencode|safe }}" class="btn btn-success">
+                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success">
                     <i class="fas fa-download"></i>
                     Export CSV
                 </a>
@@ -660,6 +1091,15 @@
                         <option value="action_from_factory" {% if search_by == 'action_from_factory' %}selected{% endif %}>Action</option>
                         <option value="series" {% if search_by == 'series' %}selected{% endif %}>Series</option>
                         <option value="material" {% if search_by == 'material' %}selected{% endif %}>Material</option>
+                    </select>
+
+                    <select name="complaint_type" class="filter-select">
+                        <option value="">All Complaint Types</option>
+                        {% for value, label in complaint_type_choices %}
+                            <option value="{{ value }}" {% if selected_complaint_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
                     </select>
 
                     <select name="channel" class="filter-select">
@@ -739,7 +1179,8 @@
                             <th>Status</th>
                             <th>Priority</th>
                             <th>Media</th>
-                            <th>Actions</th>
+                            <th class="actions-column">Actions</th>
+                            <th>Journey</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -776,21 +1217,60 @@
                                 <i class="fas fa-paperclip"></i>
                                 {{ complaint.media_files.count }}
                             </td>
-                            <td>
+                            <td class="actions-column">
                                 <div class="action-buttons">
-                                    <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="View Details">
+                                    <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="View Details" aria-label="View complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-eye"></i>
+                                        <span class="action-label">View</span>
                                     </button>
-                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="Edit">
+                                    {% if complaint.can_edit %}
+                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="Edit" aria-label="Edit complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-edit"></i>
+                                        <span class="action-label">Edit</span>
                                     </a>
+                                    {% endif %}
+                                    {% if complaint.can_factory_review %}
+                                    <a href="{% url 'factory_review_complaint' complaint.complaint_id %}" class="action-btn review" title="Factory Review" aria-label="Factory review complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-industry"></i>
+                                        <span class="action-label">Review</span>
+                                    </a>
+                                    {% endif %}
+                                    {% if complaint.can_approve %}
+                                    <a href="{% url 'approval_review' complaint.current_approval.id %}" class="action-btn approve" title="Submit Approval" aria-label="Approve complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-clipboard-check"></i>
+                                        <span class="action-label">Approve</span>
+                                    </a>
+                                    {% endif %}
+                                    {% if complaint.can_execute %}
+                                    <a href="{% url 'execute_complaint' complaint.complaint_id %}" class="action-btn execute" title="Execute Approved Action" aria-label="Execute complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-circle-check"></i>
+                                        <span class="action-label">Execute</span>
+                                    </a>
+                                    {% endif %}
+                                    {% if complaint.can_delete %}
                                     <form method="post" action="{% url 'delete_complaint' complaint.complaint_id %}" class="delete-complaint-form">
                                         {% csrf_token %}
-                                        <button type="submit" class="action-btn delete" title="Delete"
+                                        <button type="submit" class="action-btn delete" title="Delete" aria-label="Delete complaint {{ complaint.complaint_id }}"
                                                 onclick="return confirm('Are you sure you want to delete this complaint?');">
                                             <i class="fas fa-trash"></i>
+                                            <span class="action-label">Delete</span>
                                         </button>
                                     </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="journey-column">
+                                <div class="journey-summary">
+                                    <span class="journey-title">Complaint Journey</span>
+                                    <span class="journey-current">{{ complaint.get_workflow_status_display }}</span>
+                                </div>
+                                <div class="journey-track" aria-label="Complaint journey: {{ complaint.get_workflow_status_display }}">
+                                    {% for step in complaint.journey_steps %}
+                                        <div class="journey-step {{ step.state }}" title="{{ step.label }}">
+                                            <span class="journey-dot" aria-hidden="true"></span>
+                                            <span class="journey-label">{{ step.label }}</span>
+                                        </div>
+                                    {% endfor %}
                                 </div>
                             </td>
                         </tr>
@@ -804,6 +1284,22 @@
                                                 <span class="status-badge status-{{ complaint.status|lower|cut:' ' }}">
                                                     {{ complaint.status }}
                                                 </span> </h2>
+                                                <div class="workflow-stack">
+                                                    <span class="workflow-chip">
+                                                        <i class="fas fa-route"></i>
+                                                        {{ complaint.get_workflow_status_display }}
+                                                    </span>
+                                                    <span class="workflow-chip">
+                                                        <i class="fas fa-layer-group"></i>
+                                                        {{ complaint.get_complaint_type_display }}
+                                                    </span>
+                                                    {% if complaint.assigned_factory_executive %}
+                                                    <span class="workflow-chip">
+                                                        <i class="fas fa-user-cog"></i>
+                                                        {{ complaint.assigned_factory_executive.username }}
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                     <button class="close-btn" onclick="closeModal('{{ complaint.complaint_id }}')">
                                         <i class="fas fa-times"></i>
@@ -865,11 +1361,15 @@
                                     <div class="detail-grid">
                                         <div class="detail-item">
                                             <div class="detail-label">Reason</div>
-                                            <div class="detail-value">{{ complaint.justification_from_factory }}</div>
+                                            <div class="detail-value">{{ complaint.factory_reason|default:complaint.justification_from_factory }}</div>
                                         </div>
                                         <div class="detail-item">
                                             <div class="detail-label">Resolution</div>
-                                            <div class="detail-value">{{ complaint.action_from_factory }}</div>
+                                            <div class="detail-value">{{ complaint.factory_action_plan|default:complaint.action_from_factory }}</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Factory Priority</div>
+                                            <div class="detail-value">{{ complaint.get_factory_priority_display|default:"-" }}</div>
                                         </div>
                                         <div class="detail-item">
                                             <div class="detail-label">CAD Date</div>
@@ -885,21 +1385,82 @@
                                             <div class="detail-label">Updated Order#</div>
                                             <div class="detail-value">{{ complaint.updated_order_no }}</div>
                                         </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">Production Updates Container</div>
+                                            <div class="detail-value">{{ complaint.production_updates_container|default:"-" }}</div>
+                                        </div>
                                     </div>
+
+                                    {% if complaint.approval_summary.total %}
+                                        <h3 class="section-title">Approval History</h3>
+                                        <div class="progress-row" style="margin-bottom: 0.8rem;">
+                                            <div class="progress-track">
+                                                <div class="progress-fill" style="width: {% widthratio complaint.approval_summary.decided complaint.approval_summary.total 100 %}%;"></div>
+                                            </div>
+                                            <span class="progress-copy">Current round: {{ complaint.approval_summary.decided }}/{{ complaint.approval_summary.total }} reviewed</span>
+                                        </div>
+                                        {% regroup complaint.approvals.all by approval_round as approval_rounds %}
+                                        {% for round in approval_rounds %}
+                                            <div class="approval-round-group">
+                                                <h4 class="approval-round-title">Round {{ round.grouper }}</h4>
+                                                <div class="approval-rail">
+                                                    {% for approval in round.list %}
+                                                        <div class="approval-step {{ approval.status }}">
+                                                            <span class="approval-role">{{ approval.approver_role }}</span>
+                                                            <div class="approval-person">
+                                                                <strong>
+                                                                    {% if approval.approver_user %}
+                                                                        {{ approval.approver_user.get_full_name|default:approval.approver_user.username }}
+                                                                    {% else %}
+                                                                        Not configured
+                                                                    {% endif %}
+                                                                </strong>
+                                                                <span>
+                                                                    {% if approval.comment %}{{ approval.comment }}{% else %}Waiting for review.{% endif %}
+                                                                </span>
+                                                            </div>
+                                                            <span class="status-pill {{ approval.status }}">{{ approval.get_status_display }}</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+
+                                    {% if complaint.timeline_events.all %}
+                                        <h3 class="section-title">Complaint Journey</h3>
+                                        <div class="timeline-list">
+                                            {% for event in complaint.timeline_events.all %}
+                                                <div class="timeline-entry">
+                                                    <span class="timeline-marker"></span>
+                                                    <div>
+                                                        <strong>{{ event.title }}</strong>
+                                                        <span>
+                                                            {{ event.created_at|date:"d M Y, H:i" }}
+                                                            {% if event.user %} - {{ event.user.get_full_name|default:event.user.username }}{% endif %}
+                                                        </span>
+                                                        {% if event.description %}<span>{{ event.description }}</span>{% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
 
                                     <!-- MEDIA FILES -->
                                     {% if complaint.media_files.count > 0 %}
                                         <h3 class="section-title">Media Files ({{ complaint.media_files.count }})</h3>
                                         <div class="media-grid">
                                             {% for media in complaint.media_files.all %}
-                                                {% if ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower %}
-                                                    <div class="media-item" onclick="enlargeImage('{{ media.file }}')">
-                                                        <img src="{{ media.file }}" class="media-thumbnail" alt="Complaint Image">
+                                                {% if not media.is_available %}
+                                                    <div class="media-item"><span>Unavailable</span></div>
+                                                {% elif ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower %}
+                                                    <div class="media-item" onclick="enlargeImage('{{ media.url|escapejs }}')">
+                                                        <img src="{{ media.url }}" class="media-thumbnail" alt="Complaint Image">
                                                     </div>
                                                 {% elif ".mp4" in media.file|lower or ".webm" in media.file|lower %}
-                                                    <div class="media-item" onclick="enlargeVideo('{{ media.file }}')">
+                                                    <div class="media-item" onclick="enlargeVideo('{{ media.url|escapejs }}')">
                                                         <video class="media-thumbnail" muted>
-                                                            <source src="{{ media.file }}" type="video/mp4">
+                                                            <source src="{{ media.url }}" type="video/mp4">
                                                         </video>
                                                     </div>
                                                 {% endif %}
@@ -1033,17 +1594,7 @@
             }
         });
 
-        // Auto-submit filters on change
         document.addEventListener("DOMContentLoaded", function () {
-            const filterForm = document.getElementById("filter-form");
-            const filterElements = filterForm.querySelectorAll("select, input[type='date']");
-
-            filterElements.forEach(el => {
-                el.addEventListener("change", () => {
-                    filterForm.submit();
-                });
-            });
-
             // Add active nav state
             const complaintListLink = document.querySelector('a[href="{% url 'complaint_list' %}"]');
             if (complaintListLink) {

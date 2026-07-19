@@ -14,7 +14,7 @@ test('profile page loads and saves account details', async ({ page }) => {
   await page.locator('input[name="email"]').fill('fabro.e2e.updated@example.com');
   await page.locator('input[name="first_name"]').fill('Fabro');
   await page.locator('input[name="last_name"]').fill('Tester');
-  await page.getByRole('button', { name: /Save Details/i }).click({ noWaitAfter: true });
+  await page.getByRole('button', { name: /Save Details/i }).click();
   await expect(page.getByText(/profile details have been updated/i)).toBeVisible();
   await expectNoDjangoError(page);
   await diagnostics.assertClean();

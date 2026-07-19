@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Execute {{ complaint.complaint_id }} - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
+</head>
+<body>
+    {% include 'management/base.html' %}
+
+    <main class="workflow-page">
+        <header class="workflow-header">
+            <div>
+                <h1 class="workflow-title"><i class="fas fa-flag-checkered"></i> Approved Action Plan</h1>
+                <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }}</p>
+            </div>
+            <a href="{% url 'complaint_list' %}" class="workflow-btn secondary">
+                <i class="fas fa-arrow-left"></i> All Complaints
+            </a>
+        </header>
+
+        <section class="green-light" aria-live="polite">
+            <div class="green-light-icon"><i class="fas fa-check"></i></div>
+            <div class="green-light-copy">
+                <strong>{% if complaint.workflow_status == 'approved' %}Green Light | Ready to Go{% else %}Approved Action In Progress{% endif %}</strong>
+                <span>Every required member approved the factory action plan. Approval round {{ approval_summary.round }} is complete.</span>
+            </div>
+            {% if complaint.workflow_status == 'approved' %}
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="start">
+                    <button type="submit" class="workflow-btn success">
+                        <i class="fas fa-play"></i> Proceed With Action Plan
+                    </button>
+                </form>
+            {% endif %}
+        </section>
+
+        <div class="workflow-grid">
+            <div class="workflow-stack">
+                <section class="workflow-panel">
+                    <h2 class="workflow-section-title"><i class="fas fa-industry"></i> Approved Factory Plan</h2>
+                    <div class="detail-grid">
+                        <div class="detail-block">
+                            <span class="detail-label">Country</span>
+                            <span class="detail-value">{{ complaint.country|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block">
+                            <span class="detail-label">Assigned Executive</span>
+                            <span class="detail-value">{{ complaint.assigned_factory_executive.username|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block wide">
+                            <span class="detail-label">Complaint</span>
+                            <span class="detail-value">{{ complaint.complaint_description|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block wide">
+                            <span class="detail-label">Confirmed Reason</span>
+                            <span class="detail-value">{{ complaint.factory_reason|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block wide">
+                            <span class="detail-label">Approved Action Plan</span>
+                            <span class="detail-value">{{ complaint.factory_action_plan|default:"-" }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="workflow-panel">
+                    <h2 class="workflow-section-title"><i class="fas fa-route"></i> Complaint Journey</h2>
+                    <div class="timeline-list">
+                        {% for event in complaint.timeline_events.all %}
+                            <div class="timeline-entry">
+                                <span class="timeline-marker"></span>
+                                <div>
+                                    <strong>{{ event.title }}</strong>
+                                    <span>{{ event.description|default:"Workflow updated" }} | {{ event.created_at|date:"d M Y, H:i" }}{% if event.user %} | {{ event.user.username }}{% endif %}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+
+            <aside class="workflow-stack">
+                <section class="workflow-panel">
+                    <h2 class="workflow-section-title"><i class="fas fa-users"></i> Completed Approvals</h2>
+                    <div class="approval-rail">
+                        {% for approval in approval_summary.approvals %}
+                            <div class="approval-step {{ approval.status }}">
+                                <div class="approval-role">{{ approval.approver_role }}</div>
+                                <div class="approval-person">
+                                    <strong>{% if approval.approver_user %}{{ approval.approver_user.username }}{% else %}Not configured{% endif %}</strong>
+                                    <span>{{ approval.comment|default:"Approved without comment"|truncatechars:80 }}</span>
+                                </div>
+                                <span class="status-pill {{ approval.status }}">{{ approval.get_status_display }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                {% if complaint.workflow_status == 'action_in_progress' %}
+                    <section class="workflow-panel">
+                        <h2 class="workflow-section-title"><i class="fas fa-box-check"></i> Final Production Update</h2>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="close">
+                            {{ form.non_field_errors }}
+                            <div class="workflow-form-group">
+                                {{ form.cad_date.label_tag }}
+                                {{ form.cad_date }}
+                                {{ form.cad_date.errors }}
+                            </div>
+                            {% if complaint.complaint_type != 'line' %}
+                                <div class="workflow-form-group">
+                                    {{ form.production_updates_container.label_tag }}
+                                    {{ form.production_updates_container }}
+                                    {{ form.production_updates_container.errors }}
+                                </div>
+                            {% else %}
+                                {{ form.production_updates_container }}
+                                <p class="workflow-subtitle" style="font-size: 0.78rem; margin-bottom: 1rem;">
+                                    A production container number is not required for Line Complaints.
+                                </p>
+                            {% endif %}
+                            <div class="workflow-actions">
+                                <button type="submit" class="workflow-btn success">
+                                    <i class="fas fa-check-circle"></i> Save Updates And Close Case
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                {% else %}
+                    <section class="workflow-panel">
+                        <div class="empty-workflow">
+                            <i class="fas fa-play-circle"></i>
+                            <strong>Ready for execution</strong>
+                            <p>Proceed with the approved action plan to unlock the final update fields.</p>
+                        </div>
+                    </section>
+                {% endif %}
+            </aside>
+        </div>
+    </main>
+</body>
+</html>

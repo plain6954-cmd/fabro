@@ -4,6 +4,14 @@ export const testUser = {
   email: process.env.E2E_EMAIL || 'fabro.e2e@example.com'
 };
 
+export const workflowUsers = {
+  factory: { username: 'fabro_e2e_factory', password: 'FabroWorkflow!234' },
+  pm: { username: 'fabro_e2e_pm', password: 'FabroWorkflow!234' },
+  om: { username: 'fabro_e2e_om', password: 'FabroWorkflow!234' },
+  cad: { username: 'fabro_e2e_cad', password: 'FabroWorkflow!234' },
+  ed: { username: 'fabro_e2e_ed', password: 'FabroWorkflow!234' }
+};
+
 export const routes = {
   login: '/login/',
   logout: '/logout/',

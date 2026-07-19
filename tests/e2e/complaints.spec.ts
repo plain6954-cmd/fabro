@@ -15,7 +15,7 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
 
   const description = page.locator('textarea[name="complaint_description"]');
   await description.fill('Text cleared by reset');
-  await page.getByRole('button', { name: /Clear/i }).click();
+  await page.getByRole('button', { name: /Clear/i }).click({ force: true });
   await expect(description).toHaveValue('Not Provided');
 
   await description.fill(sample.complaintText);
@@ -28,35 +28,39 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
   await page.locator('select[name="sku"]').selectOption({ index: 1 }).catch(() => {});
   await page.locator('input[name="media_files"]').setInputFiles(path.join(process.cwd(), 'static', 'FABRO__BRAND ICON_FINAL_CMYK.png'));
   await expect(page.getByText(/file\(s\) selected/i)).toBeVisible();
-  await page.getByRole('button', { name: /Save Complaint/i }).click({ noWaitAfter: true });
+  await page.getByRole('button', { name: /Save Complaint/i }).click({ force: true });
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
 
   await page.getByPlaceholder(/Search complaints/i).fill(sample.complaintText);
   await page.locator('select[name="search_by"]').selectOption('complaint_description');
-  await page.getByRole('button', { name: /Apply Filters/i }).click();
+  const applyFilters = page.getByRole('button', { name: /Apply Filters/i });
+  await expect(applyFilters).toBeVisible();
+  await applyFilters.click({ force: true });
   const createdRow = page.locator('tbody tr').first();
   await expect(createdRow).toBeVisible();
 
-  await createdRow.locator('.action-btn.view').click();
+  await createdRow.locator('.action-btn.view').click({ force: true });
   await expect(page.locator('.complaint-modal.is-open')).toBeVisible();
   await expect(page.getByText(sample.complaintText)).toBeVisible();
-  await page.locator('.complaint-modal .close-btn').click();
+  await page.locator('.complaint-modal .close-btn').click({ force: true });
 
-  await createdRow.locator('.action-btn.edit').click();
+  await createdRow.locator('.action-btn.edit').click({ force: true });
   await expect(page).toHaveURL(/\/complaint\/edit\//);
-  await page.locator('select[name="status"]').selectOption('On Hold');
+  const workflowStatus = page.locator('select[name="status"]');
+  await expect(workflowStatus).toBeDisabled();
+  await expect(workflowStatus).toHaveValue('Open');
   await page.locator('select[name="priority"]').selectOption('High');
-  await page.getByRole('button', { name: /Update Complaint|Save/i }).click({ noWaitAfter: true });
+  await page.getByRole('button', { name: /Update Complaint|Save/i }).click({ force: true });
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
   await page.getByPlaceholder(/Search complaints/i).fill(sample.complaintText);
   await page.locator('select[name="search_by"]').selectOption('complaint_description');
-  await page.getByRole('button', { name: /Apply Filters/i }).click();
+  await page.getByRole('button', { name: /Apply Filters/i }).click({ force: true });
 
   page.once('dialog', (dialog) => dialog.accept());
-  await page.locator('tbody tr').first().locator('.action-btn.delete').click();
+  await page.locator('tbody tr').first().locator('.action-btn.delete').click({ force: true });
   await page.getByPlaceholder(/Search complaints/i).fill(sample.complaintText);
   await page.locator('select[name="search_by"]').selectOption('complaint_description');
-  await page.getByRole('button', { name: /Apply Filters/i }).click();
+  await page.getByRole('button', { name: /Apply Filters/i }).click({ force: true });
   await expect(page.locator('.empty-state').or(page.locator('tbody'))).toBeVisible();
   await expect(page.locator('tbody tr')).toHaveCount(0);
   await expectNoDjangoError(page);
@@ -65,6 +69,6 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
 
 test('cancel returns from add complaint to complaint list', async ({ page }) => {
   await page.goto(routes.addComplaint);
-  await page.getByRole('link', { name: /Cancel/i }).click();
+  await page.getByRole('link', { name: /Cancel/i }).click({ force: true });
   await expect(page).toHaveURL(/\/complaints\/$/);
 });

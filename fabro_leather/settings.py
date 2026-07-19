@@ -12,7 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-import boto3
+from urllib.parse import unquote, urlparse
+from django.core.exceptions import ImproperlyConfigured
 
 # Load .env file if it exists
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,18 +26,46 @@ if env_path.exists():
                 continue
             if '=' in line:
                 key, val = line.split('=', 1)
-                os.environ[key.strip()] = val.strip().strip("'\"")
+                os.environ.setdefault(key.strip(), val.strip().strip("'\""))
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def env_list(name, default=''):
+    return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
+
+
+E2E_TESTING = env_bool('E2E_TESTING', False)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')  # Use the environment variable for the secret key
+DEBUG = env_bool('DEBUG', True)
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'fabro-local-development-key-change-before-production'
+    else:
+        raise ImproperlyConfigured('DJANGO_SECRET_KEY is required when DEBUG is disabled.')
+if not DEBUG and (
+    len(SECRET_KEY) < 50
+    or SECRET_KEY.startswith('django-insecure-')
+    or SECRET_KEY == 'replace-with-a-long-random-secret'
+):
+    raise ImproperlyConfigured(
+        'DJANGO_SECRET_KEY must be a unique random value of at least 50 characters in production.'
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '127.0.0.1,localhost,10.0.2.2' if DEBUG else '')
+if not ALLOWED_HOSTS:
+    raise ImproperlyConfigured('ALLOWED_HOSTS must be configured.')
 
 
 # Application definition
@@ -48,6 +77,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
     'management',
     'simple_history',
     'storages',
@@ -56,41 +88,34 @@ INSTALLED_APPS = [
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = 'ap-south-2'  # your bucket's region
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ap-south-2')
+USE_S3 = False if E2E_TESTING else env_bool('USE_S3', False)
+if USE_S3 and not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME]):
+    raise ImproperlyConfigured('USE_S3 requires AWS access key, secret key, and bucket name.')
 
-s3_initialized = False
-if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
-    try:
-        s3 = boto3.client('s3',
-            region_name=AWS_S3_REGION_NAME,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-        s3_initialized = True
-    except Exception as e:
-        print(f"Warning: Failed to initialize S3 client ({e}).")
-
-if s3_initialized:
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.ap-south-2.amazonaws.com'
+if USE_S3:
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = False  # Optional: disable if you want public URLs
+    AWS_QUERYSTRING_AUTH = True
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 else:
-    class MockS3Client:
-        def upload_fileobj(self, Fileobj, Bucket, Key, ExtraArgs=None):
-            import os
-            # Save to local media folder
-            filepath = os.path.join(BASE_DIR, Key)
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, 'wb') as f:
-                for chunk in Fileobj.chunks():
-                    f.write(chunk)
-    s3 = MockS3Client()
     MEDIA_URL = '/media/'
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3.S3Storage' if USE_S3 else 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'management.middleware.SecurityHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -111,6 +136,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'management.context_processors.workflow_access',
             ],
         },
     },
@@ -122,55 +148,44 @@ WSGI_APPLICATION = 'fabro_leather.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-def resolve_db_host(hostname):
-    if not hostname:
-        return hostname
-    if ':' in hostname or hostname.replace('.', '').isdigit():
-        return hostname
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+USE_POSTGRES = env_bool('USE_POSTGRES', False) or bool(DATABASE_URL)
+if E2E_TESTING:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / '.e2e.sqlite3',
+        }
+    }
+elif USE_POSTGRES:
+    if DATABASE_URL:
+        parsed_database_url = urlparse(DATABASE_URL)
+        if parsed_database_url.scheme not in {'postgres', 'postgresql'}:
+            raise ImproperlyConfigured('DATABASE_URL must use the postgres or postgresql scheme.')
+        db_name = unquote(parsed_database_url.path.lstrip('/'))
+        db_user = unquote(parsed_database_url.username or '')
+        db_password = unquote(parsed_database_url.password or '')
+        db_host = parsed_database_url.hostname
+        db_port = parsed_database_url.port or 5432
+    else:
+        db_name = os.getenv('DB_NAME', 'postgres')
+        db_user = os.getenv('DB_USER')
+        db_password = os.getenv('DB_PASSWORD')
+        db_host = os.getenv('DB_HOST')
+        db_port = os.getenv('DB_PORT', '5432')
 
-    # 1. Try local resolution
-    import socket
-    try:
-        addr_info = socket.getaddrinfo(hostname, None)
-        ips = list(set([info[4][0] for info in addr_info if info[4]]))
-        if ips:
-            for ip in ips:
-                if ':' in ip:
-                    return ip
-            return ips[0]
-    except Exception as e:
-        print(f"Local DNS resolution failed for {hostname}: {e}")
-
-    # 2. Try Google DNS over HTTPS (DoH)
-    import urllib.request, json
-    try:
-        url = f"https://dns.google/resolve?name={hostname}&type=AAAA"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode())
-            ips = [ans['data'] for ans in data.get('Answer', []) if ans['type'] == 28]
-            if ips:
-                return ips[0]
-    except Exception as e:
-        print(f"Google DoH resolution failed for {hostname}: {e}")
-
-    # 3. Last resort fallback to the known IPv6 for db.dmhpnnodencnlwyxluaq.supabase.co
-    if hostname == 'db.dmhpnnodencnlwyxluaq.supabase.co':
-        return '2406:da1a:82a:9d01:c947:7e5d:1b36:9e90'
-
-    return hostname
-
-db_host = resolve_db_host(os.getenv('DB_HOST'))
-
-if db_host:
+    if not all([db_name, db_user, db_password, db_host]):
+        raise ImproperlyConfigured(
+            'PostgreSQL requires DATABASE_URL or complete DB_NAME, DB_USER, DB_PASSWORD, and DB_HOST values.'
+        )
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'postgres'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
             'HOST': db_host,
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'PORT': db_port,
             'CONN_MAX_AGE': 60,
             'OPTIONS': {
                 'connect_timeout': 10,
@@ -221,10 +236,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Only if you have a custom static folder
-MEDIA_ROOT = os.path.join(BASE_DIR / 'media')
+STATICFILES_DIRS = [BASE_DIR / 'static']
+MEDIA_ROOT = BASE_DIR / ('.e2e-media' if E2E_TESTING else 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -234,3 +249,60 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'logout_success'
+
+# CORS is broad only for explicit local development. Production must list origins.
+CORS_ALLOW_ALL_ORIGINS = DEBUG and env_bool('CORS_ALLOW_ALL_ORIGINS', True)
+CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS')
+CORS_ALLOW_CREDENTIALS = env_bool('CORS_ALLOW_CREDENTIALS', False)
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
+
+ALLOW_PUBLIC_REGISTRATION = env_bool('ALLOW_PUBLIC_REGISTRATION', False)
+LOGIN_MAX_ATTEMPTS = int(os.getenv('LOGIN_MAX_ATTEMPTS', '8'))
+LOGIN_RATE_WINDOW_SECONDS = int(os.getenv('LOGIN_RATE_WINDOW_SECONDS', '300'))
+LOGIN_LOCKOUT_SECONDS = int(os.getenv('LOGIN_LOCKOUT_SECONDS', '900'))
+
+CONTENT_SECURITY_POLICY = os.getenv(
+    'CONTENT_SECURITY_POLICY',
+    "default-src 'self'; "
+    "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; "
+    "script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+    "font-src 'self' data:; img-src 'self' data: blob: https:; "
+    "media-src 'self' blob: https:; connect-src 'self'; worker-src 'self' blob:",
+)
+
+# Secure defaults become active automatically when DEBUG is disabled.
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', not DEBUG)
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', not DEBUG)
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+X_FRAME_OPTIONS = 'DENY'
+TRUST_PROXY_HEADERS = env_bool('TRUST_PROXY_HEADERS', False)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if TRUST_PROXY_HEADERS else None
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000' if not DEBUG else '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+
+# REST Framework Configurations
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.getenv('API_ANON_THROTTLE', '30/minute'),
+        'user': os.getenv('API_USER_THROTTLE', '300/minute'),
+        'login': os.getenv('API_LOGIN_THROTTLE', '10/minute'),
+    },
+}

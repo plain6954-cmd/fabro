@@ -1,10 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKU Management - Fabro Leather</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1400px;
@@ -503,6 +504,7 @@
             <p class="page-subtitle">Manage product SKUs and inventory with bulk upload capabilities</p>
         </div>
 
+        {% if can_manage_catalog %}
         <div class="content-grid">
             <!-- Add SKU Form -->
             <div class="form-section">
@@ -565,6 +567,9 @@
                             </div>
                             {{ upload_form.csv_file }}
                         </div>
+                        {% if upload_form.csv_file.errors %}
+                            <div class="error-message">{{ upload_form.csv_file.errors|striptags }}</div>
+                        {% endif %}
                     </div>
 
                     <button type="submit" name="upload_csv" class="btn btn-success">
@@ -574,6 +579,7 @@
                 </form>
             </div>
         </div>
+        {% endif %}
 
         <!-- SKU List -->
         <div class="table-section" data-no-reveal>
@@ -594,7 +600,7 @@
                                 <th>SKU</th>
                                 <th>Description</th>
                                 <th>Region</th>
-                                <th>Actions</th>
+                                {% if can_manage_catalog %}<th>Actions</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody id="skuTableBody">
@@ -604,17 +610,20 @@
                                 <td><strong>{{ sku.code }}</strong></td>
                                 <td>{{ sku.description|default:"-" }}</td>
                                 <td>{{ sku.region|default:"-" }}</td>
-                                <td>
+                                {% if can_manage_catalog %}<td>
                                     <div class="action-buttons">
                                         <a href="{% url 'edit_sku' sku.id %}" class="action-btn edit" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{% url 'delete_sku' sku.id %}" class="action-btn delete" title="Delete"
-                                           onclick="return confirm('Are you sure you want to delete this SKU?');">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+                                        <form method="post" action="{% url 'delete_sku' sku.id %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="action-btn delete" title="Delete"
+                                                    onclick="return confirm('Are you sure you want to delete this SKU?');">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
-                                </td>
+                                </td>{% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

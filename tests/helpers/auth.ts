@@ -2,10 +2,15 @@ import { expect, type Page } from '@playwright/test';
 import { routes, testUser } from './testData';
 
 export async function login(page: Page) {
+  await loginAs(page, testUser);
+}
+
+export async function loginAs(page: Page, credentials: { username: string; password: string }) {
+  await page.context().clearCookies();
   await page.goto(routes.login);
-  await page.getByLabel('Username').fill(testUser.username);
-  await page.getByLabel('Password').fill(testUser.password);
-  await page.getByRole('button', { name: /sign in/i }).click({ noWaitAfter: true });
+  await page.getByLabel('Username').fill(credentials.username);
+  await page.getByLabel('Password').fill(credentials.password);
+  await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page.getByText('System Dashboard')).toBeVisible();
 }
 

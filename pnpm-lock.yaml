@@ -8,11 +8,18 @@ importers:
 
   .:
     devDependencies:
+      '@fortawesome/fontawesome-free':
+        specifier: 6.7.2
+        version: 6.7.2
       '@playwright/test':
         specifier: ^1.45.0
         version: 1.61.1
 
 packages:
+
+  '@fortawesome/fontawesome-free@6.7.2':
+    resolution: {integrity: sha512-JUOtgFW6k9u4Y+xeIaEiLr3+cjoUPiAuLXoyKOJSia6Duzb7pq+A76P9ZdPDoAoxHdHzq6gE9/jKBGXlZT8FbA==}
+    engines: {node: '>=6'}
 
   '@playwright/test@1.61.1':
     resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
@@ -35,6 +42,8 @@ packages:
     hasBin: true
 
 snapshots:
+
+  '@fortawesome/fontawesome-free@6.7.2': {}
 
   '@playwright/test@1.61.1':
     dependencies:

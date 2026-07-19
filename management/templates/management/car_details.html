@@ -1,10 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Management - Fabro Leather</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1400px;
@@ -451,6 +452,7 @@
                 <i class="fas fa-car"></i>
                 Vehicle Management
             </h1>
+            {% if can_manage_catalog %}
             <div class="header-actions">
                 <a href="{% url 'upload_car_csv' %}" class="btn btn-secondary">
                     <i class="fas fa-upload"></i>
@@ -461,6 +463,7 @@
                     Add Vehicle
                 </a>
             </div>
+            {% endif %}
         </div>
 
         <div class="content-grid">
@@ -492,7 +495,7 @@
                                     <th>Sub-Model</th>
                                     <th>Seats</th>
                                     <th>Doors</th>
-                                    <th>Actions</th>
+                                    {% if can_manage_catalog %}<th>Actions</th>{% endif %}
                                 </tr>
                             </thead>
                             <tbody>
@@ -515,17 +518,20 @@
                                         <td>{{ car.sub_model|default:"-" }}</td>
                                         <td>{{ car.seats }}</td>
                                         <td>{{ car.doors }}</td>
-                                        <td>
+                                        {% if can_manage_catalog %}<td>
                                             <div class="action-buttons">
                                                 <a href="{% url 'edit_car_detail' car.id %}" class="action-btn edit" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <a href="{% url 'delete_car_detail' car.id %}" class="action-btn delete" title="Delete"
-                                                   onclick="return confirm('Are you sure you want to delete this vehicle?');">
-                                                    <i class="fas fa-trash"></i>
-                                                </a>
+                                                <form method="post" action="{% url 'delete_car_detail' car.id %}" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="action-btn delete" title="Delete"
+                                                            onclick="return confirm('Are you sure you want to delete this vehicle?');">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
                                             </div>
-                                        </td>
+                                        </td>{% endif %}
                                     </tr>
                                 {% endfor %}
                             </tbody>

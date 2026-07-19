@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review {{ complaint.complaint_id }} - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
+</head>
+<body>
+    {% include 'management/base.html' %}
+
+    <main class="workflow-page">
+        <header class="workflow-header">
+            <div>
+                <h1 class="workflow-title"><i class="fas fa-clipboard-check"></i> {{ approval.approver_role }} {% if approval.review_stage == 'reconsideration' %}Reconsideration{% else %}Review{% endif %}</h1>
+                <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }} | Approval round {{ approval.approval_round }}</p>
+            </div>
+            <a href="{% url 'approval_inbox' %}" class="workflow-btn secondary">
+                <i class="fas fa-arrow-left"></i> Approval Inbox
+            </a>
+        </header>
+
+        <div class="workflow-grid">
+            <div class="workflow-stack">
+                <section class="workflow-panel">
+                    <h2 class="workflow-section-title"><i class="fas fa-file-alt"></i> Complaint And Factory Review</h2>
+                    <div class="detail-grid">
+                        <div class="detail-block">
+                            <span class="detail-label">Country</span>
+                            <span class="detail-value">{{ complaint.country|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block">
+                            <span class="detail-label">Reported By</span>
+                            <span class="detail-value">{{ complaint.person|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block">
+                            <span class="detail-label">Vehicle</span>
+                            <span class="detail-value">{{ complaint.brand|default:"-" }} {{ complaint.model|default:"" }}</span>
+                        </div>
+                        <div class="detail-block">
+                            <span class="detail-label">Factory Priority</span>
+                            <span class="detail-value">{{ complaint.get_factory_priority_display|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block wide">
+                            <span class="detail-label">Complaint Description</span>
+                            <span class="detail-value">{{ complaint.complaint_description|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block wide">
+                            <span class="detail-label">Factory Reason</span>
+                            <span class="detail-value">{{ complaint.factory_reason|default:"-" }}</span>
+                        </div>
+                        <div class="detail-block wide">
+                            <span class="detail-label">Proposed Factory Action Plan</span>
+                            <span class="detail-value">{{ complaint.factory_action_plan|default:"-" }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                {% if media_files %}
+                    <section class="workflow-panel">
+                        <h2 class="workflow-section-title"><i class="fas fa-photo-video"></i> Complaint Media</h2>
+                        <div class="media-strip">
+                            {% for media in media_files %}
+                                {% if media.is_available %}
+                                    {% if ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower or ".webp" in media.file|lower %}
+                                        <a href="{{ media.url }}" target="_blank" rel="noopener" aria-label="Open complaint image {{ forloop.counter }}">
+                                            <img src="{{ media.url }}" class="media-thumb" alt="Complaint evidence {{ forloop.counter }}" loading="lazy">
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ media.url }}" target="_blank" rel="noopener" class="media-thumb">
+                                            <i class="fas fa-play-circle"></i> Media {{ forloop.counter }}
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endif %}
+
+                <section class="workflow-panel">
+                    <h2 class="workflow-section-title"><i class="fas fa-route"></i> Complaint Journey</h2>
+                    <div class="timeline-list">
+                        {% for event in complaint.timeline_events.all %}
+                            <div class="timeline-entry">
+                                <span class="timeline-marker"></span>
+                                <div>
+                                    <strong>{{ event.title }}</strong>
+                                    <span>{{ event.description|default:"Workflow updated" }} | {{ event.created_at|date:"d M Y, H:i" }}{% if event.user %} | {{ event.user.username }}{% endif %}</span>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="empty-workflow">No timeline events recorded yet.</div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+
+            <aside class="workflow-stack">
+                {% if approval.review_stage == 'reconsideration' and approval.trigger_approval %}
+                    <section class="workflow-panel" style="border-color: rgba(239, 68, 68, 0.55);">
+                        <h2 class="workflow-section-title"><i class="fas fa-triangle-exclamation"></i> Rejection To Reconsider</h2>
+                        <div class="detail-block wide">
+                            <span class="detail-label">Rejected by {{ approval.trigger_approval.approver_role }}</span>
+                            <span class="detail-value">{{ approval.trigger_approval.comment }}</span>
+                        </div>
+                        <p class="workflow-subtitle" style="margin-top: 0.85rem;">
+                            Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed.
+                        </p>
+                    </section>
+                {% endif %}
+                <section class="workflow-panel">
+                    <h2 class="workflow-section-title"><i class="fas fa-users"></i> Parallel Review Progress</h2>
+                    <div class="approval-rail">
+                        {% for item in approval_summary.approvals %}
+                            <div class="approval-step {{ item.status }}">
+                                <div class="approval-role">{{ item.approver_role }}</div>
+                                <div class="approval-person">
+                                    <strong>{% if item.approver_user %}{{ item.approver_user.username }}{% else %}Not configured{% endif %}</strong>
+                                    <span>{{ item.comment|default:"Waiting for review"|truncatechars:80 }}</span>
+                                </div>
+                                <span class="status-pill {{ item.status }}">{{ item.get_status_display }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="workflow-panel">
+                    <h2 class="workflow-section-title"><i class="fas fa-gavel"></i> Submit Your Opinion</h2>
+                    {% if can_decide %}
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.non_field_errors }}
+                        <div class="decision-options">{{ form.decision }}</div>
+                        {{ form.decision.errors }}
+                        <div class="workflow-form-group">
+                            {{ form.comment.label_tag }}
+                            {{ form.comment }}
+                            {{ form.comment.errors }}
+                        </div>
+                        <p class="workflow-subtitle" style="font-size: 0.78rem; margin-bottom: 1rem;">
+                            {% if approval.review_stage == 'reconsideration' %}
+                                Every reconsideration opinion is collected before the complaint proceeds or returns for rework.
+                            {% else %}
+                                A rejection opens a new review for every other required approver.
+                            {% endif %}
+                        </p>
+                        <div class="workflow-actions">
+                            <button type="submit" class="workflow-btn">
+                                <i class="fas fa-save"></i>
+                                {% if approval.status == 'pending' %}Submit Review{% else %}Update My Review{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                        <div class="empty-workflow">
+                            <i class="fas fa-lock"></i>
+                            <strong>This approval round is complete</strong>
+                            <p>Your recorded decision is {{ approval.get_status_display }}. Completed rounds are read-only.</p>
+                        </div>
+                    {% endif %}
+                </section>
+            </aside>
+        </div>
+    </main>
+</body>
+</html>

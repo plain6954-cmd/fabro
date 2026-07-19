@@ -6,7 +6,7 @@
     <title>Login - Fabro Leather</title>
     {% load static %}
     <link rel="icon" type="image/png" href="{% static 'FABRO__BRAND ICON_FINAL_CMYK.png' %}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -75,20 +75,19 @@
         }
 
         .brand-icon {
-            width: 5rem;
-            height: 5rem;
+            width: min(17rem, 82vw);
+            height: 6.5rem;
             margin: 0 auto 1rem;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 16px 42px rgba(220, 38, 38, 0.36);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .brand-icon img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            background: white;
-            padding: 0.5rem;
+            filter: drop-shadow(0 16px 34px rgba(220, 38, 38, 0.28));
         }
 
         .brand-title {
@@ -315,7 +314,7 @@
     <div class="login-container">
         <div class="brand-section">
             <div class="brand-icon">
-                <img src="{% static 'FABRO__BRAND ICON_FINAL_CMYK.png' %}" alt="Fabro Leather Logo">
+                <img src="{% static 'fabro-logo.png' %}" alt="Fabro Leather Logo">
             </div>
             <h1 class="brand-title">Fabro Leather</h1>
             <p class="brand-subtitle">Car Seat Management System</p>

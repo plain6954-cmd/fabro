@@ -1,13 +1,49 @@
+# pyrefly: ignore [missing-import]
 from django.urls import path
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LogoutView
+from .security import RateLimitedLoginView
 from . import views
-from django.conf import settings
-from django.conf.urls.static import static
+from .api_views import (
+    LoginAPIView, LogoutAPIView, RegisterAPIView, UserProfileAPIView, DashboardAPIView,
+    ComplaintListCreateAPIView, ComplaintRetrieveUpdateDestroyAPIView,
+    FactoryReviewAPIView, ApprovalInboxAPIView, ApprovalDecisionAPIView,
+    ComplaintStartActionAPIView, ComplaintFinalUpdateAPIView,
+    NotificationListAPIView, NotificationReadAPIView,
+    SKUListCreateAPIView, SKURetrieveUpdateDestroyAPIView,
+    VehicleListCreateAPIView, VehicleRetrieveUpdateDestroyAPIView
+)
 
 urlpatterns = [
+    # REST API Auth Routes
+    path('api/auth/login/', LoginAPIView.as_view(), name='api_login'),
+    path('api/auth/logout/', LogoutAPIView.as_view(), name='api_logout'),
+    path('api/auth/register/', RegisterAPIView.as_view(), name='api_register'),
+    path('api/user/profile/', UserProfileAPIView.as_view(), name='api_profile'),
+    path('api/dashboard/', DashboardAPIView.as_view(), name='api_dashboard'),
+    path('api/complaints/', ComplaintListCreateAPIView.as_view(), name='api_complaints_list_create'),
+    path('api/complaints/<str:complaint_id>/', ComplaintRetrieveUpdateDestroyAPIView.as_view(), name='api_complaint_detail'),
+    path('api/complaints/<str:complaint_id>/factory-review/', FactoryReviewAPIView.as_view(), name='api_factory_review'),
+    path('api/approvals/', ApprovalInboxAPIView.as_view(), name='api_approval_inbox'),
+    path('api/approvals/<int:approval_id>/decision/', ApprovalDecisionAPIView.as_view(), name='api_approval_decision'),
+    path('api/complaints/<str:complaint_id>/start-action/', ComplaintStartActionAPIView.as_view(), name='api_start_action'),
+    path('api/complaints/<str:complaint_id>/final-update/', ComplaintFinalUpdateAPIView.as_view(), name='api_final_update'),
+    path('api/notifications/', NotificationListAPIView.as_view(), name='api_notifications'),
+    path('api/notifications/<int:notification_id>/read/', NotificationReadAPIView.as_view(), name='api_notification_read'),
+    path('api/skus/', SKUListCreateAPIView.as_view(), name='api_skus_list_create'),
+    path('api/skus/<int:pk>/', SKURetrieveUpdateDestroyAPIView.as_view(), name='api_sku_detail'),
+    path('api/vehicles/', VehicleListCreateAPIView.as_view(), name='api_vehicles_list_create'),
+    path('api/vehicles/<int:pk>/', VehicleRetrieveUpdateDestroyAPIView.as_view(), name='api_vehicle_detail'),
+
     path('complaint/edit/<str:complaint_id>/', views.edit_complaint, name='edit_complaint'),
+    path('complaint/factory-review/<str:complaint_id>/', views.factory_review_complaint, name='factory_review_complaint'),
+    path('approvals/', views.approval_inbox, name='approval_inbox'),
+    path('approvals/<int:approval_id>/', views.approval_review, name='approval_review'),
+    path('complaint/execute/<str:complaint_id>/', views.execute_complaint, name='execute_complaint'),
+    path('notifications/', views.notification_list, name='notification_list'),
+    path('notifications/<int:notification_id>/open/', views.open_notification, name='open_notification'),
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('complaint/delete/<str:complaint_id>/', views.delete_complaint, name='delete_complaint'),
-    path('login/', LoginView.as_view(template_name='management/login.html'), name='login'),
+    path('login/', RateLimitedLoginView.as_view(template_name='management/login.html'), name='login'),
     path('logout/', LogoutView.as_view(template_name='management/logout_success.html'), name='logout'),
     path('logout-success/', views.logout_success, name='logout_success'),
     path('complaints/', views.complaint_list, name='complaint_list'),
@@ -34,10 +70,6 @@ urlpatterns = [
     path('admin-panel/delete-group/', views.delete_group, name='delete_group'),
     path('admin-panel/edit-user/', views.edit_user, name='edit_user'),
     path('admin-panel/delete-user/', views.delete_user, name='delete_user'),
-
-    
-
-
-        
-
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path('admin-panel/terminate-session/<str:session_key>/', views.terminate_session_view, name='terminate_session'),
+    path('admin-panel/terminate-all-sessions/', views.terminate_all_sessions_view, name='terminate_all_sessions'),
+]

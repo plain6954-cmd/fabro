@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Vehicle CSV - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 800px;
@@ -278,7 +279,7 @@
             <p class="page-subtitle">Bulk import vehicle configurations from CSV file</p>
         </div>
 
-        {% comment %} {% if messages %}
+        {% if messages %}
             <div class="messages">
                 {% for message in messages %}
                     <div class="message {{ message.tags }}">
@@ -293,7 +294,7 @@
                     </div>
                 {% endfor %}
             </div>
-        {% endif %} {% endcomment %}
+        {% endif %}
 
         <div class="upload-container">
             <h2 class="section-title">
@@ -303,6 +304,12 @@
 
             <form method="POST" enctype="multipart/form-data" id="uploadForm">
                 {% csrf_token %}
+                {% if form.csv_file.errors %}
+                    <div class="message error">
+                        <i class="fas fa-times-circle"></i>
+                        {{ form.csv_file.errors|striptags }}
+                    </div>
+                {% endif %}
                 
                 <div class="file-upload-area" id="dropZone">
                     <div class="file-upload-icon">
@@ -312,7 +319,7 @@
                         <strong>Click to upload</strong> or drag and drop
                     </div>
                     <div class="file-upload-subtext">
-                        CSV files only (Max 10MB)
+                        CSV files only (Max 5MB)
                     </div>
                     <input type="file" name="csv_file" id="csvFile" class="file-input" accept=".csv" required>
                 </div>

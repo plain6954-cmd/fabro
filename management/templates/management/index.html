@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,20 +7,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         /* Lock the page to exactly one viewport — no scrolling */
         html, body {
-            height: 100%;
-            overflow: hidden;
+            height: auto;
+            overflow: visible;
         }
 
         /* Content wrapper fills viewport minus navbar (logo 6rem + 2×1rem padding = ~128px) */
         .dashboard-wrapper {
-            height: calc(100vh - 128px);
+            min-height: calc(100vh - 128px);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .dashboard-container {
@@ -31,7 +32,7 @@
             margin: 0 auto;
             padding: 0.55rem 2rem 1.35rem;
             box-sizing: border-box;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .dashboard-header {
@@ -84,6 +85,7 @@
             position: relative;
             top: -0.45rem;
             height: calc(100% + 0.45rem);
+            overflow: visible;
         }
 
         .section-header {
@@ -155,6 +157,153 @@
 
         .action-card-compact:hover::after { opacity: 1; }
 
+        .notification-window-card {
+            grid-column: 1 / -1;
+            grid-row: span 2;
+            align-items: stretch;
+            flex-direction: column;
+            justify-content: flex-start;
+            cursor: default;
+            padding: 0.9rem 1rem;
+        }
+
+        .notification-window-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(220, 38, 38, 0.35);
+        }
+
+        .notification-window-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .notification-window-title {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            color: var(--dark-text);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        body.light-mode .notification-window-title { color: var(--light-text); }
+
+        .notification-count-pill {
+            min-width: 1.55rem;
+            height: 1.55rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.45rem;
+            background: rgba(220, 38, 38, 0.2);
+            color: #fff;
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        body.light-mode .notification-count-pill {
+            background: rgba(220, 38, 38, 0.12);
+            color: #b91c1c;
+        }
+
+        .notification-list {
+            display: grid;
+            gap: 0.45rem;
+            min-height: 0;
+            overflow: auto;
+            padding-right: 0.1rem;
+        }
+
+        .notification-item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.55rem;
+            align-items: center;
+            padding: 0.52rem 0.55rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: inherit;
+            text-decoration: none;
+            transition: border-color 160ms ease, background 160ms ease;
+        }
+
+        .notification-item:hover { border-color: rgba(239, 35, 42, 0.5); }
+
+        .notification-window-title { text-decoration: none; }
+
+        body.light-mode .notification-item {
+            background: rgba(255, 255, 255, 0.42);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .notification-dot {
+            width: 0.6rem;
+            height: 0.6rem;
+            border-radius: 999px;
+            background: var(--primary-color);
+            box-shadow: 0 0 16px rgba(239, 68, 68, 0.55);
+        }
+
+        .notification-copy strong {
+            display: block;
+            color: var(--dark-text);
+            font-size: 0.78rem;
+            line-height: 1.2;
+        }
+
+        body.light-mode .notification-copy strong { color: var(--light-text); }
+
+        .notification-copy span {
+            display: block;
+            color: var(--dark-text-secondary);
+            font-size: 0.68rem;
+            line-height: 1.25;
+            margin-top: 0.1rem;
+        }
+
+        body.light-mode .notification-copy span { color: var(--light-text-secondary); }
+
+        .workflow-approval-link {
+            min-height: 2.25rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            border: 1px solid rgba(245, 158, 11, 0.42);
+            border-radius: 6px;
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.1);
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        body.light-mode .workflow-approval-link { color: #92400e; }
+
+        .notification-empty {
+            height: 100%;
+            min-height: 5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark-text-secondary);
+            font-size: 0.78rem;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 9px;
+        }
+
+        body.light-mode .notification-empty {
+            color: var(--light-text-secondary);
+            border-color: rgba(0, 0, 0, 0.12);
+        }
+
         .action-icon-compact {
             width: 2.35rem;
             height: 2.35rem;
@@ -194,6 +343,86 @@
         }
 
         body.light-mode .action-text-compact p { color: var(--light-text-secondary); }
+
+        .complaint-type-summary-card {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            gap: 0.65rem;
+            cursor: default;
+        }
+
+        .complaint-type-summary-card:hover {
+            transform: none;
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+
+        .complaint-type-summary-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--dark-text);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        body.light-mode .complaint-type-summary-header { color: var(--light-text); }
+
+        .complaint-type-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        .complaint-type-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.42rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-decoration: none;
+            transition: all var(--motion-fast) ease;
+        }
+        .complaint-type-box:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+        body.light-mode .complaint-type-box {
+            background: rgba(255, 255, 255, 0.42);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        body.light-mode .complaint-type-box:hover {
+            background: rgba(255, 255, 255, 0.7);
+            border-color: var(--primary-color);
+        }
+        .complaint-type-value {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--dark-text);
+            line-height: 1.1;
+        }
+        body.light-mode .complaint-type-value {
+            color: var(--light-text);
+        }
+        .complaint-type-label {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--dark-text-secondary);
+            font-weight: 600;
+            margin-top: 0.1rem;
+        }
+        body.light-mode .complaint-type-label {
+            color: var(--light-text-secondary);
+        }
+
+        .complaint-type-box.line { border-color: rgba(16, 185, 129, 0.35); }
+        .complaint-type-box.pattern { border-color: rgba(245, 158, 11, 0.4); }
+        .complaint-type-box.production { border-color: rgba(59, 130, 246, 0.35); }
 
         /* ── Right Column: stat cards fill height evenly ── */
         .stats-sidebar-list {
@@ -348,6 +577,139 @@
         .stat-icon-compact.skus       { background: linear-gradient(135deg,#10b981,#059669); box-shadow:0 4px 10px rgba(16,185,129,.25); }
         .stat-icon-compact.settings   { background: linear-gradient(135deg,#8b5cf6,#7c3aed); box-shadow:0 4px 10px rgba(139,92,246,.25); }
 
+        .monthly-stats-card {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            align-items: stretch;
+            gap: 0.48rem;
+            cursor: default;
+            padding-block: 0.62rem;
+            position: relative;
+            overflow: visible;
+        }
+
+        .monthly-stats-card:hover {
+            transform: none;
+            border-color: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .monthly-stats-header {
+            display: flex;
+            align-items: center;
+            gap: 0.42rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.66rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .view-complaints-orb {
+            position: absolute;
+            z-index: 4;
+            left: -3.15rem;
+            top: 50%;
+            width: 2.65rem;
+            height: 2.65rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 1px solid rgba(254, 202, 202, 0.38);
+            box-shadow: 0 12px 30px rgba(220, 38, 38, 0.38), 0 0 0 5px rgba(220, 38, 38, 0.1);
+            text-decoration: none;
+            transform: translateY(-50%);
+            transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+
+        .view-complaints-orb:hover,
+        .view-complaints-orb:focus-visible {
+            transform: translateY(-50%) scale(1.08);
+            box-shadow: 0 16px 38px rgba(220, 38, 38, 0.5), 0 0 0 6px rgba(220, 38, 38, 0.14);
+        }
+
+        .view-complaints-orb:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 3px;
+        }
+
+        .monthly-stats-header i {
+            color: #f87171;
+        }
+
+        .monthly-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.48rem;
+            min-height: 0;
+        }
+
+        .monthly-stat-box {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            gap: 0.48rem;
+            min-width: 0;
+            padding: 0.42rem 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .monthly-stat-box.reported { border-color: rgba(248, 113, 113, 0.3); }
+        .monthly-stat-box.resolved { border-color: rgba(52, 211, 153, 0.3); }
+
+        .monthly-stat-icon {
+            width: 1.85rem;
+            height: 1.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.78rem;
+        }
+
+        .reported .monthly-stat-icon { background: rgba(220, 38, 38, 0.82); }
+        .resolved .monthly-stat-icon { background: rgba(5, 150, 105, 0.82); }
+
+        .monthly-stat-copy {
+            min-width: 0;
+        }
+
+        .monthly-stat-value {
+            display: block;
+            color: var(--dark-text);
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .monthly-stat-label {
+            display: block;
+            margin-top: 0.16rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.57rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+
+        body.light-mode .monthly-stats-header,
+        body.light-mode .monthly-stat-label {
+            color: #52525b;
+        }
+
+        body.light-mode .monthly-stat-value {
+            color: #18181b;
+        }
+
+        body.light-mode .monthly-stat-box {
+            background: rgba(255, 255, 255, 0.52);
+            border-color: rgba(24, 24, 27, 0.12);
+        }
+
         .stat-info-compact { display: flex; flex-direction: column; }
 
         .stat-value-compact {
@@ -384,6 +746,19 @@
             .stat-card-compact { flex: unset; }
             .stat-card-compact.complaint-summary { min-height: 9.7rem; }
             .quick-actions-grid { grid-template-rows: unset; }
+            .view-complaints-orb {
+                left: auto;
+                right: 0.65rem;
+                top: 0.62rem;
+                width: 2.35rem;
+                height: 2.35rem;
+                transform: none;
+            }
+            .view-complaints-orb:hover,
+            .view-complaints-orb:focus-visible {
+                transform: scale(1.06);
+            }
+            .monthly-stats-header { padding-right: 2.75rem; }
         }
 
         @media (max-width: 640px) {
@@ -397,6 +772,88 @@
             .complaint-status-box {
                 min-height: 2.45rem;
                 padding: 0.32rem 0.22rem;
+            }
+        }
+
+        /* Split card styles for Approvers */
+        .notification-window-card.split-left {
+            grid-column: 1 / 2;
+        }
+
+        .approval-inbox-card-button {
+            grid-column: 2 / 3;
+            grid-row: span 2;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            text-decoration: none;
+            padding: 0.9rem 1rem;
+            cursor: pointer;
+            background:
+                linear-gradient(135deg, rgba(220, 38, 38, 0.08), transparent 42%),
+                linear-gradient(135deg, rgba(34, 34, 38, 0.76) 0%, rgba(18, 18, 20, 0.62) 100%);
+            border-color: rgba(220, 38, 38, 0.25);
+            transition: all var(--motion-med) var(--motion-ease);
+        }
+
+        body.light-mode .approval-inbox-card-button {
+            background: linear-gradient(135deg, var(--light-surface) 0%, var(--light-card) 100%);
+            border-color: rgba(220, 38, 38, 0.18);
+        }
+
+        .approval-inbox-card-button:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 26px 70px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(220, 38, 38, 0.12);
+        }
+
+        .approval-inbox-card-button .approval-icon {
+            position: relative;
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--primary-color);
+        }
+
+        body.light-mode .approval-inbox-card-button .approval-icon {
+            background: rgba(220, 38, 38, 0.08);
+        }
+
+        .approval-count-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            background: var(--primary-color);
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            min-width: 1.2rem;
+            height: 1.2rem;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            border: 2px solid var(--dark-surface);
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+        }
+
+        body.light-mode .approval-count-badge {
+            border-color: var(--light-surface);
+        }
+
+        .approval-inbox-content {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            width: 100%;
+        }
+
+        @media (max-width: 640px) {
+            .notification-window-card.split-left {
+                grid-column: 1 / -1;
+            }
+            .approval-inbox-card-button {
+                grid-column: 1 / -1;
+                grid-row: span 1;
             }
         }
     </style>
@@ -420,13 +877,15 @@
                         <span>Quick Access Options</span>
                     </div>
                     <div class="quick-actions-grid">
-                        <div class="action-card-compact" onclick="window.location.href='{% url 'add_complaint' %}'">
+                        {% if can_create_complaint %}
+                        <div class="action-card-compact" onclick="window.location.href='{% url 'add_complaint' %}'" role="link" tabindex="0">
                             <div class="action-icon-compact"><i class="fas fa-plus-circle"></i></div>
                             <div class="action-text-compact">
                                 <h3>Add New Complaint</h3>
                                 <p>Register a new customer complaint with media attachments and detailed info</p>
                             </div>
                         </div>
+                        {% endif %}
 
                         <div class="action-card-compact" onclick="window.location.href='{% url 'complaint_list' %}'">
                             <div class="action-icon-compact"><i class="fas fa-list-alt"></i></div>
@@ -436,37 +895,111 @@
                             </div>
                         </div>
 
-                        <div class="action-card-compact" onclick="window.location.href='{% url 'car_details' %}'">
-                            <div class="action-icon-compact"><i class="fas fa-car-side"></i></div>
-                            <div class="action-text-compact">
-                                <h3>Vehicles</h3>
-                                <p>Add and configure vehicle models, brands, and layout code specifications</p>
+                        {% if not can_create_complaint %}
+                        <div class="action-card-compact complaint-type-summary-card" aria-labelledby="complaint-type-summary-title">
+                            <div class="complaint-type-summary-header" id="complaint-type-summary-title">
+                                <i class="fas fa-layer-group" aria-hidden="true"></i>
+                                <span>Complaints by Type</span>
+                            </div>
+                            <div class="complaint-type-grid">
+                                <a class="complaint-type-box line" href="{% url 'complaint_list' %}?complaint_type=line" aria-label="View {{ line_complaints }} line complaints">
+                                    <strong class="complaint-type-value">{{ line_complaints|default:"0" }}</strong>
+                                    <span class="complaint-type-label">Line</span>
+                                </a>
+                                <a class="complaint-type-box pattern" href="{% url 'complaint_list' %}?complaint_type=pattern" aria-label="View {{ pattern_complaints }} pattern complaints">
+                                    <strong class="complaint-type-value">{{ pattern_complaints|default:"0" }}</strong>
+                                    <span class="complaint-type-label">Pattern</span>
+                                </a>
+                                <a class="complaint-type-box production" href="{% url 'complaint_list' %}?complaint_type=production" aria-label="View {{ production_complaints }} production complaints">
+                                    <strong class="complaint-type-value">{{ production_complaints|default:"0" }}</strong>
+                                    <span class="complaint-type-label">Production</span>
+                                </a>
                             </div>
                         </div>
+                        {% endif %}
 
-                        <div class="action-card-compact" onclick="window.location.href='{% url 'add_sku' %}'">
-                            <div class="action-icon-compact"><i class="fas fa-barcode"></i></div>
-                            <div class="action-text-compact">
-                                <h3>SKU Management</h3>
-                                <p>Manage product SKUs and inventory with bulk upload capabilities</p>
+                        {% if is_workflow_approver %}
+                        <div class="action-card-compact notification-window-card split-left">
+                            <div class="notification-window-header">
+                                <a href="{% url 'notification_list' %}" class="notification-window-title">
+                                    <div class="action-icon-compact"><i class="fas fa-bell"></i></div>
+                                    <span>Notifications</span>
+                                </a>
+                                <span class="notification-count-pill">{{ unread_notification_count }}</span>
                             </div>
+
+                            {% if dashboard_notifications %}
+                            <div class="notification-list">
+                                {% for notification in dashboard_notifications %}
+                                <a href="{% url 'open_notification' notification.id %}" class="notification-item">
+                                    <span class="notification-dot"></span>
+                                    <div class="notification-copy">
+                                        <strong>{{ notification.title }}</strong>
+                                        <span>
+                                            {% if notification.complaint %}
+                                                {{ notification.complaint.complaint_id }} -
+                                            {% endif %}
+                                            {{ notification.message|default:"Workflow update available."|truncatechars:92 }}
+                                        </span>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="notification-empty">No workflow notifications yet</div>
+                            {% endif %}
                         </div>
 
-                        <div class="action-card-compact" onclick="window.location.href='{% url 'master_settings' %}'">
-                            <div class="action-icon-compact"><i class="fas fa-cogs"></i></div>
-                            <div class="action-text-compact">
-                                <h3>Master Settings</h3>
-                                <p>Configure master data including channels, countries, and categories</p>
+                        <a href="{% url 'approval_inbox' %}" class="action-card-compact approval-inbox-card-button">
+                            <div class="approval-inbox-content">
+                                <div class="action-icon-compact approval-icon">
+                                    <i class="fas fa-user-check"></i>
+                                    {% if pending_approval_count %}
+                                    <span class="approval-count-badge">{{ pending_approval_count }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="action-text-compact">
+                                    <h3>Approval Inbox</h3>
+                                    <p>
+                                        {% if pending_approval_count %}
+                                        You have {{ pending_approval_count }} pending approval review{{ pending_approval_count|pluralize }} waiting for your action.
+                                        {% else %}
+                                        No pending approvals waiting for your action.
+                                        {% endif %}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
+                        {% else %}
+                        <div class="action-card-compact notification-window-card">
+                            <div class="notification-window-header">
+                                <a href="{% url 'notification_list' %}" class="notification-window-title">
+                                    <div class="action-icon-compact"><i class="fas fa-bell"></i></div>
+                                    <span>Notifications</span>
+                                </a>
+                                <span class="notification-count-pill">{{ unread_notification_count }}</span>
+                            </div>
 
-                        {% if user.is_superuser %}
-                        <div class="action-card-compact" onclick="window.location.href='{% url 'admin_panel' %}'">
-                            <div class="action-icon-compact"><i class="fas fa-users-cog"></i></div>
-                            <div class="action-text-compact">
-                                <h3>Admin Panel</h3>
-                                <p>Manage users, groups, permissions and view system activity logs</p>
+                            {% if dashboard_notifications %}
+                            <div class="notification-list">
+                                {% for notification in dashboard_notifications %}
+                                <a href="{% url 'open_notification' notification.id %}" class="notification-item">
+                                    <span class="notification-dot"></span>
+                                    <div class="notification-copy">
+                                        <strong>{{ notification.title }}</strong>
+                                        <span>
+                                            {% if notification.complaint %}
+                                                {{ notification.complaint.complaint_id }} -
+                                            {% endif %}
+                                            {{ notification.message|default:"Workflow update available."|truncatechars:92 }}
+                                        </span>
+                                    </div>
+                                </a>
+                                {% endfor %}
                             </div>
+                            {% else %}
+                            <div class="notification-empty">No workflow notifications yet</div>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>
@@ -503,6 +1036,34 @@
                             </div>
                         </a>
 
+                        {% if not can_manage_workflow %}
+                        <div class="stat-card-compact monthly-stats-card">
+                            <a href="{% url 'complaint_list' %}" class="view-complaints-orb" title="View all complaints" aria-label="View all complaints">
+                                <i class="fas fa-list-alt" aria-hidden="true"></i>
+                            </a>
+                            <div class="monthly-stats-header">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>This Month</span>
+                            </div>
+                            <div class="monthly-stats-grid">
+                                <div class="monthly-stat-box reported">
+                                    <span class="monthly-stat-icon"><i class="fas fa-file-circle-plus"></i></span>
+                                    <span class="monthly-stat-copy">
+                                        <strong class="monthly-stat-value">{{ complaints_this_month|default:"0" }}</strong>
+                                        <span class="monthly-stat-label">Complaints</span>
+                                    </span>
+                                </div>
+                                <div class="monthly-stat-box resolved">
+                                    <span class="monthly-stat-icon"><i class="fas fa-circle-check"></i></span>
+                                    <span class="monthly-stat-copy">
+                                        <strong class="monthly-stat-value">{{ resolved_this_month|default:"0" }}</strong>
+                                        <span class="monthly-stat-label">Resolved</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <a href="{% url 'car_details' %}" class="stat-card-compact">
                             <div class="stat-icon-compact vehicles"><i class="fas fa-car"></i></div>
                             <div class="stat-info-compact">
@@ -519,6 +1080,7 @@
                             </div>
                         </a>
 
+                        {% if can_manage_workflow %}
                         <a href="{% url 'master_settings' %}" class="stat-card-compact">
                             <div class="stat-icon-compact settings"><i class="fas fa-cog"></i></div>
                             <div class="stat-info-compact">
@@ -526,6 +1088,7 @@
                                 <div class="stat-label-compact">Master Settings</div>
                             </div>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

@@ -1,10 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Management - Fabro Leather</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1400px;
@@ -93,7 +94,7 @@
         .form-section {
             background: var(--dark-surface);
             border-radius: var(--border-radius);
-            padding: 2rem;
+            padding: 1.5rem;
             box-shadow: var(--shadow);
             border: 1px solid rgba(255, 255, 255, 0.1);
             height: fit-content;
@@ -108,7 +109,7 @@
             font-size: 1.25rem;
             font-weight: 600;
             color: var(--dark-text);
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -119,7 +120,7 @@
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .form-label {
@@ -136,7 +137,7 @@
 
         .form-input {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.7rem 0.9rem;
             border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             background-color: var(--dark-card);
@@ -160,7 +161,7 @@
         .file-upload-area {
             border: 2px dashed rgba(255, 255, 255, 0.2);
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 1rem;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
@@ -203,11 +204,68 @@
         }
 
         .brand-logo-preview {
-            max-width: 100px;
-            max-height: 100px;
+            max-width: 82px;
+            max-height: 82px;
             margin-top: 0.5rem;
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .vehicle-form-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .vehicle-form-pane {
+            min-width: 0;
+        }
+
+        .vehicle-form-pane + .vehicle-form-pane {
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding-left: 1.5rem;
+        }
+
+        body.light-mode .vehicle-form-pane + .vehicle-form-pane {
+            border-left-color: #e2e8f0;
+        }
+
+        .pane-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0 0 1rem;
+            color: var(--primary-color);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .paired-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .vehicle-form-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.75rem;
+            padding-top: 1.25rem;
+            margin-top: 0.25rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.light-mode .vehicle-form-actions {
+            border-top-color: #e2e8f0;
+        }
+
+        .vehicle-form-actions .btn {
+            min-width: 150px;
+            justify-content: center;
         }
 
         body.light-mode .brand-logo-preview {
@@ -467,6 +525,21 @@
             .content-grid {
                 grid-template-columns: 1fr;
             }
+
+            .vehicle-form-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .vehicle-form-pane + .vehicle-form-pane {
+                border-left: 0;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                padding-left: 0;
+                padding-top: 1.25rem;
+            }
+
+            body.light-mode .vehicle-form-pane + .vehicle-form-pane {
+                border-top-color: #e2e8f0;
+            }
         }
 
         @media (max-width: 768px) {
@@ -495,6 +568,20 @@
 
             .btn {
                 justify-content: center;
+            }
+
+            .paired-fields {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .vehicle-form-actions {
+                flex-direction: column-reverse;
+                align-items: stretch;
+            }
+
+            .vehicle-form-actions .btn {
+                width: 100%;
             }
         }
     </style>
@@ -544,84 +631,108 @@
                     </div>
                 {% endif %}
 
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" class="vehicle-form-layout">
                     {% csrf_token %}
-                    
-                    <div class="form-group">
-                        <label class="form-label">Layout Code</label>
-                        <input type="text" name="layout_code" class="form-input" 
-                               placeholder="Enter unique layout code" 
-                               value="{{ form.layout_code.value|default:'' }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Brand Name</label>
-                        <input type="text" name="brand_name" class="form-input" 
-                               placeholder="e.g., BMW, Mercedes" 
-                               value="{{ form.brand_name.value|default:'' }}" required>
-                    </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Brand Logo (Optional)</label>
-                        <div class="file-upload-area">
-                            <div class="file-upload-icon">
-                                <i class="fas fa-image"></i>
-                            </div>
-                            <div class="file-upload-text">
-                                <strong>Click to upload</strong> brand logo<br>
-                                PNG, JPG (Max 5MB)
-                            </div>
-                            <input type="file" name="brand_logo" class="file-input" accept="image/*" id="brandLogoInput">
+                    <div class="vehicle-form-pane">
+                        <h3 class="pane-title">
+                            <i class="fas fa-id-card"></i>
+                            Vehicle Identity
+                        </h3>
+
+                        <div class="form-group">
+                            <label class="form-label">Layout Code</label>
+                            <input type="text" name="layout_code" class="form-input"
+                                   placeholder="Enter unique layout code"
+                                   value="{{ form.layout_code.value|default:'' }}" required>
                         </div>
-                        <img id="logoPreview" class="brand-logo-preview" style="display: none;">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Model Name</label>
-                        <input type="text" name="model_name" class="form-input" 
-                               placeholder="e.g., X5, C-Class" 
-                               value="{{ form.model_name.value|default:'' }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Sub-Model Name (Optional)</label>
-                        <input type="text" name="sub_model_name" class="form-input" 
-                               placeholder="e.g., Sport, Luxury" 
-                               value="{{ form.sub_model_name.value|default:'' }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Year Start</label>
-                        <input type="number" name="year_start" class="form-input" 
-                               placeholder="2020" min="1900" max="2100"
-                               value="{{ form.year_start.value|default:'' }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Year End</label>
-                        <input type="number" name="year_end" class="form-input" 
-                               placeholder="2025" min="1900" max="2100"
-                               value="{{ form.year_end.value|default:'' }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Number of Seats</label>
-                        <input type="number" name="number_of_seats" class="form-input" 
-                               placeholder="5" min="1"
-                               value="{{ form.number_of_seats.value|default:'' }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Number of Doors</label>
-                        <input type="number" name="number_of_doors" class="form-input" 
-                               placeholder="4" min="1"
-                               value="{{ form.number_of_doors.value|default:'' }}" required>
+
+                        <div class="form-group">
+                            <label class="form-label">Brand Name</label>
+                            <input type="text" name="brand_name" class="form-input"
+                                   placeholder="e.g., BMW, Mercedes"
+                                   value="{{ form.brand_name.value|default:'' }}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Brand Logo (Optional)</label>
+                            <div class="file-upload-area">
+                                <div class="file-upload-icon">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                <div class="file-upload-text">
+                                    <strong>Click to upload</strong> brand logo<br>
+                                    PNG, JPG (Max 5MB)
+                                </div>
+                                <input type="file" name="brand_logo" class="file-input" accept="image/*" id="brandLogoInput">
+                            </div>
+                            <img id="logoPreview" class="brand-logo-preview" style="display: none;">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Model Name</label>
+                            <input type="text" name="model_name" class="form-input"
+                                   placeholder="e.g., X5, C-Class"
+                                   value="{{ form.model_name.value|default:'' }}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Sub-Model Name (Optional)</label>
+                            <input type="text" name="sub_model_name" class="form-input"
+                                   placeholder="e.g., Sport, Luxury"
+                                   value="{{ form.sub_model_name.value|default:'' }}">
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">
-                        <i class="fas fa-save"></i>
-                        Add Vehicle
-                    </button>
+                    <div class="vehicle-form-pane">
+                        <h3 class="pane-title">
+                            <i class="fas fa-sliders-h"></i>
+                            Vehicle Configuration
+                        </h3>
+
+                        <div class="paired-fields">
+                            <div class="form-group">
+                                <label class="form-label">Year Start</label>
+                                <input type="number" name="year_start" class="form-input"
+                                       placeholder="2020" min="1900" max="2100"
+                                       value="{{ form.year_start.value|default:'' }}" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Year End</label>
+                                <input type="number" name="year_end" class="form-input"
+                                       placeholder="2025" min="1900" max="2100"
+                                       value="{{ form.year_end.value|default:'' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="paired-fields">
+                            <div class="form-group">
+                                <label class="form-label">Number of Seats</label>
+                                <input type="number" name="number_of_seats" class="form-input"
+                                       placeholder="5" min="1"
+                                       value="{{ form.number_of_seats.value|default:'' }}" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Number of Doors</label>
+                                <input type="number" name="number_of_doors" class="form-input"
+                                       placeholder="4" min="1"
+                                       value="{{ form.number_of_doors.value|default:'' }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-form-actions">
+                        <a href="{% url 'car_details' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Add Vehicle
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

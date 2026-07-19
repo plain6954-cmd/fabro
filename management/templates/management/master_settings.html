@@ -1,10 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Settings - Fabro Leather</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
         .page-container {
             max-width: 1680px;
@@ -546,12 +547,14 @@
                                                     title="Edit {{ setting.name }}">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <a href="{% url 'delete_master_setting' setting.id %}" 
-                                               class="action-btn delete" 
-                                               title="Delete {{ setting.name }}"
-                                               onclick="return confirm('Are you sure you want to delete &quot;{{ setting.name|escapejs }}&quot;?');">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
+                                            <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="action-btn delete"
+                                                        title="Delete {{ setting.name }}"
+                                                        onclick="return confirm('Are you sure you want to delete &quot;{{ setting.name|escapejs }}&quot;?');">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 {% empty %}
