@@ -21,6 +21,7 @@ export default defineConfig({
     ['list']
   ],
   globalSetup: './tests/helpers/globalSetup.ts',
+  globalTeardown: './tests/helpers/globalTeardown.ts',
   use: {
     baseURL: e2eBaseURL,
     reducedMotion: 'reduce',
@@ -36,11 +37,13 @@ export default defineConfig({
     env: {
       E2E_TESTING: 'True'
     },
-    reuseExistingServer: false,
-    gracefulShutdown: {
-      signal: 'SIGTERM',
-      timeout: 1_000
-    },
+    reuseExistingServer: process.env.E2E_REUSE_SERVER === 'True',
+    ...(process.platform === 'win32' ? {} : {
+      gracefulShutdown: {
+        signal: 'SIGTERM' as const,
+        timeout: 1_000
+      }
+    }),
     stdout: 'ignore',
     stderr: 'ignore',
     timeout: 120_000

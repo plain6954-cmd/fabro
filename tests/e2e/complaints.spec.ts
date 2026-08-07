@@ -3,9 +3,50 @@ import path from 'path';
 import { login } from '../helpers/auth';
 import { attachPageDiagnostics, expectNoDjangoError } from '../helpers/assertions';
 import { routes, sample } from '../helpers/testData';
+import { searchComplaints } from '../helpers/navigation';
 
 test.beforeEach(async ({ page }) => {
   await login(page);
+});
+
+test('complaint type remains recognizable and synchronized while editing', async ({ page }) => {
+  await page.goto(routes.addComplaint);
+
+  const typeInput = page.locator('#id_complaint_type');
+  const indicator = page.locator('#complaint-type-indicator');
+  const indicatorTitle = page.locator('#complaint-type-indicator-title');
+  const saveButton = page.locator('#save-complaint-button');
+
+  await expect(typeInput).toHaveValue('pattern');
+  await expect(indicatorTitle).toHaveText('Pattern Complaint');
+  await expect(saveButton).toHaveAttribute('aria-label', 'Save Pattern Complaint');
+
+  await page.locator('#complaint-type-production').click();
+  await expect(typeInput).toHaveValue('production');
+  await expect(indicator).toHaveClass(/type-production/);
+  await expect(indicatorTitle).toHaveText('Production Complaint');
+  await expect(saveButton).toHaveAttribute('aria-label', 'Save Production Complaint');
+  await expect(page.locator('#complaint-type-production')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.locator('#complaint-type-line').click();
+  await expect(typeInput).toHaveValue('line');
+  await expect(indicator).toHaveClass(/type-line/);
+  await expect(indicatorTitle).toHaveText('Line Complaint');
+  await expect(saveButton).toHaveAttribute('aria-label', 'Save Line Complaint');
+
+  await page.getByRole('button', { name: /Clear complaint form/i }).click();
+  await expect(typeInput).toHaveValue('line');
+  await expect(indicatorTitle).toHaveText('Line Complaint');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+  await expect(indicator).toBeVisible();
+  const indicatorBox = await indicator.boundingBox();
+  const navbarBox = await page.locator('.navbar').boundingBox();
+  expect(indicatorBox).not.toBeNull();
+  expect(navbarBox).not.toBeNull();
+  expect(indicatorBox!.y).toBeGreaterThanOrEqual(navbarBox!.y + navbarBox!.height - 1);
+  expect(indicatorBox!.x + indicatorBox!.width).toBeLessThanOrEqual(390);
 });
 
 test('add complaint form supports fields, clear, cancel, upload, save, view, search, edit and delete', async ({ page }) => {
@@ -28,14 +69,10 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
   await page.locator('select[name="sku"]').selectOption({ index: 1 }).catch(() => {});
   await page.locator('input[name="media_files"]').setInputFiles(path.join(process.cwd(), 'static', 'FABRO__BRAND ICON_FINAL_CMYK.png'));
   await expect(page.getByText(/file\(s\) selected/i)).toBeVisible();
-  await page.getByRole('button', { name: /Save Complaint/i }).click({ force: true });
+  await page.locator('#save-complaint-button').click({ force: true });
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
 
-  await page.getByPlaceholder(/Search complaints/i).fill(sample.complaintText);
-  await page.locator('select[name="search_by"]').selectOption('complaint_description');
-  const applyFilters = page.getByRole('button', { name: /Apply Filters/i });
-  await expect(applyFilters).toBeVisible();
-  await applyFilters.click({ force: true });
+  await searchComplaints(page, sample.complaintText, 'description');
   const createdRow = page.locator('tbody tr').first();
   await expect(createdRow).toBeVisible();
 
@@ -52,15 +89,11 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
   await page.locator('select[name="priority"]').selectOption('High');
   await page.getByRole('button', { name: /Update Complaint|Save/i }).click({ force: true });
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
-  await page.getByPlaceholder(/Search complaints/i).fill(sample.complaintText);
-  await page.locator('select[name="search_by"]').selectOption('complaint_description');
-  await page.getByRole('button', { name: /Apply Filters/i }).click({ force: true });
+  await searchComplaints(page, sample.complaintText, 'description');
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.locator('tbody tr').first().locator('.action-btn.delete').click({ force: true });
-  await page.getByPlaceholder(/Search complaints/i).fill(sample.complaintText);
-  await page.locator('select[name="search_by"]').selectOption('complaint_description');
-  await page.getByRole('button', { name: /Apply Filters/i }).click({ force: true });
+  await searchComplaints(page, sample.complaintText, 'description');
   await expect(page.locator('.empty-state').or(page.locator('tbody'))).toBeVisible();
   await expect(page.locator('tbody tr')).toHaveCount(0);
   await expectNoDjangoError(page);

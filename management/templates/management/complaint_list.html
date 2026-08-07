@@ -38,6 +38,171 @@
             display: flex;
             gap: 1rem;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .header-search-form {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex: 1 1 460px;
+            justify-content: flex-end;
+            min-width: 280px;
+        }
+
+        .search-picker {
+            position: relative;
+            flex: 1 1 340px;
+            max-width: 430px;
+            min-width: 240px;
+        }
+
+        .header-search-input {
+            width: 100%;
+            height: 2.9rem;
+            padding: 0.75rem 10.5rem 0.75rem 2.65rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            background: rgba(18, 18, 20, 0.82);
+            color: var(--dark-text);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .header-search-input {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .header-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+        }
+
+        .search-leading-icon {
+            position: absolute;
+            left: 0.95rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+        }
+
+        body.light-mode .search-leading-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .search-field-label {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            max-width: 9.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.34rem 0.5rem;
+            border-radius: 6px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.14);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.68rem;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        body.light-mode .search-field-label {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.16);
+        }
+
+        .search-options {
+            position: absolute;
+            z-index: 30;
+            left: 0;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            display: none;
+            padding: 0.55rem;
+            border-radius: 8px;
+            background: rgba(24, 24, 27, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
+        }
+
+        .search-picker.is-suggesting .search-options {
+            display: block;
+        }
+
+        body.light-mode .search-options {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.13);
+        }
+
+        .search-options-title {
+            margin: 0 0 0.45rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        body.light-mode .search-options-title {
+            color: var(--light-text-secondary);
+        }
+
+        .search-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem;
+        }
+
+        .search-option {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            min-height: 2.25rem;
+            padding: 0.48rem 0.58rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--dark-text);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .search-option:hover,
+        .search-option.is-active {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.88);
+            border-color: rgba(248, 113, 113, 0.55);
+        }
+
+        body.light-mode .search-option {
+            color: var(--light-text);
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .search-option:hover,
+        body.light-mode .search-option.is-active {
+            color: #ffffff;
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .icon-btn {
+            width: 2.9rem;
+            height: 2.9rem;
+            padding: 0;
+            justify-content: center;
         }
 
         .btn {
@@ -94,11 +259,16 @@
             margin-bottom: 2rem;
             box-shadow: 0 18px 55px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.12);
+            display: none;
         }
 
         body.light-mode .filter-section {
             background: var(--light-surface);
             border-color: #e2e8f0;
+        }
+
+        .filter-section.is-open {
+            display: block;
         }
 
         .filter-title {
@@ -151,6 +321,39 @@
             display: flex;
             gap: 1rem;
             justify-content: flex-end;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btn {
+            padding: 0.4rem 0.8rem;
+            background: var(--dark-card);
+            color: var(--dark-text);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .pagination-btn {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .pagination-copy {
+            margin: 0 0.5rem;
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        body.light-mode .pagination-copy {
+            color: var(--light-text);
         }
 
         .table-container {
@@ -382,6 +585,11 @@
             min-height: 0 !important;
             padding: 0.6rem 0.75rem 0.7rem !important;
             overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(239, 68, 68, 0.08), transparent 46%),
+                rgba(18, 18, 20, 0.55);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .journey-column::before {
@@ -414,6 +622,7 @@
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
             align-items: start;
+            padding: 0.2rem 0.15rem 0;
         }
 
         .journey-step {
@@ -435,11 +644,13 @@
             left: 50%;
             width: 100%;
             height: 2px;
-            background: rgba(161, 161, 170, 0.22);
+            background:
+                linear-gradient(90deg, rgba(161, 161, 170, 0.28), rgba(161, 161, 170, 0.1));
         }
 
         .journey-step.completed:not(:last-child)::after {
-            background: rgba(239, 68, 68, 0.82);
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.95), rgba(248, 113, 113, 0.55));
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.22);
         }
 
         .journey-dot {
@@ -502,12 +713,189 @@
             background: rgba(255, 255, 255, 0.92);
         }
 
+        body.light-mode .journey-column {
+            background:
+                linear-gradient(135deg, rgba(220, 38, 38, 0.07), transparent 48%),
+                rgba(255, 255, 255, 0.86);
+            border-color: rgba(24, 24, 27, 0.12);
+        }
+
+        .modal-journey-panel {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1.35rem;
+            padding: 1.25rem;
+            border-radius: 10px;
+            background:
+                radial-gradient(circle at 12% 20%, rgba(239, 68, 68, 0.16), transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.065), transparent 42%),
+                rgba(15, 15, 17, 0.88);
+            border: 1px solid rgba(248, 113, 113, 0.18);
+            box-shadow:
+                0 20px 48px rgba(0, 0, 0, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        }
+
+        .modal-journey-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.34;
+            background-image:
+                linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+                linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+        }
+
+        .modal-journey-header {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .modal-journey-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.45rem;
+            color: #fca5a5;
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .modal-journey-heading {
+            margin: 0;
+            color: var(--dark-text);
+            font-size: 1.05rem;
+            font-weight: 900;
+        }
+
+        .modal-journey-status {
+            flex: 0 0 auto;
+            max-width: 16rem;
+            padding: 0.55rem 0.7rem;
+            border-radius: 8px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.13);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.78rem;
+            font-weight: 850;
+            text-align: right;
+        }
+
+        .modal-journey-rail {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0;
+            padding: 0.25rem 0.1rem 0;
+        }
+
+        .modal-journey-step {
+            position: relative;
+            min-width: 0;
+            text-align: center;
+            color: rgba(212, 212, 216, 0.68);
+        }
+
+        .modal-journey-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 1.05rem;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: rgba(113, 113, 122, 0.28);
+        }
+
+        .modal-journey-step.completed:not(:last-child)::after {
+            background: linear-gradient(90deg, #dc2626, rgba(248, 113, 113, 0.68));
+            box-shadow: 0 0 18px rgba(220, 38, 38, 0.38);
+        }
+
+        .modal-journey-node {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.15rem;
+            height: 2.15rem;
+            border-radius: 999px;
+            color: rgba(212, 212, 216, 0.82);
+            background: rgba(31, 31, 35, 0.96);
+            border: 1px solid rgba(161, 161, 170, 0.42);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        }
+
+        .modal-journey-step.completed .modal-journey-node {
+            color: #fff;
+            background: linear-gradient(135deg, #dc2626, #f43f5e);
+            border-color: rgba(254, 202, 202, 0.75);
+            box-shadow: 0 0 0 5px rgba(220, 38, 38, 0.12), 0 0 26px rgba(220, 38, 38, 0.34);
+        }
+
+        .modal-journey-step.current .modal-journey-node {
+            color: #fff;
+            background: #101011;
+            border-color: #fb7185;
+            box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.16), 0 0 30px rgba(244, 63, 94, 0.44);
+            animation: journeyPulse 1.8s ease-in-out infinite;
+        }
+
+        .modal-journey-step.attention .modal-journey-node {
+            color: #111113;
+            background: #f59e0b;
+            border-color: #fcd34d;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16), 0 0 24px rgba(245, 158, 11, 0.34);
+        }
+
+        .modal-journey-copy {
+            display: block;
+            margin-top: 0.6rem;
+            color: inherit;
+            font-size: 0.73rem;
+            font-weight: 850;
+            line-height: 1.2;
+        }
+
+        .modal-journey-step.completed,
+        .modal-journey-step.current {
+            color: var(--dark-text);
+        }
+
+        body.light-mode .modal-journey-panel {
+            background:
+                radial-gradient(circle at 12% 20%, rgba(220, 38, 38, 0.1), transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.66));
+            border-color: rgba(220, 38, 38, 0.18);
+        }
+
+        body.light-mode .modal-journey-heading,
+        body.light-mode .modal-journey-step.completed,
+        body.light-mode .modal-journey-step.current {
+            color: var(--light-text);
+        }
+
+        body.light-mode .modal-journey-status {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.18);
+        }
+
         @keyframes journeyPulse {
             50% { transform: scale(1.12); }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .journey-step.current .journey-dot { animation: none; }
+            .journey-step.current .journey-dot,
+            .modal-journey-step.current .modal-journey-node { animation: none; }
         }
 
         @media (max-width: 1320px) {
@@ -717,8 +1105,76 @@
                 align-items: flex-start;
             }
 
+            .journey-track {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.45rem;
+                padding-inline: 0;
+            }
+
+            .journey-step {
+                display: grid;
+                grid-template-columns: 1rem minmax(0, 1fr);
+                align-items: center;
+                gap: 0.4rem;
+                padding: 0.38rem 0.45rem;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 7px;
+                background: rgba(255, 255, 255, 0.035);
+                text-align: left;
+            }
+
+            body.light-mode .journey-step {
+                background: rgba(255, 255, 255, 0.62);
+                border-color: rgba(24, 24, 27, 0.1);
+            }
+
+            .journey-step:not(:last-child)::after {
+                display: none;
+            }
+
             .journey-label {
-                font-size: 0.53rem;
+                max-width: none;
+                font-size: 0.62rem;
+                overflow-wrap: anywhere;
+            }
+
+            .modal-journey-panel {
+                padding: 1rem;
+            }
+
+            .modal-journey-header {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .modal-journey-status {
+                max-width: none;
+                width: 100%;
+                text-align: left;
+            }
+
+            .modal-journey-rail {
+                grid-template-columns: 1fr;
+                gap: 0.55rem;
+            }
+
+            .modal-journey-step {
+                display: grid;
+                grid-template-columns: 2.15rem 1fr;
+                gap: 0.65rem;
+                align-items: center;
+                text-align: left;
+            }
+
+            .modal-journey-step:not(:last-child)::after {
+                top: 2.1rem;
+                left: 1.075rem;
+                width: 3px;
+                height: calc(100% + 0.55rem);
+            }
+
+            .modal-journey-copy {
+                margin-top: 0;
             }
 
             .action-buttons {
@@ -1006,7 +1462,26 @@
             }
 
             .header-actions {
-                justify-content: center;
+                justify-content: stretch;
+            }
+
+            .header-search-form,
+            .search-picker {
+                max-width: none;
+                min-width: 0;
+                width: 100%;
+            }
+
+            .search-option-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-search-input {
+                padding-right: 8.25rem;
+            }
+
+            .search-field-label {
+                max-width: 7.25rem;
             }
 
             .filter-grid {
@@ -1069,30 +1544,86 @@
                     <i class="fas fa-download"></i>
                     Export CSV
                 </a>
+                <form method="GET" class="header-search-form" id="header-search-form">
+                    <input type="hidden" name="search_by" id="header-search-by" value="{{ search_by|default:'complaint_id' }}">
+                    <input type="hidden" name="complaint_type" value="{{ selected_complaint_type }}">
+                    <input type="hidden" name="channel" value="{{ selected_channel }}">
+                    <input type="hidden" name="person" value="{{ selected_person }}">
+                    <input type="hidden" name="country" value="{{ selected_country }}">
+                    <input type="hidden" name="status" value="{{ selected_status }}">
+                    <input type="hidden" name="priority" value="{{ selected_priority }}">
+                    <input type="hidden" name="from_date" value="{{ from_date }}">
+                    <input type="hidden" name="to_date" value="{{ to_date }}">
+                    <div class="search-picker" id="search-picker">
+                        <i class="fas fa-search search-leading-icon"></i>
+                        <input type="text" name="search" id="header-search-input" placeholder="Search complaints..."
+                               value="{{ search_query }}" class="header-search-input" autocomplete="off"
+                               aria-label="Search complaints" aria-describedby="search-options-title"
+                               aria-haspopup="listbox" aria-expanded="false">
+                        <span class="search-field-label" id="search-field-label">Complaint ID</span>
+                        <div class="search-options" id="search-options">
+                            <p class="search-options-title" id="search-options-title">Search this keyword in</p>
+                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                                <button type="button" class="search-option" data-search-by="complaint_id" role="option">
+                                    <i class="fas fa-hashtag"></i>
+                                    Complaint ID
+                                </button>
+                                <button type="button" class="search-option" data-search-by="complaint_type" role="option">
+                                    <i class="fas fa-layer-group"></i>
+                                    Complaint Type
+                                </button>
+                                <button type="button" class="search-option" data-search-by="channel" role="option">
+                                    <i class="fas fa-bullhorn"></i>
+                                    Channel
+                                </button>
+                                <button type="button" class="search-option" data-search-by="country" role="option">
+                                    <i class="fas fa-globe"></i>
+                                    Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="reported_by" role="option">
+                                    <i class="fas fa-user"></i>
+                                    Reported By
+                                </button>
+                                <button type="button" class="search-option" data-search-by="case_sub_category" role="option">
+                                    <i class="fas fa-tag"></i>
+                                    Category
+                                </button>
+                                <button type="button" class="search-option" data-search-by="description" role="option">
+                                    <i class="fas fa-align-left"></i>
+                                    Description
+                                </button>
+                                <button type="button" class="search-option" data-search-by="brand" role="option">
+                                    <i class="fas fa-car-side"></i>
+                                    Brand
+                                </button>
+                                <button type="button" class="search-option" data-search-by="model" role="option">
+                                    <i class="fas fa-car"></i>
+                                    Model
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary icon-btn" title="Search" aria-label="Search complaints">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-danger icon-btn" id="filter-toggle"
+                            title="Filters" aria-label="Toggle filters" aria-expanded="false" aria-controls="advanced-filter-section">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                </form>
             </div>
         </div>
 
-        <div class="filter-section">
+        <div class="filter-section{% if selected_complaint_type or selected_channel or selected_person or selected_country or selected_status or selected_priority or from_date or to_date %} is-open{% endif %}" id="advanced-filter-section">
             <h3 class="filter-title">
                 <i class="fas fa-filter"></i>
-                Filters & Search
+                Filters
             </h3>
             
             <form method="GET" id="filter-form">
+                <input type="hidden" name="search" value="{{ search_query }}">
+                <input type="hidden" name="search_by" value="{{ search_by|default:'complaint_id' }}">
                 <div class="filter-grid">
-                    <input type="text" name="search" placeholder="Search complaints..." 
-                           value="{{ search_query }}" class="filter-input">
-
-                    <select name="search_by" class="filter-select">
-                        <option value="complaint_id" {% if search_by == 'complaint_id' %}selected{% endif %}>Complaint ID</option>
-                        <option value="batch_order" {% if search_by == 'batch_order' %}selected{% endif %}>Batch Order</option>
-                        <option value="complaint_description" {% if search_by == 'complaint_description' %}selected{% endif %}>Description</option>
-                        <option value="justification_from_factory" {% if search_by == 'justification_from_factory' %}selected{% endif %}>Justification</option>
-                        <option value="action_from_factory" {% if search_by == 'action_from_factory' %}selected{% endif %}>Action</option>
-                        <option value="series" {% if search_by == 'series' %}selected{% endif %}>Series</option>
-                        <option value="material" {% if search_by == 'material' %}selected{% endif %}>Material</option>
-                    </select>
-
                     <select name="complaint_type" class="filter-select">
                         <option value="">All Complaint Types</option>
                         {% for value, label in complaint_type_choices %}
@@ -1306,6 +1837,41 @@
                                     </button>
                                 </div>
                                 <div class="modal-body">
+                                    <section class="modal-journey-panel" aria-label="Complaint workflow journey">
+                                        <div class="modal-journey-header">
+                                            <div>
+                                                <span class="modal-journey-kicker">
+                                                    <i class="fas fa-route"></i>
+                                                    Workflow journey
+                                                </span>
+                                                <h3 class="modal-journey-heading">{{ complaint.complaint_id }} approval path</h3>
+                                            </div>
+                                            <span class="modal-journey-status">{{ complaint.get_workflow_status_display }}</span>
+                                        </div>
+                                        <div class="modal-journey-rail">
+                                            {% for step in complaint.journey_steps %}
+                                                <div class="modal-journey-step {{ step.state }}" title="{{ step.label }}">
+                                                    <span class="modal-journey-node" aria-hidden="true">
+                                                        {% if step.key == 'reported' %}
+                                                            <i class="fas fa-file-alt"></i>
+                                                        {% elif step.key == 'factory' %}
+                                                            <i class="fas fa-industry"></i>
+                                                        {% elif step.key == 'approval' %}
+                                                            <i class="fas fa-clipboard-check"></i>
+                                                        {% elif step.key == 'action' %}
+                                                            <i class="fas fa-tools"></i>
+                                                        {% elif step.key == 'final' %}
+                                                            <i class="fas fa-box"></i>
+                                                        {% elif step.key == 'closed' %}
+                                                            <i class="fas fa-circle-check"></i>
+                                                        {% endif %}
+                                                    </span>
+                                                    <span class="modal-journey-copy">{{ step.label }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </section>
+
                                     <!-- PRODUCT & SOURCE -->
                                     <h3 class="section-title">Product & Source:</h3>
                                     <div class="detail-grid">
@@ -1474,6 +2040,21 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if page_obj and page_obj.has_other_pages %}
+                <div class="pagination-container">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">&laquo; First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Prev</a>
+                    {% endif %}
+
+                    <span class="pagination-copy">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Last &raquo;</a>
+                    {% endif %}
+                </div>
+                {% endif %}
             {% else %}
                 <div class="empty-state">
                     <div class="empty-icon">
@@ -1600,6 +2181,84 @@
             if (complaintListLink) {
                 complaintListLink.classList.add('active');
             }
+
+            const filterToggle = document.getElementById('filter-toggle');
+            const filterSection = document.getElementById('advanced-filter-section');
+            if (filterToggle && filterSection) {
+                filterToggle.setAttribute('aria-expanded', filterSection.classList.contains('is-open') ? 'true' : 'false');
+                filterToggle.addEventListener('click', function () {
+                    const isOpen = filterSection.classList.toggle('is-open');
+                    filterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
+
+            const searchForm = document.getElementById('header-search-form');
+            const searchPicker = document.getElementById('search-picker');
+            const searchInput = document.getElementById('header-search-input');
+            const searchByInput = document.getElementById('header-search-by');
+            const searchLabel = document.getElementById('search-field-label');
+            const searchOptions = document.querySelectorAll('.search-option');
+            const searchLabels = {
+                complaint_id: 'Complaint ID',
+                complaint_type: 'Complaint Type',
+                channel: 'Channel',
+                country: 'Country',
+                reported_by: 'Reported By',
+                case_sub_category: 'Category',
+                description: 'Description',
+                brand: 'Brand',
+                model: 'Model'
+            };
+
+            function refreshSearchChoice() {
+                if (!searchByInput || !searchLabel) return;
+                const selected = searchByInput.value || 'complaint_id';
+                searchLabel.textContent = searchLabels[selected] || 'Complaint ID';
+                searchOptions.forEach((option) => {
+                    option.classList.toggle('is-active', option.dataset.searchBy === selected);
+                });
+            }
+
+            function setSuggestionsOpen(isOpen) {
+                if (!searchPicker || !searchInput) return;
+                const shouldOpen = isOpen && searchInput.value.trim().length > 0;
+                searchPicker.classList.toggle('is-suggesting', shouldOpen);
+                searchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            }
+
+            refreshSearchChoice();
+
+            if (searchInput && searchPicker) {
+                searchInput.addEventListener('input', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('focus', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        setSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            searchOptions.forEach((option) => {
+                option.addEventListener('click', function () {
+                    if (!searchByInput || !searchForm) return;
+                    searchByInput.value = option.dataset.searchBy;
+                    refreshSearchChoice();
+                    setSuggestionsOpen(false);
+                    if (searchInput && searchInput.value.trim()) {
+                        searchForm.submit();
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (searchPicker && !searchPicker.contains(event.target)) {
+                    setSuggestionsOpen(false);
+                }
+            });
         });
     </script>
 </body>

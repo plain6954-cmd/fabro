@@ -2,14 +2,13 @@ import { expect, test } from '@playwright/test';
 import { loginAs } from '../helpers/auth';
 import { attachPageDiagnostics, expectNoDjangoError } from '../helpers/assertions';
 import { routes, workflowUsers } from '../helpers/testData';
+import { searchComplaints } from '../helpers/navigation';
 
 const workflowDescription = 'E2E complete approval and closure workflow';
 
 async function openSeededComplaint(page) {
   await page.goto(routes.complaints);
-  await page.getByPlaceholder(/Search complaints/i).fill(workflowDescription);
-  await page.locator('select[name="search_by"]').selectOption('complaint_description');
-  await page.getByRole('button', { name: /Apply Filters/i }).click({ force: true });
+  await searchComplaints(page, workflowDescription, 'description');
   const row = page.locator('tbody tr').first();
   await expect(row).toBeVisible();
   return row;
@@ -55,7 +54,7 @@ test('factory review, parallel approvals, green light and final close work end t
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
 
   row = await openSeededComplaint(page);
-  await expect(row.getByText('Closed', { exact: true })).toBeVisible();
+  await expect(row.locator('.status-badge.status-closed')).toHaveText(/Closed/);
   await expectNoDjangoError(page);
   await diagnostics.assertClean();
 });

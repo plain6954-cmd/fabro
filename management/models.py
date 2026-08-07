@@ -224,8 +224,8 @@ class UserProfile(models.Model):
 
 class Complaint(models.Model):
     complaint_id = models.CharField(primary_key=True, max_length=20, unique=True, editable=False)
-    complaint_type = models.CharField(max_length=20, choices=ComplaintTypes.CHOICES, default=ComplaintTypes.PATTERN)
-    workflow_status = models.CharField(max_length=30, choices=WorkflowStatuses.CHOICES, default=WorkflowStatuses.SUBMITTED)
+    complaint_type = models.CharField(max_length=20, choices=ComplaintTypes.CHOICES, default=ComplaintTypes.PATTERN, db_index=True)
+    workflow_status = models.CharField(max_length=30, choices=WorkflowStatuses.CHOICES, default=WorkflowStatuses.SUBMITTED, db_index=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_complaints')
     assigned_factory_executive = models.ForeignKey(
         User,
@@ -234,7 +234,7 @@ class Complaint(models.Model):
         blank=True,
         related_name='assigned_factory_complaints'
     )
-    date = models.DateField(auto_now_add=False)
+    date = models.DateField(auto_now_add=False, db_index=True)
     channel = models.ForeignKey(
         'management.MasterSetting', 
         on_delete=models.SET_NULL, 
@@ -282,8 +282,8 @@ class Complaint(models.Model):
     model = models.ForeignKey('management.Model', on_delete=models.SET_NULL, null=True)
     sub_model = models.ForeignKey('management.SubModel', on_delete=models.SET_NULL, null=True, blank=True)
     year = models.ForeignKey('management.YearRange', on_delete=models.SET_NULL, null=True)
-    status = models.CharField(max_length=10, choices=[('Open', 'Open'), ('Closed', 'Closed'), ('On Hold', 'On Hold')], default='Open')
-    priority = models.CharField(max_length=10, choices=[('High', 'High'), ('Medium', 'Medium'), ('Low', 'Low')], default='Medium')
+    status = models.CharField(max_length=10, choices=[('Open', 'Open'), ('Closed', 'Closed'), ('On Hold', 'On Hold')], default='Open', db_index=True)
+    priority = models.CharField(max_length=10, choices=[('High', 'High'), ('Medium', 'Medium'), ('Low', 'Low')], default='Medium', db_index=True)
     complaint_description = models.TextField(default="Not Provided")
     batch_order = models.CharField(max_length=100)
     justification_from_factory = models.TextField(blank=True, null=True, default="Not Provided")
@@ -298,7 +298,7 @@ class Complaint(models.Model):
     factory_review_started_at = models.DateTimeField(null=True, blank=True)
     last_submitted_for_approval_at = models.DateTimeField(null=True, blank=True)
     fully_approved_at = models.DateTimeField(null=True, blank=True)
-    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True, db_index=True)
     closed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='closed_complaints')
 
     def _build_next_complaint_id(self):
@@ -415,6 +415,9 @@ class ComplaintApproval(models.Model):
     class Meta:
         unique_together = ('complaint', 'approval_round', 'approver_role')
         ordering = ['complaint_id', 'approval_round', 'approver_role']
+        indexes = [
+            models.Index(fields=['approver_user', 'status'], name='idx_approval_user_status'),
+        ]
 
     def __str__(self):
         return f"{self.complaint_id} - {self.approver_role} - {self.status}"
@@ -446,6 +449,10 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read'], name='idx_notif_recipient_read'),
+            models.Index(fields=['recipient', '-created_at'], name='idx_notif_recipient_created'),
+        ]
 
     def __str__(self):
         return f"{self.recipient.username} - {self.title}"

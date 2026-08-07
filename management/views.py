@@ -12,9 +12,10 @@ from django.contrib.auth.models import Group, Permission, User
 from django.contrib.sessions.models import Session
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.storage import default_storage
+from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -216,10 +217,10 @@ def index(request):
         closed_at__year=today.year,
         closed_at__month=today.month,
     ).count()
-    unread_notifications = Notification.objects.filter(
+    unread_notifications = list(Notification.objects.filter(
         recipient=request.user,
         is_read=False,
-    ).select_related('complaint')
+    ).select_related('complaint'))
     current_profile = get_user_profile(request.user)
     pending_approval_count = 0
     if current_profile and current_profile.role == WorkflowRoles.APPROVER:
@@ -246,8 +247,11 @@ def index(request):
         'total_skus': SKU.objects.count(),
         'total_settings': MasterSetting.objects.count(),
         'dashboard_notifications': unread_notifications[:4],
-        'unread_notification_count': unread_notifications.count(),
+        'unread_notification_count': len(unread_notifications),
         'pending_approval_count': pending_approval_count,
+        'recent_complaints': visible_complaints.select_related(
+            'brand', 'model', 'sub_model', 'year', 'person', 'sku'
+        ).order_by('-date')[:15],
     }
     return render(request, 'management/index.html', context)
 
@@ -621,6 +625,47 @@ def get_year_ranges(request, sub_model_id):
     return JsonResponse([{'id': yr['id'], 'range': f"{yr['year_start'] % 100}-{yr['year_end'] % 100}"} for yr in year_ranges], safe=False)
 
 @login_required
+def get_filtered_skus(request):
+    skus = SKU.objects.select_related('region').all().order_by('code')
+
+    country_id = request.GET.get('country')
+    region_id = request.GET.get('region')
+    region_filter = None
+
+    if region_id:
+        region_filter = Q(region_id=region_id)
+    elif country_id:
+        selected_country = MasterSetting.objects.filter(pk=country_id).first()
+        if selected_country:
+            region_filter = Q(region__name__iexact=selected_country.name)
+
+    if region_filter is not None and skus.filter(region_filter).exists():
+        skus = skus.filter(region_filter)
+
+    vehicle_lookups = (
+        (Brand, request.GET.get('brand')),
+        (Model, request.GET.get('model')),
+        (SubModel, request.GET.get('sub_model')),
+    )
+
+    for model_class, object_id in vehicle_lookups:
+        if not object_id:
+            continue
+        term = model_class.objects.filter(pk=object_id).values_list('name', flat=True).first()
+        if not term:
+            continue
+        skus = skus.filter(Q(code__icontains=term) | Q(description__icontains=term))
+
+    data = [
+        {
+            'id': sku.id,
+            'name': f"{sku.code} - {sku.description}" if sku.description else sku.code,
+        }
+        for sku in skus[:200]
+    ]
+    return JsonResponse(data, safe=False)
+
+@login_required
 def complaint_list(request):
     complaints = visible_complaints_for_user(request.user, Complaint.objects.select_related(
         'channel', 'country', 'person', 'case_sub_category',
@@ -630,7 +675,7 @@ def complaint_list(request):
         'media_files',
         'approvals__approver_user',
         'timeline_events__user',
-    ).all())
+    ).all().order_by('-complaint_id'))
     filter_scope = complaints
     search_query = request.GET.get('search', '')
     allowed_search_fields = {
@@ -639,6 +684,10 @@ def complaint_list(request):
         'complaint_description': 'complaint_description',
         'justification_from_factory': 'justification_from_factory',
         'action_from_factory': 'action_from_factory',
+        'complaint_type': 'complaint_type',
+        'channel': 'channel__name',
+        'country': 'country__name',
+        'case_sub_category': 'case_sub_category__name',
         'series': 'series__name',
         'material': 'material__name',
         'description': 'complaint_description',
@@ -648,20 +697,33 @@ def complaint_list(request):
     }
     search_by = request.GET.get('search_by', 'complaint_id')
     search_field = allowed_search_fields.get(search_by, 'complaint_id')
-    selected_brand = request.GET.get('brand')
-    selected_country = request.GET.get('country')
-    selected_status = request.GET.get('status')
-    selected_priority = request.GET.get('priority')
-    selected_channel = request.GET.get('channel')
-    selected_person = request.GET.get('person')
-    selected_complaint_type = request.GET.get('complaint_type')
+    selected_brand = request.GET.get('brand', '')
+    selected_country = request.GET.get('country', '')
+    selected_status = request.GET.get('status', '')
+    selected_priority = request.GET.get('priority', '')
+    selected_channel = request.GET.get('channel', '')
+    selected_person = request.GET.get('person', '')
+    selected_complaint_type = request.GET.get('complaint_type', '')
 
-    from_date = request.GET.get('from_date')
-    to_date = request.GET.get('to_date')
+    from_date = request.GET.get('from_date', '')
+    to_date = request.GET.get('to_date', '')
 
     if search_query:
-        filter_kwargs = {f'{search_field}__icontains': search_query[:200]}
-        complaints = complaints.filter(**filter_kwargs)
+        trimmed_search_query = search_query[:200]
+        if search_by == 'complaint_type':
+            matching_type_values = [
+                value
+                for value, label in ComplaintTypes.CHOICES
+                if trimmed_search_query.lower() in value.lower()
+                or trimmed_search_query.lower() in label.lower()
+            ]
+            complaints = complaints.filter(
+                Q(complaint_type__icontains=trimmed_search_query)
+                | Q(complaint_type__in=matching_type_values)
+            )
+        else:
+            filter_kwargs = {f'{search_field}__icontains': trimmed_search_query}
+            complaints = complaints.filter(**filter_kwargs)
     if selected_status:
         complaints = complaints.filter(status=selected_status)
     if selected_priority:
@@ -690,13 +752,13 @@ def complaint_list(request):
     if selected_complaint_type in {value for value, _ in ComplaintTypes.CHOICES}:
         complaints = complaints.filter(complaint_type=selected_complaint_type)
 
-    brands = Brand.objects.filter(id__in=filter_scope.values_list('brand', flat=True).distinct())
-    countries = MasterSetting.objects.filter(id__in=filter_scope.values_list('country', flat=True).distinct())
-    channels = MasterSetting.objects.filter(id__in=filter_scope.values_list('channel', flat=True).distinct())
-    persons = MasterSetting.objects.filter(id__in=filter_scope.values_list('person', flat=True).distinct())
-    statuses = filter_scope.values_list('status', flat=True).distinct()
-    priorities = filter_scope.values_list('priority', flat=True).distinct()
-    sku = filter_scope.values_list('sku__code', flat=True).distinct()
+    brands = Brand.objects.all().order_by('name')
+    countries = MasterSetting.objects.filter(category='Country').order_by('name')
+    channels = MasterSetting.objects.filter(category='Channel').order_by('name')
+    persons = MasterSetting.objects.filter(category='Reported By').order_by('name')
+    statuses = ['Open', 'Closed', 'On Hold']
+    priorities = ['High', 'Medium', 'Low']
+    sku = SKU.objects.values_list('code', flat=True).distinct()[:100]
 
     # Status Pie Data
     status_qs = complaints.values('status').annotate(count=Count('status'))
@@ -707,8 +769,16 @@ def complaint_list(request):
     country_qs = complaints.values('country__name').annotate(count=Count('country'))
     country_labels = [entry['country__name'] for entry in country_qs]
     country_data = [entry['count'] for entry in country_qs]
-    complaints = list(complaints)
-    for complaint in complaints:
+
+    # Paginate complaints to prevent multi-second DOM rendering and per-row N+1 overhead
+    paginator = Paginator(complaints, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    pagination_query = request.GET.copy()
+    pagination_query.pop('page', None)
+    pagination_querystring = pagination_query.urlencode()
+
+    for complaint in page_obj.object_list:
         complaint.can_edit = can_user_edit_report_step(request.user, complaint)
         complaint.can_delete = is_workflow_admin(request.user)
         complaint.can_factory_review = (
@@ -722,7 +792,9 @@ def complaint_list(request):
         complaint.journey_steps = complaint_journey_steps(complaint)
     
     return render(request, 'management/complaint_list.html', {
-        'complaints': complaints,
+        'complaints': page_obj.object_list,
+        'page_obj': page_obj,
+        'pagination_querystring': pagination_querystring,
         'status_labels': status_labels,
         'status_data': status_data,
         'country_labels': country_labels,
@@ -1296,7 +1368,13 @@ def upload_car_csv(request):
 @login_required
 def add_sku(request):
     form = SKUForm()
-    skus = SKU.objects.select_related('region').all().order_by('code')
+    search_query = request.GET.get('search', '').strip()
+    skus_qs = SKU.objects.select_related('region').all().order_by('code')
+    if search_query:
+        skus_qs = skus_qs.filter(code__icontains=search_query)
+    paginator = Paginator(skus_qs, 50)
+    page_number = request.GET.get('page')
+    page_skus = paginator.get_page(page_number)
     upload_feedback = ''
     upload_form = SKUUploadForm()
 
@@ -1378,7 +1456,9 @@ def add_sku(request):
 
     return render(request, 'management/add_skus.html', {
         'form': form,
-        'skus': skus,
+        'skus': page_skus.object_list,
+        'page_obj': page_skus,
+        'search_query': search_query,
         'upload_feedback': upload_feedback,
         'upload_form': upload_form,
     })
@@ -1480,8 +1560,8 @@ def admin_panel_view(request):
                 )
         
     users = User.objects.select_related('workflow_profile__country').all()
-    groups = Group.objects.prefetch_related('permissions')
-    permissions = Permission.objects.all()
+    groups = Group.objects.prefetch_related('permissions__content_type')
+    permissions = Permission.objects.select_related('content_type').all()
     active_users = get_active_users()
 
     logs = ActivityLog.objects.select_related('user').order_by('-timestamp')[:20]

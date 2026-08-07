@@ -105,6 +105,21 @@
             font-size: 0.9rem;
         }
 
+        .complaint-type-tab[data-complaint-type="pattern"].is-active {
+            background: #dc2626;
+            box-shadow: 0 12px 26px rgba(220, 38, 38, 0.28);
+        }
+
+        .complaint-type-tab[data-complaint-type="production"].is-active {
+            background: #b45309;
+            box-shadow: 0 12px 26px rgba(180, 83, 9, 0.26);
+        }
+
+        .complaint-type-tab[data-complaint-type="line"].is-active {
+            background: #2563eb;
+            box-shadow: 0 12px 26px rgba(37, 99, 235, 0.26);
+        }
+
         .form-container {
             background: var(--dark-surface);
             border-radius: var(--border-radius);
@@ -120,6 +135,91 @@
         body.light-mode .form-container {
             background: var(--light-surface);
             border-color: #e2e8f0;
+        }
+
+        .complaint-type-indicator {
+            grid-column: 1 / -1;
+            position: sticky;
+            top: var(--complaint-type-sticky-top, 5.5rem);
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            min-width: 0;
+            padding: 0.72rem 0.9rem;
+            border: 1px solid rgba(248, 113, 113, 0.42);
+            border-left: 4px solid #dc2626;
+            border-radius: 8px;
+            background: rgba(31, 31, 35, 0.96);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+            -webkit-backdrop-filter: blur(16px) saturate(125%);
+            backdrop-filter: blur(16px) saturate(125%);
+        }
+
+        body.light-mode .complaint-type-indicator {
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+        }
+
+        .complaint-type-indicator.type-production {
+            border-color: rgba(217, 119, 6, 0.42);
+            border-left-color: #d97706;
+        }
+
+        .complaint-type-indicator.type-line {
+            border-color: rgba(59, 130, 246, 0.42);
+            border-left-color: #2563eb;
+        }
+
+        .complaint-type-indicator-icon {
+            flex: 0 0 2.45rem;
+            width: 2.45rem;
+            height: 2.45rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 7px;
+            color: #fff;
+            background: #dc2626;
+            font-size: 1rem;
+        }
+
+        .type-production .complaint-type-indicator-icon { background: #b45309; }
+        .type-line .complaint-type-indicator-icon { background: #2563eb; }
+
+        .complaint-type-indicator-copy {
+            min-width: 0;
+            display: grid;
+            gap: 0.08rem;
+        }
+
+        .complaint-type-indicator-kicker {
+            color: var(--dark-text-secondary);
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .complaint-type-indicator-title {
+            color: var(--dark-text);
+            font-size: 0.92rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .complaint-type-indicator-description {
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            line-height: 1.3;
+        }
+
+        body.light-mode .complaint-type-indicator-kicker,
+        body.light-mode .complaint-type-indicator-description {
+            color: var(--light-text-secondary);
+        }
+
+        body.light-mode .complaint-type-indicator-title {
+            color: var(--light-text);
         }
 
         .form-grid {
@@ -515,17 +615,36 @@
             }
 
             .btn-group {
-                flex-direction: column;
+                flex-direction: row;
+                justify-content: center;
+                gap: 0.65rem;
+                padding-block: 1rem 0.25rem;
             }
 
-            .btn {
+            .btn-group .btn {
+                width: 3rem;
+                height: 3rem;
+                min-width: 3rem;
+                min-height: 3rem;
+                flex: 0 0 3rem;
+                padding: 0;
                 justify-content: center;
+                border-radius: 8px;
+                font-size: 1rem;
+            }
+
+            .btn-group .btn-label {
+                display: none;
             }
 
             .complaint-type-dock {
                 width: 100%;
-                justify-content: flex-start;
-                overflow-x: auto;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                justify-content: stretch;
+                gap: 0.25rem;
+                overflow: visible;
+                border-radius: 14px;
                 scrollbar-width: none;
             }
 
@@ -534,9 +653,37 @@
             }
 
             .complaint-type-tab {
-                flex: 0 0 auto;
-                font-size: 0.72rem;
-                padding-inline: 0.82rem;
+                width: 100%;
+                min-width: 0;
+                min-height: 4rem;
+                flex-direction: column;
+                gap: 0.35rem;
+                padding: 0.55rem 0.25rem;
+                border-radius: 10px;
+                font-size: 0.64rem;
+                line-height: 1.15;
+                text-align: center;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
+            .complaint-type-indicator {
+                gap: 0.65rem;
+                padding: 0.62rem 0.7rem;
+            }
+
+            .complaint-type-indicator-icon {
+                flex-basis: 2.2rem;
+                width: 2.2rem;
+                height: 2.2rem;
+            }
+
+            .complaint-type-indicator-title {
+                font-size: 0.82rem;
+            }
+
+            .complaint-type-indicator-description {
+                font-size: 0.66rem;
             }
         }
     </style>
@@ -554,25 +701,48 @@
         </div>
 
         <div class="complaint-type-dock" aria-label="Complaint window type">
-            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'pattern' %} is-active{% endif %}" data-complaint-type="pattern">
+            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'pattern' %} is-active{% endif %}"
+                    id="complaint-type-pattern" data-complaint-type="pattern"
+                    aria-pressed="{% if selected_complaint_type == 'pattern' %}true{% else %}false{% endif %}">
                 <i class="fas fa-draw-polygon"></i>
                 <span>PATTERN COMPLAINT</span>
             </button>
-            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'production' %} is-active{% endif %}" data-complaint-type="production">
+            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'production' %} is-active{% endif %}"
+                    id="complaint-type-production" data-complaint-type="production"
+                    aria-pressed="{% if selected_complaint_type == 'production' %}true{% else %}false{% endif %}">
                 <i class="fas fa-industry"></i>
                 <span>PRODUCTION COMPLAINT</span>
             </button>
             {% if can_create_line %}
-            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'line' %} is-active{% endif %}" data-complaint-type="line">
+            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'line' %} is-active{% endif %}"
+                    id="complaint-type-line" data-complaint-type="line"
+                    aria-pressed="{% if selected_complaint_type == 'line' %}true{% else %}false{% endif %}">
                 <i class="fas fa-layer-group"></i>
                 <span>LINE COMPLAINT</span>
             </button>
             {% endif %}
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="form-container">
+        <form method="POST" enctype="multipart/form-data" class="form-container" id="complaint-form">
             {% csrf_token %}
             <input type="hidden" name="complaint_type" id="id_complaint_type" value="{{ selected_complaint_type }}">
+
+            <section class="complaint-type-indicator type-{{ selected_complaint_type }}"
+                     id="complaint-type-indicator" aria-live="polite" aria-atomic="true">
+                <span class="complaint-type-indicator-icon" aria-hidden="true">
+                    <i id="complaint-type-indicator-icon"
+                       class="fas {% if selected_complaint_type == 'production' %}fa-industry{% elif selected_complaint_type == 'line' %}fa-layer-group{% else %}fa-draw-polygon{% endif %}"></i>
+                </span>
+                <span class="complaint-type-indicator-copy">
+                    <span class="complaint-type-indicator-kicker">Creating</span>
+                    <strong class="complaint-type-indicator-title" id="complaint-type-indicator-title">
+                        {% if selected_complaint_type == 'production' %}Production Complaint{% elif selected_complaint_type == 'line' %}Line Complaint{% else %}Pattern Complaint{% endif %}
+                    </strong>
+                    <span class="complaint-type-indicator-description" id="complaint-type-indicator-description">
+                        {% if selected_complaint_type == 'production' %}Manufacturing, material, or stitching defect.{% elif selected_complaint_type == 'line' %}Urgent assembly-line fitment issue.{% else %}Template, dimension, or cutting issue.{% endif %}
+                    </span>
+                </span>
+            </section>
 
             <div class="form-grid">
                 <!-- Basic Information -->
@@ -741,17 +911,18 @@
             </div>
 
             <div class="btn-group">
-                <button type="reset" class="btn btn-secondary" id="clearComplaintForm">
+                <button type="reset" class="btn btn-secondary" id="clearComplaintForm" aria-label="Clear complaint form" title="Clear form">
                     <i class="fas fa-eraser"></i>
-                    Clear
+                    <span class="btn-label">Clear</span>
                 </button>
-                <a href="{% url 'complaint_list' %}" class="btn btn-secondary">
+                <a href="{% url 'complaint_list' %}" class="btn btn-secondary" aria-label="Cancel complaint" title="Cancel">
                     <i class="fas fa-times"></i>
-                    Cancel
+                    <span class="btn-label">Cancel</span>
                 </a>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="save-complaint-button"
+                        aria-label="Save {{ selected_complaint_type }} complaint" title="Save {{ selected_complaint_type }} complaint">
                     <i class="fas fa-save"></i>
-                    Save Complaint
+                    <span class="btn-label" id="save-complaint-label">Save {% if selected_complaint_type == 'production' %}Production{% elif selected_complaint_type == 'line' %}Line{% else %}Pattern{% endif %} Complaint</span>
                 </button>
             </div>
         </form>
@@ -760,7 +931,7 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner">
             <div class="loading"></div>
-            <p style="margin-top: 1rem;">Saving complaint...</p>
+            <p style="margin-top: 1rem;" id="complaint-saving-message">Saving {{ selected_complaint_type }} complaint...</p>
         </div>
     </div>
 
@@ -834,17 +1005,83 @@
             return `${year}-${month}-${day}`;
         }
 
-        function initComplaintTypeDock() {
+        const complaintTypeDefinitions = {
+            pattern: {
+                label: 'Pattern Complaint',
+                description: 'Template, dimension, or cutting issue.',
+                icon: 'fas fa-draw-polygon',
+            },
+            production: {
+                label: 'Production Complaint',
+                description: 'Manufacturing, material, or stitching defect.',
+                icon: 'fas fa-industry',
+            },
+            line: {
+                label: 'Line Complaint',
+                description: 'Urgent assembly-line fitment issue.',
+                icon: 'fas fa-layer-group',
+            },
+        };
+
+        function syncComplaintTypeRecognition(requestedType) {
             const tabs = Array.from(document.querySelectorAll('.complaint-type-tab'));
             const typeInput = document.getElementById('id_complaint_type');
-            if (!tabs.length) {
+            const availableTypes = tabs.map((tab) => tab.dataset.complaintType);
+            const complaintType = availableTypes.includes(requestedType) ? requestedType : availableTypes[0];
+            const definition = complaintTypeDefinitions[complaintType];
+            if (!typeInput || !definition) {
                 return;
             }
 
-            const syncActiveTab = () => {
-                const activeTab = tabs.find((tab) => tab.dataset.complaintType === typeInput.value) || tabs[0];
-                tabs.forEach((tab) => tab.classList.toggle('is-active', tab === activeTab));
-            };
+            typeInput.value = complaintType;
+            tabs.forEach((tab) => {
+                const isActive = tab.dataset.complaintType === complaintType;
+                tab.classList.toggle('is-active', isActive);
+                tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+
+            const indicator = document.getElementById('complaint-type-indicator');
+            const indicatorIcon = document.getElementById('complaint-type-indicator-icon');
+            const indicatorTitle = document.getElementById('complaint-type-indicator-title');
+            const indicatorDescription = document.getElementById('complaint-type-indicator-description');
+            const saveButton = document.getElementById('save-complaint-button');
+            const saveLabel = document.getElementById('save-complaint-label');
+            const savingMessage = document.getElementById('complaint-saving-message');
+            const actionLabel = `Save ${definition.label}`;
+
+            if (indicator) {
+                indicator.classList.remove('type-pattern', 'type-production', 'type-line');
+                indicator.classList.add(`type-${complaintType}`);
+            }
+            if (indicatorIcon) indicatorIcon.className = definition.icon;
+            if (indicatorTitle) indicatorTitle.textContent = definition.label;
+            if (indicatorDescription) indicatorDescription.textContent = definition.description;
+            if (saveLabel) saveLabel.textContent = actionLabel;
+            if (saveButton) {
+                saveButton.setAttribute('aria-label', actionLabel);
+                saveButton.title = actionLabel;
+            }
+            if (savingMessage) savingMessage.textContent = `Saving ${definition.label.toLowerCase()}...`;
+        }
+
+        function syncComplaintTypeStickyOffset() {
+            const complaintForm = document.getElementById('complaint-form');
+            const navbar = document.querySelector('.navbar');
+            if (!complaintForm || !navbar) {
+                return;
+            }
+            complaintForm.style.setProperty(
+                '--complaint-type-sticky-top',
+                `${Math.ceil(navbar.getBoundingClientRect().height) + 8}px`,
+            );
+        }
+
+        function initComplaintTypeDock() {
+            const tabs = Array.from(document.querySelectorAll('.complaint-type-tab'));
+            const typeInput = document.getElementById('id_complaint_type');
+            if (!tabs.length || !typeInput) {
+                return;
+            }
 
             tabs.forEach((tab) => {
                 if (tab.dataset.typeDockBound === 'true') {
@@ -852,12 +1089,19 @@
                 }
                 tab.dataset.typeDockBound = 'true';
                 tab.addEventListener('click', () => {
-                    tabs.forEach((item) => item.classList.toggle('is-active', item === tab));
-                    typeInput.value = tab.dataset.complaintType;
+                    syncComplaintTypeRecognition(tab.dataset.complaintType);
                 });
             });
 
-            syncActiveTab();
+            syncComplaintTypeRecognition(typeInput.value);
+            syncComplaintTypeStickyOffset();
+            window.addEventListener('resize', syncComplaintTypeStickyOffset);
+            if ('ResizeObserver' in window) {
+                const navbar = document.querySelector('.navbar');
+                if (navbar) {
+                    new ResizeObserver(syncComplaintTypeStickyOffset).observe(navbar);
+                }
+            }
         }
 
         // Dynamic form loading
@@ -883,6 +1127,65 @@
                 });
         }
 
+        function resetSkuOptions(message = 'Select SKU') {
+            const skuSelect = document.getElementById('id_sku');
+            if (!skuSelect) {
+                return;
+            }
+            skuSelect.innerHTML = `<option value="">${message}</option>`;
+            skuSelect.value = '';
+            skuSelect.setCustomValidity('');
+            skuSelect.classList.remove('is-invalid');
+        }
+
+        function refreshSkuOptions() {
+            const skuSelect = document.getElementById('id_sku');
+            if (!skuSelect) {
+                return;
+            }
+
+            const params = new URLSearchParams({
+                country: document.getElementById('id_country')?.value || '',
+                brand: document.getElementById('id_brand')?.value || '',
+                model: document.getElementById('id_model')?.value || '',
+                sub_model: document.getElementById('id_sub_model')?.value || '',
+            });
+
+            resetSkuOptions('Loading SKUs...');
+            skuSelect.disabled = true;
+
+            fetch(`{% url 'get_filtered_skus' %}?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`SKU request failed with ${response.status}`);
+                    }
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error('SKU request returned an invalid response');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resetSkuOptions(data.length ? 'Select SKU' : 'No matching SKUs');
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        skuSelect.appendChild(option);
+                    });
+                    skuSelect.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error loading SKUs:', error);
+                    resetSkuOptions('Select SKU');
+                    skuSelect.disabled = false;
+                    showToast('Error loading SKUs', 'error');
+                });
+        }
+
         document.getElementById('id_brand').addEventListener('change', function () {
             const brandId = this.value;
             if (brandId) {
@@ -890,6 +1193,7 @@
             }
             document.getElementById('id_sub_model').disabled = true;
             document.getElementById('id_year').disabled = true;
+            refreshSkuOptions();
         });
 
         document.getElementById('id_model').addEventListener('change', function () {
@@ -898,6 +1202,7 @@
                 loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
             }
             document.getElementById('id_year').disabled = true;
+            refreshSkuOptions();
         });
 
         document.getElementById('id_sub_model').addEventListener('change', function () {
@@ -905,7 +1210,11 @@
             if (subModelId) {
                 loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', 'Select Year');
             }
+            refreshSkuOptions();
         });
+
+        document.getElementById('id_year').addEventListener('change', refreshSkuOptions);
+        document.getElementById('id_country').addEventListener('change', refreshSkuOptions);
 
         // File upload handling
         const fileInput = document.getElementById('media_files');
@@ -980,7 +1289,9 @@
         const clearButton = document.getElementById('clearComplaintForm');
         if (clearButton) {
             clearButton.addEventListener('click', function() {
+                const selectedComplaintType = document.getElementById('id_complaint_type')?.value;
                 window.setTimeout(() => {
+                    syncComplaintTypeRecognition(selectedComplaintType);
                     initDatePicker();
                     if (uploadArea) {
                         uploadArea.style.borderColor = '';
@@ -996,19 +1307,25 @@
                             select.disabled = true;
                         }
                     });
+                    resetSkuOptions();
+                    refreshSkuOptions();
                 }, 0);
             });
         }
 
         // Form submission
-        document.querySelector('form').addEventListener('submit', function() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-        });
+        const complaintForm = document.getElementById('complaint-form');
+        if (complaintForm) {
+            complaintForm.addEventListener('submit', function() {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            });
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             initDatePicker();
             initComplaintTypeDock();
+            refreshSkuOptions();
             
             // Add active nav state
             const addComplaintLink = document.querySelector('a[href="{% url 'add_complaint' %}"]');

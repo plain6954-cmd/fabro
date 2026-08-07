@@ -489,6 +489,88 @@
             .search-input {
                 width: 100%;
             }
+
+            .table-container {
+                overflow: visible;
+                border: 0;
+                background: transparent;
+            }
+
+            .table,
+            .table tbody {
+                display: block;
+                width: 100%;
+                min-width: 0;
+            }
+
+            .table thead {
+                display: none;
+            }
+
+            .table tr {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+                margin-bottom: 0.75rem;
+                padding: 0.65rem;
+                border: 1px solid rgba(255, 255, 255, 0.09);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.035);
+            }
+
+            body.light-mode .table tr {
+                background: rgba(255, 255, 255, 0.62);
+                border-color: rgba(24, 24, 27, 0.1);
+            }
+
+            .table tr[style*="table-row"] {
+                display: grid !important;
+            }
+
+            .table td {
+                display: grid;
+                grid-template-columns: 5.5rem minmax(0, 1fr);
+                align-items: center;
+                gap: 0.45rem;
+                width: auto;
+                min-width: 0;
+                padding: 0.4rem;
+                border: 0;
+                overflow-wrap: anywhere;
+            }
+
+            .table td::before {
+                color: var(--dark-text-secondary);
+                font-size: 0.65rem;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+
+            .table td:nth-child(1)::before { content: '#'; }
+            .table td:nth-child(2)::before { content: 'SKU'; }
+            .table td:nth-child(3)::before { content: 'Description'; }
+            .table td:nth-child(4)::before { content: 'Region'; }
+            .table td:nth-child(5)::before { content: 'Actions'; }
+
+            .table td[colspan] {
+                display: block;
+                text-align: center;
+            }
+
+            .table td[colspan]::before {
+                content: none;
+            }
+
+            .table .action-buttons {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .table input,
+            .table select {
+                width: 100%;
+                min-width: 0;
+            }
         }
     </style>
 </head>
@@ -496,125 +578,131 @@
     {% include 'management/base.html' %}
     
     <div class="page-container">
-        <div class="page-header">
-            <h1 class="page-title">
-                <i class="fas fa-barcode"></i>
-                SKU Management
-            </h1>
-            <p class="page-subtitle">Manage product SKUs and inventory with bulk upload capabilities</p>
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <h1 class="page-title" style="margin-bottom: 0.25rem; justify-content: flex-start;">
+                    <i class="fas fa-barcode"></i>
+                    SKU Management
+                </h1>
+                <p class="page-subtitle" style="margin-bottom: 0;">Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities</p>
+            </div>
+            {% if can_manage_catalog %}
+            <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                <button type="button" class="action-header-btn" id="btnToggleAddSku" title="Add New SKU (Inline)" onclick="toggleInlineAddRow()" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(229, 57, 53, 0.15); border: 1px solid rgba(229, 57, 53, 0.4); color: #ef4444; font-size: 1.25rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="action-header-btn" id="btnToggleCsvUpload" title="Bulk Upload CSV" onclick="toggleCsvExpand()" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; font-size: 1.25rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+                    <i class="fas fa-file-csv"></i>
+                </button>
+            </div>
+            {% endif %}
         </div>
 
         {% if can_manage_catalog %}
-        <div class="content-grid">
-            <!-- Add SKU Form -->
-            <div class="form-section">
-                <h2 class="section-title">
-                    <i class="fas fa-plus-circle"></i>
-                    Add New SKU
-                </h2>
-
-                <form method="post" id="skuForm">
-                    {% csrf_token %}
-                    
-                    <div class="form-group">
-                        <label class="form-label">SKU</label>
-                        {{ form.code}}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Description</label>
-                        {{ form.description }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Region</label>
-                        {{ form.region }}
-                    </div>
-
-                    <button type="submit" name="add_sku" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        Add SKU
+        <!-- Inline Expandable CSV Upload Container (No Fullscreen Overlay) -->
+        <div id="csvExpandContainer" style="display: {% if upload_feedback or upload_form.csv_file.errors %}block{% else %}none{% endif %}; margin-bottom: 1.25rem;">
+            <div style="background: rgba(30, 30, 32, 0.95); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 1.25rem; box-shadow: var(--shadow);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                    <h3 style="margin: 0; font-size: 1.05rem; color: #10b981; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-csv"></i> Bulk Upload CSV
+                    </h3>
+                    <button type="button" onclick="toggleCsvExpand(false)" style="background: none; border: none; color: var(--dark-text-secondary); font-size: 1.1rem; cursor: pointer;">
+                        <i class="fas fa-times"></i>
                     </button>
-                </form>
-            </div>
-
-            <!-- Bulk Upload Form -->
-            <div class="form-section">
-                <h2 class="section-title">
-                    <i class="fas fa-upload"></i>
-                    Bulk Upload CSV
-                </h2>
-
+                </div>
                 {% if upload_feedback %}
-                    <div class="feedback-message">
-                        <i class="fas fa-check-circle"></i>
-                        {{ upload_feedback }}
+                    <div class="feedback-message" style="margin-bottom: 0.85rem; padding: 0.6rem 0.85rem; background: rgba(16, 185, 129, 0.15); border-radius: 8px; color: #10b981; font-size: 0.875rem;">
+                        <i class="fas fa-check-circle"></i> {{ upload_feedback }}
                     </div>
                 {% endif %}
-
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    
-                    <div class="form-group">
-                        <label class="form-label">CSV File</label>
-                        <div class="file-upload-area">
-                            <div class="file-upload-icon">
-                                <i class="fas fa-file-csv"></i>
+                    <div class="form-group" style="margin-bottom: 0.85rem;">
+                        <div class="file-upload-area" style="border: 2px dashed rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 1.25rem; text-align: center; background: rgba(16, 185, 129, 0.03);">
+                            <div class="file-upload-icon" style="font-size: 1.75rem; color: #10b981; margin-bottom: 0.4rem;">
+                                <i class="fas fa-cloud-upload-alt"></i>
                             </div>
-                            <div class="file-upload-text">
-                                <strong>Click to upload</strong> or drag and drop<br>
-                                CSV file with code and description columns
+                            <div class="file-upload-text" style="font-size: 0.85rem; color: var(--dark-text);">
+                                <strong>Click to upload</strong> or drag and drop<br>CSV file with code &amp; description
                             </div>
                             {{ upload_form.csv_file }}
                         </div>
                         {% if upload_form.csv_file.errors %}
-                            <div class="error-message">{{ upload_form.csv_file.errors|striptags }}</div>
+                            <div class="error-message" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.4rem;">{{ upload_form.csv_file.errors|striptags }}</div>
                         {% endif %}
                     </div>
-
-                    <button type="submit" name="upload_csv" class="btn btn-success">
-                        <i class="fas fa-upload"></i>
-                        Upload CSV
-                    </button>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                        <button type="button" class="btn" onclick="toggleCsvExpand(false)" style="background: rgba(255,255,255,0.1); color: var(--dark-text); padding: 0.4rem 0.85rem; font-size: 0.875rem;">Cancel</button>
+                        <button type="submit" name="upload_csv" class="btn btn-success" style="padding: 0.4rem 0.85rem; font-size: 0.875rem;"><i class="fas fa-upload"></i> Upload CSV</button>
+                    </div>
                 </form>
             </div>
         </div>
         {% endif %}
 
-        <!-- SKU List -->
+        <!-- SKU List FIRST -->
         <div class="table-section" data-no-reveal>
             <div class="table-header">
                 <h2 class="table-title">
                     <i class="fas fa-list"></i>
-                    Existing SKUs ({{ skus.count }})
+                    Existing SKUs ({% if page_obj %}{{ page_obj.paginator.count }}{% else %}{{ skus.count }}{% endif %})
                 </h2>
-                <input type="text" id="searchInput" placeholder="Search SKUs..." class="search-input">
+                <form method="get" style="display:flex; gap:0.5rem;">
+                    <input type="text" name="search" id="searchInput" value="{{ search_query }}" placeholder="Search SKUs..." class="search-input">
+                    <button type="submit" class="btn btn-primary" title="Filter" style="width:auto; padding: 0.5rem 0.85rem; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                </form>
             </div>
 
-            {% if skus %}
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>SKU</th>
-                                <th>Description</th>
-                                <th>Region</th>
-                                {% if can_manage_catalog %}<th>Actions</th>{% endif %}
-                            </tr>
-                        </thead>
-                        <tbody id="skuTableBody">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>SKU</th>
+                            <th>Description</th>
+                            <th>Region</th>
+                            {% if can_manage_catalog %}<th>Actions</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="skuTableBody">
+                        {% if can_manage_catalog %}
+                        <!-- Inline Add SKU Row -->
+                        <tr id="inlineAddRow" style="display: {% if form.errors and 'add_sku' in request.POST %}table-row{% else %}none{% endif %}; background: rgba(229, 57, 53, 0.08); border-bottom: 2px solid var(--primary-color);">
+                            <form method="post" id="inlineAddSkuForm">
+                                {% csrf_token %}
+                                <td style="vertical-align: middle;"><span style="background: var(--primary-color); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">NEW</span></td>
+                                <td style="vertical-align: middle;">{{ form.code }}</td>
+                                <td style="vertical-align: middle;">{{ form.description }}</td>
+                                <td style="vertical-align: middle;">{{ form.region }}</td>
+                                <td style="vertical-align: middle;">
+                                    <div style="display: flex; gap: 0.4rem;">
+                                        <button type="submit" name="add_sku" class="action-btn" title="Save SKU" style="background: #10b981; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="action-btn" title="Cancel" onclick="toggleInlineAddRow(false)" style="background: rgba(255,255,255,0.15); color: var(--dark-text); border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endif %}
+
+                        {% if skus %}
                             {% for sku in skus %}
-                            <tr>
-                                <td>{{ forloop.counter }}</td>
+                            <!-- View Row -->
+                            <tr id="sku-row-{{ sku.id }}">
+                                <td>{% if page_obj %}{{ page_obj.start_index|add:forloop.counter0 }}{% else %}{{ forloop.counter }}{% endif %}</td>
                                 <td><strong>{{ sku.code }}</strong></td>
                                 <td>{{ sku.description|default:"-" }}</td>
                                 <td>{{ sku.region|default:"-" }}</td>
                                 {% if can_manage_catalog %}<td>
                                     <div class="action-buttons">
-                                        <a href="{% url 'edit_sku' sku.id %}" class="action-btn edit" title="Edit">
+                                        <button type="button" class="action-btn edit" title="Edit Inline" onclick="toggleInlineEditRow({{ sku.id }}, true)">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <form method="post" action="{% url 'delete_sku' sku.id %}" style="display:inline;">
                                             {% csrf_token %}
                                             <button type="submit" class="action-btn delete" title="Delete"
@@ -625,20 +713,62 @@
                                     </div>
                                 </td>{% endif %}
                             </tr>
+                            {% if can_manage_catalog %}
+                            <!-- Inline Edit Row -->
+                            <tr id="sku-edit-row-{{ sku.id }}" style="display:none; background: rgba(59, 130, 246, 0.08); border-bottom: 2px solid #3b82f6;">
+                                <form method="post" action="{% url 'edit_sku' sku.id %}">
+                                    {% csrf_token %}
+                                    <td style="vertical-align: middle;">#{{ forloop.counter }}</td>
+                                    <td style="vertical-align: middle;"><input type="text" name="code" value="{{ sku.code }}" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;" required></td>
+                                    <td style="vertical-align: middle;"><input type="text" name="description" value="{{ sku.description|default:'' }}" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;"></td>
+                                    <td style="vertical-align: middle;">
+                                        <select name="region" class="form-select" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">
+                                            <option value="">---------</option>
+                                            {% for r in form.fields.region.queryset %}
+                                            <option value="{{ r.id }}" {% if sku.region_id == r.id %}selected{% endif %}>{{ r }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        <div style="display: flex; gap: 0.4rem;">
+                                            <button type="submit" class="action-btn" title="Save Changes" style="background: #10b981; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button type="button" class="action-btn" title="Cancel" onclick="toggleInlineEditRow({{ sku.id }}, false)" style="background: rgba(255,255,255,0.15); color: var(--dark-text); border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </form>
+                            </tr>
+                            {% endif %}
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--dark-text-secondary);">
+                                    <i class="fas fa-barcode" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                                    No SKUs found. Click <strong>+</strong> above to add one inline!
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+                {% if page_obj and page_obj.has_other_pages %}
+                <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">&laquo; First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Prev</a>
+                    {% endif %}
+
+                    <span style="font-size: 0.875rem; color: var(--dark-text); font-weight: 500; margin: 0 0.5rem;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Last &raquo;</a>
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        
-                        <i class="fas fa-barcode"></i>
-                    </div>
-                    <h3>No SKUs added yet</h3>
-                    <p>Add your first SKU using the form above or upload a CSV file.</p>
-                </div>
-            {% endif %}
+                {% endif %}
         </div>
     </div>
 
@@ -667,22 +797,78 @@
     </div>
 
     <script>
+        // Inline Add Row toggle
+        function toggleInlineAddRow(show) {
+            const addRow = document.getElementById('inlineAddRow');
+            if (!addRow) return;
+
+            if (show === undefined) {
+                const isHidden = (addRow.style.display === 'none' || addRow.style.display === '');
+                addRow.style.display = isHidden ? 'table-row' : 'none';
+            } else {
+                addRow.style.display = show ? 'table-row' : 'none';
+            }
+
+            if (addRow.style.display === 'table-row') {
+                const firstInput = addRow.querySelector('input[type="text"]');
+                if (firstInput) firstInput.focus();
+            }
+        }
+
+        // Inline Edit Row toggle
+        function toggleInlineEditRow(skuId, show) {
+            const viewRow = document.getElementById(`sku-row-${skuId}`);
+            const editRow = document.getElementById(`sku-edit-row-${skuId}`);
+
+            if (!viewRow || !editRow) return;
+
+            if (show) {
+                viewRow.style.display = 'none';
+                editRow.style.display = 'table-row';
+                const firstInput = editRow.querySelector('input[type="text"]');
+                if (firstInput) firstInput.focus();
+            } else {
+                viewRow.style.display = 'table-row';
+                editRow.style.display = 'none';
+            }
+        }
+
+        // Inline CSV Expand toggle (No fullscreen backdrop)
+        function toggleCsvExpand(show) {
+            const container = document.getElementById('csvExpandContainer');
+            if (!container) return;
+
+            if (show === undefined) {
+                const isHidden = (container.style.display === 'none' || container.style.display === '');
+                container.style.display = isHidden ? 'block' : 'none';
+            } else {
+                container.style.display = show ? 'block' : 'none';
+            }
+
+            if (container.style.display === 'block') {
+                container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
         // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#skuTableBody tr');
-            
-            rows.forEach(row => {
-                const code = row.cells[1].textContent.toLowerCase();
-                const description = row.cells[2].textContent.toLowerCase();
-                
-                if (code.includes(searchTerm) || description.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#skuTableBody tr[id^="sku-row-"]');
+
+                rows.forEach(row => {
+                    const codeCell = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
+                    const descCell = row.cells[2] ? row.cells[2].textContent.toLowerCase() : '';
+
+                    if (codeCell.includes(searchTerm) || descCell.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             });
-        });
+        }
 
         // File upload handling
         const fileInput = document.querySelector('.file-input');
@@ -700,18 +886,12 @@
             });
         }
 
-        // Form validation and duplicate checking
-        document.getElementById('skuForm').addEventListener('submit', function(e) {
-            // This will be handled by Django form validation
-            // If there are errors, they will be displayed in the form
-        });
-
         function closeDuplicateModal() {
             document.getElementById('duplicateModal').style.display = 'none';
         }
 
         // Show duplicate modal if form has errors
-        {% if form.errors %}
+        {% if form.errors and not 'add_sku' in request.POST %}
             document.getElementById('duplicateModal').style.display = 'block';
         {% endif %}
 
@@ -724,7 +904,6 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Add active nav state
             const skuLink = document.querySelector('a[href="{% url 'add_sku' %}"]');
             if (skuLink) {
                 skuLink.classList.add('active');

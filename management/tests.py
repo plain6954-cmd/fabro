@@ -147,6 +147,25 @@ class FabroBackendTests(TestCase):
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 200, route_name)
 
+    def test_add_complaint_recognition_defaults_and_preserves_submitted_type(self):
+        self.login()
+
+        default_response = self.client.get(reverse('add_complaint'))
+        self.assertContains(default_response, 'id="complaint-type-indicator"')
+        self.assertContains(default_response, 'Pattern Complaint')
+        self.assertContains(default_response, 'Save Pattern Complaint')
+
+        invalid_production_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PRODUCTION,
+        })
+        self.assertEqual(invalid_production_response.status_code, 200)
+        self.assertEqual(
+            invalid_production_response.context['selected_complaint_type'],
+            ComplaintTypes.PRODUCTION,
+        )
+        self.assertContains(invalid_production_response, 'type-production')
+        self.assertContains(invalid_production_response, 'Save Production Complaint')
+
     def test_complaint_create_edit_delete_and_media_fallback(self):
         self.login()
         upload = SimpleUploadedFile("backend-test.png", b"fake-png", content_type="image/png")
@@ -397,6 +416,14 @@ class FabroBackendTests(TestCase):
             "search_by": "created_by__password",
         })
         self.assertEqual(response.status_code, 200)
+
+    def test_complaint_search_does_not_submit_none_for_blank_filters(self):
+        self.login()
+
+        response = self.client.get(reverse('complaint_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'value="None"', html=False)
 
     def test_api_profile_can_be_viewed_and_updated_with_token(self):
         token, _ = Token.objects.get_or_create(user=self.user)
@@ -683,6 +710,16 @@ class FabroBackendTests(TestCase):
         self.assertEqual(line_response.context['selected_complaint_type'], ComplaintTypes.LINE)
         self.assertEqual(len(line_response.context['complaints']), 1)
         self.assertEqual(line_response.context['complaints'][0].complaint_type, ComplaintTypes.LINE)
+
+    def test_visible_complaints_preserves_an_empty_supplied_queryset(self):
+        empty_ordered_queryset = Complaint.objects.filter(
+            batch_order='DOES-NOT-EXIST',
+        ).order_by('-complaint_id')
+
+        visible = visible_complaints_for_user(self.user, empty_ordered_queryset)
+
+        self.assertTrue(visible.ordered)
+        self.assertFalse(visible.exists())
 
     def test_factory_review_requires_mandatory_fields(self):
         User = get_user_model()
@@ -1499,6 +1536,9 @@ class FabroBackendTests(TestCase):
             country_dashboard.content.decode(),
         )
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 200)
+        country_add_response = self.client.get(reverse('add_complaint'))
+        self.assertFalse(country_add_response.context['can_create_line'])
+        self.assertNotContains(country_add_response, 'id="complaint-type-line"')
 
         viewer = self.create_workflow_user('role_viewer', WorkflowRoles.FACTORY_VIEWER)
         self.client.force_login(viewer)

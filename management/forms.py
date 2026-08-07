@@ -128,6 +128,7 @@ class ComplaintForm(forms.ModelForm):
         self.fields['sub_model'].queryset = SubModel.objects.none()
         self.fields['year'].queryset = YearRange.objects.none()
         self.fields['sku'].queryset = SKU.objects.all()
+        self.fields['sku'].empty_label = 'Select SKU'
         self.fields['sku'].label_from_instance = lambda sku: f"{sku.code} - {sku.description}" if sku.description else sku.code
 
         optional_fields = [

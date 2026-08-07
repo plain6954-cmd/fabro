@@ -46,9 +46,9 @@ REPORT_FIELD_LABELS = {
 REPORT_EDITABLE_FIELDS = frozenset(REPORT_FIELD_LABELS)
 
 JOURNEY_STAGES = (
-    ('reported', 'Reported'),
+    ('reported', 'Submitted'),
     ('factory', 'Factory Review'),
-    ('approval', 'Approvals'),
+    ('approval', 'Approval'),
     ('action', 'Action'),
     ('final', 'Final Update'),
     ('closed', 'Closed'),
@@ -99,8 +99,10 @@ def complaint_journey_steps(complaint):
 def get_user_profile(user):
     if not user or not user.is_authenticated:
         return None
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-    return profile
+    if not hasattr(user, '_workflow_profile'):
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        user._workflow_profile = profile
+    return user._workflow_profile
 
 
 def is_country_executive(user):
@@ -151,7 +153,8 @@ def can_user_create_complaint(user):
 
 
 def visible_complaints_for_user(user, queryset=None):
-    queryset = queryset or Complaint.objects.all()
+    if queryset is None:
+        queryset = Complaint.objects.all()
     if is_workflow_admin(user):
         return queryset
 
@@ -415,6 +418,11 @@ def find_approver_for_role(role):
 
 
 def latest_approval_round_number(complaint):
+    if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
+        approvals = complaint._prefetched_objects_cache['approvals']
+        if approvals:
+            return max(a.approval_round for a in approvals)
+        return 0
     latest = complaint.approvals.order_by('-approval_round').values_list('approval_round', flat=True).first()
     return latest or 0
 
@@ -422,7 +430,13 @@ def latest_approval_round_number(complaint):
 def current_round_approvals(complaint):
     approval_round = latest_approval_round_number(complaint)
     if not approval_round:
+        if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
+            return []
         return ComplaintApproval.objects.none()
+
+    if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
+        return [a for a in complaint._prefetched_objects_cache['approvals'] if a.approval_round == approval_round and a.required]
+
     return complaint.approvals.filter(
         approval_round=approval_round,
         required=True,
@@ -450,6 +464,13 @@ def get_user_current_approval(user, complaint):
     approval_round = latest_approval_round_number(complaint)
     if not approval_round:
         return None
+
+    if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
+        for a in complaint._prefetched_objects_cache['approvals']:
+            if a.approval_round == approval_round and a.approver_user_id == user.id and a.required:
+                return a
+        return None
+
     return complaint.approvals.filter(
         approval_round=approval_round,
         approver_user=user,

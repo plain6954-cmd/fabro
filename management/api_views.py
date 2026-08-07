@@ -164,7 +164,15 @@ class ComplaintListCreateAPIView(ListCreateAPIView):
     def get_queryset(self):
         return visible_complaints_for_user(
             self.request.user,
-            Complaint.objects.all().order_by('-complaint_id')
+            Complaint.objects.select_related(
+                'channel', 'country', 'person', 'case_sub_category',
+                'series', 'material', 'sku', 'brand', 'model', 'sub_model', 'year',
+                'created_by', 'assigned_factory_executive', 'closed_by',
+            ).prefetch_related(
+                'media_files',
+                'approvals__approver_user',
+                'timeline_events__user',
+            ).all().order_by('-complaint_id')
         )
 
     @transaction.atomic

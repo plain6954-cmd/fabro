@@ -60,6 +60,7 @@ urlpatterns = [
     path('api/models/<int:brand_id>/', views.get_models, name='get_models'),
     path('api/sub_models/<int:model_id>/', views.get_sub_models, name='get_sub_models'),
     path('api/year_ranges/<int:sub_model_id>/', views.get_year_ranges, name='get_year_ranges'),
+    path('api/filtered-skus/', views.get_filtered_skus, name='get_filtered_skus'),
     path('export_complaints/', views.export_complaints, name='export_complaints'),
     path('upload-cars/', views.upload_car_csv, name='upload_car_csv'),
     path('add-sku/', views.add_sku, name='add_sku'),

@@ -12,4 +12,10 @@ export async function openViaNav(page: Page, label: string, urlPattern: RegExp, 
   await expect(page.getByRole('heading', { name: heading })).toBeVisible();
 }
 
+export async function searchComplaints(page: Page, query: string, searchBy: string) {
+  await page.getByPlaceholder(/Search complaints/i).fill(query);
+  await page.locator(`.search-option[data-search-by="${searchBy}"]`).click();
+  await page.waitForLoadState('domcontentloaded');
+}
+
 export const appRoutes = routes;

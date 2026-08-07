@@ -29,9 +29,9 @@
             --fabro-amber: #f59e0b;
             --fabro-cyan: #22d3ee;
             --fabro-violet: #8b5cf6;
-            --glass-bg: rgba(30, 30, 34, 0.66);
-            --glass-bg-strong: rgba(30, 30, 34, 0.82);
-            --glass-bg-soft: rgba(255, 255, 255, 0.045);
+            --glass-bg: rgba(30, 30, 34, 0.85);
+            --glass-bg-strong: rgba(30, 30, 34, 0.95);
+            --glass-bg-soft: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.12);
             --glass-border-hot: rgba(220, 38, 38, 0.34);
             --glass-shadow: 0 18px 55px rgba(0, 0, 0, 0.36);
@@ -44,43 +44,39 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--dark-bg);
+            color: var(--dark-text);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
             background-image:
                 radial-gradient(circle, rgba(220, 38, 38, 0.22) 0 1px, transparent 1.7px),
                 linear-gradient(115deg, transparent 0%, rgba(220, 38, 38, 0.055) 42%, rgba(255, 255, 255, 0.035) 50%, transparent 58%),
                 radial-gradient(circle, rgba(220, 38, 38, 0.08) 0 1px, transparent 1.5px),
-                linear-gradient(rgba(18, 18, 20, 0.84), rgba(18, 18, 20, 0.9)),
+                linear-gradient(rgba(18, 18, 20, 0.65), rgba(18, 18, 20, 0.75)),
                 url("{% static 'seat-background.webp' %}");
             background-position: 0 0, center, 13px 13px, center, center;
             background-size: 28px 28px, 100% 100%, 56px 56px, 100% 100%, cover;
-            background-attachment: fixed, fixed, fixed, fixed, fixed;
-            color: var(--dark-text);
-            line-height: 1.6;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transform: translateZ(0);
         }
 
-        body.light-mode {
-            background-color: var(--light-bg);
+        body.light-mode::before {
             background-image:
                 radial-gradient(circle, rgba(220, 38, 38, 0.2) 0 1px, transparent 1.7px),
                 linear-gradient(115deg, transparent 0%, rgba(220, 38, 38, 0.06) 42%, rgba(255, 255, 255, 0.22) 50%, transparent 58%),
                 radial-gradient(circle, rgba(220, 38, 38, 0.085) 0 1px, transparent 1.5px),
                 linear-gradient(rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.62)),
                 url("{% static 'seat-background.webp' %}");
-            color: var(--light-text);
-        }
-
-        @media (max-width: 768px), (pointer: coarse) {
-            body {
-                background-position: 0 0, center, 13px 13px, center, 18% center;
-                background-size: 28px 28px, 100% 100%, 56px 56px, 100% 100%, cover;
-                background-attachment: scroll, scroll, scroll, scroll, scroll;
-            }
-        }
-
-        @media (orientation: landscape) and (max-height: 640px) {
-            body {
-                background-position: 0 0, center, 13px 13px, center, 22% 58%;
-            }
         }
 
         .navbar {
@@ -115,11 +111,9 @@
             min-height: 58px;
             padding: 0.28rem 0.7rem;
             border-radius: 999px;
-            background: rgba(18, 18, 20, 0.12);
+            background: rgba(18, 18, 20, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.065);
             box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.035);
-            -webkit-backdrop-filter: blur(12px) saturate(118%);
-            backdrop-filter: blur(12px) saturate(118%);
             transition: transform var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) ease;
         }
 
@@ -143,15 +137,13 @@
             gap: 0.18rem;
             padding: 0.42rem;
             border-radius: 999px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+            background: rgba(30, 30, 34, 0.9);
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            -webkit-backdrop-filter: blur(18px) saturate(135%);
-            backdrop-filter: blur(18px) saturate(135%);
         }
 
         body.light-mode .nav-links {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(244, 244, 245, 0.46));
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(244, 244, 245, 0.86));
             border-color: rgba(24, 24, 27, 0.12);
             box-shadow: 0 18px 44px rgba(24, 24, 27, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.86);
         }
@@ -401,34 +393,206 @@
         }
 
         body.light-mode .mobile-menu-toggle {
+            background-color: var(--dark-card);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        body.light-mode .profile-trigger {
+            background-color: var(--light-card);
+            border-color: #e2e8f0;
+        }
+
+        .profile-trigger:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .profile-avatar {
+            width: 2.25rem;
+            height: 2.25rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex: 0 0 auto;
+        }
+
+        .profile-trigger > div:not(.profile-avatar) {
+            line-height: 1.2;
+        }
+
+        .profile-trigger > div:not(.profile-avatar) > div:first-child {
+            font-size: 0.82rem !important;
+        }
+
+        .profile-trigger > div:not(.profile-avatar) > div:last-child {
+            font-size: 0.68rem !important;
+        }
+
+        .profile-dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            background: linear-gradient(135deg, rgba(28, 28, 31, 0.98), rgba(15, 15, 17, 0.96));
+            min-width: 280px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            overflow: hidden;
+            z-index: 1001;
+            -webkit-backdrop-filter: blur(10px) saturate(120%);
+            backdrop-filter: blur(10px) saturate(120%);
+        }
+
+        body.light-mode .profile-dropdown-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 244, 245, 0.96));
+            border-color: #e2e8f0;
+        }
+
+        /* Transparent bridge to prevent losing hover state when moving mouse to dropdown */
+        .profile-dropdown::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            height: 0.75rem;
+            background: transparent;
+        }
+
+        .profile-dropdown:hover .profile-dropdown-content {
+            display: block;
+            animation: fadeInUp 0.2s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(220, 38, 38, 0.16);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .dropdown-header {
+            border-bottom-color: #e2e8f0;
+            color: var(--light-text);
+        }
+
+        .alert {
+            padding: 10px;
+            margin: 10px auto;
+            border-radius: 5px;
+            max-width: 600px;
+            text-align: center;
+            transition: opacity 0.5s ease;
+        }
+
+        .alert.error {
+            background-color: #ff4f4f;
+            color: white;
+        }
+
+        .alert.success {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: rgba(245, 245, 245, 0.88);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .dropdown-item {
+            color: var(--light-text-secondary);
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(220, 38, 38, 0.16);
+            color: #ffffff;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .theme-toggle {
+            border-top-color: #e2e8f0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 3rem;
+            height: 1.5rem;
+            background-color: var(--secondary-color);
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background-color: var(--primary-color);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 1.25rem;
+            height: 1.25rem;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(1.5rem);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--dark-text);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        body.light-mode .mobile-menu-toggle {
             color: var(--light-text);
         }
 
         html {
             scroll-behavior: auto;
-        }
-
-        .scroll-progress {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            transform: scaleX(0);
-            transform-origin: left;
-            background: linear-gradient(90deg, var(--primary-color), #f59e0b);
-            z-index: 1003;
-            pointer-events: none;
-            will-change: transform;
-        }
-
-        .navbar {
-            transition: box-shadow 0.24s ease, border-color 0.24s ease, background 0.24s ease;
-        }
-
-        .navbar.is-scrolled {
-            box-shadow: none;
-            border-bottom-color: transparent;
         }
 
         .nav-brand-logo {
@@ -703,14 +867,20 @@
         }
 
         @media (max-width: 768px) {
+            html,
+            body {
+                max-width: 100%;
+                overflow-x: clip;
+            }
+
             .navbar {
                 display: grid;
-                grid-template-columns: auto minmax(0, auto) auto;
+                grid-template-columns: minmax(0, 1fr) auto;
                 align-items: center;
-                justify-content: space-between;
+                justify-content: stretch;
                 padding: 0.6rem 0.7rem;
-                gap: 0.45rem;
-                min-height: 72px;
+                gap: 0.45rem 0.65rem;
+                min-height: 0;
                 overflow: visible;
             }
 
@@ -728,6 +898,9 @@
 
             .nav-brand {
                 display: flex;
+                grid-column: 1;
+                grid-row: 1;
+                justify-self: start;
                 min-height: 52px;
                 padding: 0.08rem 0.45rem;
             }
@@ -741,13 +914,15 @@
             .nav-links {
                 position: relative;
                 inset: auto;
+                grid-column: 1 / -1;
+                grid-row: 2;
                 display: flex;
                 flex-direction: row;
                 align-items: center;
-                justify-content: center;
-                width: auto;
-                max-width: min(100%, 360px);
-                overflow-x: hidden;
+                justify-content: stretch;
+                width: 100%;
+                max-width: none;
+                overflow-x: auto;
                 overflow-y: hidden;
                 gap: 0.08rem;
                 padding: 0.32rem;
@@ -778,9 +953,9 @@
 
             .nav-link {
                 width: auto;
-                min-width: 46px;
+                min-width: 44px;
                 min-height: 46px;
-                flex: 0 0 auto;
+                flex: 1 0 44px;
                 flex-direction: row;
                 justify-content: center;
                 align-items: center;
@@ -813,6 +988,8 @@
 
             .profile-dropdown {
                 position: relative;
+                grid-column: 2;
+                grid-row: 1;
                 right: auto;
                 top: auto;
                 transform: none;
@@ -830,6 +1007,96 @@
             .profile-trigger > div:not(.profile-avatar),
             .profile-trigger .fa-chevron-down {
                 display: none;
+            }
+
+            .profile-dropdown-content {
+                position: fixed;
+                top: 4.25rem;
+                right: 0.75rem;
+                left: 0.75rem;
+                width: auto;
+                min-width: 0;
+                max-height: calc(100dvh - 5rem);
+                overflow-y: auto;
+            }
+
+            .page-container,
+            .dashboard-container,
+            .dashboard-wrapper,
+            .container,
+            main,
+            .content,
+            .main-content {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .content-grid,
+            .dashboard-layout,
+            .form-grid,
+            .settings-grid,
+            .category-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+                min-width: 0;
+            }
+
+            .content-grid > *,
+            .dashboard-layout > *,
+            .form-grid > *,
+            .settings-grid > *,
+            .category-grid > * {
+                min-width: 0;
+                max-width: 100%;
+            }
+
+            .page-header,
+            .section-header,
+            .table-header,
+            .header-actions,
+            .btn-group {
+                min-width: 0;
+            }
+
+            .page-title,
+            .dashboard-title,
+            .section-title,
+            .page-subtitle {
+                max-width: 100%;
+                overflow-wrap: anywhere;
+                text-wrap: pretty;
+            }
+
+            img,
+            video,
+            canvas {
+                max-width: 100%;
+                height: auto;
+            }
+
+            input,
+            select,
+            textarea,
+            .form-input,
+            .form-select,
+            .form-textarea,
+            .filter-input,
+            .filter-select,
+            .search-input {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                font-size: 16px;
+            }
+
+            .modal-content,
+            .modal-container {
+                width: calc(100vw - 1rem);
+                max-width: calc(100vw - 1rem);
+                max-height: calc(100dvh - 1rem);
+                margin: 0.5rem;
+                overflow-y: auto;
+                overscroll-behavior: contain;
             }
         }
 
@@ -850,7 +1117,7 @@
             }
 
             .nav-links {
-                max-width: min(100%, 252px);
+                max-width: 100%;
                 padding: 0.26rem;
                 gap: 0.04rem;
             }
@@ -1424,6 +1691,7 @@
                 </div>
             `;
 
+
             document.body.appendChild(toast);
 
             setTimeout(() => toast.classList.add('show'), 100);
@@ -1433,180 +1701,9 @@
             }, 3000);
         };
 
-        const initScrollDynamics = () => {
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                return;
-            }
-
-            if (typeof window.__fabroScrollCleanup === 'function') {
-                window.__fabroScrollCleanup();
-            }
-
-            const animationWindowMs = 20000;
-            const progress = document.querySelector('.scroll-progress') || document.createElement('div');
-            const navbar = document.querySelector('.navbar');
-            const revealSelectors = [
-                '.page-header',
-                '.dashboard-header',
-                '.section-header',
-                '.section-title',
-                '.action-card-compact',
-                '.stat-card-compact',
-                '.page-container > *',
-                '.content-grid > *',
-                '.form-grid > *',
-                '.profile-grid > *',
-                '.category-grid > *',
-                '.form-container',
-                '.form-section',
-                '.form-group',
-                '.table-container',
-                '.table-section',
-                '.settings-section',
-                '.upload-container',
-                '.card',
-                '.category-card',
-                '.profile-card',
-                '.profile-detail-item',
-                '.car-card',
-                '.vehicle-card',
-                '.complaint-card',
-                '.settings-card',
-                '.btn-group'
-            ];
-            let ticking = false;
-
-            progress.className = 'scroll-progress';
-            progress.setAttribute('aria-hidden', 'true');
-            if (!progress.parentElement) {
-                document.body.appendChild(progress);
-            }
-
-            const updateScrollState = () => {
-                const scrollTop = window.scrollY || document.documentElement.scrollTop;
-                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                const progressValue = maxScroll > 0 ? scrollTop / maxScroll : 0;
-
-                progress.style.transform = `scaleX(${Math.min(Math.max(progressValue, 0), 1)})`;
-                if (navbar) {
-                    navbar.classList.toggle('is-scrolled', scrollTop > 12);
-                }
-                ticking = false;
-            };
-
-            const onScroll = () => {
-                if (!ticking) {
-                    window.requestAnimationFrame(updateScrollState);
-                    ticking = true;
-                }
-            };
-
-            const revealItems = Array.from(document.querySelectorAll(revealSelectors.join(',')))
-                .filter((element, index, list) => {
-                    const isUnique = list.indexOf(element) === index;
-                    const isChrome = element.closest('.navbar, .profile-dropdown-content, .modal, .toast, .messages');
-                    const skipReveal = element.closest('[data-no-reveal]');
-                    return isUnique && !isChrome && !skipReveal;
-                })
-                .slice(0, 95);
-
-            revealItems.forEach((element, index) => {
-                element.classList.add('scroll-reveal');
-                if (element.matches('.section-header')) {
-                    element.classList.add('reveal-left');
-                }
-                if (element.matches('.action-card-compact, .stat-card-compact, .card, .car-card, .vehicle-card, .complaint-card, .settings-card, .category-card, .profile-card, .profile-detail-item')) {
-                    element.classList.add('reveal-scale');
-                }
-                element.style.setProperty('--scroll-delay', `${Math.min(index % 6, 5) * 45}ms`);
-            });
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, {
-                threshold: 0.12,
-                rootMargin: '0px 0px -8% 0px'
-            });
-
-            revealItems.forEach((element) => observer.observe(element));
-            window.addEventListener('scroll', onScroll, { passive: true });
-            updateScrollState();
-
-            const cleanupTimer = window.setTimeout(() => {
-                observer.disconnect();
-                window.removeEventListener('scroll', onScroll);
-                revealItems.forEach((element) => element.classList.add('is-visible'));
-                progress.style.willChange = 'auto';
-            }, animationWindowMs);
-
-            window.__fabroScrollCleanup = () => {
-                window.clearTimeout(cleanupTimer);
-                observer.disconnect();
-                window.removeEventListener('scroll', onScroll);
-                revealItems.forEach((element) => element.classList.add('is-visible'));
-                progress.style.willChange = 'auto';
-            };
-        };
+        const initScrollDynamics = () => {};
 
         const initPremiumInteractions = () => {
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const cardSelector = [
-                '.action-card-compact',
-                '.stat-card-compact',
-                '.category-card',
-                '.setting-item',
-                '.profile-card',
-                '.profile-detail-item',
-                '.car-card',
-                '.vehicle-card',
-                '.complaint-card',
-                '.settings-card'
-            ].join(',');
-
-            if (!window.__fabroPremiumGlobalReady && !reduceMotion && window.matchMedia('(pointer: fine)').matches) {
-                let pointerFrame = null;
-                const trail = document.querySelector('.fabro-mouse-trail') || document.createElement('span');
-                trail.className = 'fabro-mouse-trail';
-                trail.setAttribute('aria-hidden', 'true');
-                if (!trail.parentElement) {
-                    document.body.appendChild(trail);
-                }
-                let hideTrailTimer = null;
-
-                document.addEventListener('pointermove', (event) => {
-                    if (pointerFrame) {
-                        return;
-                    }
-                    pointerFrame = window.requestAnimationFrame(() => {
-                        document.body.style.setProperty('--fabro-cursor-x', `${event.clientX}px`);
-                        document.body.style.setProperty('--fabro-cursor-y', `${event.clientY}px`);
-                        trail.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0) translate(-50%, -50%)`;
-                        trail.classList.add('is-visible');
-                        window.clearTimeout(hideTrailTimer);
-                        hideTrailTimer = window.setTimeout(() => trail.classList.remove('is-visible'), 160);
-
-                        const card = event.target.closest(cardSelector);
-                        if (card) {
-                            const rect = card.getBoundingClientRect();
-                            const x = ((event.clientX - rect.left) / rect.width) * 100;
-                            const y = ((event.clientY - rect.top) / rect.height) * 100;
-                            card.style.setProperty('--card-x', `${x}%`);
-                            card.style.setProperty('--card-y', `${y}%`);
-                        }
-                        pointerFrame = null;
-                    });
-                }, { passive: true });
-
-                document.addEventListener('pointerleave', () => {
-                    trail.classList.remove('is-visible');
-                }, { passive: true });
-            }
-
             if (!window.__fabroPremiumGlobalReady) {
                 document.addEventListener('pointerdown', (event) => {
                     const target = event.target.closest('.btn, .action-btn, .nav-link, .profile-btn, .action-card-compact, .stat-card-compact');
@@ -1641,24 +1738,7 @@
         };
 
         const initWindowNavigationTransitions = () => {
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (reduceMotion) {
-                return;
-            }
-
-            const transitionLayer = document.createElement('div');
-            transitionLayer.className = 'fabro-page-transition-layer';
-            transitionLayer.setAttribute('aria-hidden', 'true');
-            document.body.appendChild(transitionLayer);
-
-            window.requestAnimationFrame(() => {
-                document.body.classList.add('fabro-page-entered');
-            });
-
-            window.addEventListener('pageshow', () => {
-                document.body.classList.remove('fabro-page-exiting');
-                document.body.classList.add('fabro-page-entered');
-            });
+            return;
         };
 
         const runWhenIdle = (callback, timeout = 1200) => {
@@ -1695,278 +1775,24 @@
         };
 
         const initAppShellRouter = () => {
-            const navbar = document.querySelector('.navbar');
-            if (!navbar || !window.fetch || !window.DOMParser || window.__fabroRouterReady) {
-                return;
-            }
-            window.__fabroRouterReady = true;
-
-            let pendingRoute = null;
-
-            const routeLinks = () => Array.from(document.querySelectorAll('.nav-brand, .nav-links .nav-link'));
-            const normalizePath = (url) => new URL(url, window.location.href).pathname.replace(/\/+$/, '') || '/';
-
-            const ensureShell = () => {
-                let shell = document.getElementById('fabro-app-shell');
-                if (shell) {
-                    return shell;
-                }
-
-                shell = document.createElement('main');
-                shell.id = 'fabro-app-shell';
-                shell.setAttribute('aria-live', 'polite');
-
-                navbar.insertAdjacentElement('afterend', shell);
-
-                const nodesToMove = [];
-                let node = shell.nextSibling;
-                while (node) {
-                    const next = node.nextSibling;
-                    nodesToMove.push(node);
-                    node = next;
-                }
-
-                nodesToMove.forEach((item) => shell.appendChild(item));
-                return shell;
-            };
-
-            const canRoute = (anchor) => {
-                if (!anchor || anchor.target || anchor.hasAttribute('download')) {
-                    return false;
-                }
-
-                const href = anchor.getAttribute('href');
-                if (!href || href === '#' || href.startsWith('#') || href.startsWith('javascript:')) {
-                    return false;
-                }
-
-                const url = new URL(href, window.location.href);
-                const isTopNav = anchor.matches('.nav-brand, .nav-links .nav-link');
-                return isTopNav && url.origin === window.location.origin && url.pathname !== window.location.pathname;
-            };
-
-            const getDirection = (targetHref) => {
-                const links = routeLinks().filter((link) => link.matches('.nav-links .nav-link'));
-                const currentPath = normalizePath(window.location.href);
-                const targetPath = normalizePath(targetHref);
-                const currentIndex = links.findIndex((link) => normalizePath(link.href) === currentPath);
-                const targetIndex = links.findIndex((link) => normalizePath(link.href) === targetPath);
-
-                if (currentIndex === -1 || targetIndex === -1 || targetIndex >= currentIndex) {
-                    return 'next';
-                }
-                return 'prev';
-            };
-
-            const extractContent = (doc) => {
-                const fetchedNav = doc.querySelector('.navbar');
-                const contentNodes = [];
-
-                if (fetchedNav) {
-                    let node = fetchedNav.nextSibling;
-                    while (node) {
-                        const next = node.nextSibling;
-                        contentNodes.push(node);
-                        node = next;
-                    }
-                } else {
-                    contentNodes.push(...Array.from(doc.body.childNodes));
-                }
-
-                const fragment = document.createDocumentFragment();
-                contentNodes.forEach((node) => {
-                    if (node.nodeType === Node.ELEMENT_NODE && node.matches('.navbar, .messages')) {
-                        return;
-                    }
-                    fragment.appendChild(document.importNode(node, true));
-                });
-
-                return fragment;
-            };
-
-            const applyPageHead = (doc) => {
-                if (doc.title) {
-                    document.title = doc.title;
-                }
-
-                document.querySelectorAll('[data-fabro-page-style]').forEach((style) => style.remove());
-
-                doc.head.querySelectorAll('style').forEach((style) => {
-                    const nextStyle = document.createElement('style');
-                    nextStyle.dataset.fabroPageStyle = 'true';
-                    nextStyle.textContent = style.textContent;
-                    document.head.appendChild(nextStyle);
-                });
-            };
-
-            const executePageScripts = (container) => {
-                const scripts = Array.from(container.querySelectorAll('script'));
-                if (!scripts.length) {
-                    return;
-                }
-
-                const readyCallbacks = [];
-                const originalAddEventListener = document.addEventListener.bind(document);
-
-                document.addEventListener = function(type, listener, options) {
-                    if (type === 'DOMContentLoaded' && typeof listener === 'function') {
-                        readyCallbacks.push(listener);
-                        return;
-                    }
-                    originalAddEventListener(type, listener, options);
-                };
-
-                scripts.forEach((script) => {
-                    const replacement = document.createElement('script');
-                    Array.from(script.attributes).forEach((attr) => replacement.setAttribute(attr.name, attr.value));
-                    replacement.textContent = script.src
-                        ? script.textContent
-                        : script.textContent.replace(/\b(const|let)\b/g, 'var');
-                    script.replaceWith(replacement);
-                });
-
-                document.addEventListener = originalAddEventListener;
-
-                readyCallbacks.forEach((callback) => {
-                    try {
-                        callback.call(document, new Event('DOMContentLoaded'));
-                    } catch (error) {
-                        console.warn('Fabro page init skipped:', error);
-                    }
-                });
-            };
-
-            const replaceContent = async (href, options = {}) => {
-                const shell = ensureShell();
-                const direction = options.direction || getDirection(href);
-                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                if (shell.classList.contains('is-routing')) {
-                    // Keep the most recent click instead of dropping it while the
-                    // previous page finishes its short transition.
-                    pendingRoute = { href, options };
-                    return;
-                }
-
-                const finishRouting = () => {
-                    shell.classList.remove(
-                        'is-routing',
-                        'route-exit-next',
-                        'route-exit-prev',
-                        'route-enter-next',
-                        'route-enter-prev'
-                    );
-                    document.body.classList.remove('fabro-ajax-routing');
-
-                    const nextRoute = pendingRoute;
-                    pendingRoute = null;
-                    if (nextRoute && normalizePath(nextRoute.href) !== normalizePath(window.location.href)) {
-                        replaceContent(nextRoute.href, nextRoute.options);
-                    }
-                };
-
-                shell.classList.add('is-routing');
-                document.body.classList.add('fabro-ajax-routing');
-
-                try {
-                    const response = await fetch(href, {
-                        credentials: 'same-origin',
-                        cache: 'no-store',
-                        headers: {
-                            'X-Requested-With': 'fetch',
-                            'Accept': 'text/html'
-                        }
-                    });
-
-                    if (!response.ok || response.redirected) {
-                        window.location.href = href;
-                        return;
-                    }
-
-                    const html = await response.text();
-
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const fragment = extractContent(doc);
-
-                    applyPageHead(doc);
-                    shell.replaceChildren(fragment);
-                    executePageScripts(shell);
-
-                    document.documentElement.style.overflow = '';
-                    document.body.style.overflow = '';
-                    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-                    if (options.push !== false) {
-                        window.history.pushState({ fabroRoute: true }, '', href);
-                    }
-
-                    initTheme();
-                    initActiveWindowLabel();
-                    initPremiumInteractions();
-
-                    shell.classList.remove(`route-exit-${direction}`, `route-enter-${direction}`);
-                    if (shell.getAnimations) {
-                        shell.getAnimations().forEach((animation) => animation.cancel());
-                    }
-
-                    if (reduceMotion) {
-                        finishRouting();
-                        return;
-                    }
-
-                    void shell.offsetWidth;
-                    window.requestAnimationFrame(() => {
-                        shell.classList.add(`route-enter-${direction}`);
-                    });
-                    window.setTimeout(() => {
-                        finishRouting();
-                    }, 165);
-                } catch (error) {
-                    finishRouting();
-                    console.warn('Fabro smooth navigation fallback:', error);
-                    window.location.href = href;
-                }
-            };
-
-            ensureShell();
-
-            document.addEventListener('click', (event) => {
-                const anchor = event.target.closest('a');
-                if (!canRoute(anchor) || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-                    return;
-                }
-
-                event.preventDefault();
-                if (anchor.matches('.nav-links .nav-link')) {
-                    document.querySelectorAll('.nav-links .nav-link').forEach((link) => {
-                        link.classList.toggle('active', link === anchor);
-                    });
-                    navbar.setAttribute('data-active-window', anchor.textContent.trim());
-                }
-                replaceContent(anchor.href, { push: true });
-            });
-
-            window.addEventListener('popstate', () => {
-                replaceContent(window.location.href, { push: false });
-            });
+            return;
         };
-
         // Initialize on DOM load
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             initActiveWindowLabel();
-            initWindowNavigationTransitions();
-            initAppShellRouter();
             initPremiumInteractions();
             runWhenIdle(initScrollDynamics, 1400);
-        });
 
-        setTimeout(function () {
-            const flashMessages = document.getElementById('flash-messages');
-            if (flashMessages) {
-                flashMessages.style.transition = 'opacity 0.5s ease';
-                flashMessages.style.opacity = '0';
-                setTimeout(() => flashMessages.remove(), 500);  // fully remove after fade
-            }
-        }, 6000);
+            setTimeout(function () {
+                const flashMessages = document.getElementById('flash-messages');
+                if (flashMessages) {
+                    flashMessages.style.transition = 'opacity 0.5s ease';
+                    flashMessages.style.opacity = '0';
+                    setTimeout(() => flashMessages.remove(), 500);
+                }
+            }, 6000);
+        });
     </script>
     {% if messages %}
     <div class="messages" id="flash-messages">
@@ -1979,7 +1805,6 @@
     <nav class="navbar" data-active-window="Dashboard">
         <a href="{% url 'index' %}" class="nav-brand">
             <img src="{% static 'fabro-logo.png' %}" alt="Fabro Leather Logo" class="nav-brand-logo">
-
         </a>
 
         <div class="nav-links">
@@ -1997,7 +1822,11 @@
                 <i class="fas fa-list"></i>
                 <span>Complaints</span>
             </a>
+            {% if can_manage_catalog %}
+            <a href="{% url 'add_car_details' %}" class="nav-link">
+            {% else %}
             <a href="{% url 'car_details' %}" class="nav-link">
+            {% endif %}
                 <i class="fas fa-car"></i>
                 <span>Vehicles</span>
             </a>
