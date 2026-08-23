@@ -272,9 +272,9 @@ body.light-mode .progress-track { background: rgba(24, 24, 27, 0.1); }
 .timeline-entry strong,
 .notification-row strong { display: block; font-size: 0.88rem; }
 
-.approval-person span,
-.timeline-entry span,
-.notification-row span {
+.approval-person > span,
+.timeline-entry > span,
+.notification-row > span:not(.notification-icon):not(.status-pill) {
     display: block;
     margin-top: 0.2rem;
     color: var(--wf-muted);
@@ -458,11 +458,13 @@ body.light-mode .form-input { background: rgba(255, 255, 255, 0.72); color: #181
 .notification-icon {
     width: 2.6rem;
     height: 2.6rem;
+    flex-shrink: 0;
     display: grid;
     place-items: center;
     border-radius: 50%;
     color: #fff;
     background: var(--primary-color);
+    font-size: 1.1rem;
 }
 
 .empty-workflow {

@@ -25,6 +25,12 @@ A full-featured Django-based management system built for Fabro Leather to stream
 - **📊 Dashboard Tiles**  
   Interactive homepage with clickable tiles for quick access.
 
+- **💬 Direct User-to-User Chat System (`CHAT` Window)**  
+  Dedicated **CHAT** link on the top navigation bar accessible for every user. Features a clean 2-pane layout with a user directory list on the left and active message thread view on the right.
+
+- **📌 Complaint-Linked Direct Messaging**  
+  Initiate a direct text chat about any specific complaint (`PAT-XXXX`, `PRO-XXXX`, `LIN-XXXX`) directly from the **All Complaints** window.
+
 ---
 
 ## 📂 Project Structure
@@ -39,7 +45,8 @@ fabro_leather/
 │   │   └── management/
 │   │       ├── add_car_details.html
 │   │       ├── add_complaint.html
-│   │       ├── list_complaints.html
+│   │       ├── chat.html
+│   │       ├── complaint_list.html
 │   │       ├── add_sku.html
 │   │       └── ...
 ├── static/
@@ -119,6 +126,7 @@ python manage.py runserver
 
 ## 🧠 Future Enhancements
 
+* WebSockets for real-time instant chat delivery
 * Media annotation
 * Audit logging and comment threads
 * Notification system (email/SMS)

@@ -12,6 +12,7 @@ from rest_framework.authtoken.models import Token
 
 from .models import (
     Brand,
+    ChatMessage,
     Complaint,
     ComplaintApproval,
     ComplaintEditLog,
@@ -143,7 +144,7 @@ class FabroBackendTests(TestCase):
 
     def test_dashboard_and_main_pages_render_for_authenticated_user(self):
         self.login()
-        for route_name in ["index", "complaint_list", "add_complaint", "car_details", "add_car_details", "add_sku", "master_settings", "profile_settings"]:
+        for route_name in ["index", "complaint_list", "add_complaint", "car_details", "add_sku", "master_settings", "profile_settings"]:
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 200, route_name)
 
@@ -212,7 +213,7 @@ class FabroBackendTests(TestCase):
 
     def test_vehicle_sku_and_master_crud_routes(self):
         self.login()
-        response = self.client.post(reverse("add_car_details"), {
+        response = self.client.post(reverse("car_details"), {
             "layout_code": "BACKEND-NEW-CAR",
             "brand_name": "BACKEND NEW BRAND",
             "model_name": "BACKEND NEW MODEL",
@@ -248,6 +249,62 @@ class FabroBackendTests(TestCase):
         response = self.client.post(reverse("delete_car_detail", args=[new_year.id]))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(YearRange.objects.filter(id=new_year.id).exists())
+
+    def test_catalog_search_filtering(self):
+        user = self.create_workflow_user("audit_country", "country_executive")
+        self.client.force_login(user)
+        # Create test vehicles and SKUs
+        brand1 = Brand.objects.create(name="Toyota")
+        model1 = Model.objects.create(brand=brand1, name="Camry")
+        sub_model1 = SubModel.objects.create(model=model1, name="Hybrid")
+        yr1 = YearRange.objects.create(
+            sub_model=sub_model1,
+            year_start=2021,
+            year_end=2023,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="CAMRY-HYBRID"
+        )
+
+        brand2 = Brand.objects.create(name="Ford")
+        model2 = Model.objects.create(brand=brand2, name="Mustang")
+        sub_model2 = SubModel.objects.create(model=model2, name="GT")
+        yr2 = YearRange.objects.create(
+            sub_model=sub_model2,
+            year_start=2022,
+            year_end=2024,
+            number_of_seats=4,
+            number_of_doors=2,
+            layout_code="MUSTANG-GT"
+        )
+
+        sku1 = SKU.objects.create(code="TOY-123", description="Toyota part", region=self.region)
+        sku2 = SKU.objects.create(code="FRD-456", description="Ford part", region=self.region)
+
+        # Test SKU search by code
+        response = self.client.get(reverse("add_sku"), {"search": "TOY", "column": "code"})
+        self.assertContains(response, "TOY-123")
+        self.assertNotContains(response, "FRD-456")
+
+        # Test SKU search by description
+        response = self.client.get(reverse("add_sku"), {"search": "Ford", "column": "description"})
+        self.assertContains(response, "FRD-456")
+        self.assertNotContains(response, "TOY-123")
+
+        # Test SKU search all columns
+        response = self.client.get(reverse("add_sku"), {"search": "part", "column": "all"})
+        self.assertContains(response, "TOY-123")
+        self.assertContains(response, "FRD-456")
+
+        # Test Vehicle search by layout_code
+        response = self.client.get(reverse("car_details"), {"search": "MUSTANG", "column": "layout_code"})
+        self.assertContains(response, "MUSTANG-GT")
+        self.assertNotContains(response, "CAMRY-HYBRID")
+
+        # Test Vehicle search by brand
+        response = self.client.get(reverse("car_details"), {"search": "Toyota", "column": "brand"})
+        self.assertContains(response, "CAMRY-HYBRID")
+        self.assertNotContains(response, "MUSTANG-GT")
 
     def test_vehicle_csv_validation_does_not_raise_server_errors(self):
         self.login()
@@ -1519,7 +1576,26 @@ class FabroBackendTests(TestCase):
         self.assertNotContains(normal_profile_response, 'data-testid="open-admin-panel"')
         self.assertEqual(normal_panel_response.status_code, 302)
 
-    def test_navigation_and_complaint_creation_follow_workflow_roles(self):
+    def test_profile_settings_save_and_pill_rendering(self):
+        self.login()
+        # GET profile page - should contain save icon button and not contain Back to Dashboard
+        response = self.client.get(reverse('profile_settings'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'btn-icon-save')
+        self.assertNotContains(response, 'Back to Dashboard')
+        self.assertNotContains(response, 'id="flash-messages"')
+
+        # POST profile update
+        post_response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': 'updated_admin@fabro.com',
+            'first_name': 'Hadi',
+            'last_name': 'Muhammed',
+        }, follow=True)
+        self.assertEqual(post_response.status_code, 200)
+        self.assertContains(post_response, 'save-status-pill')
+        self.assertContains(post_response, 'Your profile details have been updated successfully.')
+        self.assertNotContains(post_response, 'id="flash-messages"')
         country_user = self.create_workflow_user(
             'role_country',
             WorkflowRoles.COUNTRY_EXECUTIVE,
@@ -1539,6 +1615,11 @@ class FabroBackendTests(TestCase):
         country_add_response = self.client.get(reverse('add_complaint'))
         self.assertFalse(country_add_response.context['can_create_line'])
         self.assertNotContains(country_add_response, 'id="complaint-type-line"')
+
+        # Country Executive can view vehicle details read-only
+        car_details_response = self.client.get(reverse('car_details'))
+        self.assertEqual(car_details_response.status_code, 200)
+        self.assertFalse(car_details_response.context['can_manage_catalog'])
 
         viewer = self.create_workflow_user('role_viewer', WorkflowRoles.FACTORY_VIEWER)
         self.client.force_login(viewer)
@@ -1564,7 +1645,7 @@ class FabroBackendTests(TestCase):
         self.client.force_login(approver)
         approver_dashboard = self.client.get(reverse('index'))
         self.assertContains(approver_dashboard, 'Approver')
-        self.assertContains(approver_dashboard, reverse('approval_inbox'))
+        self.assertContains(approver_dashboard, reverse('approvals_list'))
         self.assertNotContains(approver_dashboard, reverse('add_complaint'))
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
 
@@ -1577,7 +1658,7 @@ class FabroBackendTests(TestCase):
         dashboard = self.client.get(reverse('index'))
         self.assertContains(dashboard, reverse('master_settings'))
         self.assertEqual(self.client.get(reverse('master_settings')).status_code, 200)
-        self.assertEqual(self.client.get(reverse('add_car_details')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('car_details')).status_code, 200)
 
         response = self.client.post(reverse('api_skus_list_create'), {
             'code': 'ROLE-ADMIN-SKU',
@@ -1605,3 +1686,210 @@ class FabroBackendTests(TestCase):
             panel,
             reverse('terminate_session', args=[other_client.session.session_key]),
         )
+
+
+class ChatSystemTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.sender = User.objects.create_user(username='chat_sender', password='password123')
+        self.recipient = User.objects.create_user(username='chat_recipient', password='password123')
+        self.complaint = Complaint.objects.create(
+            complaint_id='PAT-26089999',
+            date='2026-08-23',
+            complaint_type='pattern',
+            status='Open',
+            priority='High',
+            complaint_description='Chat test complaint'
+        )
+
+    def test_chat_page_and_send_message_api(self):
+        self.client.force_login(self.sender)
+        response = self.client.get(reverse('chat_view'))
+        self.assertEqual(response.status_code, 200)
+
+        # Send message via API
+        send_response = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.recipient.id,
+            'message': 'Hello there regarding PAT-26089999',
+            'complaint_id': self.complaint.complaint_id,
+        })
+        self.assertEqual(send_response.status_code, 200)
+        self.assertTrue(ChatMessage.objects.filter(sender=self.sender, recipient=self.recipient).exists())
+
+        # Check messages API
+        msg_response = self.client.get(reverse('chat_messages_api', args=[self.recipient.id]))
+        self.assertEqual(msg_response.status_code, 200)
+        json_data = msg_response.json()
+        self.assertEqual(json_data['status'], 'ok')
+        self.assertEqual(len(json_data['messages']), 1)
+        self.assertEqual(json_data['messages'][0]['complaint_id'], 'PAT-26089999')
+
+    def test_unread_messages_sorted_to_top_by_latest(self):
+        User = get_user_model()
+        user_a = User.objects.create_user(username='alpha_user', password='password123')
+        user_b = User.objects.create_user(username='beta_user', password='password123')
+        user_c = User.objects.create_user(username='gamma_user', password='password123')
+
+        # User B sends message to sender first
+        msg1 = ChatMessage.objects.create(
+            sender=user_b,
+            recipient=self.sender,
+            message='Older unread from Beta',
+            is_read=False,
+        )
+
+        # User A sends message to sender later (latest unread)
+        msg2 = ChatMessage.objects.create(
+            sender=user_a,
+            recipient=self.sender,
+            message='Latest unread from Alpha',
+            is_read=False,
+        )
+
+        # User C has read messages
+        msg3 = ChatMessage.objects.create(
+            sender=user_c,
+            recipient=self.sender,
+            message='Read message from Gamma',
+            is_read=True,
+        )
+
+        self.client.force_login(self.sender)
+        api_res = self.client.get(reverse('chat_users_api'))
+        self.assertEqual(api_res.status_code, 200)
+        users = api_res.json()['users']
+
+        # Alpha should be first (latest unread), then Beta (older unread), then Gamma (read), then recipient (no msg)
+        usernames = [u['username'] for u in users]
+        self.assertEqual(usernames[0], 'alpha_user')
+        self.assertEqual(usernames[1], 'beta_user')
+        self.assertEqual(usernames[2], 'gamma_user')
+        self.assertEqual(users[0]['unread_count'], 1)
+        self.assertEqual(users[1]['unread_count'], 1)
+        self.assertEqual(users[2]['unread_count'], 0)
+
+
+class ApprovalsWorkspaceTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.country_ksa = MasterSetting.objects.create(category='Country', name='KSA')
+        self.country_uae = MasterSetting.objects.create(category='Country', name='UAE')
+
+        # Create Country Executive for KSA
+        self.country_exec = User.objects.create_user(username='ksa_exec', password='password123')
+        UserProfile.objects.filter(user=self.country_exec).update(role=WorkflowRoles.COUNTRY_EXECUTIVE, country=self.country_ksa)
+
+        # Create Factory Executive
+        self.factory_exec = User.objects.create_user(username='fac_exec', password='password123')
+        UserProfile.objects.filter(user=self.factory_exec).update(role=WorkflowRoles.FACTORY_EXECUTIVE, can_receive_factory_assignments=True)
+
+        # Create Approver (PM)
+        self.pm_approver = User.objects.create_user(username='pm_user', password='password123')
+        UserProfile.objects.filter(user=self.pm_approver).update(role=WorkflowRoles.APPROVER, approval_role=ApprovalRoles.PM)
+
+        # Create Approver (OM)
+        self.om_approver = User.objects.create_user(username='om_user', password='password123')
+        UserProfile.objects.filter(user=self.om_approver).update(role=WorkflowRoles.APPROVER, approval_role=ApprovalRoles.OM)
+
+        # Create Admin
+        self.admin_user = User.objects.create_user(username='wf_admin', password='password123', is_superuser=True)
+        UserProfile.objects.filter(user=self.admin_user).update(role=WorkflowRoles.ADMIN)
+
+        # Create Factory Viewer (restricted)
+        self.viewer_user = User.objects.create_user(username='fac_viewer', password='password123')
+        UserProfile.objects.filter(user=self.viewer_user).update(role=WorkflowRoles.FACTORY_VIEWER)
+
+        # Create Complaint in KSA awaiting approval
+        self.complaint_ksa = Complaint.objects.create(
+            complaint_id='PAT-26081001',
+            date='2026-08-23',
+            complaint_type=ComplaintTypes.PATTERN,
+            country=self.country_ksa,
+            workflow_status=WorkflowStatuses.AWAITING_APPROVAL,
+            factory_priority='top',
+            factory_reason='Dimension mismatch on cushion',
+            factory_action_plan='Recalibrate CNC cutter and update CAD',
+            assigned_factory_executive=self.factory_exec,
+        )
+
+        # Create Complaint in UAE awaiting approval
+        self.complaint_uae = Complaint.objects.create(
+            complaint_id='PRO-26081002',
+            date='2026-08-23',
+            complaint_type=ComplaintTypes.PRODUCTION,
+            country=self.country_uae,
+            workflow_status=WorkflowStatuses.AWAITING_APPROVAL,
+            factory_priority='medium',
+            factory_reason='Leather discoloration',
+            factory_action_plan='Replace hide batch',
+            assigned_factory_executive=self.factory_exec,
+        )
+
+        # Create approvals for KSA complaint (PM & OM)
+        self.approval_pm = ComplaintApproval.objects.create(
+            complaint=self.complaint_ksa,
+            approval_round=1,
+            approver_role=ApprovalRoles.PM,
+            approver_user=self.pm_approver,
+            status=DecisionStatuses.PENDING,
+            required=True,
+        )
+        self.approval_om = ComplaintApproval.objects.create(
+            complaint=self.complaint_ksa,
+            approval_round=1,
+            approver_role=ApprovalRoles.OM,
+            approver_user=self.om_approver,
+            status=DecisionStatuses.PENDING,
+            required=True,
+        )
+
+    def test_factory_viewer_is_forbidden_from_approvals_workspace(self):
+        self.client.force_login(self.viewer_user)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 403)
+
+        # Check navbar does not include Approvals for viewer
+        index_res = self.client.get(reverse('index'))
+        self.assertNotContains(index_res, reverse('approvals_list'))
+
+    def test_country_executive_sees_only_own_country_approvals(self):
+        self.client.force_login(self.country_exec)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'PAT-26081001')
+        self.assertNotContains(response, 'PRO-26081002')
+
+    def test_approver_and_admin_see_approvals_workspace(self):
+        self.client.force_login(self.pm_approver)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'PAT-26081001')
+        self.assertContains(response, 'Recalibrate CNC cutter')
+        self.assertContains(response, 'Live Approver Status Matrix')
+
+        self.client.force_login(self.admin_user)
+        admin_response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertContains(admin_response, 'PAT-26081001')
+        self.assertContains(admin_response, 'PRO-26081002')
+
+    def test_factory_executive_sees_approvals_workspace(self):
+        self.client.force_login(self.factory_exec)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'PAT-26081001')
+
+    def test_quick_approval_decision_api(self):
+        self.client.force_login(self.pm_approver)
+        response = self.client.post(
+            reverse('quick_approval_decision_api', args=[self.approval_pm.id]),
+            data={'decision': DecisionStatuses.APPROVED, 'comment': 'Looks good to go'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+
+        self.approval_pm.refresh_from_db()
+        self.assertEqual(self.approval_pm.status, DecisionStatuses.APPROVED)
+        self.assertEqual(self.approval_pm.comment, 'Looks good to go')
+
+

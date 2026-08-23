@@ -126,9 +126,23 @@ This document serves as the authoritative specification for the **FABRO Leather 
 
 ---
 
-## 5. Security & System Features
+## 5. Approvals Workspace Window (`/approvals/`)
+
+* **Purpose & Layout:** Dedicated full-screen interactive workspace window (analogous to the chat workspace) providing live tracking and matrix visualization of complaints currently in the approval pipeline (`awaiting_approval`, `partially_approved`, `reconsideration`, `approved`).
+* **Live Status Matrix:** Shows the complete reviewer grid for every complaint ("where the approval is") — highlighting each approver's role, status (`Approved`, `Rejected`, `Pending`), decision timestamp, and review comment.
+* **Role-Based Access Control (RBAC):**
+  * **Country Executive:** Can view approvals for complaints originating within their assigned country.
+  * **Approvers (PM, OM, CAD, ED, MD):** Can view all active approvals and directly submit quick approval/reconsideration decisions via modal.
+  * **Factory Executive:** Can view approvals for complaints assigned to their factory.
+  * **Workflow Admin / Superuser:** Full visibility across all countries and stages.
+  * **Factory Viewer:** **Strictly restricted / hidden.** Factory viewers cannot view or access the Approvals workspace window (HTTP 403 / excluded from navbar).
+
+---
+
+## 6. Security & System Features
 
 * **Session Management:** Admin panel tracks active user login sessions and allows single or bulk session termination (`terminate_session_view`).
 * **Activity Logging:** System changes write to `ActivityLog` (action, object type, user, timestamp).
 * **Audit Edit Logs:** Field-level changes to report fields and approval decisions are preserved in `ComplaintEditLog`.
 * **Timeline Events:** Every workflow transition writes a human-readable event to `ComplaintTimeline`.
+

@@ -7,6 +7,18 @@
     <title>SKU Management - Fabro Leather</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
+        {% if new_search_enabled %}
+        .page-container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0.75rem 1.5rem 1.5rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+        {% else %}
         .page-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -17,6 +29,7 @@
             text-align: center;
             margin-bottom: 1.25rem;
         }
+        {% endif %}
 
         .page-title {
             font-size: 2rem;
@@ -272,7 +285,11 @@
 
         .table-container {
             overflow: auto;
+            {% if new_search_enabled %}
+            max-height: min(72vh, 850px);
+            {% else %}
             max-height: min(54vh, 620px);
+            {% endif %}
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             background: rgba(18, 18, 20, 0.42);
@@ -572,6 +589,67 @@
                 min-width: 0;
             }
         }
+
+        /* Search dropdown styles */
+        .search-dropdown-menu {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            margin-top: 4px;
+            z-index: 1000;
+            background: #1e1e20;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+        }
+        body.light-mode .search-dropdown-menu {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .search-dropdown-item {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: left;
+        }
+        body.light-mode .search-dropdown-item {
+            color: #1e293b;
+        }
+        .search-dropdown-item:hover,
+        .search-dropdown-item.selected-item {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        body.light-mode .search-dropdown-item:hover,
+        body.light-mode .search-dropdown-item.selected-item {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .search-dropdown-item strong {
+            color: var(--primary-color);
+        }
+
+        /* Column filter trigger styles */
+        .column-filter-trigger {
+            padding: 0.2rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .column-filter-trigger:hover {
+            background: rgba(255, 255, 255, 0.1);
+            opacity: 1 !important;
+            color: var(--primary-color);
+        }
+        body.light-mode .column-filter-trigger:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
 <body>
@@ -647,12 +725,30 @@
                     <i class="fas fa-list"></i>
                     Existing SKUs ({% if page_obj %}{{ page_obj.paginator.count }}{% else %}{{ skus.count }}{% endif %})
                 </h2>
+                {% if new_search_enabled %}
+                <form id="skuSearchForm" method="get" style="display:flex; gap:0.5rem; position:relative; width: 100%; max-width: 450px;">
+                    <input type="hidden" name="column" id="skuSearchColumn" value="{{ search_column|default:'' }}">
+                    <div style="position:relative; flex-grow:1;">
+                        <input type="text" name="search" id="searchInput" value="{{ search_query }}" placeholder="{% if search_column == 'code' %}Search by SKU Code...{% elif search_column == 'description' %}Search by Description...{% elif search_column == 'region' %}Search by Region...{% else %}Search SKUs...{% endif %}" class="search-input" style="width:100%; padding-right: 2.25rem; margin-bottom: 0;">
+                        <button type="button" id="clearSkuSearch" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; display: {% if search_query %}block{% else %}none{% endif %}; height: auto; padding: 0; line-height: 1;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        
+                        <!-- Dynamic Dropdown -->
+                        <div id="skuSearchDropdown" class="search-dropdown-menu"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" title="Search" style="width:auto; padding: 0.5rem 0.85rem; display: inline-flex; align-items: center; justify-content: center; height: 100%; border-radius: 8px;">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                {% else %}
                 <form method="get" style="display:flex; gap:0.5rem;">
                     <input type="text" name="search" id="searchInput" value="{{ search_query }}" placeholder="Search SKUs..." class="search-input">
                     <button type="submit" class="btn btn-primary" title="Filter" style="width:auto; padding: 0.5rem 0.85rem; display: inline-flex; align-items: center; justify-content: center;">
                         <i class="fas fa-filter"></i>
                     </button>
                 </form>
+                {% endif %}
             </div>
 
             <div class="table-container">
@@ -660,9 +756,39 @@
                     <thead>
                         <tr>
                             <th>#</th>
+                            {% if new_search_enabled %}
+                            <th data-filter-col="1">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>SKU</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="2">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Description</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="3">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Region</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            {% else %}
                             <th>SKU</th>
                             <th>Description</th>
                             <th>Region</th>
+                            {% endif %}
                             {% if can_manage_catalog %}<th>Actions</th>{% endif %}
                         </tr>
                     </thead>
@@ -757,15 +883,15 @@
                 {% if page_obj and page_obj.has_other_pages %}
                 <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">&laquo; First</a>
-                        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Prev</a>
+                        <a href="?page=1{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">&laquo; First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Prev</a>
                     {% endif %}
 
                     <span style="font-size: 0.875rem; color: var(--dark-text); font-weight: 500; margin: 0 0.5rem;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Next</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&amp;search={{ search_query }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Last &raquo;</a>
+                        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">Last &raquo;</a>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -850,6 +976,140 @@
             }
         }
 
+        {% if new_search_enabled %}
+        // Search functionality with column-specific dropdown suggestions
+        const searchInput = document.getElementById('searchInput');
+        const searchDropdown = document.getElementById('skuSearchDropdown');
+        const searchColumnInput = document.getElementById('skuSearchColumn');
+        const clearSearchBtn = document.getElementById('clearSkuSearch');
+        const searchForm = document.getElementById('skuSearchForm');
+
+        if (searchInput && searchDropdown) {
+            // Function to generate the dropdown items
+            function updateDropdown() {
+                const keyword = searchInput.value.trim();
+                if (!keyword) {
+                    searchDropdown.style.display = 'none';
+                    return;
+                }
+
+                searchDropdown.innerHTML = `
+                    <div class="search-dropdown-item" data-column="all">
+                        <i class="fas fa-search"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>All Columns</span>
+                    </div>
+                    <div class="search-dropdown-item" data-column="code">
+                        <i class="fas fa-barcode"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>SKU Code</span>
+                    </div>
+                    <div class="search-dropdown-item" data-column="description">
+                        <i class="fas fa-align-left"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Description</span>
+                    </div>
+                    <div class="search-dropdown-item" data-column="region">
+                        <i class="fas fa-globe"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Region</span>
+                    </div>
+                `;
+                searchDropdown.style.display = 'block';
+            }
+
+            function escapeHtml(str) {
+                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            }
+
+            // Show suggestions on input
+            searchInput.addEventListener('input', function() {
+                updateDropdown();
+                if (clearSearchBtn) {
+                    clearSearchBtn.style.display = this.value.length > 0 ? 'block' : 'none';
+                }
+
+                // Also apply client-side fast filter to the current page rows
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#skuTableBody tr[id^="sku-row-"]');
+                rows.forEach(row => {
+                    const codeCell = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
+                    const descCell = row.cells[2] ? row.cells[2].textContent.toLowerCase() : '';
+                    const regionCell = row.cells[3] ? row.cells[3].textContent.toLowerCase() : '';
+
+                    if (codeCell.includes(searchTerm) || descCell.includes(searchTerm) || regionCell.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+
+            // Handle keyboard arrow keys navigation on dropdown options
+            searchInput.addEventListener('keydown', function(e) {
+                if (searchDropdown.style.display !== 'block') return;
+
+                const items = searchDropdown.querySelectorAll('.search-dropdown-item');
+                if (items.length === 0) return;
+
+                let currentIndex = -1;
+                items.forEach((item, idx) => {
+                    if (item.classList.contains('selected-item')) {
+                        currentIndex = idx;
+                    }
+                });
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    let nextIndex = currentIndex + 1;
+                    if (nextIndex >= items.length) nextIndex = 0; // Wrap around
+
+                    items.forEach(item => item.classList.remove('selected-item'));
+                    items[nextIndex].classList.add('selected-item');
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    let prevIndex = currentIndex - 1;
+                    if (prevIndex < 0) prevIndex = items.length - 1; // Wrap around
+
+                    items.forEach(item => item.classList.remove('selected-item'));
+                    items[prevIndex].classList.add('selected-item');
+                } else if (e.key === 'Enter') {
+                    if (currentIndex !== -1) {
+                        e.preventDefault();
+                        items[currentIndex].click();
+                    }
+                }
+            });
+
+            // Handle dropdown item click
+            searchDropdown.addEventListener('click', function(e) {
+                const item = e.target.closest('.search-dropdown-item');
+                if (item) {
+                    const column = item.getAttribute('data-column');
+                    searchColumnInput.value = column;
+                    searchDropdown.style.display = 'none';
+                    searchForm.submit();
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#skuSearchForm')) {
+                    searchDropdown.style.display = 'none';
+                }
+            });
+
+            // Focus handler to show dropdown again if text exists
+            searchInput.addEventListener('focus', function() {
+                if (this.value.trim().length > 0) {
+                    updateDropdown();
+                }
+            });
+
+            // Clear search button
+            if (clearSearchBtn) {
+                clearSearchBtn.addEventListener('click', function() {
+                    searchInput.value = '';
+                    searchColumnInput.value = '';
+                    clearSearchBtn.style.display = 'none';
+                    searchDropdown.style.display = 'none';
+                    window.location.href = window.location.pathname; // Reload page without query params
+                });
+            }
+        }
+        {% else %}
         // Search functionality
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
@@ -869,6 +1129,7 @@
                 });
             });
         }
+        {% endif %}
 
         // File upload handling
         const fileInput = document.querySelector('.file-input');
@@ -908,6 +1169,270 @@
             if (skuLink) {
                 skuLink.classList.add('active');
             }
+
+            {% if new_search_enabled %}
+            // Build column filter dropdowns dynamically
+            const filterHeaders = document.querySelectorAll('th[data-filter-col]');
+            
+            function runFilters() {
+                const rows = document.querySelectorAll('.table tbody tr');
+                if (rows.length === 0) return;
+
+                // Collect active column filters: column index -> Set of checked values
+                const activeFilters = {};
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const checkedCheckboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]:checked');
+                    if (checkedCheckboxes.length > 0) {
+                        activeFilters[colIdx] = new Set(Array.from(checkedCheckboxes).map(cb => cb.value));
+                    }
+                });
+
+                // Filter each row
+                rows.forEach(row => {
+                    if (row.id === 'inlineAddRow' || row.id === 'inline-add-row') return;
+                    
+                    let isVisible = true;
+                    // Check if row satisfies all active column filters
+                    for (const [colIdx, allowedValues] of Object.entries(activeFilters)) {
+                        const cell = row.cells[colIdx];
+                        const cellVal = cell ? cell.textContent.trim() : '';
+                        
+                        // Special matching for Description column (colIdx === 2):
+                        // Check if description cell contains the brand name checkbox value as a substring (case-insensitive)
+                        if (parseInt(colIdx) === 2) {
+                            let matchBrand = false;
+                            for (const brand of allowedValues) {
+                                if (cellVal.toLowerCase().includes(brand.toLowerCase())) {
+                                    matchBrand = true;
+                                    break;
+                                }
+                            }
+                            if (!matchBrand) {
+                                isVisible = false;
+                                break;
+                            }
+                        } else {
+                            if (!allowedValues.has(cellVal)) {
+                                isVisible = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    row.style.display = isVisible ? '' : 'none';
+                });
+
+                // Update filter trigger icons and clear buttons
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const trigger = th.querySelector('.column-filter-trigger i');
+                    const clearBtn = th.querySelector('.column-filter-clear');
+                    const dropdownClearBtn = th.querySelector('.clear-col-filter');
+                    
+                    const hasActiveFilter = activeFilters[colIdx] !== undefined;
+                    
+                    if (clearBtn) {
+                        clearBtn.style.display = hasActiveFilter ? 'inline-block' : 'none';
+                    }
+                    if (dropdownClearBtn) {
+                        dropdownClearBtn.style.display = hasActiveFilter ? 'inline' : 'none';
+                    }
+
+                    if (trigger) {
+                        if (hasActiveFilter) {
+                            trigger.className = 'fas fa-filter'; // Solid filter icon if filtered
+                            trigger.parentElement.style.color = 'var(--primary-color)';
+                            trigger.parentElement.style.opacity = '1';
+                        } else {
+                            trigger.className = 'fas fa-chevron-down'; // Chevron if not filtered
+                            trigger.parentElement.style.color = '';
+                            trigger.parentElement.style.opacity = '0.6';
+                        }
+                    }
+                });
+            }
+
+            filterHeaders.forEach(th => {
+                const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                
+                // Create dropdown element
+                const dropdown = document.createElement('div');
+                dropdown.className = 'column-filter-dropdown';
+                dropdown.style.cssText = 'display: none; position: absolute; left: 0; top: 100%; min-width: 220px; background: #1e1e20; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 1000; padding: 0.75rem; text-align: left; font-weight: normal;';
+                
+                // If light mode is active:
+                if (document.body.classList.contains('light-mode')) {
+                    dropdown.style.background = '#ffffff';
+                    dropdown.style.borderColor = '#e2e8f0';
+                    dropdown.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+                }
+
+                // Add text input for search
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = 'Search values...';
+                searchInput.className = 'column-filter-input';
+                searchInput.style.cssText = 'width: 100%; padding: 0.4rem 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; margin-bottom: 0.6rem; outline: none; box-sizing: border-box;';
+                if (document.body.classList.contains('light-mode')) {
+                    searchInput.style.background = '#f1f5f9';
+                    searchInput.style.borderColor = '#cbd5e1';
+                    searchInput.style.color = '#0f172a';
+                }
+
+                // Add action bar
+                const actionBar = document.createElement('div');
+                actionBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem; font-size: 0.75rem; font-weight: 500;';
+                if (document.body.classList.contains('light-mode')) {
+                    actionBar.style.borderColor = 'rgba(0,0,0,0.1)';
+                }
+
+                const dropdownClearBtn = document.createElement('span');
+                dropdownClearBtn.className = 'clear-col-filter';
+                dropdownClearBtn.style.cssText = 'cursor: pointer; color: var(--primary-color); font-weight: 600; display: none;';
+                dropdownClearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+
+                const selectAllBtn = document.createElement('span');
+                selectAllBtn.className = 'select-all-col-filter';
+                selectAllBtn.style.cssText = 'cursor: pointer; color: var(--dark-text-secondary);';
+                if (document.body.classList.contains('light-mode')) {
+                    selectAllBtn.style.color = '#64748b';
+                }
+                selectAllBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+
+                actionBar.appendChild(dropdownClearBtn);
+                actionBar.appendChild(selectAllBtn);
+
+                // Add values container
+                const valuesContainer = document.createElement('div');
+                valuesContainer.className = 'column-filter-values';
+                valuesContainer.style.cssText = 'max-height: 160px; overflow-y: auto; font-size: 0.825rem; color: #e2e8f0; display: flex; flex-direction: column; gap: 0.4rem;';
+                if (document.body.classList.contains('light-mode')) {
+                    valuesContainer.style.color = '#334155';
+                }
+
+                dropdown.appendChild(searchInput);
+                dropdown.appendChild(actionBar);
+                dropdown.appendChild(valuesContainer);
+                th.appendChild(dropdown);
+
+                // Populate unique values
+                const rows = document.querySelectorAll('.table tbody tr');
+                const uniqueValues = new Set();
+                rows.forEach(row => {
+                    if (row.id === 'inlineAddRow' || row.id === 'inline-add-row') return;
+                    const cell = row.cells[colIdx];
+                    if (cell) {
+                        let val = cell.textContent.trim();
+                        if (val) {
+                            // SKU Description (colIdx === 2): Extract only the first word (Brand name)
+                            if (colIdx === 2) {
+                                val = val.split(' ')[0];
+                            }
+                            uniqueValues.add(val);
+                        }
+                    }
+                });
+
+                // Render checkboxes
+                const sortedValues = Array.from(uniqueValues).sort();
+                
+                // Keep track of checkbox rendering list
+                function renderList(filterTerm = '') {
+                    valuesContainer.innerHTML = '';
+                    const term = filterTerm.toLowerCase();
+                    
+                    if (sortedValues.length === 0) {
+                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No values found</div>';
+                        return;
+                    }
+
+                    sortedValues.forEach(val => {
+                        if (term && !val.toLowerCase().includes(term)) return;
+
+                        const label = document.createElement('label');
+                        label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; margin: 0; font-weight: normal;';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = val;
+                        checkbox.style.cssText = 'cursor: pointer; width: 14px; height: 14px; margin: 0;';
+                        
+                        checkbox.addEventListener('change', runFilters);
+
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(val));
+                        valuesContainer.appendChild(label);
+                    });
+                }
+
+                renderList();
+
+                // Search input event
+                searchInput.addEventListener('input', function() {
+                    renderList(this.value);
+                });
+
+                // Dropdown clear action handler
+                dropdownClearBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    runFilters();
+                });
+
+                // Select all action handler
+                selectAllBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const checkboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]');
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    checkboxes.forEach(cb => {
+                        cb.checked = !allChecked;
+                    });
+                    runFilters();
+                });
+
+                // Header level clear trigger
+                const clearBtn = th.querySelector('.column-filter-clear');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                            cb.checked = false;
+                        });
+                        runFilters();
+                    });
+                }
+
+                // Toggle dropdown on trigger click
+                const trigger = th.querySelector('.column-filter-trigger');
+                if (trigger) {
+                    trigger.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        // Close other dropdowns
+                        document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                            if (d !== dropdown) d.style.display = 'none';
+                        });
+                        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                        
+                        // Focus on search input when opening
+                        if (dropdown.style.display === 'block') {
+                            setTimeout(() => searchInput.focus(), 50);
+                        }
+                    });
+                }
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.column-filter-dropdown') && !e.target.closest('.column-filter-trigger')) {
+                    document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                        d.style.display = 'none';
+                    });
+                }
+            });
+            {% endif %}
         });
     </script>
 </body>

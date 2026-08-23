@@ -258,12 +258,90 @@
             background-color: rgba(255, 255, 255, 0.02);
         }
 
-        /* Buttons styling */
+        /* Buttons & status pill styling */
         .btn-group {
             display: flex;
+            align-items: center;
             justify-content: flex-end;
-            gap: 1rem;
+            gap: 0.75rem;
             margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .save-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.42rem 0.95rem;
+            border-radius: 999px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34d399;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+            animation: fadeInPill 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .save-status-pill i {
+            font-size: 0.92rem;
+            color: #10b981;
+        }
+
+        .save-status-pill.error {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+        }
+
+        .save-status-pill.error i {
+            color: #ef4444;
+        }
+
+        body.light-mode .save-status-pill {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #15803d;
+            box-shadow: none;
+        }
+
+        body.light-mode .save-status-pill i {
+            color: #16a34a;
+        }
+
+        body.light-mode .save-status-pill.error {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #b91c1c;
+            box-shadow: none;
+        }
+
+        body.light-mode .save-status-pill.error i {
+            color: #dc2626;
+        }
+
+        @keyframes fadeInPill {
+            from {
+                opacity: 0;
+                transform: translateY(4px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .btn-icon-save {
+            width: 44px;
+            height: 42px;
+            min-width: 44px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 1.1rem;
         }
 
         .btn {
@@ -453,11 +531,16 @@
                         </div>
 
                         <div class="btn-group">
-                            <a href="{% url 'index' %}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Back to Dashboard
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Details
+                            {% for message in messages %}
+                                {% if "password" not in message|lower %}
+                                    <div class="save-status-pill {{ message.tags }}">
+                                        <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary btn-icon-save" title="Save Details" aria-label="Save Details">
+                                <i class="fas fa-save"></i>
                             </button>
                         </div>
                     </form>
@@ -501,6 +584,14 @@
                         </div>
 
                         <div class="btn-group">
+                            {% for message in messages %}
+                                {% if "password" in message|lower %}
+                                    <div class="save-status-pill {{ message.tags }}">
+                                        <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-sync-alt"></i> Update Password
                             </button>

@@ -324,7 +324,7 @@
                     <input type="file" name="csv_file" id="csvFile" class="file-input" accept=".csv" required>
                 </div>
 
-                <a href="{% url 'add_car_details' %}" class="btn btn-secondary">
+                <a href="{% url 'car_details' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i>
                     Back to Vehicle Management
                 </a>
@@ -410,7 +410,7 @@ Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
 
         // Add active nav state
         document.addEventListener('DOMContentLoaded', function() {
-            const vehicleLink = document.querySelector('a[href="{% url 'add_car_details' %}"]');
+            const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
             if (vehicleLink) {
                 vehicleLink.classList.add('active');
             }

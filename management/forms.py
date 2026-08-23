@@ -40,6 +40,20 @@ class CarDetailsForm(forms.Form):
     year_end = forms.IntegerField(label="Year End", min_value=1900, max_value=2100)
     number_of_seats = forms.IntegerField(label="Number of Seats", min_value=1, max_value=100)
     number_of_doors = forms.IntegerField(label="Number of Doors", min_value=1, max_value=20)
+    vehicle_country = forms.ModelChoiceField(
+        label="Vehicle Country",
+        queryset=MasterSetting.objects.filter(category='Country'),
+        required=False,
+        empty_label="Select Country",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    measurement_country = forms.ModelChoiceField(
+        label="Measurement Country",
+        queryset=MasterSetting.objects.filter(category='Country'),
+        required=False,
+        empty_label="Select Country",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
     
     widgets = {
         'layout_code': forms.TextInput(attrs={'class': 'form-input'}),
@@ -51,6 +65,8 @@ class CarDetailsForm(forms.Form):
         'year_end': forms.NumberInput(attrs={'class': 'form-input'}),
         'number_of_seats': forms.NumberInput(attrs={'class': 'form-input'}),
         'number_of_doors': forms.NumberInput(attrs={'class': 'form-input'}),
+        'vehicle_country': forms.Select(attrs={'class': 'form-select'}),
+        'measurement_country': forms.Select(attrs={'class': 'form-select'}),
     }
 
     def clean(self):

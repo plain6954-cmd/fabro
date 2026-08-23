@@ -124,7 +124,13 @@ def is_workflow_admin(user):
     if not user or not user.is_authenticated:
         return False
     profile = get_user_profile(user)
-    return bool(user.is_superuser or (profile and profile.role == WorkflowRoles.ADMIN))
+    return bool(
+        user.is_superuser
+        or (profile and (
+            profile.role == WorkflowRoles.ADMIN
+            or profile.approval_role == ApprovalRoles.MD
+        ))
+    )
 
 
 def can_user_manage_catalog(user):
@@ -150,6 +156,30 @@ def can_user_create_complaint(user):
             WorkflowRoles.FACTORY_EXECUTIVE,
         }
     )
+
+
+def can_user_view_approvals(user):
+    """
+    Approvals window access is granted to:
+    - Country Executive (for their assigned country)
+    - All Approvers (PM, OM, CAD, ED, MD)
+    - Workflow Admin / Superuser
+    - Factory Executive
+    Normal viewer (factory_viewer) is restricted.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if is_workflow_admin(user):
+        return True
+    profile = get_user_profile(user)
+    if not profile:
+        return False
+    return profile.role in {
+        WorkflowRoles.COUNTRY_EXECUTIVE,
+        WorkflowRoles.APPROVER,
+        WorkflowRoles.ADMIN,
+        WorkflowRoles.FACTORY_EXECUTIVE,
+    }
 
 
 def visible_complaints_for_user(user, queryset=None):

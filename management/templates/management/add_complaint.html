@@ -815,23 +815,17 @@
 
                     <div class="form-group">
                         <label class="form-label">{{ form.model.label }}</label>
-                        <select id="id_model" name="model" class="form-select" disabled>
-                            <option value="">Select Model</option>
-                        </select>
+                        {{ form.model }}
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">{{ form.sub_model.label }}</label>
-                        <select id="id_sub_model" name="sub_model" class="form-select" disabled>
-                            <option value="">Select Sub-Model (Optional)</option>
-                        </select>
+                        {{ form.sub_model }}
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">{{ form.year.label }}</label>
-                        <select id="id_year" name="year" class="form-select" disabled>
-                            <option value="">Select Year</option>
-                        </select>
+                        {{ form.year }}
                     </div>
 
                     <div class="form-group">
@@ -1325,6 +1319,18 @@
         document.addEventListener('DOMContentLoaded', function() {
             initDatePicker();
             initComplaintTypeDock();
+            
+            // If fields are pre-populated, enable them
+            if (document.getElementById('id_brand')?.value) {
+                document.getElementById('id_model').disabled = false;
+            }
+            if (document.getElementById('id_model')?.value) {
+                document.getElementById('id_sub_model').disabled = false;
+            }
+            if (document.getElementById('id_sub_model')?.value) {
+                document.getElementById('id_year').disabled = false;
+            }
+            
             refreshSkuOptions();
             
             // Add active nav state

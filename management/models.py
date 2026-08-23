@@ -164,6 +164,8 @@ class YearRange(models.Model):
     number_of_seats = models.PositiveSmallIntegerField(null=True, blank=True)
     number_of_doors = models.PositiveSmallIntegerField(null=True, blank=True)
     layout_code = models.CharField(max_length=100, unique=True)
+    vehicle_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_vehicle_country')
+    measurement_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_measurement_country')
 
     class Meta:
         unique_together = ('sub_model', 'year_start', 'year_end')
@@ -214,6 +216,31 @@ class UserProfile(models.Model):
     department = models.CharField(max_length=100, blank=True)
     approval_role = models.CharField(max_length=10, choices=ApprovalRoles.CHOICES, blank=True)
     can_receive_factory_assignments = models.BooleanField(default=False)
+
+    @property
+    def country_flag_url(self):
+        if not self.country:
+            return None
+        country_name = self.country.name.strip().lower()
+        mapping = {
+            'ksa': 'sa',
+            'saudi arabia': 'sa',
+            'india': 'in',
+            'usa': 'us',
+            'united states': 'us',
+            'united states of america': 'us',
+            'uae': 'ae',
+            'united arab emirates': 'ae',
+            'thailand': 'th',
+            'malaysia': 'my',
+            'germany': 'de',
+            'united kingdom': 'gb',
+            'uk': 'gb',
+        }
+        code = mapping.get(country_name)
+        if not code:
+            code = country_name[:2]
+        return f"https://flagcdn.com/w40/{code}.png"
 
     class Meta:
         ordering = ['user__username']
@@ -302,28 +329,41 @@ class Complaint(models.Model):
     closed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='closed_complaints')
 
     def _build_next_complaint_id(self):
-        today = timezone.now().date()
-        year = today.year % 100
-        month = today.month
+        target_date = self.date or timezone.now().date()
+        if isinstance(target_date, str):
+            from django.utils.dateparse import parse_date
+            parsed = parse_date(target_date)
+            if parsed:
+                target_date = parsed
+            else:
+                target_date = timezone.now().date()
+        date_str = target_date.strftime('%d%m%Y')
         type_prefix = ComplaintTypes.PREFIXES.get(
             self.complaint_type,
             ComplaintTypes.PREFIXES[ComplaintTypes.PATTERN],
         )
-        prefix = f"{type_prefix}-{year:02d}{month:02d}"
-        latest = Complaint.objects.filter(
-            complaint_id__startswith=prefix
-        ).order_by('-complaint_id').first()
-        next_seq = int(latest.complaint_id[-4:]) + 1 if latest else 1
-        return f"{prefix}{next_seq:04d}"
+        base_seq = Complaint.objects.filter(
+            complaint_type=self.complaint_type,
+            date=target_date
+        ).count() + 1
+        seq = base_seq
+        while True:
+            candidate = f"{type_prefix}-{seq}{date_str}"
+            if not Complaint.objects.filter(pk=candidate).exists():
+                return candidate
+            seq += 1
 
     def save(self, *args, **kwargs):
         if self.case_sub_category_id and not self.complaint_type:
             self.complaint_type = infer_complaint_type(self.case_sub_category.name)
 
+        if not self.date:
+            self.date = timezone.now().date()
+
         if self.complaint_id:
             return super().save(*args, **kwargs)
 
-        # Concurrent submissions can calculate the same monthly sequence. Retry
+        # Concurrent submissions can calculate the same daily sequence. Retry
         # only when that generated primary key was the conflicting value.
         for _ in range(5):
             candidate = self._build_next_complaint_id()
@@ -483,3 +523,22 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.timestamp} - {self.user} - {self.action} {self.object_type} {self.object_name}"
+
+
+class ChatMessage(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_chat_messages')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_chat_messages')
+    complaint = models.ForeignKey(Complaint, on_delete=models.SET_NULL, null=True, blank=True, related_name='chat_messages')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['sender', 'recipient', 'created_at'], name='idx_chat_participants_time'),
+            models.Index(fields=['recipient', 'is_read'], name='idx_chat_recipient_read'),
+        ]
+
+    def __str__(self):
+        return f"Chat from {self.sender.username} to {self.recipient.username} at {self.created_at}"

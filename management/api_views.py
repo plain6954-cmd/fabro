@@ -9,7 +9,7 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from django.contrib.auth import authenticate
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Case, When, Value, IntegerField
 from django.utils import timezone
 from .serializers import (
     ApprovalDecisionInputSerializer,
@@ -172,7 +172,14 @@ class ComplaintListCreateAPIView(ListCreateAPIView):
                 'media_files',
                 'approvals__approver_user',
                 'timeline_events__user',
-            ).all().order_by('-complaint_id')
+            ).all().annotate(
+                sort_weight=Case(
+                    When(status='Closed', then=Value(1)),
+                    When(workflow_status='closed', then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            ).order_by('sort_weight', '-complaint_id')
         )
 
     @transaction.atomic

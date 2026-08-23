@@ -470,6 +470,41 @@
             color: #fcd34d;
         }
 
+        /* Workflow Status Badges - Dark Mode */
+        .status-submitted {
+            background-color: rgba(161, 161, 170, 0.15);
+            color: #e4e4e7;
+        }
+        .status-assigned_to_factory {
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+        }
+        .status-factory_review {
+            background-color: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+        .status-awaiting_approval,
+        .status-partially_approved {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+        .status-rework_required {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+        }
+        .status-approved {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+        }
+        .status-action_in_progress {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+        }
+        .status-pending_final_update {
+            background-color: rgba(6, 182, 212, 0.15);
+            color: #67e8f9;
+        }
+
         body.light-mode .status-badge {
             font-weight: 800;
             box-shadow: 0 8px 18px rgba(24, 24, 27, 0.08);
@@ -489,6 +524,41 @@
         body.light-mode .status-onhold {
             background-color: rgba(245, 158, 11, 0.36);
             color: #b45309;
+        }
+
+        /* Workflow Status Badges - Light Mode */
+        body.light-mode .status-submitted {
+            background-color: rgba(161, 161, 170, 0.25);
+            color: #27272a;
+        }
+        body.light-mode .status-assigned_to_factory {
+            background-color: rgba(139, 92, 246, 0.25);
+            color: #5b21b6;
+        }
+        body.light-mode .status-factory_review {
+            background-color: rgba(99, 102, 241, 0.25);
+            color: #3730a3;
+        }
+        body.light-mode .status-awaiting_approval,
+        body.light-mode .status-partially_approved {
+            background-color: rgba(245, 158, 11, 0.25);
+            color: #92400e;
+        }
+        body.light-mode .status-rework_required {
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #b91c1c;
+        }
+        body.light-mode .status-approved {
+            background-color: rgba(16, 185, 129, 0.25);
+            color: #047857;
+        }
+        body.light-mode .status-action_in_progress {
+            background-color: rgba(59, 130, 246, 0.25);
+            color: #1e40af;
+        }
+        body.light-mode .status-pending_final_update {
+            background-color: rgba(6, 182, 212, 0.25);
+            color: #075985;
         }
 
         body.light-mode .status-high {
@@ -557,6 +627,13 @@
         .action-btn.review {
             background: linear-gradient(135deg, #7c3aed, #ef4444);
             box-shadow: 0 10px 24px rgba(124, 58, 237, 0.22);
+        }
+
+        .action-btn.chat {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            box-shadow: 0 10px 24px rgba(2, 132, 199, 0.22);
+            min-width: 2rem;
+            width: 2rem;
         }
 
         .action-btn.approve {
@@ -916,7 +993,312 @@
             }
         }
 
-        @media (min-width: 0px) {
+        /* Compact Table Layout Custom Styling */
+        .table-container {
+            overflow: auto;
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(30, 30, 34, 0.74);
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        body.light-mode .table-container {
+            background: var(--light-surface);
+            border-color: rgba(24, 24, 27, 0.16);
+        }
+
+        .table {
+            width: 100%;
+            min-width: 1000px;
+            table-layout: auto;
+            border-collapse: collapse;
+        }
+
+        .table thead {
+            display: table-header-group !important;
+        }
+
+        .table tbody {
+            display: table-row-group !important;
+        }
+
+        .table tr {
+            display: table-row !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            transition: background-color 0.2s ease;
+        }
+
+        .table tr.complaint-info-row:hover {
+            background-color: rgba(255, 255, 255, 0.02) !important;
+        }
+
+        body.light-mode .table tr.complaint-info-row:hover {
+            background-color: rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .table th, .table td {
+            display: table-cell !important;
+            padding: 0.6rem 0.85rem !important;
+            vertical-align: middle !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+            font-size: 0.82rem !important;
+            min-height: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        body.light-mode .table th, body.light-mode .table td {
+            border-bottom-color: rgba(24, 24, 27, 0.08) !important;
+        }
+
+        .table th {
+            background: rgba(18, 18, 20, 0.9) !important;
+            color: var(--dark-text) !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.78rem !important;
+        }
+
+        body.light-mode .table th {
+            background: rgba(241, 245, 249, 0.85) !important;
+            color: var(--light-text) !important;
+        }
+
+        .table td {
+            color: var(--dark-text-secondary) !important;
+        }
+
+        body.light-mode .table td {
+            color: var(--light-text-secondary) !important;
+        }
+
+        /* Stacked text styling */
+        .complaint-id-badge {
+            font-family: monospace;
+            font-weight: 800;
+            color: #ef4444;
+            font-size: 0.85rem;
+            display: block;
+        }
+
+        .complaint-date-sub {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--dark-text-secondary);
+            opacity: 0.7;
+            margin-top: 0.15rem;
+        }
+
+        .vehicle-primary {
+            display: block;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.82rem;
+        }
+
+        body.light-mode .vehicle-primary {
+            color: var(--light-text);
+        }
+
+        .vehicle-secondary, .type-secondary, .material-secondary, .reporter-secondary, .source-secondary {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--dark-text-secondary);
+            opacity: 0.75;
+            margin-top: 0.15rem;
+        }
+
+        .type-primary, .reporter-primary {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .type-primary, body.light-mode .reporter-primary {
+            color: var(--light-text);
+        }
+
+        /* Status Dot Indicator */
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+            display: inline-block;
+            background-color: currentColor;
+        }
+
+        /* Inline Media Indicator */
+        .media-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.7rem;
+            color: var(--dark-text-secondary);
+            opacity: 0.85;
+        }
+
+        /* Compact Action Column */
+        .actions-column {
+            width: 13rem !important;
+            min-width: 13rem !important;
+            text-align: center !important;
+        }
+
+        .action-buttons {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 0.35rem !important;
+            justify-content: center !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .action-btn {
+            min-width: 0 !important;
+            width: auto !important;
+            padding: 0.4rem 0.55rem !important;
+            height: 1.85rem !important;
+            font-size: 0.72rem !important;
+        }
+
+        .action-btn .action-label {
+            font-size: 0.65rem;
+            line-height: 1;
+        }
+
+        /* Journey Inline styling */
+        .complaint-workflow-row td {
+            padding: 0.25rem 0.85rem 0.55rem !important;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
+        body.light-mode .complaint-workflow-row td {
+            border-bottom-color: rgba(24, 24, 27, 0.12) !important;
+        }
+
+        .journey-column-inline {
+            display: block;
+            padding: 0.45rem 0.85rem 0.55rem;
+            background: rgba(18, 18, 20, 0.4);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        body.light-mode .journey-column-inline {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .journey-summary-inline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.4rem;
+        }
+
+        .journey-title-inline {
+            color: var(--dark-text-secondary);
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        body.light-mode .journey-title-inline {
+            color: var(--light-text-secondary);
+        }
+
+        .journey-current-inline {
+            color: #fca5a5;
+            font-size: 0.68rem;
+            font-weight: 800;
+        }
+
+        body.light-mode .journey-current-inline {
+            color: #b91c1c;
+        }
+
+        .journey-track-inline {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            align-items: start;
+        }
+
+        .journey-step-inline {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            color: rgba(161, 161, 170, 0.6);
+            text-align: center;
+        }
+
+        .journey-step-inline:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            z-index: 0;
+            top: 0.38rem;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: rgba(161, 161, 170, 0.2);
+        }
+
+        .journey-step-inline.completed:not(:last-child)::after {
+            background: #ef4444;
+        }
+
+        .journey-step-inline .journey-dot {
+            position: relative;
+            z-index: 1;
+            width: 0.75rem;
+            height: 0.75rem;
+            border: 2px solid rgba(161, 161, 170, 0.44);
+            border-radius: 50%;
+            background: #222225;
+        }
+
+        .journey-step-inline.completed .journey-dot {
+            border-color: #ef4444;
+            background: #ef4444;
+        }
+
+        .journey-step-inline.current .journey-dot {
+            border-color: #fb7185;
+            background: #111113;
+            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18);
+        }
+
+        .journey-step-inline.attention .journey-dot {
+            border-color: #f59e0b;
+            background: #f59e0b;
+        }
+
+        .journey-label-inline {
+            max-width: 100%;
+            font-size: 0.62rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .journey-step-inline.current, .journey-step-inline.completed {
+            color: var(--dark-text);
+        }
+
+        body.light-mode .journey-step-inline.current, body.light-mode .journey-step-inline.completed {
+            color: var(--light-text);
+        }
+
+        /* Mobile Responsive Fallback for Very Small Screens */
+        @media (max-width: 768px) {
             .table-container {
                 overflow: visible;
                 background: transparent;
@@ -925,261 +1307,87 @@
             }
 
             .table {
-                display: block;
-                min-width: 0;
-                width: 100%;
+                display: block !important;
+                min-width: 0 !important;
             }
 
             .table thead {
-                display: none;
+                display: none !important;
             }
 
             .table tbody {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.85rem;
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 1rem;
             }
 
-            .table tr {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 10.5rem;
-                gap: 0.42rem;
-                padding: 0.65rem;
-                border-radius: 14px;
-                background:
-                    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 42%),
-                    rgba(30, 30, 34, 0.78);
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-                backdrop-filter: blur(16px) saturate(128%);
-            }
-
-            body.light-mode .table tr {
-                background: rgba(255, 255, 255, 0.5);
-                border-color: rgba(24, 24, 27, 0.12);
-            }
-
-            .table td {
-                display: grid;
-                grid-template-columns: 4.9rem minmax(0, 1fr);
-                align-items: center;
-                gap: 0.35rem;
-                padding: 0.34rem 0.44rem;
-                min-height: 2.05rem;
-                border: 1px solid rgba(255, 255, 255, 0.07);
-                border-radius: 8px;
-                background: rgba(255, 255, 255, 0.045);
-                font-size: 0.74rem;
-                line-height: 1.25;
-            }
-
-            body.light-mode .table td {
-                background: rgba(255, 255, 255, 0.48);
-                border-color: rgba(24, 24, 27, 0.09);
-            }
-
-            .table td::before {
-                content: '';
-                color: var(--dark-text);
-                font-weight: 800;
-                font-size: 0.62rem;
-                text-transform: uppercase;
-                letter-spacing: 0.02em;
-            }
-
-            body.light-mode .table td::before {
-                color: var(--light-text);
-            }
-
-            .table td:nth-child(1)::before { content: '#'; }
-            .table td:nth-child(2)::before { content: 'Date'; }
-            .table td:nth-child(3)::before { content: 'Channel'; }
-            .table td:nth-child(4)::before { content: 'Country'; }
-            .table td:nth-child(5)::before { content: 'Type'; }
-            .table td:nth-child(6)::before { content: 'Reported'; }
-            .table td:nth-child(7)::before { content: 'Brand'; }
-            .table td:nth-child(8)::before { content: 'Model'; }
-            .table td:nth-child(9)::before { content: 'Year'; }
-            .table td:nth-child(10)::before { content: 'Series'; }
-            .table td:nth-child(11)::before { content: 'Material'; }
-            .table td:nth-child(12)::before { content: 'Status'; }
-            .table td:nth-child(13)::before { content: 'Priority'; }
-            .table td:nth-child(14)::before { content: 'Media'; }
-
-            .table th:nth-child(6),
-            .table td:nth-child(6),
-            .table th:nth-child(10),
-            .table td:nth-child(10),
-            .table th:nth-child(13),
-            .table td:nth-child(13),
-            .table th:nth-child(14),
-            .table td:nth-child(14) {
-                display: grid;
-            }
-
-            .actions-column {
-                display: flex !important;
-                grid-column: 3;
-                grid-row: 1 / span 7;
-                align-self: stretch;
-                align-items: stretch;
-                width: auto;
-                min-width: 0;
-                padding: 0.42rem;
-                background: rgba(220, 38, 38, 0.075);
-                box-shadow: none;
-            }
-
-            .actions-column::before {
-                display: none;
-            }
-
-            .action-buttons {
-                display: flex;
-                flex-direction: column;
-                gap: 0.42rem;
-                min-width: 0;
-                width: 100%;
-            }
-
-            .delete-complaint-form {
-                width: 100%;
-            }
-
-            .action-btn {
-                min-width: 0;
-                width: 100%;
-                height: 2.18rem;
-            }
-
-            .action-btn.review {
-                grid-column: auto;
-            }
-
-            .table td:nth-child(14) {
-                grid-column: 1 / 3;
-                min-height: 3.1rem;
-            }
-        }
-
-        @media (max-width: 1180px) {
-            .table tbody {
-                grid-template-columns: minmax(0, 1fr);
-            }
-        }
-
-        @media (max-width: 700px) {
-            .page-container {
-                padding-inline: 0.75rem;
-            }
-
-            .table tr {
-                grid-template-columns: 1fr;
-                padding: 0.75rem;
-            }
-
-            .table td {
-                grid-template-columns: 5.5rem minmax(0, 1fr);
-            }
-
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-
-            .actions-column,
-            .table td:nth-child(14) {
-                grid-column: 1;
-                grid-row: auto;
-            }
-
-            .actions-column {
-                display: block !important;
-            }
-
-            .journey-column {
-                grid-column: 1;
-                padding-inline: 0.4rem !important;
-            }
-
-            .journey-summary {
-                align-items: flex-start;
-            }
-
-            .journey-track {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.45rem;
-                padding-inline: 0;
-            }
-
-            .journey-step {
-                display: grid;
-                grid-template-columns: 1rem minmax(0, 1fr);
-                align-items: center;
-                gap: 0.4rem;
-                padding: 0.38rem 0.45rem;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 7px;
-                background: rgba(255, 255, 255, 0.035);
-                text-align: left;
-            }
-
-            body.light-mode .journey-step {
-                background: rgba(255, 255, 255, 0.62);
-                border-color: rgba(24, 24, 27, 0.1);
-            }
-
-            .journey-step:not(:last-child)::after {
-                display: none;
-            }
-
-            .journey-label {
-                max-width: none;
-                font-size: 0.62rem;
-                overflow-wrap: anywhere;
-            }
-
-            .modal-journey-panel {
+            .table tr.complaint-info-row {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 0.5rem;
                 padding: 1rem;
+                border-radius: var(--border-radius);
+                background: rgba(30, 30, 34, 0.74) !important;
+                border: 1px solid rgba(255, 255, 255, 0.12) !important;
             }
 
-            .modal-journey-header {
-                flex-direction: column;
-                gap: 0.75rem;
+            body.light-mode .table tr.complaint-info-row {
+                background: var(--light-surface) !important;
+                border-color: rgba(24, 24, 27, 0.12) !important;
             }
 
-            .modal-journey-status {
-                max-width: none;
-                width: 100%;
-                text-align: left;
+            .table tr.complaint-info-row td {
+                display: flex !important;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.35rem 0 !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
             }
 
-            .modal-journey-rail {
-                grid-template-columns: 1fr;
+            body.light-mode .table tr.complaint-info-row td {
+                border-bottom-color: rgba(24, 24, 27, 0.06) !important;
+            }
+
+            .table tr.complaint-info-row td::before {
+                font-weight: 800;
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                color: var(--dark-text-secondary);
+                opacity: 0.65;
+            }
+
+            body.light-mode .table tr.complaint-info-row td::before {
+                color: var(--light-text-secondary);
+            }
+
+            .table tr.complaint-info-row td:nth-child(1)::before { content: '#'; }
+            .table tr.complaint-info-row td:nth-child(2)::before { content: 'Date / ID'; }
+            .table tr.complaint-info-row td:nth-child(3)::before { content: 'Vehicle'; }
+            .table tr.complaint-info-row td:nth-child(4)::before { content: 'Type & Material'; }
+            .table tr.complaint-info-row td:nth-child(5)::before { content: 'Reported / Source'; }
+            .table tr.complaint-info-row td:nth-child(6)::before { content: 'Priority'; }
+            .table tr.complaint-info-row td:nth-child(7)::before { content: 'Status'; }
+            .table tr.complaint-info-row td:nth-child(8)::before { content: 'Actions'; }
+
+            .table tr.complaint-workflow-row td {
+                display: block !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+
+            .actions-column {
+                width: auto !important;
+                min-width: 0 !important;
+            }
+
+            .journey-track-inline {
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
                 gap: 0.55rem;
             }
 
-            .modal-journey-step {
-                display: grid;
-                grid-template-columns: 2.15rem 1fr;
-                gap: 0.65rem;
-                align-items: center;
-                text-align: left;
-            }
-
-            .modal-journey-step:not(:last-child)::after {
-                top: 2.1rem;
-                left: 1.075rem;
-                width: 3px;
-                height: calc(100% + 0.55rem);
-            }
-
-            .modal-journey-copy {
-                margin-top: 0;
-            }
-
-            .action-buttons {
-                display: grid;
-                grid-template-columns: 1fr;
+            .journey-step-inline:not(:last-child)::after {
+                display: none !important;
             }
         }
 
@@ -1536,6 +1744,14 @@
                 Complaint Management
             </h1>
             <div class="header-actions">
+                {% if request.user.username == 'audit_country' %}
+                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="Add Complaint">
+                    <i class="fas fa-plus"></i>
+                </a>
+                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="Export CSV">
+                    <i class="fas fa-download"></i>
+                </a>
+                {% else %}
                 <a href="{% url 'add_complaint' %}" class="btn btn-primary">
                     <i class="fas fa-plus"></i>
                     Add Complaint
@@ -1544,6 +1760,7 @@
                     <i class="fas fa-download"></i>
                     Export CSV
                 </a>
+                {% endif %}
                 <form method="GET" class="header-search-form" id="header-search-form">
                     <input type="hidden" name="search_by" id="header-search-by" value="{{ search_by|default:'complaint_id' }}">
                     <input type="hidden" name="complaint_type" value="{{ selected_complaint_type }}">
@@ -1697,85 +1914,84 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Date</th>
-                            <th>Channel</th>
-                            <th>Country</th>
-                            <th>Type</th>
-                            <th>Reported By</th>
-                            <th>Brand</th>
-                            <th>Model</th>
-                            <th>Year</th>
-                            <th>Series</th>
-                            <th>Material</th>
-                            <th>Status</th>
+                            <th>Date / ID</th>
+                            <th>Vehicle</th>
+                            <th>Type &amp; Material</th>
+                            <th>Reported &amp; Source</th>
                             <th>Priority</th>
-                            <th>Media</th>
+                            <th>Status</th>
                             <th class="actions-column">Actions</th>
-                            <th>Journey</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for complaint in complaints %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>{{ complaint.date|date:"d-M-y" }}</td>
-                            <td>{{ complaint.channel|default:"-" }}</td>
-                            <td>{{ complaint.country|default:"-" }}</td>
-                            <td>{{ complaint.case_sub_category|default:"-" }}</td>
-                            <td>{{ complaint.person.name|default:"-" }}</td>
-                            <td>{{ complaint.brand|default:"-" }}</td>
-                            <td>{{ complaint.model|default:"-" }}</td>
-                            <td>
-                                {% if complaint.year %}
-                                    {{ complaint.year.year_start|stringformat:"s"|slice:"-2:" }}-{{ complaint.year.year_end|stringformat:"s"|slice:"-2:" }}
-                                {% else %}
-                                    -
-                                {% endif %}
+                        <tr class="complaint-info-row">
+                            <td style="vertical-align: middle;">{{ forloop.counter }}</td>
+                            <td class="id-date-cell" style="vertical-align: middle;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span class="complaint-id-badge">{{ complaint.complaint_id }}</span>
+                                    {% if complaint.media_files.count > 0 %}
+                                    <span class="media-indicator" title="{{ complaint.media_files.count }} media files">
+                                        <i class="fas fa-paperclip"></i>
+                                        {{ complaint.media_files.count }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="complaint-date-sub">{{ complaint.date|date:"d-M-y" }}</span>
                             </td>
-                            <td>{{ complaint.series|default:"-" }}</td>
-                            <td>{{ complaint.material|default:"-" }}</td>                          
-                            <td>
-                                <span class="status-badge status-{{ complaint.status|lower|cut:' ' }}">
-                                    {{ complaint.status }}
+                            <td class="vehicle-cell" style="vertical-align: middle;">
+                                <span class="vehicle-primary">{{ complaint.brand }} {{ complaint.model }}</span>
+                                <span class="vehicle-secondary">
+                                    Year: {% if complaint.year %}{{ complaint.year.year_start|stringformat:"s"|slice:"-2:" }}-{{ complaint.year.year_end|stringformat:"s"|slice:"-2:" }}{% else %}-{% endif %}
+                                    | Series: {{ complaint.series|default:"-" }}
                                 </span>
                             </td>
-                            <td>
+                            <td class="type-material-cell" style="vertical-align: middle;">
+                                <span class="type-primary">{{ complaint.case_sub_category|default:"-" }}</span>
+                                <span class="material-secondary">Material: {{ complaint.material|default:"-" }}</span>
+                            </td>
+                            <td class="reporter-source-cell" style="vertical-align: middle;">
+                                <span class="reporter-primary">{{ complaint.person.name|default:"-" }}</span>
+                                <span class="source-secondary">{{ complaint.country|default:"-" }} | {{ complaint.channel|default:"-" }}</span>
+                            </td>
+                            <td class="priority-cell" style="vertical-align: middle;">
                                 <span class="status-badge status-{{ complaint.priority|lower|cut:' ' }}">
                                     {{ complaint.priority }}
                                 </span>
                             </td>
-                            <td>
-                                <i class="fas fa-paperclip"></i>
-                                {{ complaint.media_files.count }}
+                            <td class="status-cell" style="vertical-align: middle;">
+                                <span class="status-badge status-{{ complaint.workflow_status|lower }}">
+                                    <span class="status-dot"></span>
+                                    {{ complaint.get_workflow_status_display }}
+                                </span>
                             </td>
-                            <td class="actions-column">
+                            <td class="actions-column" style="vertical-align: middle;">
                                 <div class="action-buttons">
                                     <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="View Details" aria-label="View complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-eye"></i>
                                         <span class="action-label">View</span>
                                     </button>
+                                    <button type="button" class="action-btn chat" onclick="toggleChatUserPopover(event, '{{ complaint.complaint_id }}')" title="Text about Complaint {{ complaint.complaint_id }}" aria-label="Text about complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-comment-dots"></i>
+                                    </button>
                                     {% if complaint.can_edit %}
                                     <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="Edit" aria-label="Edit complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-edit"></i>
-                                        <span class="action-label">Edit</span>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_factory_review %}
                                     <a href="{% url 'factory_review_complaint' complaint.complaint_id %}" class="action-btn review" title="Factory Review" aria-label="Factory review complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-industry"></i>
-                                        <span class="action-label">Review</span>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_approve %}
                                     <a href="{% url 'approval_review' complaint.current_approval.id %}" class="action-btn approve" title="Submit Approval" aria-label="Approve complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-clipboard-check"></i>
-                                        <span class="action-label">Approve</span>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_execute %}
                                     <a href="{% url 'execute_complaint' complaint.complaint_id %}" class="action-btn execute" title="Execute Approved Action" aria-label="Execute complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-circle-check"></i>
-                                        <span class="action-label">Execute</span>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_delete %}
@@ -1784,24 +2000,27 @@
                                         <button type="submit" class="action-btn delete" title="Delete" aria-label="Delete complaint {{ complaint.complaint_id }}"
                                                 onclick="return confirm('Are you sure you want to delete this complaint?');">
                                             <i class="fas fa-trash"></i>
-                                            <span class="action-label">Delete</span>
                                         </button>
                                     </form>
                                     {% endif %}
                                 </div>
                             </td>
-                            <td class="journey-column">
-                                <div class="journey-summary">
-                                    <span class="journey-title">Complaint Journey</span>
-                                    <span class="journey-current">{{ complaint.get_workflow_status_display }}</span>
-                                </div>
-                                <div class="journey-track" aria-label="Complaint journey: {{ complaint.get_workflow_status_display }}">
-                                    {% for step in complaint.journey_steps %}
-                                        <div class="journey-step {{ step.state }}" title="{{ step.label }}">
-                                            <span class="journey-dot" aria-hidden="true"></span>
-                                            <span class="journey-label">{{ step.label }}</span>
-                                        </div>
-                                    {% endfor %}
+                        </tr>
+                        <tr class="complaint-workflow-row">
+                            <td colspan="8">
+                                <div class="journey-column-inline">
+                                    <div class="journey-summary-inline">
+                                        <span class="journey-title-inline">Complaint Journey</span>
+                                        <span class="journey-current-inline">{{ complaint.get_workflow_status_display }}</span>
+                                    </div>
+                                    <div class="journey-track-inline" aria-label="Complaint journey: {{ complaint.get_workflow_status_display }}">
+                                        {% for step in complaint.journey_steps %}
+                                            <div class="journey-step-inline {{ step.state }}" title="{{ step.label }}">
+                                                <span class="journey-dot" aria-hidden="true"></span>
+                                                <span class="journey-label-inline">{{ step.label }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -2257,6 +2476,311 @@
             document.addEventListener('click', function (event) {
                 if (searchPicker && !searchPicker.contains(event.target)) {
                     setSuggestionsOpen(false);
+                }
+            });
+        });
+    </script>
+
+    <!-- Interactive Popover Window for Selecting Chat Recipient -->
+    <style>
+        .chat-popover-window {
+            position: absolute;
+            width: 320px;
+            background: rgba(24, 24, 27, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 14px;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            z-index: 10000;
+            overflow: hidden;
+            animation: popoverFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes popoverFadeIn {
+            from { opacity: 0; transform: scale(0.94) translateY(-6px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        body.light-mode .chat-popover-window {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+        }
+
+        .chat-popover-header {
+            padding: 0.85rem 1rem 0.65rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(18, 18, 20, 0.5);
+        }
+
+        body.light-mode .chat-popover-header {
+            border-bottom-color: #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .popover-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .popover-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        body.light-mode .popover-title { color: #0f172a; }
+
+        .popover-close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.2rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 0.2rem;
+        }
+
+        .popover-close-btn:hover { color: #ffffff; }
+
+        .popover-context-tag {
+            font-size: 0.75rem;
+            color: #fca5a5;
+            margin-bottom: 0.5rem;
+        }
+
+        body.light-mode .popover-context-tag { color: #991b1b; }
+
+        .popover-search-box {
+            position: relative;
+        }
+
+        .popover-search-input {
+            width: 100%;
+            padding: 0.48rem 0.75rem 0.48rem 2.1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        body.light-mode .popover-search-input {
+            background: #ffffff;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+
+        .popover-search-icon {
+            position: absolute;
+            left: 0.7rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .chat-popover-body {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 0.4rem;
+        }
+
+        .popover-user-card {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 0.7rem;
+            border-radius: 10px;
+            color: inherit;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            margin-bottom: 0.2rem;
+            cursor: pointer;
+        }
+
+        .popover-user-card:hover {
+            background: rgba(239, 68, 68, 0.14);
+        }
+
+        body.light-mode .popover-user-card:hover {
+            background: #fee2e2;
+        }
+
+        .popover-user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .popover-user-name {
+            font-size: 0.84rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .popover-send-arrow {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            opacity: 0;
+            transition: all 0.15s ease;
+        }
+
+        .popover-user-card:hover .popover-send-arrow {
+            opacity: 1;
+            color: var(--primary-color);
+            transform: translateX(2px);
+        }
+    </style>
+
+    <div id="chat-popover-window" class="chat-popover-window" style="display: none;">
+        <div class="chat-popover-header">
+            <div class="popover-title-row">
+                <h4 class="popover-title">
+                    <i class="fas fa-comments" style="color: var(--primary-color);"></i> Message Team Member
+                </h4>
+                <button type="button" class="popover-close-btn" onclick="closeChatPopover()">&times;</button>
+            </div>
+            <div class="popover-context-tag">
+                Complaint Context: <strong id="popover-complaint-id-text">PAT-26070001</strong>
+            </div>
+            <div class="popover-search-box">
+                <i class="fas fa-search popover-search-icon"></i>
+                <input type="text" id="popover-search-input" class="popover-search-input" placeholder="Search team member..." autocomplete="off">
+            </div>
+        </div>
+        <div class="chat-popover-body" id="popover-user-list">
+            {% for tm in team_members_data %}
+                <div onclick="navigateToUserChat(event, '{{ tm.id }}')"
+                     class="popover-user-card"
+                     data-user-id="{{ tm.id }}"
+                     data-username="{{ tm.username|lower }}"
+                     data-role="{{ tm.role_label|lower }}">
+                    <div class="user-avatar-container">
+                        <div class="user-avatar avatar-{{ tm.role_code|default:'default' }}" style="width: 2.2rem; height: 2.2rem; font-size: 0.85rem;">
+                            {{ tm.username|first|upper }}
+                        </div>
+                    </div>
+                    <div class="popover-user-details">
+                        <div class="popover-user-name">
+                            {{ tm.username }}
+                            {% if tm.country_flag_url %}
+                                <img src="{{ tm.country_flag_url }}" style="width: 15px; height: 11px; border-radius: 2px;" alt="Flag">
+                            {% endif %}
+                        </div>
+                        <span class="user-role-pill" style="font-size: 0.65rem; padding: 0.08rem 0.38rem;">{{ tm.role_label }}</span>
+                    </div>
+                    <i class="fas fa-paper-plane popover-send-arrow"></i>
+                </div>
+            {% empty %}
+                <div style="padding: 1.5rem 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                    No active team members available.
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        let activePopoverComplaintId = '';
+
+        function toggleChatUserPopover(e, complaintId) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            const popover = document.getElementById('chat-popover-window');
+            if (!popover) return;
+
+            if (popover.style.display === 'block' && activePopoverComplaintId === complaintId) {
+                closeChatPopover();
+                return;
+            }
+
+            activePopoverComplaintId = complaintId;
+            const contextText = document.getElementById('popover-complaint-id-text');
+            if (contextText) contextText.textContent = complaintId;
+
+            popover.style.display = 'block';
+
+            // Calculate popover positioning relative to button
+            const btn = e ? e.currentTarget : null;
+            if (btn) {
+                const rect = btn.getBoundingClientRect();
+                const popoverWidth = 320;
+                const popoverHeight = popover.offsetHeight || 300;
+
+                let top = rect.bottom + window.scrollY + 6;
+                let left = rect.left + window.scrollX - (popoverWidth - rect.width);
+
+                if (left < 10) left = 10;
+                if (left + popoverWidth > window.innerWidth - 10) {
+                    left = window.innerWidth - popoverWidth - 10;
+                }
+
+                if (rect.bottom + popoverHeight > window.innerHeight && rect.top > popoverHeight) {
+                    top = rect.top + window.scrollY - popoverHeight - 6;
+                }
+
+                popover.style.top = top + 'px';
+                popover.style.left = left + 'px';
+            }
+
+            const searchInput = document.getElementById('popover-search-input');
+            if (searchInput) {
+                searchInput.value = '';
+                filterPopoverUsers();
+                setTimeout(() => searchInput.focus(), 50);
+            }
+        }
+
+        function closeChatPopover() {
+            const popover = document.getElementById('chat-popover-window');
+            if (popover) popover.style.display = 'none';
+            activePopoverComplaintId = '';
+        }
+
+        function navigateToUserChat(e, userId) {
+            if (e) e.preventDefault();
+            if (!userId || !activePopoverComplaintId) return;
+            window.location.href = `/chat/?user=${userId}&complaint=${activePopoverComplaintId}`;
+        }
+
+        function filterPopoverUsers() {
+            const q = (document.getElementById('popover-search-input')?.value || '').toLowerCase().trim();
+            document.querySelectorAll('.popover-user-card').forEach(card => {
+                const username = card.getAttribute('data-username') || '';
+                const role = card.getAttribute('data-role') || '';
+                if (username.includes(q) || role.includes(q)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const popoverSearch = document.getElementById('popover-search-input');
+            if (popoverSearch) {
+                popoverSearch.addEventListener('input', filterPopoverUsers);
+            }
+
+            document.addEventListener('click', (e) => {
+                const popover = document.getElementById('chat-popover-window');
+                if (popover && popover.style.display === 'block' && !popover.contains(e.target) && !e.target.closest('.action-btn.chat')) {
+                    closeChatPopover();
                 }
             });
         });
