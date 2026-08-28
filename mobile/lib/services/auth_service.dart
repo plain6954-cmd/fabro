@@ -74,11 +74,13 @@ class AuthService {
     final response = await _apiService.get('/api/user/profile/');
     if (response.statusCode == 200) {
       return UserModel.fromJson(jsonDecode(response.body));
-    } else {
-      // Token is expired or invalid, clear local storage
+    }
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      // Only authentication/authorization failures prove the token is unusable.
       await _secureStorage.deleteToken();
       return null;
     }
+    throw Exception('The service is temporarily unavailable. Please retry.');
   }
 
   Future<UserModel> updateProfile({

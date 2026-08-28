@@ -7,23 +7,17 @@ test.beforeEach(async ({ page }) => {
   await login(page);
 });
 
-test('theme toggles between dark and light and persists after refresh', async ({ page }) => {
+test('dark application theme remains consistent across routes and refresh', async ({ page }) => {
   const diagnostics = attachPageDiagnostics(page);
   await page.goto(routes.dashboard);
-  await page.locator('.profile-trigger').hover();
-  await page.locator('.toggle-switch').click();
-  await expectTheme(page, 'light');
+  await expectTheme(page, 'dark');
   await page.reload();
-  await expectTheme(page, 'light');
+  await expectTheme(page, 'dark');
 
   for (const route of [routes.dashboard, routes.addComplaint, routes.vehicles, routes.sku, routes.master, routes.profile]) {
     await page.goto(route);
-    await expectTheme(page, 'light');
+    await expectTheme(page, 'dark');
     await expectNoDjangoError(page);
   }
-
-  await page.locator('.profile-trigger').hover();
-  await page.locator('.toggle-switch').click();
-  await expectTheme(page, 'dark');
   await diagnostics.assertClean();
 });

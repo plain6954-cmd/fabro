@@ -205,6 +205,21 @@
             justify-content: center;
         }
 
+        /* Column filter trigger styles */
+        .column-filter-trigger {
+            padding: 0.2rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .column-filter-trigger:hover {
+            background: rgba(255, 255, 255, 0.1);
+            opacity: 1 !important;
+            color: var(--primary-color);
+        }
+        body.light-mode .column-filter-trigger:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
         .btn {
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
@@ -1744,21 +1759,12 @@
                 Complaint Management
             </h1>
             <div class="header-actions">
-                {% if request.user.username == 'audit_country' %}
-                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="Add Complaint">
+                {% if can_create_complaint %}
+                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="Add Complaint" aria-label="Add Complaint">
                     <i class="fas fa-plus"></i>
                 </a>
-                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="Export CSV">
+                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="Export CSV" aria-label="Export CSV">
                     <i class="fas fa-download"></i>
-                </a>
-                {% else %}
-                <a href="{% url 'add_complaint' %}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Add Complaint
-                </a>
-                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success">
-                    <i class="fas fa-download"></i>
-                    Export CSV
                 </a>
                 {% endif %}
                 <form method="GET" class="header-search-form" id="header-search-form">
@@ -1914,12 +1920,60 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Date / ID</th>
-                            <th>Vehicle</th>
-                            <th>Type &amp; Material</th>
-                            <th>Reported &amp; Source</th>
-                            <th>Priority</th>
-                            <th>Status</th>
+                            <th data-filter-col="1">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Date / ID</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="2">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Vehicle</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="3">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Type &amp; Material</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="4">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Reported &amp; Source</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="5">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Priority</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="6">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Status</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
                             <th class="actions-column">Actions</th>
                         </tr>
                     </thead>
@@ -2476,6 +2530,266 @@
             document.addEventListener('click', function (event) {
                 if (searchPicker && !searchPicker.contains(event.target)) {
                     setSuggestionsOpen(false);
+                }
+            });
+
+            // Column filter dropdowns logic for Complaints Table
+            const filterHeaders = document.querySelectorAll('th[data-filter-col]');
+            
+            function runFilters() {
+                const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
+                if (infoRows.length === 0) return;
+
+                // Collect active column filters: column index -> Set of checked values
+                const activeFilters = {};
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const checkedCheckboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]:checked');
+                    if (checkedCheckboxes.length > 0) {
+                        activeFilters[colIdx] = new Set(Array.from(checkedCheckboxes).map(cb => cb.value.toLowerCase()));
+                    }
+                });
+
+                // Filter each complaint info row & its workflow companion row
+                infoRows.forEach(infoRow => {
+                    let isVisible = true;
+                    
+                    for (const [colIdx, allowedValues] of Object.entries(activeFilters)) {
+                        const cell = infoRow.cells[colIdx];
+                        if (!cell) continue;
+                        const cellText = cell.textContent.toLowerCase();
+                        
+                        let match = false;
+                        for (const val of allowedValues) {
+                            if (cellText.includes(val)) {
+                                match = true;
+                                break;
+                            }
+                        }
+                        if (!match) {
+                            isVisible = false;
+                            break;
+                        }
+                    }
+
+                    infoRow.style.display = isVisible ? '' : 'none';
+                    const workflowRow = infoRow.nextElementSibling;
+                    if (workflowRow && workflowRow.classList.contains('complaint-workflow-row')) {
+                        workflowRow.style.display = isVisible ? '' : 'none';
+                    }
+                });
+
+                // Update filter trigger icons and clear buttons
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const trigger = th.querySelector('.column-filter-trigger i');
+                    const clearBtn = th.querySelector('.column-filter-clear');
+                    const dropdownClearBtn = th.querySelector('.clear-col-filter');
+                    
+                    const hasActiveFilter = activeFilters[colIdx] !== undefined;
+                    
+                    if (clearBtn) {
+                        clearBtn.style.display = hasActiveFilter ? 'inline-block' : 'none';
+                    }
+                    if (dropdownClearBtn) {
+                        dropdownClearBtn.style.display = hasActiveFilter ? 'inline' : 'none';
+                    }
+
+                    if (trigger) {
+                        if (hasActiveFilter) {
+                            trigger.className = 'fas fa-filter';
+                            trigger.parentElement.style.color = 'var(--primary-color)';
+                            trigger.parentElement.style.opacity = '1';
+                        } else {
+                            trigger.className = 'fas fa-chevron-down';
+                            trigger.parentElement.style.color = '';
+                            trigger.parentElement.style.opacity = '0.6';
+                        }
+                    }
+                });
+            }
+
+            filterHeaders.forEach(th => {
+                const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                
+                // Create dropdown element
+                const dropdown = document.createElement('div');
+                dropdown.className = 'column-filter-dropdown';
+                dropdown.style.cssText = 'display: none; position: absolute; left: 0; top: 100%; min-width: 220px; background: #1e1e20; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 1000; padding: 0.75rem; text-align: left; font-weight: normal;';
+                
+                if (document.body.classList.contains('light-mode')) {
+                    dropdown.style.background = '#ffffff';
+                    dropdown.style.borderColor = '#e2e8f0';
+                    dropdown.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+                }
+
+                // Add text input for search
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = 'Search values...';
+                searchInput.className = 'column-filter-input';
+                searchInput.style.cssText = 'width: 100%; padding: 0.4rem 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; margin-bottom: 0.6rem; outline: none; box-sizing: border-box;';
+                if (document.body.classList.contains('light-mode')) {
+                    searchInput.style.background = '#f1f5f9';
+                    searchInput.style.borderColor = '#cbd5e1';
+                    searchInput.style.color = '#0f172a';
+                }
+
+                // Add action bar
+                const actionBar = document.createElement('div');
+                actionBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem; font-size: 0.75rem; font-weight: 500;';
+                if (document.body.classList.contains('light-mode')) {
+                    actionBar.style.borderColor = 'rgba(0,0,0,0.1)';
+                }
+
+                const dropdownClearBtn = document.createElement('span');
+                dropdownClearBtn.className = 'clear-col-filter';
+                dropdownClearBtn.style.cssText = 'cursor: pointer; color: var(--primary-color); font-weight: 600; display: none;';
+                dropdownClearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+
+                const selectAllBtn = document.createElement('span');
+                selectAllBtn.className = 'select-all-col-filter';
+                selectAllBtn.style.cssText = 'cursor: pointer; color: var(--dark-text-secondary);';
+                if (document.body.classList.contains('light-mode')) {
+                    selectAllBtn.style.color = '#64748b';
+                }
+                selectAllBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+
+                actionBar.appendChild(dropdownClearBtn);
+                actionBar.appendChild(selectAllBtn);
+
+                // Add values container
+                const valuesContainer = document.createElement('div');
+                valuesContainer.className = 'column-filter-values';
+                valuesContainer.style.cssText = 'max-height: 160px; overflow-y: auto; font-size: 0.825rem; color: #e2e8f0; display: flex; flex-direction: column; gap: 0.4rem;';
+                if (document.body.classList.contains('light-mode')) {
+                    valuesContainer.style.color = '#334155';
+                }
+
+                dropdown.appendChild(searchInput);
+                dropdown.appendChild(actionBar);
+                dropdown.appendChild(valuesContainer);
+                th.appendChild(dropdown);
+
+                // Populate unique values
+                const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
+                const uniqueValues = new Set();
+                infoRows.forEach(row => {
+                    const cell = row.cells[colIdx];
+                    if (cell) {
+                        let val = '';
+                        if (colIdx === 1) {
+                            val = cell.querySelector('.complaint-id-badge')?.textContent.trim() || '';
+                        } else if (colIdx === 2) {
+                            val = cell.querySelector('.vehicle-primary')?.textContent.trim() || '';
+                        } else if (colIdx === 3) {
+                            val = cell.querySelector('.type-primary')?.textContent.trim() || '';
+                        } else if (colIdx === 4) {
+                            val = cell.querySelector('.reporter-primary')?.textContent.trim() || '';
+                        } else if (colIdx === 5 || colIdx === 6) {
+                            val = cell.querySelector('.status-badge')?.textContent.trim() || '';
+                        } else {
+                            val = cell.textContent.trim();
+                        }
+                        if (val) uniqueValues.add(val);
+                    }
+                });
+
+                // Render checkboxes
+                const sortedValues = Array.from(uniqueValues).sort();
+                
+                function renderList(filterTerm = '') {
+                    valuesContainer.innerHTML = '';
+                    const term = filterTerm.toLowerCase();
+                    
+                    if (sortedValues.length === 0) {
+                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No values found</div>';
+                        return;
+                    }
+
+                    sortedValues.forEach(val => {
+                        if (term && !val.toLowerCase().includes(term)) return;
+
+                        const label = document.createElement('label');
+                        label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; margin: 0; font-weight: normal;';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = val;
+                        checkbox.style.cssText = 'cursor: pointer; width: 14px; height: 14px; margin: 0;';
+                        
+                        checkbox.addEventListener('change', runFilters);
+
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(val));
+                        valuesContainer.appendChild(label);
+                    });
+                }
+
+                renderList();
+
+                // Search input event
+                searchInput.addEventListener('input', function() {
+                    renderList(this.value);
+                });
+
+                // Dropdown clear action handler
+                dropdownClearBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    runFilters();
+                });
+
+                // Select all action handler
+                selectAllBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const checkboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]');
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    checkboxes.forEach(cb => {
+                        cb.checked = !allChecked;
+                    });
+                    runFilters();
+                });
+
+                // Header level clear trigger
+                const clearBtn = th.querySelector('.column-filter-clear');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                            cb.checked = false;
+                        });
+                        runFilters();
+                    });
+                }
+
+                // Toggle dropdown on trigger click
+                const trigger = th.querySelector('.column-filter-trigger');
+                if (trigger) {
+                    trigger.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        // Close other dropdowns
+                        document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                            if (d !== dropdown) d.style.display = 'none';
+                        });
+                        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                        
+                        // Focus on search input when opening
+                        if (dropdown.style.display === 'block') {
+                            setTimeout(() => searchInput.focus(), 50);
+                        }
+                    });
+                }
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.column-filter-dropdown') && !e.target.closest('.column-filter-trigger')) {
+                    document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                        d.style.display = 'none';
+                    });
                 }
             });
         });

@@ -1,13 +1,17 @@
 {% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Approvals Workspace - Fabro Leather</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
-    <style>
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <style data-fabro-page-asset>
         /* Full Screen App-Window Layout */
         html, body {
             overflow: hidden !important;
@@ -826,6 +830,157 @@
             color: #0f172a;
         }
 
+        /* Search Picker styles */
+        .search-picker {
+            position: relative;
+            flex: 1 1 300px;
+            max-width: 440px;
+            min-width: 220px;
+        }
+
+        .header-search-input {
+            width: 100%;
+            height: 2.5rem;
+            padding: 0.5rem 10.5rem 0.5rem 2.4rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            background: rgba(18, 18, 20, 0.82);
+            color: var(--dark-text);
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .header-search-input {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .header-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15);
+        }
+
+        .search-leading-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+            font-size: 0.85rem;
+        }
+
+        body.light-mode .search-leading-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .search-field-label {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            max-width: 9.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.14);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.68rem;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        body.light-mode .search-field-label {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.16);
+        }
+
+        .search-options {
+            position: absolute;
+            z-index: 1200;
+            left: 0;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            display: none;
+            padding: 0.55rem;
+            border-radius: 8px;
+            background: rgba(24, 24, 27, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+        }
+
+        .search-picker.is-suggesting .search-options {
+            display: block;
+        }
+
+        body.light-mode .search-options {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.13);
+        }
+
+        .search-options-title {
+            margin: 0 0 0.45rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        body.light-mode .search-options-title {
+            color: var(--light-text-secondary);
+        }
+
+        .search-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem;
+        }
+
+        .search-option {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            min-height: 2.25rem;
+            padding: 0.48rem 0.58rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--dark-text);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .search-option:hover,
+        .search-option.is-active {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.88);
+            border-color: rgba(248, 113, 113, 0.55);
+        }
+
+        body.light-mode .search-option {
+            color: var(--light-text);
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .search-option:hover,
+        body.light-mode .search-option.is-active {
+            color: #ffffff;
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
         /* EMPTY STATE */
         .empty-approvals-box {
             display: flex;
@@ -995,10 +1150,15 @@
             gap: 0.65rem;
         }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
 
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="approvals-workspace-wrapper">
         <!-- TOP SUMMARY & WORKSPACE CONTROL BAR -->
         <div class="workspace-top-bar">
@@ -1075,12 +1235,61 @@
                     </a>
                 </div>
 
-                <form method="get" class="search-and-filters">
+                <form method="get" class="search-and-filters" id="approvals-search-form">
                     <input type="hidden" name="status" value="{{ status_filter }}">
-                    <div class="search-input-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" name="search" placeholder="Search ID, brand, SKU..." value="{{ search_query }}">
+                    <input type="hidden" name="search_by" id="approvals-search-by" value="{{ search_by|default:'all' }}">
+                    <div class="search-picker" id="approvals-search-picker">
+                        <i class="fas fa-search search-leading-icon"></i>
+                        <input type="text" name="search" id="approvals-search-input" placeholder="Search approvals..."
+                               value="{{ search_query }}" class="header-search-input" autocomplete="off"
+                               aria-label="Search approvals" aria-describedby="approvals-search-options-title"
+                               aria-haspopup="listbox" aria-expanded="false">
+                        <span class="search-field-label" id="approvals-search-field-label">All Fields</span>
+                        <div class="search-options" id="approvals-search-options">
+                            <p class="search-options-title" id="approvals-search-options-title">Search this keyword in</p>
+                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                                <button type="button" class="search-option" data-search-by="complaint_id" role="option">
+                                    <i class="fas fa-hashtag"></i>
+                                    Complaint ID
+                                </button>
+                                <button type="button" class="search-option" data-search-by="complaint_type" role="option">
+                                    <i class="fas fa-tag"></i>
+                                    Complaint Type
+                                </button>
+                                <button type="button" class="search-option" data-search-by="priority" role="option">
+                                    <i class="fas fa-flag"></i>
+                                    Priority
+                                </button>
+                                <button type="button" class="search-option" data-search-by="country" role="option">
+                                    <i class="fas fa-globe"></i>
+                                    Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="channel" role="option">
+                                    <i class="fas fa-code-branch"></i>
+                                    Channel
+                                </button>
+                                <button type="button" class="search-option" data-search-by="vehicle" role="option">
+                                    <i class="fas fa-car"></i>
+                                    Brand / Model
+                                </button>
+                                <button type="button" class="search-option" data-search-by="factory_reason" role="option">
+                                    <i class="fas fa-comment-dots"></i>
+                                    Factory Reason
+                                </button>
+                                <button type="button" class="search-option" data-search-by="factory_action_plan" role="option">
+                                    <i class="fas fa-tasks"></i>
+                                    Action Plan
+                                </button>
+                                <button type="button" class="search-option" data-search-by="all" role="option">
+                                    <i class="fas fa-layer-group"></i>
+                                    All Fields
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                    <button type="submit" class="btn btn-primary" title="Search" aria-label="Search approvals" style="width: 2.5rem; height: 2.5rem; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; cursor: pointer;">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
 
                     <select name="priority" class="filter-select" onchange="this.form.submit()">
                         <option value="">All Priorities</option>
@@ -1356,7 +1565,7 @@
     </div>
 
     <script>
-        let currentSelectedDecision = null;
+        window.currentSelectedDecision = null;
 
         function openDecisionModal(approvalId, complaintId, reviewStage) {
             document.getElementById('modalApprovalId').value = approvalId;
@@ -1458,6 +1667,80 @@
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirm Decision';
             }
         }
+
+        // Search Picker logic for Approvals Workspace
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchForm = document.getElementById('approvals-search-form');
+            const searchPicker = document.getElementById('approvals-search-picker');
+            const searchInput = document.getElementById('approvals-search-input');
+            const searchByInput = document.getElementById('approvals-search-by');
+            const searchLabel = document.getElementById('approvals-search-field-label');
+            const searchOptions = document.querySelectorAll('#approvals-search-options .search-option');
+            const searchLabels = {
+                complaint_id: 'Complaint ID',
+                complaint_type: 'Complaint Type',
+                priority: 'Priority',
+                country: 'Country',
+                channel: 'Channel',
+                vehicle: 'Brand / Model',
+                factory_reason: 'Factory Reason',
+                factory_action_plan: 'Action Plan',
+                all: 'All Fields'
+            };
+
+            function refreshSearchChoice() {
+                if (!searchByInput || !searchLabel) return;
+                const selected = searchByInput.value || 'all';
+                searchLabel.textContent = searchLabels[selected] || 'All Fields';
+                searchOptions.forEach((option) => {
+                    option.classList.toggle('is-active', option.dataset.searchBy === selected);
+                });
+            }
+
+            function setSuggestionsOpen(isOpen) {
+                if (!searchPicker || !searchInput) return;
+                const shouldOpen = isOpen && searchInput.value.trim().length > 0;
+                searchPicker.classList.toggle('is-suggesting', shouldOpen);
+                searchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            }
+
+            refreshSearchChoice();
+
+            if (searchInput && searchPicker) {
+                searchInput.addEventListener('input', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('focus', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        setSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            searchOptions.forEach((option) => {
+                option.addEventListener('click', function () {
+                    if (!searchByInput || !searchForm) return;
+                    searchByInput.value = option.dataset.searchBy;
+                    refreshSearchChoice();
+                    setSuggestionsOpen(false);
+                    if (searchInput && searchInput.value.trim()) {
+                        searchForm.submit();
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (searchPicker && !searchPicker.contains(event.target)) {
+                    setSuggestionsOpen(false);
+                }
+            });
+        });
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

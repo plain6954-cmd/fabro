@@ -200,7 +200,14 @@ def visible_complaints_for_user(user, queryset=None):
             complaint_type__in=[ComplaintTypes.PATTERN, ComplaintTypes.PRODUCTION],
         )
 
-    return queryset
+    if profile.role == WorkflowRoles.FACTORY_EXECUTIVE:
+        return queryset.filter(assigned_factory_executive_id=user.id)
+
+    if profile.role in {WorkflowRoles.FACTORY_VIEWER, WorkflowRoles.APPROVER}:
+        return queryset
+
+    # A newly created or malformed role must fail closed until configured.
+    return queryset.none()
 
 
 def can_user_edit_report_step(user, complaint):

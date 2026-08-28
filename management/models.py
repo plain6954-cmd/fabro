@@ -214,8 +214,19 @@ class UserProfile(models.Model):
         related_name='workflow_users'
     )
     department = models.CharField(max_length=100, blank=True)
+    phone_number = models.CharField(max_length=30, blank=True)
     approval_role = models.CharField(max_length=10, choices=ApprovalRoles.CHOICES, blank=True)
     can_receive_factory_assignments = models.BooleanField(default=False)
+    photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
+
+    @property
+    def avatar_url(self):
+        if self.photo:
+            try:
+                return self.photo.url
+            except Exception:
+                return None
+        return None
 
     @property
     def country_flag_url(self):

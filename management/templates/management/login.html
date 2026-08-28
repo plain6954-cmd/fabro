@@ -351,7 +351,11 @@
                                class="form-input" 
                                placeholder="Enter your password"
                                required 
-                               autocomplete="current-password">
+                               autocomplete="current-password"
+                               style="padding-right: 2.8rem;">
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Show/Hide Password" style="position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.25rem; font-size: 0.95rem; z-index: 2;">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -376,6 +380,25 @@
     </div>
 
     <script>
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+
         // Form submission handling
         document.getElementById('loginForm').addEventListener('submit', function() {
             const button = document.getElementById('loginButton');

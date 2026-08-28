@@ -1,13 +1,17 @@
 {% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Complaint - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         .page-container {
             max-width: 1720px;
             margin: 0 auto;
@@ -687,10 +691,15 @@
             }
         }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
     
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">
@@ -1089,7 +1098,10 @@
 
             syncComplaintTypeRecognition(typeInput.value);
             syncComplaintTypeStickyOffset();
-            window.addEventListener('resize', syncComplaintTypeStickyOffset);
+        window.addEventListener('resize', syncComplaintTypeStickyOffset);
+        document.addEventListener('fabro:before-page-swap', function cleanupComplaintPage() {
+            window.removeEventListener('resize', syncComplaintTypeStickyOffset);
+        }, { once: true });
             if ('ResizeObserver' in window) {
                 const navbar = document.querySelector('.navbar');
                 if (navbar) {
@@ -1211,8 +1223,8 @@
         document.getElementById('id_country').addEventListener('change', refreshSkuOptions);
 
         // File upload handling
-        const fileInput = document.getElementById('media_files');
-        const uploadArea = document.querySelector('.file-upload-area');
+        const addComplaintFileInput = document.getElementById('media_files');
+        const addComplaintUploadArea = document.querySelector('.file-upload-area');
         const uploadText = document.querySelector('.file-upload-text');
         const mediaPreviewStrip = document.getElementById('mediaPreviewStrip');
         const defaultUploadText = uploadText ? uploadText.innerHTML : '';
@@ -1269,11 +1281,11 @@
             mediaPreviewStrip.classList.add('has-files');
         }
 
-        fileInput.addEventListener('change', function() {
+        addComplaintFileInput.addEventListener('change', function() {
             const files = this.files;
             if (files.length > 0) {
-                uploadArea.style.borderColor = 'var(--success-color)';
-                uploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                addComplaintUploadArea.style.borderColor = 'var(--success-color)';
+                addComplaintUploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
                 uploadText.innerHTML =
                     `<strong>${files.length} file(s) selected</strong><br>Ready to upload`;
                 renderMediaPreview(files);
@@ -1287,9 +1299,9 @@
                 window.setTimeout(() => {
                     syncComplaintTypeRecognition(selectedComplaintType);
                     initDatePicker();
-                    if (uploadArea) {
-                        uploadArea.style.borderColor = '';
-                        uploadArea.style.backgroundColor = '';
+                    if (addComplaintUploadArea) {
+                        addComplaintUploadArea.style.borderColor = '';
+                        addComplaintUploadArea.style.backgroundColor = '';
                     }
                     if (uploadText) {
                         uploadText.innerHTML = defaultUploadText;
@@ -1316,7 +1328,7 @@
         }
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        window.fabroOnPageLoad(function() {
             initDatePicker();
             initComplaintTypeDock();
             
@@ -1340,5 +1352,8 @@
             }
         });
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

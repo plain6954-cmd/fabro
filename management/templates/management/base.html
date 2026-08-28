@@ -1,9 +1,14 @@
 {% load static %}
+<script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
 <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        #app-content {
+            display: contents;
         }
 
         :root {
@@ -1822,13 +1827,171 @@
         };
 
         const initAppShellRouter = () => {
-            return;
+            if (!window.htmx || window.__fabroHtmxRouterReady || !document.getElementById('app-content')) {
+                return;
+            }
+
+            const blockedPrefixes = [
+                '/admin/',
+                '/admin-panel/',
+                '/admin_panel/',
+                '/api/',
+                '/chat/',
+                '/login/',
+                '/logout/',
+                '/logout-success/',
+                '/static/',
+                '/media/',
+            ];
+            const blockedSegments = [
+                '/delete-',
+                '/delete/',
+                '/export_',
+                '/mark-all-read/',
+                '/open/',
+                '/terminate-',
+            ];
+
+            const isSafeShellNavigation = (anchor) => {
+                if (anchor.target || anchor.hasAttribute('download') || anchor.dataset.noHtmx !== undefined) {
+                    return false;
+                }
+
+                const href = anchor.getAttribute('href');
+                if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
+                    return false;
+                }
+
+                const url = new URL(anchor.href, window.location.href);
+                if (url.origin !== window.location.origin || url.hash) {
+                    return false;
+                }
+
+                return !blockedPrefixes.some((prefix) => url.pathname.startsWith(prefix))
+                    && !blockedSegments.some((segment) => url.pathname.includes(segment));
+            };
+
+            const enhanceLinks = (root) => {
+                root.querySelectorAll('a[href]').forEach((anchor) => {
+                    if (!isSafeShellNavigation(anchor) || anchor.hasAttribute('hx-get')) {
+                        return;
+                    }
+                    anchor.setAttribute('hx-get', anchor.href);
+                    anchor.setAttribute('hx-target', '#app-content');
+                    anchor.setAttribute('hx-select', '#app-content');
+                    anchor.setAttribute('hx-swap', 'outerHTML show:window:top');
+                    anchor.setAttribute('hx-push-url', 'true');
+                });
+                window.htmx.process(root);
+            };
+
+            const updatePageHead = (responseText) => {
+                const responseDocument = new DOMParser().parseFromString(responseText, 'text/html');
+                const headTemplate = responseDocument.querySelector('template[data-fabro-page-head]');
+                if (!headTemplate) {
+                    return false;
+                }
+
+                const nextTitle = headTemplate.content.querySelector('title');
+                if (nextTitle) {
+                    document.title = nextTitle.textContent;
+                }
+
+                document.head.querySelectorAll('[data-fabro-page-asset]').forEach((asset) => asset.remove());
+                headTemplate.content.querySelectorAll('[data-fabro-page-asset]').forEach((asset) => {
+                    document.head.appendChild(asset.cloneNode(true));
+                });
+                return true;
+            };
+
+            const syncShellCounts = (content) => {
+                if (!content) {
+                    return;
+                }
+
+                const syncBadge = (kind, value) => {
+                    const existing = document.querySelector(`[data-shell-badge="${kind}"]`);
+                    const numericValue = Number.parseInt(value || '0', 10) || 0;
+                    if (numericValue === 0) {
+                        existing?.remove();
+                        return;
+                    }
+                    if (existing) {
+                        existing.textContent = numericValue;
+                        return;
+                    }
+                    const template = document.getElementById(`${kind}-badge-template`);
+                    const destination = document.querySelector(`[data-shell-badge-host="${kind}"]`);
+                    if (template && destination) {
+                        const badge = template.content.firstElementChild.cloneNode(true);
+                        badge.textContent = numericValue;
+                        destination.appendChild(badge);
+                    }
+                };
+
+                syncBadge('chat', content.dataset.unreadChatCount);
+                syncBadge('approvals', content.dataset.pendingApprovalsCount);
+            };
+
+            document.body.addEventListener('htmx:beforeRequest', (event) => {
+                if (event.detail.elt.matches('a[hx-get]')) {
+                    document.dispatchEvent(new CustomEvent('fabro:before-page-swap'));
+                    window.onclick = null;
+                }
+            });
+
+            document.body.addEventListener('htmx:beforeSwap', (event) => {
+                const responseUrl = new URL(event.detail.xhr.responseURL, window.location.href);
+                if (responseUrl.pathname.startsWith('/login/')) {
+                    event.detail.shouldSwap = false;
+                    window.location.assign(responseUrl.href);
+                    return;
+                }
+                if (!updatePageHead(event.detail.xhr.responseText)) {
+                    event.detail.shouldSwap = false;
+                    window.location.assign(responseUrl.href);
+                }
+            });
+
+            document.body.addEventListener('htmx:afterSwap', (event) => {
+                if (event.detail.target?.id !== 'app-content') {
+                    return;
+                }
+                syncShellCounts(event.detail.target);
+                enhanceLinks(event.detail.target);
+                initActiveWindowLabel();
+                initPremiumInteractions();
+            });
+
+            document.body.addEventListener('htmx:historyRestore', () => {
+                initActiveWindowLabel();
+                initPremiumInteractions();
+            });
+
+            document.body.addEventListener('htmx:responseError', (event) => {
+                if (event.detail.elt.matches('a[hx-get]')) {
+                    window.location.assign(event.detail.elt.href);
+                }
+            });
+
+            enhanceLinks(document);
+            syncShellCounts(document.getElementById('app-content'));
+            window.__fabroHtmxRouterReady = true;
+        };
+
+        window.fabroOnPageLoad = (callback) => {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', callback, { once: true });
+                return;
+            }
+            callback();
         };
         // Initialize on DOM load
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             initActiveWindowLabel();
             initPremiumInteractions();
+            initAppShellRouter();
             runWhenIdle(initScrollDynamics, 1400);
 
             setTimeout(function () {
@@ -1841,13 +2004,16 @@
             }, 6000);
         });
     </script>
-    {% if messages and request.resolver_match.url_name != 'profile_settings' %}
+    {% if messages and request.resolver_match.url_name != 'profile_settings' and request.resolver_match.url_name != 'admin_panel' %}
     <div class="messages" id="flash-messages">
         {% for message in messages %}
         <div class="alert {{ message.tags }}">{{ message }}</div>
         {% endfor %}
     </div>
     {% endif %}
+
+    <template id="chat-badge-template"><span class="nav-chat-badge" data-shell-badge="chat"></span></template>
+    <template id="approvals-badge-template"><span class="nav-chat-badge" data-shell-badge="approvals" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);"></span></template>
 
     <nav class="navbar" data-active-window="Dashboard">
         <a href="{% url 'index' %}" class="nav-brand">
@@ -1888,19 +2054,19 @@
             </a>
             {% endif %}
             {% if can_view_approvals %}
-            <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' %}active{% endif %}">
+            <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' %}active{% endif %}" data-shell-badge-host="approvals">
                 <i class="fas fa-clipboard-check"></i>
                 <span>Approvals</span>
                 {% if pending_approvals_count %}
-                <span class="nav-chat-badge" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);">{{ pending_approvals_count }}</span>
+                <span class="nav-chat-badge" data-shell-badge="approvals" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);">{{ pending_approvals_count }}</span>
                 {% endif %}
             </a>
             {% endif %}
-            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}">
+            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
                 <i class="fas fa-comments"></i>
                 <span>CHAT</span>
                 {% if unread_chat_count %}
-                <span class="nav-chat-badge">{{ unread_chat_count }}</span>
+                <span class="nav-chat-badge" data-shell-badge="chat">{{ unread_chat_count }}</span>
                 {% endif %}
             </a>
         </div>
@@ -1911,24 +2077,40 @@
                 <img src="{{ workflow_profile.country_flag_url }}" class="profile-country-flag" alt="{{ workflow_profile.country.name }} Flag">
                 {% endif %}
                 <div class="profile-avatar">
+                    {% if workflow_profile.photo %}
+                    <img src="{{ workflow_profile.photo.url }}" alt="{{ request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    {% else %}
                     {{ request.user.username|first|upper }}
+                    {% endif %}
                 </div>
-                <div>
-                    <div style="font-weight: 600; font-size: 0.875rem;">{{ request.user.username }}</div>
+                <div style="min-width: 0;">
+                    <div style="font-weight: 600; font-size: 0.875rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {% if request.user.first_name %}
+                            {{ request.user.first_name }} {{ request.user.last_name }}
+                        {% else %}
+                            {{ request.user.username }}
+                        {% endif %}
+                    </div>
                     <div style="font-size: 0.75rem; opacity: 0.7;">{{ workflow_role_label }}</div>
                 </div>
-                <i class="fas fa-chevron-down" style="font-size: 0.75rem; opacity: 0.7;"></i>
+                <i class="fas fa-chevron-down" style="font-size: 0.75rem; opacity: 0.7; flex-shrink: 0;"></i>
             </div>
 
             <div class="profile-dropdown-content">
                 <div class="dropdown-header">
-                    <div style="font-weight: 600;">{{ request.user.username }}</div>
+                    <div style="font-weight: 600;">
+                        {% if request.user.first_name %}
+                            {{ request.user.first_name }} {{ request.user.last_name }}
+                        {% else %}
+                            {{ request.user.username }}
+                        {% endif %}
+                    </div>
                     <div style="font-size: 0.875rem; opacity: 0.7;">{{ workflow_role_label }}</div>
                 </div>
 
                 <a href="{% url 'profile_settings' %}" class="dropdown-item">
                     <i class="fas fa-user"></i>
-                    <span>Profile Settings</span>
+                    <span>Profile</span>
                 </a>
 
                 <a href="{% url 'notification_list' %}" class="dropdown-item">

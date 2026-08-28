@@ -34,12 +34,12 @@ test('factory review, parallel approvals, green light and final close work end t
   })) {
     await loginAs(page, credentials);
     await page.goto('/approvals/');
-    await expect(page.getByRole('heading', { name: /Approval Inbox/i })).toBeVisible();
-    await page.getByRole('link', { name: /Review Complaint/i }).first().click();
+    await expect(page.getByRole('heading', { name: /Approvals Workspace/i })).toBeVisible();
+    await page.getByRole('link', { name: /Full Review Page/i }).first().click();
     await page.getByLabel('Approve').check();
     await page.getByLabel(/Review comment/i).fill(`${role} approves the verified factory action plan.`);
     await page.getByRole('button', { name: /Submit Review/i }).click();
-    await expect(page.getByRole('heading', { name: /Approval Inbox/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Approvals Workspace/i })).toBeVisible();
   }
 
   await loginAs(page, workflowUsers.factory);

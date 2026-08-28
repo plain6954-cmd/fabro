@@ -1,996 +1,2062 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Control Panel</title> 
-    {% load static %}
-
-   
+    <title>ERP Admin Suite - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style>
+    :root {
+        --erp-bg: #0b0c10;
+        --erp-topbar: #161b22;
+        --erp-sidebar: #0f141c;
+        --erp-card: #161b22;
+        --erp-card-border: #21262d;
+        --erp-accent: #e63946;
+        --erp-accent-hover: #ff4d5a;
+        --erp-accent-subtle: rgba(230, 57, 70, 0.12);
+        --erp-text-main: #f0f6fc;
+        --erp-text-muted: #8b949e;
+        --erp-text-dim: #6e7681;
+        --erp-input-bg: #0d1117;
+        --erp-input-border: #30363d;
+        --erp-pill-bg: #21262d;
+        --erp-pill-active: #e63946;
+        --erp-online-green: #2ea043;
+        --erp-badge-admin: #8957e5;
+    }
+
     * {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
     }
 
     body {
-        margin: 0;
-        padding: 0;
-        background-image:
-            radial-gradient(circle, rgba(220, 38, 38, 0.22) 0 1px, transparent 1.7px),
-            linear-gradient(115deg, transparent 0%, rgba(220, 38, 38, 0.055) 42%, rgba(255, 255, 255, 0.035) 50%, transparent 58%),
-            radial-gradient(circle, rgba(220, 38, 38, 0.08) 0 1px, transparent 1.5px),
-            linear-gradient(rgba(10, 10, 12, 0.92), rgba(10, 10, 12, 0.95)),
-            url("/static/seat-background.webp") !important;
-        background-position: 0 0, center, 13px 13px, center, center !important;
-        background-size: 28px 28px, 100% 100%, 56px 56px, 100% 100%, cover !important;
-        background-attachment: fixed !important;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--erp-bg);
+        color: var(--erp-text-main);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 
-    .admin-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .admin-header {
-        text-align: center;
-        margin-bottom: 20px;
-        padding: 15px 0;
-    }
-
-    .admin-header h1 {
-        color: #ffffff;
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-
-    .admin-header p {
-        color: #a0a0b8;
-        font-size: 1.1rem;
-        margin-top: 10px;
-    }
-
-    .admin-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-
-    .admin-section {
-        background: rgba(18, 18, 20, 0.85);
-        border-radius: 12px;
-        padding: 18px 22px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        border: 1px solid rgba(220, 38, 38, 0.12);
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
-    }
-
-    .admin-section:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-        border-color: rgba(220, 38, 38, 0.25);
-    }
-
-    .admin-section h2 {
-        color: #ef4444;
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin: 0 0 14px 0;
-        padding-bottom: 8px;
-        border-bottom: 2px solid rgba(220, 38, 38, 0.25);
+    /* TOP NAVIGATION BAR */
+    .erp-topbar {
+        height: 48px;
+        background: var(--erp-topbar);
+        border-bottom: 1px solid var(--erp-card-border);
         display: flex;
         align-items: center;
-        gap: 10px;
+        justify-content: space-between;
+        padding: 0 1rem;
+        z-index: 100;
+        flex-shrink: 0;
     }
 
-    .admin-section h2::before {
-        content: '';
-        width: 4px;
-        height: 20px;
-        background: linear-gradient(135deg, #dc2626, #ef4444);
-        border-radius: 2px;
+    .erp-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
     }
 
-    .form-group {
-        margin-bottom: 12px;
-    }
-
-    .form-group label {
-        display: block;
-        color: #e0e0e8;
-        font-weight: 500;
-        margin-bottom: 8px;
+    .erp-logo-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: var(--erp-text-main);
+        font-weight: 700;
         font-size: 0.95rem;
+        letter-spacing: 0.02em;
     }
 
-    .form-group input,
-    .form-group select {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid #3a3a4f;
-        border-radius: 8px;
-        background: rgba(30, 30, 40, 0.8);
-        color: #ffffff;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
+    .erp-logo-brand img {
+        height: 26px;
+        width: auto;
+        object-fit: contain;
     }
 
-    .form-group input:focus,
-    .form-group select:focus {
-        outline: none;
-        border-color: #ef4444;
-        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
-        background: rgba(58, 58, 79, 1);
-    }
-
-    .btn {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
+    .erp-logo-badge {
+        background: linear-gradient(135deg, #e63946, #c1121f);
+        color: white;
+        font-size: 0.65rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+    }
+
+    /* Central Module Tabs */
+    .erp-topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .erp-nav-tab {
+        padding: 0.35rem 0.75rem;
+        color: var(--erp-text-muted);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+
+    .erp-nav-tab:hover {
+        color: var(--erp-text-main);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .erp-nav-tab.active {
+        color: #ffffff;
+        background: var(--erp-accent-subtle);
+        border: 1px solid rgba(230, 57, 70, 0.3);
+        color: #ff6b77;
+    }
+
+    .erp-topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+    }
+
+    .erp-portal-link {
+        color: var(--erp-text-muted);
+        text-decoration: none;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.28rem 0.65rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--erp-card-border);
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .erp-portal-link:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--erp-text-main);
+    }
+
+    .erp-user-capsule {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--erp-text-main);
+    }
+
+    .erp-avatar-xs {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e63946, #c1121f);
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.72rem;
+        overflow: hidden;
+    }
+
+    .erp-avatar-xs img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* MAIN ERP BODY */
+    .erp-layout-container {
+        display: flex;
+        flex: 1;
+        height: calc(100vh - 48px);
+        overflow: hidden;
+    }
+
+    /* Left Icon Sidebar */
+    .erp-icon-sidebar {
+        width: 68px;
+        background: var(--erp-sidebar);
+        border-right: 1px solid var(--erp-card-border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.75rem 0;
+        gap: 0.35rem;
+        flex-shrink: 0;
+        z-index: 50;
+    }
+
+    .erp-sidebar-btn {
+        width: 52px;
+        height: 48px;
+        border-radius: 8px;
+        background: transparent;
+        border: none;
+        color: var(--erp-text-muted);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-decoration: none;
+    }
+
+    .erp-sidebar-btn i {
+        font-size: 1.15rem;
+    }
+
+    .erp-sidebar-btn:hover {
+        color: var(--erp-text-main);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .erp-sidebar-btn.active {
+        color: #ffffff;
+        background: var(--erp-accent);
+        box-shadow: 0 2px 10px rgba(230, 57, 70, 0.4);
+    }
+
+    /* Workspace Content Area */
+    .erp-workspace {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #0d1117;
+    }
+
+    /* Tab Panes */
+    .erp-tab-pane {
+        display: none;
+        flex: 1;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .erp-tab-pane.active {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* MODULE ACTION SUB-HEADER */
+    .erp-action-subheader {
+        height: 48px;
+        background: var(--erp-card);
+        border-bottom: 1px solid var(--erp-card-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem;
+        flex-shrink: 0;
+        gap: 0.75rem;
+    }
+
+    .erp-subheader-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .btn-erp-new {
+        background: var(--erp-accent);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.15s ease;
+        box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
+    }
+
+    .btn-erp-new:hover {
+        background: var(--erp-accent-hover);
+        transform: translateY(-1px);
+    }
+
+    .erp-module-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--erp-text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .erp-search-container {
+        flex: 1;
+        max-width: 460px;
+        position: relative;
+    }
+
+    .erp-search-input {
+        width: 100%;
+        background: var(--erp-input-bg);
+        border: 1px solid var(--erp-input-border);
+        border-radius: 6px;
+        padding: 0.35rem 0.75rem 0.35rem 2rem;
+        color: var(--erp-text-main);
+        font-size: 0.82rem;
+        outline: none;
+        transition: all 0.15s ease;
+    }
+
+    .erp-search-input:focus {
+        border-color: var(--erp-accent);
+        box-shadow: 0 0 0 2px var(--erp-accent-subtle);
+    }
+
+    .erp-search-icon {
+        position: absolute;
+        left: 0.65rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--erp-text-dim);
+        font-size: 0.8rem;
+    }
+
+    .erp-subheader-right {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+    }
+
+    .erp-record-counter {
+        font-size: 0.78rem;
+        color: var(--erp-text-muted);
+        font-weight: 600;
+    }
+
+    .erp-view-switcher {
+        display: flex;
+        background: var(--erp-input-bg);
+        border: 1px solid var(--erp-input-border);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .erp-view-btn {
+        background: transparent;
+        border: none;
+        color: var(--erp-text-muted);
+        padding: 0.3rem 0.55rem;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .erp-view-btn.active {
+        background: var(--erp-pill-bg);
+        color: var(--erp-text-main);
+    }
+
+    /* DASHBOARD VIEW */
+    .erp-dashboard-pane {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .erp-stats-grid-6 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .erp-stat-tile {
+        background: var(--erp-card);
+        border: 1px solid var(--erp-card-border);
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
         position: relative;
         overflow: hidden;
     }
 
-    .btn-primary {
-        background: linear-gradient(135deg, #dc2626, #ef4444);
-        color: white;
-        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.35);
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45);
-    }
-
-    .btn-secondary {
-        background: linear-gradient(135deg, #6c757d, #8a9ba8);
-        color: white;
-    }
-
-    .btn-danger {
-        background: linear-gradient(135deg, #dc3545, #e74c3c);
-        color: white;
-    }
-
-    .btn-edit {
-        background: linear-gradient(135deg, #28a745, #34ce57);
-        color: white;
-        padding: 6px 10px;
-        font-size: 0.75rem;
-        margin-right: 8px;
-    }
-
-    .btn-delete {
-        background: linear-gradient(135deg, #dc3545, #e74c3c);
-        color: white;
-        padding: 6px 10px;
-        font-size: 0.75rem;
-    }
-
-    .admin-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 15px;
-        background: rgba(18, 18, 20, 0.85);
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    }
-
-    .admin-table th {
-        background: rgba(25, 25, 28, 0.95);
-        color: #ef4444;
-        padding: 10px 14px;
-        text-align: left;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-size: 0.8rem;
-        border-bottom: 2px solid rgba(220, 38, 38, 0.25);
-    }
-
-    .admin-table td {
-        padding: 10px 14px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-        color: #e0e0e8;
-        vertical-align: middle;
-        font-size: 0.9rem;
-    }
-
-    .admin-table tr:hover {
-        background: rgba(220, 38, 38, 0.06);
-    }
-
-    .status-badge {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .status-true {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-        border: 1px solid rgba(40, 167, 69, 0.3);
-    }
-
-    .status-false {
-        background: rgba(220, 53, 69, 0.2);
-        color: #dc3545;
-        border: 1px solid rgba(220, 53, 69, 0.3);
-    }
-
-    .permission-tag {
-        background: linear-gradient(135deg, #6c757d, #8a9ba8);
-        color: white;
-        padding: 4px 10px;
-        border-radius: 15px;
-        font-size: 0.75rem;
-        margin: 2px;
-        display: inline-block;
-        font-weight: 500;
-    }
-
-    .activity-log-container {
-        background: rgba(18, 18, 20, 0.85);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        border: 1px solid rgba(220, 38, 38, 0.12);
-        height: 320px;
-        display: flex;
-        flex-direction: column;
-        backdrop-filter: blur(10px);
-    }
-
-    .activity-log-header {
-        color: #ef4444;
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin: 0 0 14px 0;
-        padding-bottom: 8px;
-        border-bottom: 2px solid rgba(220, 38, 38, 0.25);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-shrink: 0;
-    }
-
-    .activity-log-header::before {
+    .erp-stat-tile::before {
         content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
         width: 4px;
-        height: 20px;
-        background: linear-gradient(135deg, #dc2626, #ef4444);
-        border-radius: 2px;
+        background: var(--erp-accent);
     }
 
-    .activity-log-list {
-        flex: 1;
-        overflow-y: auto;
-        padding-right: 10px;
-        margin-right: -10px;
+    .erp-stat-tile:hover {
+        transform: translateY(-2px);
+        border-color: rgba(230, 57, 70, 0.4);
     }
 
-    .activity-log-list::-webkit-scrollbar {
-        width: 7px;
+    .erp-stat-number {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: var(--erp-text-main);
+        line-height: 1.1;
+        margin-bottom: 0.15rem;
     }
 
-    .activity-log-list::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.025);
-        border-radius: 999px;
+    .erp-stat-label {
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--erp-text-muted);
+        font-weight: 700;
     }
 
-    .activity-log-list::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, rgba(248, 113, 113, 0.62), rgba(185, 28, 28, 0.68));
-        border: 2px solid rgba(18, 18, 20, 0.72);
-        border-radius: 999px;
-    }
-
-    .activity-log-list::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, rgba(252, 165, 165, 0.78), rgba(220, 38, 38, 0.82));
-    }
-
-    .activity-item {
-        background: rgba(15, 15, 15, 0.6);
+    .erp-stat-icon-wrapper {
+        width: 42px;
+        height: 42px;
         border-radius: 8px;
-        padding: 10px 12px;
-        margin-bottom: 8px;
-        border-left: 4px solid #dc2626;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
-    }
-
-    .activity-item:hover {
-        background: rgba(15, 15, 15, 0.8);
-        transform: translateX(2px);
-    }
-
-    .activity-time {
-        color: #ef4444;
-        font-weight: 600;
-        font-size: 0.8rem;
-        margin-bottom: 2px;
-    }
-
-    .activity-description {
-        color: #e0e0e8;
-        font-size: 0.85rem;
-        line-height: 1.4;
-    }
-
-    .activity-user {
-        color: #f87171;
-        font-weight: 600;
-    }
-
-    .active-users-list {
-        background: rgba(15, 15, 15, 0.4);
-        border-radius: 10px;
-        padding: 12px;
-        max-height: 180px;
-        overflow-y: auto;
-    }
-
-    .active-user-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .active-user-item:last-child {
-        border-bottom: none;
-    }
-
-    .user-avatar {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #dc2626, #ef4444);
+        background: var(--erp-accent-subtle);
+        color: var(--erp-accent);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-weight: 600;
-        font-size: 0.75rem;
+        font-size: 1.25rem;
     }
 
-    .user-info {
+    .erp-dash-split-row {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 1.25rem;
         flex: 1;
+        min-height: 340px;
     }
 
-    .user-name {
-        color: #e0e0e8;
+    .erp-dash-card {
+        background: var(--erp-card);
+        border: 1px solid var(--erp-card-border);
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .erp-dash-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--erp-card-border);
+    }
+
+    .erp-dash-card-title {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--erp-text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    /* USERS WORKSPACE */
+    .erp-users-workspace-body {
+        display: flex;
+        flex: 1;
+        height: calc(100% - 48px);
+        overflow: hidden;
+    }
+
+    /* Left Faceted Filter Drawer */
+    .erp-filter-pane {
+        width: 220px;
+        background: #11151c;
+        border-right: 1px solid var(--erp-card-border);
+        padding: 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+
+    .erp-filter-section-title {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--erp-text-dim);
+        font-weight: 800;
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .erp-filter-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .erp-filter-item {
+        padding: 0.35rem 0.55rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
         font-weight: 600;
-        margin-bottom: 2px;
+        color: var(--erp-text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.12s ease;
     }
 
-    .user-login-time {
-        color: #a0a0b8;
-        font-size: 0.8rem;
+    .erp-filter-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--erp-text-main);
     }
 
-    .modal {
+    .erp-filter-item.active {
+        background: var(--erp-accent-subtle);
+        color: #ff6b77;
+        font-weight: 700;
+    }
+
+    .erp-filter-count {
+        background: rgba(255, 255, 255, 0.06);
+        padding: 0.1rem 0.4rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        color: var(--erp-text-dim);
+    }
+
+    .erp-filter-item.active .erp-filter-count {
+        background: var(--erp-accent);
+        color: white;
+    }
+
+    /* Main Kanban Container */
+    .erp-users-content-pane {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .erp-kanban-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 0.85rem;
+    }
+
+    /* Odoo-style Employee Card (Reference Image 2) */
+    .erp-user-card {
+        background: var(--erp-card);
+        border: 1px solid var(--erp-card-border);
+        border-radius: 8px;
+        padding: 0.85rem;
+        display: flex;
+        gap: 0.85rem;
+        align-items: flex-start;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        position: relative;
+    }
+
+    .erp-user-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(230, 57, 70, 0.45);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .erp-card-avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 8px;
+        background: #21262d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 1.35rem;
+        flex-shrink: 0;
+        overflow: hidden;
+        border: 1px solid var(--erp-card-border);
+    }
+
+    .erp-card-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .erp-card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 0;
+    }
+
+    .erp-card-name-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .erp-card-name {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--erp-text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .erp-online-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--erp-online-green);
+        box-shadow: 0 0 6px var(--erp-online-green);
+        flex-shrink: 0;
+    }
+
+    .erp-offline-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #484f58;
+        flex-shrink: 0;
+    }
+
+    .erp-card-role-title {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #ff6b77;
+        margin-bottom: 0.15rem;
+    }
+
+    .erp-card-info-item {
+        font-size: 0.74rem;
+        color: var(--erp-text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .erp-card-info-item i {
+        color: var(--erp-text-dim);
+        font-size: 0.72rem;
+        width: 12px;
+    }
+
+    .erp-card-footer-tags {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-top: 0.25rem;
+        flex-wrap: wrap;
+    }
+
+    .erp-card-tag {
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        background: var(--erp-pill-bg);
+        color: var(--erp-text-muted);
+        border: 1px solid var(--erp-card-border);
+    }
+
+    .erp-card-tag.admin {
+        background: rgba(137, 87, 229, 0.15);
+        color: #d2a8ff;
+        border-color: rgba(137, 87, 229, 0.3);
+    }
+
+    /* Table List View */
+    .erp-table-pane {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .erp-admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+    }
+
+    .erp-admin-table th {
+        background: #161b22;
+        color: var(--erp-text-muted);
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        padding: 0.55rem 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--erp-card-border);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    .erp-admin-table td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        color: var(--erp-text-main);
+        vertical-align: middle;
+    }
+
+    .erp-admin-table tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* MODALS & DIRECT EDITORS */
+    .erp-modal {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.7);
-        backdrop-filter: blur(5px);
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(6px);
         z-index: 1000;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 1rem;
     }
 
-    .modal-content {
-        background: rgba(18, 18, 20, 0.95);
+    .erp-modal-box {
+        background: #161b22;
+        border: 1px solid var(--erp-card-border);
         border-radius: 12px;
-        padding: 20px;
-        max-width: 450px;
-        width: 90%;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        border: 1px solid rgba(220, 38, 38, 0.25);
-        position: relative;
-        backdrop-filter: blur(15px);
+        width: 100%;
+        max-width: 580px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
     }
 
-    .modal-content h3 {
-        color: #ef4444;
-        margin: 0 0 20px 0;
-        font-size: 1.3rem;
-        font-weight: 600;
+    .erp-modal-header {
+        padding: 0.85rem 1.25rem;
+        background: #0d1117;
+        border-bottom: 1px solid var(--erp-card-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
 
-    .close {
-        position: absolute;
-        top: 15px;
-        right: 20px;
-        font-size: 24px;
-        color: #a0a0b8;
+    .erp-modal-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--erp-text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .erp-modal-close {
+        background: transparent;
+        border: none;
+        color: var(--erp-text-muted);
+        font-size: 1.1rem;
         cursor: pointer;
-        transition: color 0.3s ease;
+        padding: 0.2rem;
     }
 
-    .close:hover {
-        color: #ef4444;
+    .erp-modal-close:hover {
+        color: var(--erp-accent);
     }
 
-    .full-width-section {
+    .erp-modal-body {
+        padding: 1.25rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .erp-form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .erp-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .erp-form-group.full-width {
         grid-column: 1 / -1;
     }
 
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
+    .erp-form-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--erp-text-muted);
     }
 
-    .stat-card {
-        background: rgba(18, 18, 20, 0.85);
-        border-radius: 10px;
-        padding: 12px 15px;
-        text-align: center;
-        border: 1px solid rgba(220, 38, 38, 0.12);
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
+    .erp-form-input,
+    .erp-form-select {
+        background: var(--erp-input-bg);
+        border: 1px solid var(--erp-input-border);
+        border-radius: 6px;
+        padding: 0.42rem 0.65rem;
+        color: var(--erp-text-main);
+        font-size: 0.82rem;
+        outline: none;
+        transition: all 0.15s ease;
     }
 
-    .stat-card:hover {
-        transform: translateY(-1px);
-        border-color: rgba(220, 38, 38, 0.35);
+    .erp-form-input:focus,
+    .erp-form-select:focus {
+        border-color: var(--erp-accent);
+        box-shadow: 0 0 0 2px var(--erp-accent-subtle);
     }
 
-    .stat-number {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #ef4444;
-        margin-bottom: 3px;
-    }
-
-    .stat-label {
-        color: #a0a0b8;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    @media (max-width: 768px) {
-        .admin-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .admin-container {
-            padding: 10px;
-        }
-        
-        .admin-section {
-            padding: 20px;
-        }
-        
-        .admin-header h1 {
-            font-size: 2rem;
-        }
-    }
-
-    .permissions-scroll-container {
-        max-height: 400px;
-        overflow-y: auto;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        background: rgba(18, 18, 20, 0.5);
-        padding: 12px;
-        margin-top: 5px;
-    }
-
-    .permissions-checkbox-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .permissions-checkbox-list li {
-        margin-bottom: 8px;
-        display: block;
-    }
-
-    .permissions-checkbox-list li:last-child {
-        margin-bottom: 0;
-    }
-
-    .permissions-checkbox-list label {
+    .erp-modal-footer {
+        padding: 0.75rem 1.25rem;
+        background: #0d1117;
+        border-top: 1px solid var(--erp-card-border);
         display: flex;
         align-items: center;
-        gap: 8px;
-        color: #e0e0e8;
-        font-size: 0.85rem;
-        cursor: pointer;
-        user-select: none;
-        padding: 6px 8px;
+        justify-content: space-between;
+    }
+
+    .btn-secondary {
+        background: var(--erp-pill-bg);
+        border: 1px solid var(--erp-card-border);
+        color: var(--erp-text-main);
+        padding: 0.38rem 0.85rem;
         border-radius: 6px;
-        transition: background 0.2s ease;
-    }
-
-    .permissions-checkbox-list label:hover {
-        background: rgba(220, 38, 38, 0.08);
-        color: #ffffff;
-    }
-
-    .permissions-checkbox-list input[type="checkbox"] {
-        accent-color: #ef4444;
+        font-size: 0.8rem;
+        font-weight: 600;
         cursor: pointer;
-        width: 14px;
-        height: 14px;
     }
 
-    .permissions-scroll-container::-webkit-scrollbar {
+    .btn-danger {
+        background: rgba(230, 57, 70, 0.15);
+        border: 1px solid rgba(230, 57, 70, 0.3);
+        color: #ff6b77;
+        padding: 0.38rem 0.85rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-danger:hover {
+        background: var(--erp-accent);
+        color: white;
+    }
+
+    /* Toast & Status Pill Messages */
+    .save-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.74rem;
+        font-weight: 600;
+    }
+    .save-status-pill.success {
+        background: rgba(46, 160, 67, 0.15);
+        border: 1px solid rgba(46, 160, 67, 0.3);
+        color: #3fb950;
+    }
+    .save-status-pill.error {
+        background: rgba(230, 57, 70, 0.15);
+        border: 1px solid rgba(230, 57, 70, 0.3);
+        color: #ff6b77;
+    }
+
+    .erp-toast-container {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 9999;
+        pointer-events: none;
+    }
+
+    .erp-toast {
+        pointer-events: auto;
+        background: #161b22;
+        border: 1px solid var(--erp-card-border);
+        border-left: 4px solid #2ea043;
+        padding: 0.65rem 1rem;
+        border-radius: 8px;
+        color: var(--erp-text-main);
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        animation: fadeInToast 0.25s ease forwards;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .erp-toast.error {
+        border-left-color: #e63946;
+    }
+
+    .erp-toast.fade-out {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    @keyframes fadeInToast {
+        from { opacity: 0; transform: translateY(8px) scale(0.96); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
         width: 6px;
+        height: 6px;
     }
-
-    .permissions-scroll-container::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.02);
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #30363d;
         border-radius: 999px;
     }
-
-    .permissions-scroll-container::-webkit-scrollbar-thumb {
-        background: rgba(220, 38, 38, 0.25);
-        border-radius: 999px;
-    }
-
-    .permissions-scroll-container::-webkit-scrollbar-thumb:hover {
-        background: rgba(220, 38, 38, 0.45);
+    ::-webkit-scrollbar-thumb:hover {
+        background: #484f58;
     }
     </style>
+</head>
+<body>
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="erp-topbar">
+        <div class="erp-topbar-left">
+            <a href="{% url 'admin_panel' %}" class="erp-logo-brand">
+                <img src="/static/FABRO__BRAND ICON_FINAL_CMYK.png" alt="Fabro">
+                <span>FABRO</span>
+                <span class="erp-logo-badge">ERP ADMIN</span>
+            </a>
+
+            <!-- Central Sub-Navigation Tabs -->
+            <nav class="erp-topbar-nav">
+                <div class="erp-nav-tab active" onclick="switchErpTab('dashboard')">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </div>
+                <div class="erp-nav-tab" onclick="switchErpTab('users')">
+                    <i class="fas fa-users"></i> Users
+                </div>
+                <div class="erp-nav-tab" onclick="switchErpTab('skus')">
+                    <i class="fas fa-box-open"></i> SKUs
+                </div>
+                <div class="erp-nav-tab" onclick="switchErpTab('brands')">
+                    <i class="fas fa-car"></i> Vehicle Catalog
+                </div>
+                <div class="erp-nav-tab" onclick="switchErpTab('master')">
+                    <i class="fas fa-sliders-h"></i> Master Settings
+                </div>
+                <div class="erp-nav-tab" onclick="switchErpTab('sessions')">
+                    <i class="fas fa-network-wired"></i> Active Sessions ({{ active_sessions_count }})
+                </div>
+                <div class="erp-nav-tab" onclick="switchErpTab('logs')">
+                    <i class="fas fa-history"></i> Activity Logs
+                </div>
+            </nav>
+        </div>
+
+        <div class="erp-topbar-right">
+            <a href="{% url 'complaint_list' %}" class="erp-portal-link" title="Return to Main Portal">
+                <i class="fas fa-arrow-left"></i> Back to Portal
+            </a>
+            <div class="erp-user-capsule">
+                <div class="erp-avatar-xs">
+                    {% if request.user.workflow_profile.photo %}
+                        <img src="{{ request.user.workflow_profile.photo.url }}" alt="{{ request.user.username }}">
+                    {% else %}
+                        {{ request.user.username|first|upper }}
+                    {% endif %}
+                </div>
+                <span>{{ request.user.first_name|default:request.user.username }}</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN ERP WORKSPACE LAYOUT -->
+    <div class="erp-layout-container">
+
+        <!-- LEFT ICON SIDEBAR -->
+        <aside class="erp-icon-sidebar">
+            <button class="erp-sidebar-btn active" id="side-dashboard" onclick="switchErpTab('dashboard')" title="Dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dash</span>
+            </button>
+            <button class="erp-sidebar-btn" id="side-users" onclick="switchErpTab('users')" title="User Directory">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </button>
+            <button class="erp-sidebar-btn" id="side-skus" onclick="switchErpTab('skus')" title="SKU Catalog">
+                <i class="fas fa-box-open"></i>
+                <span>SKUs</span>
+            </button>
+            <button class="erp-sidebar-btn" id="side-brands" onclick="switchErpTab('brands')" title="Vehicle Brands & Models">
+                <i class="fas fa-car"></i>
+                <span>Brands</span>
+            </button>
+            <button class="erp-sidebar-btn" id="side-master" onclick="switchErpTab('master')" title="Master Settings">
+                <i class="fas fa-sliders-h"></i>
+                <span>Master</span>
+            </button>
+            <button class="erp-sidebar-btn" id="side-sessions" onclick="switchErpTab('sessions')" title="Active Sessions">
+                <i class="fas fa-network-wired"></i>
+                <span>Sessions</span>
+            </button>
+            <button class="erp-sidebar-btn" id="side-logs" onclick="switchErpTab('logs')" title="Activity Logs">
+                <i class="fas fa-history"></i>
+                <span>Logs</span>
+            </button>
+        </aside>
+
+        <!-- MAIN WORKSPACE -->
+        <main class="erp-workspace">
+
+            <!-- ========================================================
+                 TAB 1: DEFAULT MINIMAL DASHBOARD
+                 ======================================================== -->
+            <div id="tab-dashboard" class="erp-tab-pane active">
+                <div class="erp-dashboard-pane">
+
+                    <!-- 6 Essential Metric Tiles -->
+                    <div class="erp-stats-grid-6">
+                        <div class="erp-stat-tile">
+                            <div>
+                                <div class="erp-stat-number">{{ total_users_count }}</div>
+                                <div class="erp-stat-label">Total Users</div>
+                            </div>
+                            <div class="erp-stat-icon-wrapper"><i class="fas fa-users"></i></div>
+                        </div>
+
+                        <div class="erp-stat-tile" style="border-left-color: #2ea043;">
+                            <div>
+                                <div class="erp-stat-number" style="color: #3fb950;">{{ active_users_count }}</div>
+                                <div class="erp-stat-label">Active Users Online</div>
+                            </div>
+                            <div class="erp-stat-icon-wrapper" style="background: rgba(46, 160, 67, 0.15); color: #3fb950;">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                        </div>
+
+                        <div class="erp-stat-tile" style="border-left-color: #388bfd;">
+                            <div>
+                                <div class="erp-stat-number" style="color: #58a6ff;">{{ total_complaints_count }}</div>
+                                <div class="erp-stat-label">Total Complaints</div>
+                            </div>
+                            <div class="erp-stat-icon-wrapper" style="background: rgba(56, 139, 253, 0.15); color: #58a6ff;">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                        </div>
+
+                        <div class="erp-stat-tile" style="border-left-color: #a371f7;">
+                            <div>
+                                <div class="erp-stat-number" style="color: #bc8cff;">{{ complaints_resolved_count }}</div>
+                                <div class="erp-stat-label">Complaints Resolved</div>
+                            </div>
+                            <div class="erp-stat-icon-wrapper" style="background: rgba(163, 113, 247, 0.15); color: #bc8cff;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+
+                        <div class="erp-stat-tile" style="border-left-color: #d29922;">
+                            <div>
+                                <div class="erp-stat-number" style="color: #e3b341;">{{ complaints_in_progress_count }}</div>
+                                <div class="erp-stat-label">Active Workflow</div>
+                            </div>
+                            <div class="erp-stat-icon-wrapper" style="background: rgba(210, 153, 34, 0.15); color: #e3b341;">
+                                <i class="fas fa-spinner"></i>
+                            </div>
+                        </div>
+
+                        <div class="erp-stat-tile" style="border-left-color: #f778ba;">
+                            <div>
+                                <div class="erp-stat-number" style="color: #f778ba;">{{ active_sessions_count }}</div>
+                                <div class="erp-stat-label">Active Sessions</div>
+                            </div>
+                            <div class="erp-stat-icon-wrapper" style="background: rgba(247, 120, 186, 0.15); color: #f778ba;">
+                                <i class="fas fa-wifi"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Split Section: Active Online Users & Recent Activity -->
+                    <div class="erp-dash-split-row">
+                        <!-- Active Online Users -->
+                        <div class="erp-dash-card">
+                            <div class="erp-dash-card-header">
+                                <span class="erp-dash-card-title">
+                                    <i class="fas fa-wifi" style="color: #2ea043;"></i> Live Active Sessions ({{ active_sessions_count }})
+                                </span>
+                                {% if active_sessions|length > 1 %}
+                                <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-danger" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;" onclick="return confirm('Terminate all other user sessions?');">
+                                        Terminate Others
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; overflow-y: auto;">
+                                <table class="erp-admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Login Time</th>
+                                            <th>IP</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for session in active_sessions %}
+                                        <tr>
+                                            <td><strong>{{ session.user.username }}</strong></td>
+                                            <td><span style="font-size: 0.74rem; color: var(--erp-text-muted);">{{ session.login_time|date:"M d, H:i" }}</span></td>
+                                            <td><code>{{ session.ip }}</code></td>
+                                            <td>
+                                                {% if session.session_key == request.session.session_key %}
+                                                    <span style="color: #3fb950; font-weight: 700; font-size: 0.72rem;">CURRENT</span>
+                                                {% else %}
+                                                    <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-danger" style="font-size: 0.68rem; padding: 0.15rem 0.4rem;" onclick="return confirm('Kick this session?');">Kick</button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="4" style="text-align: center; color: var(--erp-text-dim); padding: 15px;">No active sessions.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Recent System Audit Feed -->
+                        <div class="erp-dash-card">
+                            <div class="erp-dash-card-header">
+                                <span class="erp-dash-card-title">
+                                    <i class="fas fa-history" style="color: #e63946;"></i> Live Activity Feed
+                                </span>
+                            </div>
+                            <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem;">
+                                {% for log in activity_logs %}
+                                <div style="background: #0d1117; border-radius: 6px; padding: 0.4rem 0.65rem; border-left: 3px solid #e63946; font-size: 0.76rem;">
+                                    <div style="color: #ff6b77; font-weight: 700; font-size: 0.68rem;">{{ log.timestamp|date:"M d, H:i" }}</div>
+                                    <div><strong style="color: #f0f6fc;">{{ log.user.username }}</strong> {{ log.action }} {{ log.object_type }} <span style="color: var(--erp-text-dim);">→ {{ log.object_name }}</span></div>
+                                </div>
+                                {% empty %}
+                                <p style="text-align: center; color: var(--erp-text-dim); padding: 20px;">No recent activities.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ========================================================
+                 TAB 2: USERS DIRECTORY (Kanban & List with Faceted Filter)
+                 ======================================================== -->
+            <div id="tab-users" class="erp-tab-pane">
+
+                <!-- Action Subheader -->
+                <div class="erp-action-subheader">
+                    <div class="erp-subheader-left">
+                        <button class="btn-erp-new" onclick="openCreateUserModal()">
+                            <i class="fas fa-plus"></i> New
+                        </button>
+                        <span class="erp-module-title">
+                            <i class="fas fa-address-book" style="color: #ff6b77;"></i> Users
+                        </span>
+                    </div>
+
+                    <div class="erp-search-container">
+                        <i class="fas fa-search erp-search-icon"></i>
+                        <input type="text" id="userSearchInput" class="erp-search-input" placeholder="Search by name, username, email, phone, role..." onkeyup="filterUserCards()">
+                    </div>
+
+                    <div class="erp-subheader-right">
+                        <span class="erp-record-counter" id="recordCounter">1-{{ users|length }} / {{ users|length }}</span>
+                        <div class="erp-view-switcher">
+                            <button class="erp-view-btn active" id="view-kanban-btn" onclick="toggleUsersView('kanban')" title="Kanban Card View">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button class="erp-view-btn" id="view-list-btn" onclick="toggleUsersView('list')" title="List Table View">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Workspace (Filters + Grid) -->
+                <div class="erp-users-workspace-body">
+
+                    <!-- Left Faceted Filter Drawer -->
+                    <aside class="erp-filter-pane">
+                        <div>
+                            <div class="erp-filter-section-title"><i class="fas fa-user-tag"></i> Role</div>
+                            <div class="erp-filter-list">
+                                <div class="erp-filter-item active" data-filter-type="role" data-filter-val="all" onclick="applyFacetedFilter('role', 'all', this)">
+                                    <span>All Roles</span>
+                                    <span class="erp-filter-count">{{ users|length }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="country_executive" onclick="applyFacetedFilter('role', 'country_executive', this)">
+                                    <span>Country Executive</span>
+                                    <span class="erp-filter-count">{{ role_counts.country_executive }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="factory_executive" onclick="applyFacetedFilter('role', 'factory_executive', this)">
+                                    <span>Factory Executive</span>
+                                    <span class="erp-filter-count">{{ role_counts.factory_executive }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="PM" onclick="applyFacetedFilter('role', 'PM', this)">
+                                    <span>PM</span>
+                                    <span class="erp-filter-count">{{ role_counts.PM }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="OM" onclick="applyFacetedFilter('role', 'OM', this)">
+                                    <span>OM</span>
+                                    <span class="erp-filter-count">{{ role_counts.OM }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="CAD" onclick="applyFacetedFilter('role', 'CAD', this)">
+                                    <span>CAD</span>
+                                    <span class="erp-filter-count">{{ role_counts.CAD }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="ED" onclick="applyFacetedFilter('role', 'ED', this)">
+                                    <span>ED</span>
+                                    <span class="erp-filter-count">{{ role_counts.ED }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="MD" onclick="applyFacetedFilter('role', 'MD', this)">
+                                    <span>MD</span>
+                                    <span class="erp-filter-count">{{ role_counts.MD }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="admin" onclick="applyFacetedFilter('role', 'admin', this)">
+                                    <span>Admin</span>
+                                    <span class="erp-filter-count">{{ role_counts.admin }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="erp-filter-section-title"><i class="fas fa-globe"></i> Country</div>
+                            <div class="erp-filter-list">
+                                <div class="erp-filter-item active" data-filter-type="country" data-filter-val="all" onclick="applyFacetedFilter('country', 'all', this)">
+                                    <span>All Countries</span>
+                                    <span class="erp-filter-count">{{ users|length }}</span>
+                                </div>
+                                {% for country in workflow_countries %}
+                                <div class="erp-filter-item" data-filter-type="country" data-filter-val="{{ country.id }}" onclick="applyFacetedFilter('country', '{{ country.id }}', this)">
+                                    <span>{{ country.name }}</span>
+                                    <span class="erp-filter-count">{{ country.user_count|default:"0" }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- Users Kanban / List Pane -->
+                    <section class="erp-users-content-pane">
+
+                        <!-- 1. Kanban View -->
+                        <div id="users-kanban-view" class="erp-kanban-grid">
+                            {% for u in users %}
+                            <div class="erp-user-card"
+                                 data-user-id="{{ u.id }}"
+                                 data-username="{{ u.username }}"
+                                 data-email="{{ u.email }}"
+                                 data-first-name="{{ u.first_name }}"
+                                 data-last-name="{{ u.last_name }}"
+                                 data-phone="{{ u.workflow_profile.phone_number }}"
+                                 data-role="{% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}{{ u.workflow_profile.approval_role }}{% else %}{{ u.workflow_profile.role }}{% endif %}"
+                                 data-country-id="{{ u.workflow_profile.country_id|default:'' }}"
+                                 data-department="{{ u.workflow_profile.department|default:'' }}"
+                                 data-can-factory="{% if u.workflow_profile.can_receive_factory_assignments %}1{% else %}0{% endif %}"
+                                 data-is-staff="{% if u.is_staff %}1{% else %}0{% endif %}"
+                                 data-is-superuser="{% if u.is_superuser %}1{% else %}0{% endif %}"
+                                 onclick="openEditUserCard(this)">
+
+                                <!-- Card Avatar -->
+                                <div class="erp-card-avatar">
+                                    {% if u.workflow_profile.photo %}
+                                        <img src="{{ u.workflow_profile.photo.url }}" alt="{{ u.username }}">
+                                    {% else %}
+                                        {{ u.first_name|default:u.username|first|upper }}
+                                    {% endif %}
+                                </div>
+
+                                <!-- Card Details -->
+                                <div class="erp-card-body">
+                                    <div class="erp-card-name-row">
+                                        <span class="erp-card-name">
+                                            {% if u.first_name or u.last_name %}
+                                                {{ u.first_name }} {{ u.last_name }}
+                                            {% else %}
+                                                {{ u.username }}
+                                            {% endif %}
+                                        </span>
+                                        {% if u.is_online %}
+                                            <span class="erp-online-dot" title="Online Now"></span>
+                                        {% else %}
+                                            <span class="erp-offline-dot" title="Offline"></span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="erp-card-role-title">
+                                        {% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}
+                                            {{ u.workflow_profile.approval_role }}
+                                        {% else %}
+                                            {{ u.workflow_profile.get_role_display|default:"User" }}
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="erp-card-info-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>{{ u.email|default:"No email set" }}</span>
+                                    </div>
+
+                                    <div class="erp-card-info-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span>{{ u.workflow_profile.phone_number|default:"No phone" }}</span>
+                                    </div>
+
+                                    <div class="erp-card-footer-tags">
+                                        {% if u.workflow_profile.country %}
+                                            <span class="erp-card-tag">
+                                                {% if u.workflow_profile.country_flag_url %}
+                                                    <img src="{{ u.workflow_profile.country_flag_url }}" style="width:12px; height:8px; vertical-align:middle;" alt="Flag">
+                                                {% endif %}
+                                                {{ u.workflow_profile.country.name }}
+                                            </span>
+                                        {% endif %}
+                                        {% if u.is_superuser %}
+                                            <span class="erp-card-tag admin">Superuser</span>
+                                        {% elif u.is_staff %}
+                                            <span class="erp-card-tag">Staff</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <p style="color: var(--erp-text-dim); text-align: center; grid-column: 1/-1; padding: 40px;">No users found.</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- 2. Table List View -->
+                        <div id="users-list-view" class="erp-table-pane" style="display: none;">
+                            <table class="erp-admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Full Name</th>
+                                        <th>Role</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Country</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in users %}
+                                    <tr onclick="openEditUserCardById('{{ u.id }}')" style="cursor: pointer;">
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <div class="erp-avatar-xs">
+                                                    {% if u.workflow_profile.photo %}
+                                                        <img src="{{ u.workflow_profile.photo.url }}" alt="{{ u.username }}">
+                                                    {% else %}
+                                                        {{ u.username|first|upper }}
+                                                    {% endif %}
+                                                </div>
+                                                <strong>{{ u.username }}</strong>
+                                            </div>
+                                        </td>
+                                        <td>{{ u.first_name }} {{ u.last_name }}</td>
+                                        <td>
+                                            <span style="color: #ff6b77; font-weight: 700;">
+                                                {% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}
+                                                    {{ u.workflow_profile.approval_role }}
+                                                {% else %}
+                                                    {{ u.workflow_profile.get_role_display|default:"User" }}
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>{{ u.email|default:"—" }}</td>
+                                        <td>{{ u.workflow_profile.phone_number|default:"—" }}</td>
+                                        <td>{{ u.workflow_profile.country.name|default:"—" }}</td>
+                                        <td>
+                                            {% if u.is_online %}
+                                                <span style="color: #3fb950; font-weight: 600;">● Online</span>
+                                            {% else %}
+                                                <span style="color: var(--erp-text-dim);">Offline</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.72rem;">Edit</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </section>
+                </div>
+
+            </div>
+
+            <!-- ========================================================
+                 TAB 3: SKUs MASTER
+                 ======================================================== -->
+            <div id="tab-skus" class="erp-tab-pane">
+                <div class="erp-action-subheader">
+                    <span class="erp-module-title"><i class="fas fa-box-open" style="color: #58a6ff;"></i> SKU Master Catalog</span>
+                    <a href="{% url 'add_sku' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-plus"></i> Add SKU</a>
+                </div>
+                <div style="flex:1; overflow-y:auto; padding:1rem;">
+                    <table class="erp-admin-table">
+                        <thead>
+                            <tr>
+                                <th>SKU Code</th>
+                                <th>Description</th>
+                                <th>Region</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sku in skus %}
+                            <tr>
+                                <td><code>{{ sku.code }}</code></td>
+                                <td>{{ sku.description }}</td>
+                                <td>{{ sku.region.name|default:"—" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" style="text-align:center; color: var(--erp-text-dim); padding:20px;">No SKUs loaded.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ========================================================
+                 TAB 4: VEHICLE BRANDS & MODELS
+                 ======================================================== -->
+            <div id="tab-brands" class="erp-tab-pane">
+                <div class="erp-action-subheader">
+                    <span class="erp-module-title"><i class="fas fa-car" style="color: #bc8cff;"></i> Vehicle Brands & Models</span>
+                    <a href="{% url 'car_details' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-car-side"></i> Manage Catalog</a>
+                </div>
+                <div style="flex:1; overflow-y:auto; padding:1rem;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;">
+                        {% for brand in brands %}
+                        <div class="erp-dash-card">
+                            <div style="display:flex; align-items:center; gap:0.75rem;">
+                                {% if brand.brand_logo %}
+                                    <img src="{{ brand.brand_logo.url }}" style="height:32px; width:auto; object-fit:contain;" alt="{{ brand.name }}">
+                                {% else %}
+                                    <div class="erp-avatar-xs"><i class="fas fa-car"></i></div>
+                                {% endif %}
+                                <strong>{{ brand.name }}</strong>
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--erp-text-muted);">
+                                {{ brand.models.count }} models registered
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p style="color:var(--erp-text-dim); text-align:center; padding:20px;">No brands found.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================
+                 TAB 5: MASTER SETTINGS
+                 ======================================================== -->
+            <div id="tab-master" class="erp-tab-pane">
+                <div class="erp-action-subheader">
+                    <span class="erp-module-title"><i class="fas fa-sliders-h" style="color: #e3b341;"></i> Master Settings</span>
+                    <a href="{% url 'master_settings' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-external-link-alt"></i> Manage Master Settings</a>
+                </div>
+                <div style="flex:1; overflow-y:auto; padding:1rem;">
+                    <table class="erp-admin-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Setting Name</th>
+                                <th>Flag / Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for setting in master_settings %}
+                            <tr>
+                                <td><span class="erp-card-tag">{{ setting.category }}</span></td>
+                                <td><strong>{{ setting.name }}</strong></td>
+                                <td>
+                                    {% if setting.flag_url %}
+                                        <img src="{{ setting.flag_url }}" style="width:16px; height:11px; vertical-align:middle;" alt="Flag">
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" style="text-align:center; color: var(--erp-text-dim); padding:20px;">No master settings found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ========================================================
+                 TAB 6: ACTIVE SESSIONS
+                 ======================================================== -->
+            <div id="tab-sessions" class="erp-tab-pane">
+                <div class="erp-action-subheader">
+                    <span class="erp-module-title"><i class="fas fa-network-wired" style="color: #f778ba;"></i> Live Active User Sessions ({{ active_sessions_count }})</span>
+                    {% if active_sessions|length > 1 %}
+                    <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-danger" onclick="return confirm('Terminate all other user sessions?');">
+                            Terminate Other Sessions
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div style="flex:1; overflow-y:auto; padding:1rem;">
+                    <table class="erp-admin-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Login Time</th>
+                                <th>IP Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in active_sessions %}
+                            <tr>
+                                <td><strong>{{ session.user.username }}</strong></td>
+                                <td>{{ session.login_time }}</td>
+                                <td><code>{{ session.ip }}</code></td>
+                                <td>
+                                    {% if session.session_key == request.session.session_key %}
+                                        <span style="color: #3fb950; font-weight: 700;">CURRENT SESSION</span>
+                                    {% else %}
+                                        <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-danger" onclick="return confirm('Kick this user session?');">Terminate</button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ========================================================
+                 TAB 7: ACTIVITY LOGS
+                 ======================================================== -->
+            <div id="tab-logs" class="erp-tab-pane">
+                <div class="erp-action-subheader">
+                    <span class="erp-module-title"><i class="fas fa-history" style="color: #e63946;"></i> Audit & Activity Logs</span>
+                </div>
+                <div style="flex:1; overflow-y:auto; padding:1rem;">
+                    <table class="erp-admin-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Object Type</th>
+                                <th>Object Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in activity_logs %}
+                            <tr>
+                                <td><span style="color:var(--erp-text-muted);">{{ log.timestamp|date:"Y-m-d H:i:s" }}</span></td>
+                                <td><strong>{{ log.user.username }}</strong></td>
+                                <td><span class="erp-card-tag">{{ log.action }}</span></td>
+                                <td>{{ log.object_type }}</td>
+                                <td><code>{{ log.object_name }}</code></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" style="text-align:center; color: var(--erp-text-dim); padding:20px;">No activity logs found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ========================================================
+         MODAL 1: CREATE NEW USER (In-Place)
+         ======================================================== -->
+    <div id="createUserModal" class="erp-modal" style="display: none;">
+        <div class="erp-modal-box">
+            <div class="erp-modal-header">
+                <span class="erp-modal-title"><i class="fas fa-user-plus" style="color: #e63946;"></i> Create New User</span>
+                <button type="button" class="erp-modal-close" onclick="closeCreateUserModal()">&times;</button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'admin_panel' %}">
+                {% csrf_token %}
+                <div class="erp-modal-body">
+                    <div class="erp-form-grid-2">
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Username *</label>
+                            <input type="text" name="username" class="erp-form-input" required>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Email Address *</label>
+                            <input type="email" name="email" class="erp-form-input" required>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">First Name</label>
+                            <input type="text" name="first_name" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Last Name</label>
+                            <input type="text" name="last_name" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Password *</label>
+                            <div style="position: relative; display: flex; align-items: center;">
+                                <input type="password" name="password" id="createUserPassword" class="erp-form-input" style="width: 100%; padding-right: 2.2rem;" required>
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('createUserPassword', this)" title="Show/Hide Password" style="position: absolute; right: 0.6rem; background: none; border: none; color: var(--erp-text-muted); cursor: pointer; padding: 0.2rem; font-size: 0.82rem;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Phone Number</label>
+                            <input type="text" name="phone_number" class="erp-form-input" placeholder="+966 ...">
+                        </div>
+                        <div class="erp-form-group full-width">
+                            <label class="erp-form-label">Workflow Role *</label>
+                            <select name="role" class="erp-form-select">
+                                <option value="country_executive">Country Executive</option>
+                                <option value="factory_viewer" selected>Factory Viewer</option>
+                                <option value="factory_executive">Factory Executive</option>
+                                <option value="PM">PM</option>
+                                <option value="OM">OM</option>
+                                <option value="CAD">CAD</option>
+                                <option value="ED">ED</option>
+                                <option value="MD">MD</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Assigned Country</label>
+                            <select name="country" class="erp-form-select">
+                                <option value="">None (Global)</option>
+                                {% for country in workflow_countries %}
+                                <option value="{{ country.id }}">{{ country.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Department</label>
+                            <input type="text" name="department" class="erp-form-input" placeholder="e.g. Sales, Operations">
+                        </div>
+                        <div class="erp-form-group full-width">
+                            <label class="erp-form-label">Profile Photo</label>
+                            <input type="file" name="photo" class="erp-form-input" accept="image/*">
+                        </div>
+                        <div class="erp-form-group full-width" style="display: flex; flex-direction: row; gap: 1rem; align-items: center; margin-top: 0.25rem;">
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="can_receive_factory_assignments" style="accent-color: #e63946;"> Can receive factory assignments
+                            </label>
+                            {% if request.user.is_superuser %}
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="is_staff" style="accent-color: #e63946;"> Staff
+                            </label>
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="is_superuser" style="accent-color: #e63946;"> Superuser
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="erp-modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeCreateUserModal()">Cancel</button>
+                    <button type="submit" name="add_user" class="btn-erp-new">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL 2: EDIT USER (Direct In-Place Admin Editor)
+         ======================================================== -->
+    <div id="editUserModal" class="erp-modal" style="display: none;">
+        <div class="erp-modal-box">
+            <div class="erp-modal-header">
+                <span class="erp-modal-title"><i class="fas fa-user-edit" style="color: #e63946;"></i> Edit User Profile & Workflow Role</span>
+                <button type="button" class="erp-modal-close" onclick="closeEditUserModal()">&times;</button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'edit_user' %}">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" id="editUserId">
+                <div class="erp-modal-body">
+                    <div class="erp-form-grid-2">
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Username *</label>
+                            <input type="text" name="username" id="editUsername" class="erp-form-input" required>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Email Address *</label>
+                            <input type="email" name="email" id="editEmail" class="erp-form-input" required>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">First Name</label>
+                            <input type="text" name="first_name" id="editFirstName" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Last Name</label>
+                            <input type="text" name="last_name" id="editLastName" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Phone Number</label>
+                            <input type="text" name="phone_number" id="editPhone" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Reset Password (Optional)</label>
+                            <div style="position: relative; display: flex; align-items: center;">
+                                <input type="password" name="new_password" id="editUserPassword" class="erp-form-input" placeholder="Leave blank to keep unchanged" style="width: 100%; padding-right: 2.2rem;">
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('editUserPassword', this)" title="Show/Hide Password" style="position: absolute; right: 0.6rem; background: none; border: none; color: var(--erp-text-muted); cursor: pointer; padding: 0.2rem; font-size: 0.82rem;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="erp-form-group full-width">
+                            <label class="erp-form-label">Workflow Role *</label>
+                            <select name="role" id="editRole" class="erp-form-select">
+                                <option value="country_executive">Country Executive</option>
+                                <option value="factory_viewer">Factory Viewer</option>
+                                <option value="factory_executive">Factory Executive</option>
+                                <option value="PM">PM</option>
+                                <option value="OM">OM</option>
+                                <option value="CAD">CAD</option>
+                                <option value="ED">ED</option>
+                                <option value="MD">MD</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Assigned Country</label>
+                            <select name="country" id="editCountry" class="erp-form-select">
+                                <option value="">None (Global)</option>
+                                {% for country in workflow_countries %}
+                                <option value="{{ country.id }}">{{ country.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label">Department</label>
+                            <input type="text" name="department" id="editDepartment" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group full-width">
+                            <label class="erp-form-label">Update Profile Photo</label>
+                            <input type="file" name="photo" class="erp-form-input" accept="image/*">
+                            <label style="font-size: 0.72rem; color: #ff6b77; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="remove_photo" value="1"> Remove current photo
+                            </label>
+                        </div>
+                        <div class="erp-form-group full-width" style="display: flex; flex-direction: row; gap: 1rem; align-items: center;">
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="can_receive_factory_assignments" id="editCanFactory" style="accent-color: #e63946;"> Can receive factory assignments
+                            </label>
+                            {% if request.user.is_superuser %}
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="is_staff" id="editIsStaff" style="accent-color: #e63946;"> Staff
+                            </label>
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="is_superuser" id="editIsSuperuser" style="accent-color: #e63946;"> Superuser
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="erp-modal-footer">
+                    <button type="button" class="btn-danger" onclick="triggerDeleteFromEdit()">Delete User</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn-secondary" onclick="closeEditUserModal()">Cancel</button>
+                        <button type="submit" class="btn-erp-new">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden Delete Form -->
+    <form id="deleteUserForm" method="post" action="{% url 'delete_user' %}" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="user_id" id="deleteUserIdInput">
+    </form>
+
+    <!-- Floating ERP Toasts (Auto-Dismiss) -->
+    {% if messages %}
+    <div class="erp-toast-container" id="erpToastContainer">
+        {% for message in messages %}
+        <div class="erp-toast {{ message.tags }}">
+            <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}" style="color: {% if 'error' in message.tags %}#ff6b77{% else %}#3fb950{% endif %}; font-size: 0.95rem;"></i>
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- JavaScript Interactive Logic -->
     <script>
-function openEditGroupModal(id, name) {
-    document.getElementById('editGroupId').value = id;
-    document.getElementById('editGroupName').value = name;
-    document.getElementById('editGroupModal').style.display = 'flex';
-}
-
-function closeEditGroupModal() {
-    document.getElementById('editGroupModal').style.display = 'none';
-}
-
-function confirmDeleteGroup(id) {
-    document.getElementById('deleteGroupId').value = id;
-    document.getElementById('confirmDeleteGroupModal').style.display = 'flex';
-}
-
-function closeDeleteGroupModal() {
-    document.getElementById('confirmDeleteGroupModal').style.display = 'none';
-}
-
-function openEditUserModal(id, username, email) {
-    document.getElementById('editUserId').value = id;
-    document.getElementById('editUsername').value = username;
-    document.getElementById('editUserEmail').value = email;
-    document.getElementById('editUserModal').style.display = 'flex';
-}
-
-function closeEditUserModal() {
-    document.getElementById('editUserModal').style.display = 'none';
-}
-
-function confirmDeleteUser(id) {
-    document.getElementById('deleteUserId').value = id;
-    document.getElementById('confirmDeleteUserModal').style.display = 'flex';
-}
-
-function closeDeleteUserModal() {
-    document.getElementById('confirmDeleteUserModal').style.display = 'none';
-}
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+        const toastContainer = document.getElementById('erpToastContainer');
+        if (toastContainer) {
+            setTimeout(() => {
+                const toasts = toastContainer.querySelectorAll('.erp-toast');
+                toasts.forEach(t => t.classList.add('fade-out'));
+                setTimeout(() => {
+                    toastContainer.remove();
+                }, 400);
+            }, 3200);
         }
+
+        // Restore tab from URL hash, server active_tab, or localStorage
+        let initialTab = 'dashboard';
+        const serverTab = '{{ active_tab|default:"" }}';
+        if (serverTab) {
+            initialTab = serverTab;
+        } else if (window.location.hash) {
+            initialTab = window.location.hash.replace('#', '');
+        } else if (localStorage.getItem('fabro_erp_active_tab')) {
+            initialTab = localStorage.getItem('fabro_erp_active_tab');
+        }
+        switchErpTab(initialTab);
     });
-}
 
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('permission-search');
-    const selectAllCheckbox = document.getElementById('select-all-permissions');
-    const permissionsCount = document.getElementById('permissions-count');
-    const summaryContainer = document.getElementById('selected-permissions-summary');
-    const permissionsContainer = document.querySelector('.permissions-checkbox-list');
-
-    if (!permissionsContainer) return;
-
-    const checkboxes = permissionsContainer.querySelectorAll('input[type="checkbox"]');
-    const listItems = permissionsContainer.querySelectorAll('li');
-
-    // Function to update the summary and count
-    function updateSelectionSummary() {
-        const selected = [];
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                const label = cb.closest('label');
-                if (label) {
-                    selected.push(label.textContent.trim());
-                }
+    function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             }
-        });
-
-        // Update count
-        permissionsCount.textContent = `${selected.length} selected`;
-
-        // Update summary container
-        if (selected.length === 0) {
-            summaryContainer.textContent = 'None selected';
         } else {
-            selected.sort();
-            summaryContainer.innerHTML = selected.map(item => `<div style="margin-bottom: 4px;">• ${item}</div>`).join('');
+            input.type = 'password';
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
-
-        // Keep Select All checkbox state in sync
-        const totalVisible = Array.from(listItems).filter(li => li.style.display !== 'none').length;
-        const checkedVisible = Array.from(listItems).filter(li => li.style.display !== 'none' && li.querySelector('input[type="checkbox"]').checked).length;
-
-        selectAllCheckbox.checked = totalVisible > 0 && totalVisible === checkedVisible;
-        selectAllCheckbox.indeterminate = checkedVisible > 0 && checkedVisible < totalVisible;
     }
 
-    // Handle check changes
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', updateSelectionSummary);
-    });
+    // Tab Switching
+    function switchErpTab(tabKey) {
+        if (!tabKey) tabKey = 'dashboard';
+        tabKey = tabKey.replace(/^#/, '');
 
-    // Handle search filter
-    searchInput.addEventListener('input', function() {
-        const query = searchInput.value.toLowerCase().trim();
-        listItems.forEach(li => {
-            const labelText = li.textContent.toLowerCase();
-            if (labelText.includes(query)) {
-                li.style.display = 'block';
+        const targetPane = document.getElementById('tab-' + tabKey);
+        if (!targetPane) return;
+
+        document.querySelectorAll('.erp-tab-pane').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.erp-nav-tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.erp-sidebar-btn').forEach(el => el.classList.remove('active'));
+
+        targetPane.classList.add('active');
+        window.location.hash = tabKey;
+        localStorage.setItem('fabro_erp_active_tab', tabKey);
+
+        const sideBtn = document.getElementById('side-' + tabKey);
+        if (sideBtn) sideBtn.classList.add('active');
+
+        document.querySelectorAll('.erp-topbar-nav .erp-nav-tab').forEach(tab => {
+            if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(tabKey)) {
+                tab.classList.add('active');
+            }
+        });
+    }
+
+    // Toggle Users View: Kanban vs List
+    function toggleUsersView(viewType) {
+        const kanbanView = document.getElementById('users-kanban-view');
+        const listView = document.getElementById('users-list-view');
+        const kanbanBtn = document.getElementById('view-kanban-btn');
+        const listBtn = document.getElementById('view-list-btn');
+
+        if (viewType === 'kanban') {
+            kanbanView.style.display = 'grid';
+            listView.style.display = 'none';
+            kanbanBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        } else {
+            kanbanView.style.display = 'none';
+            listView.style.display = 'block';
+            kanbanBtn.classList.remove('active');
+            listBtn.classList.add('active');
+        }
+    }
+
+    // Modal Handlers
+    function openCreateUserModal() {
+        document.getElementById('createUserModal').style.display = 'flex';
+    }
+
+    function closeCreateUserModal() {
+        document.getElementById('createUserModal').style.display = 'none';
+    }
+
+    function openEditUserCard(cardEl) {
+        document.getElementById('editUserId').value = cardEl.dataset.userId;
+        document.getElementById('editUsername').value = cardEl.dataset.username || '';
+        document.getElementById('editEmail').value = cardEl.dataset.email || '';
+        document.getElementById('editFirstName').value = cardEl.dataset.firstName || '';
+        document.getElementById('editLastName').value = cardEl.dataset.lastName || '';
+        document.getElementById('editPhone').value = cardEl.dataset.phone || '';
+        document.getElementById('editRole').value = cardEl.dataset.role || 'factory_viewer';
+        document.getElementById('editCountry').value = cardEl.dataset.countryId || '';
+        document.getElementById('editDepartment').value = cardEl.dataset.department || '';
+        document.getElementById('editCanFactory').checked = (cardEl.dataset.canFactory === '1');
+
+        const staffEl = document.getElementById('editIsStaff');
+        if (staffEl) staffEl.checked = (cardEl.dataset.isStaff === '1');
+        const superEl = document.getElementById('editIsSuperuser');
+        if (superEl) superEl.checked = (cardEl.dataset.isSuperuser === '1');
+
+        document.getElementById('editUserModal').style.display = 'flex';
+    }
+
+    function openEditUserCardById(userId) {
+        const card = document.querySelector(`.erp-user-card[data-user-id="${userId}"]`);
+        if (card) openEditUserCard(card);
+    }
+
+    function closeEditUserModal() {
+        document.getElementById('editUserModal').style.display = 'none';
+    }
+
+    function triggerDeleteFromEdit() {
+        const userId = document.getElementById('editUserId').value;
+        const username = document.getElementById('editUsername').value;
+        if (confirm(`Are you sure you want to permanently delete user "${username}"?`)) {
+            document.getElementById('deleteUserIdInput').value = userId;
+            document.getElementById('deleteUserForm').submit();
+        }
+    }
+
+    // Faceted Filter State
+    let activeFilters = {
+        role: 'all',
+        country: 'all'
+    };
+
+    function applyFacetedFilter(type, value, itemEl) {
+        activeFilters[type] = value;
+        const group = itemEl.parentElement;
+        group.querySelectorAll('.erp-filter-item').forEach(el => el.classList.remove('active'));
+        itemEl.classList.add('active');
+        filterUserCards();
+    }
+
+    function filterUserCards() {
+        const query = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
+        const cards = document.querySelectorAll('.erp-user-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const username = (card.dataset.username || '').toLowerCase();
+            const firstName = (card.dataset.firstName || '').toLowerCase();
+            const lastName = (card.dataset.lastName || '').toLowerCase();
+            const email = (card.dataset.email || '').toLowerCase();
+            const phone = (card.dataset.phone || '').toLowerCase();
+            const role = card.dataset.role || '';
+            const countryId = card.dataset.countryId || '';
+
+            const matchesSearch = !query ||
+                username.includes(query) ||
+                firstName.includes(query) ||
+                lastName.includes(query) ||
+                email.includes(query) ||
+                phone.includes(query) ||
+                role.toLowerCase().includes(query);
+
+            const matchesRole = (activeFilters.role === 'all') || (role === activeFilters.role);
+            const matchesCountry = (activeFilters.country === 'all') || (countryId === activeFilters.country);
+
+            if (matchesSearch && matchesRole && matchesCountry) {
+                card.style.display = 'flex';
+                visibleCount++;
             } else {
-                li.style.display = 'none';
+                card.style.display = 'none';
             }
         });
-        updateSelectionSummary();
+
+        const counterEl = document.getElementById('recordCounter');
+        if (counterEl) {
+            counterEl.textContent = `1-${visibleCount} / ${cards.length}`;
+        }
+    }
+
+    // Close Modals with Escape or outside click
+    window.addEventListener('click', function(e) {
+        const createModal = document.getElementById('createUserModal');
+        const editModal = document.getElementById('editUserModal');
+        if (e.target === createModal) closeCreateUserModal();
+        if (e.target === editModal) closeEditUserModal();
     });
 
-    // Handle select all checkbox
-    selectAllCheckbox.addEventListener('change', function() {
-        const isChecked = selectAllCheckbox.checked;
-        listItems.forEach(li => {
-            if (li.style.display !== 'none') {
-                const cb = li.querySelector('input[type="checkbox"]');
-                if (cb) {
-                    cb.checked = isChecked;
-                }
-            }
-        });
-        updateSelectionSummary();
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeCreateUserModal();
+            closeEditUserModal();
+        }
     });
-
-    // Initial run
-    updateSelectionSummary();
-});
-</script>
-    </head>
-<body>
-    {% include 'management/base.html' %}
-
-<div class="admin-container">
-    <div class="admin-header">
-        <h1>Admin Control Panel</h1>
-        <p>Manage users, groups, and monitor system activity</p>
-    </div>
-
-    <!-- Statistics Overview -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-number">{{ users|length }}</div>
-            <div class="stat-label">Total Users</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ groups|length }}</div>
-            <div class="stat-label">Groups</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ active_sessions|length }}</div>
-            <div class="stat-label">Active Sessions</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ activity_logs|length }}</div>
-            <div class="stat-label">Recent Activities</div>
-        </div>
-    </div>
-
-    <div class="admin-grid">
-        <!-- User Management -->
-        <div class="admin-section">
-            <h2>Add New User</h2>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="form-group">
-                    {{ user_form.as_p }}
-                </div>
-                <button type="submit" name="add_user" class="btn btn-primary">Create User</button>
-            </form>
-        </div>
-
-        <!-- Group Management -->
-        <div class="admin-section">
-            <h2>Create New Group</h2>
-            <form method="POST" id="create-group-form">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label for="{{ group_form.name.id_for_label }}">Group Name:</label>
-                    {{ group_form.name }}
-                </div>
-                <div class="form-group">
-                    <label>Permissions:</label>
-                    <input type="text" id="permission-search" placeholder="🔍 Search permissions..." class="form-input" style="margin-bottom: 8px;">
-                    <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-size: 0.85rem;">
-                            <input type="checkbox" id="select-all-permissions" style="accent-color: #ef4444;"> Select All
-                        </label>
-                        <span id="permissions-count" style="font-size: 0.85rem; color: var(--dark-text-secondary);">0 selected</span>
-                    </div>
-                    <div class="permissions-scroll-container">
-                        {{ group_form.permissions }}
-                    </div>
-                </div>
-                <div class="selected-summary-container" style="margin-top: 15px; margin-bottom: 15px; padding: 12px; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="font-weight: 600; color: #ef4444; font-size: 0.85rem; margin-bottom: 6px; border-bottom: 1px solid rgba(220, 38, 38, 0.15); padding-bottom: 4px;">Selected Permissions Summary:</div>
-                    <div id="selected-permissions-summary" style="max-height: 100px; overflow-y: auto; font-size: 0.85rem; color: #a0a0b8; line-height: 1.4; padding-right: 6px;">None selected</div>
-                </div>
-                <button type="submit" name="add_group" class="btn btn-primary">Create Group</button>
-            </form>
-        </div>
-
-        <!-- Assign Group -->
-        <div class="admin-section">
-            <h2>Assign User to Group</h2>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="form-group">
-                    {{ assign_form.as_p }}
-                </div>
-                <button type="submit" name="assign_group" class="btn btn-primary">Assign</button>
-            </form>
-        </div>
-
-        <!-- Active Users -->
-        <div class="admin-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid rgba(220, 38, 38, 0.25); padding-bottom: 8px;">
-                <h2 style="margin: 0; border-bottom: none; padding-bottom: 0;">Active Users</h2>
-                {% if active_users|length > 1 %}
-                <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-delete" style="font-size: 0.8rem;" onclick="return confirm('Are you sure you want to terminate all other active user sessions? This will log out all other users.');">
-                        Terminate Others
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-            <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Time of Login</th>
-                    <th>IP Address</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for session in active_users %}
-                <tr>
-                    <td>
-                        <strong style="color: #ffffff;">{{ session.user.username }}</strong>
-                    </td>
-                    <td><em>{{ session.login_time }}</em> </td>
-                    <td>
-                        <code>{{ session.ip }}</code>
-                    </td>
-                    <td>
-                        {% if session.session_key == request.session.session_key %}
-                            <span class="status-badge status-true" style="font-size: 0.75rem;">Current Session</span>
-                        {% else %}
-                            <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-delete" style="font-size: 0.75rem; padding: 4px 8px;" onclick="return confirm('Are you sure you want to terminate this user\'s session?');">
-                                    Terminate
-                                </button>
-                            </form>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" style="text-align: center; color: #a0a0b8; padding: 40px;">No active sessions.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
-    </div>
-
-    <!-- Activity Log with Scrollable Container -->
-    <div class="activity-log-container">
-        <h2 class="activity-log-header">Activity Logs</h2>
-        {% if activity_logs %}
-        <div class="activity-log-list">
-            {% for log in activity_logs %}
-            <div class="activity-item">
-                <div class="activity-time">{{ log.timestamp|date:"Y-m-d H:i" }}</div>
-                <div class="activity-description">
-                    <span class="activity-user">{{ log.user.username }}</span> {{ log.action }} {{ log.object_type }} → {{ log.object_name }}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-            <p style="color: #a0a0b8; text-align: center; padding: 40px;">No recent activity to display.</p>
-        {% endif %}
-    </div>
-
-    <!-- Users Table -->
-    <div class="admin-section full-width-section">
-        <h2>Existing Users</h2>
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Staff Status</th>
-                    <th>Admin Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="user-avatar">{{ user.username|first|upper }}</div>
-                            {{ user.username }}
-                        </div>
-                    </td>
-                    <td>{{ user.email }}</td>
-                    <td>
-                        <span class="status-badge {% if user.is_staff %}status-true{% else %}status-false{% endif %}">
-                            {% if user.is_staff %}Staff{% else %}Regular{% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="status-badge {% if user.is_superuser %}status-true{% else %}status-false{% endif %}">
-                            {% if user.is_superuser %}Admin{% else %}User{% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="/admin/auth/user/"><button class="btn btn-edit">✏️ Edit</button></a>                        
-                        <button onclick="confirmDeleteUser('{{ user.id }}')" class="btn btn-delete">🗑️ Delete</button>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" style="text-align: center; color: #a0a0b8; padding: 40px;">No users found.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Groups Table -->
-    <div class="admin-section full-width-section">
-        <h2>Existing Groups</h2>
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Group Name</th>
-                    <th>Permissions</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for group in groups %}
-                <tr>
-                    <td>{{ group.name }}</td>
-                    <td>
-                        {% for perm in group.permissions.all %}
-                            <span class="permission-tag">{{ perm.name }}</span>
-                        {% empty %}
-                            <em style="color: #a0a0b8;">No permissions assigned</em>
-                        {% endfor %}
-                    </td>
-                    <td>
-                        <a href="/admin/auth/group/"><button class="btn btn-edit">✏️ Edit</button></a>  
-                        <button onclick="confirmDeleteGroup('{{ group.id }}')" class="btn btn-delete">🗑️ Delete</button>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="3" style="text-align: center; color: #a0a0b8; padding: 40px;">No groups found.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Edit Group Modal -->
-<div id="editGroupModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <span onclick="closeEditGroupModal()" class="close">&times;</span>
-        <h3>Edit Group</h3>
-        <form id="editGroupForm" method="post" action="{% url 'edit_group' %}">
-            {% csrf_token %}
-            <input type="hidden" name="group_id" id="editGroupId">
-            <div class="form-group">
-                <label for="editGroupName">Group Name</label>
-                <input type="text" name="name" id="editGroupName" placeholder="Enter group name" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-        </form>
-    </div>
-</div>
-
-<!-- Confirm Delete Group Modal -->
-<div id="confirmDeleteGroupModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <span onclick="closeDeleteGroupModal()" class="close">&times;</span>
-        <h3>Confirm Deletion</h3>
-        <p style="color: #e0e0e8; margin-bottom: 20px;">Are you sure you want to delete this group? This action cannot be undone.</p>
-        <form id="deleteGroupForm" method="post" action="{% url 'delete_group' %}">
-            {% csrf_token %}
-            <input type="hidden" name="group_id" id="deleteGroupId">
-            <button type="submit" class="btn btn-danger">Yes, Delete</button>
-            <button type="button" onclick="closeDeleteGroupModal()" class="btn btn-secondary" style="margin-left: 10px;">Cancel</button>
-        </form>
-    </div>
-</div>
-
-<!-- Edit User Modal -->
-<div id="editUserModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <span onclick="closeEditUserModal()" class="close">&times;</span>
-        <h3>Edit User</h3>
-        <form id="editUserForm" method="post" action="{% url 'edit_user' %}">
-            {% csrf_token %}
-            <input type="hidden" name="user_id" id="editUserId">
-            <div class="form-group">
-                <label for="editUsername">Username</label>
-                <input type="text" name="username" id="editUsername" placeholder="Enter username" required>
-            </div>
-            <div class="form-group">
-                <label for="editUserEmail">Email</label>
-                <input type="email" name="email" id="editUserEmail" placeholder="Enter email address" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-        </form>
-    </div>
-</div>
-
-<!-- Confirm Delete User Modal -->
-<div id="confirmDeleteUserModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <span onclick="closeDeleteUserModal()" class="close">&times;</span>
-        <h3>Confirm Deletion</h3>
-        <p style="color: #e0e0e8; margin-bottom: 20px;">Are you sure you want to delete this user? This action cannot be undone.</p>
-        <form id="deleteUserForm" method="post" action="{% url 'delete_user' %}">
-            {% csrf_token %}
-            <input type="hidden" name="user_id" id="deleteUserId">
-            <button type="submit" class="btn btn-danger">Yes, Delete</button>
-            <button type="button" onclick="closeDeleteUserModal()" class="btn btn-secondary" style="margin-left: 10px;">Cancel</button>
-        </form>
-    </div>
-</div>
+    </script>
 </body>
+</html>

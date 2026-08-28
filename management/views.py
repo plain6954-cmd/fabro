@@ -269,7 +269,7 @@ def index(request):
 @login_required
 def car_details(request):
     search_query = request.GET.get('search', '').strip()
-    search_column = request.GET.get('column', '').strip()
+    search_column = (request.GET.get('search_by') or request.GET.get('column', 'all')).strip()
     show_duplicate_modal = False
     show_layout_code_error_modal = False
     conflicting_car = None
@@ -347,11 +347,12 @@ def car_details(request):
                 messages.success(request, 'Vehicle added successfully!')
                 return redirect('car_details')
 
-    new_search_enabled = request.user.is_authenticated and request.user.username == 'audit_country'
+    new_search_enabled = True
+    scoped_search_enabled = True
 
     # Fetch car data (Optimized via select_related)
     yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').all()
-    if new_search_enabled and search_query:
+    if search_query:
         if search_column == 'layout_code':
             yr_qs = yr_qs.filter(layout_code__icontains=search_query)
         elif search_column == 'brand':
@@ -360,12 +361,18 @@ def car_details(request):
             yr_qs = yr_qs.filter(sub_model__model__name__icontains=search_query)
         elif search_column == 'sub_model':
             yr_qs = yr_qs.filter(sub_model__name__icontains=search_query)
+        elif search_column == 'vehicle_country':
+            yr_qs = yr_qs.filter(vehicle_country__name__icontains=search_query)
+        elif search_column == 'measurement_country':
+            yr_qs = yr_qs.filter(measurement_country__name__icontains=search_query)
         else:
             yr_qs = yr_qs.filter(
                 Q(layout_code__icontains=search_query) |
                 Q(sub_model__model__brand__name__icontains=search_query) |
                 Q(sub_model__model__name__icontains=search_query) |
-                Q(sub_model__name__icontains=search_query)
+                Q(sub_model__name__icontains=search_query) |
+                Q(vehicle_country__name__icontains=search_query) |
+                Q(measurement_country__name__icontains=search_query)
             )
 
     car_data = []
@@ -399,7 +406,9 @@ def car_details(request):
         'conflicting_car': conflicting_car,
         'search_query': search_query,
         'search_column': search_column,
+        'search_by': search_column,
         'new_search_enabled': new_search_enabled,
+        'scoped_search_enabled': scoped_search_enabled,
     })
 
 
@@ -1047,6 +1056,7 @@ def approvals_list_view(request):
     # Filter parameters
     status_filter = request.GET.get('status', 'active')
     search_query = request.GET.get('search', '').strip()
+    search_by = request.GET.get('search_by', 'all').strip()
     selected_priority = request.GET.get('priority', '').strip()
     selected_type = request.GET.get('type', '').strip()
     selected_country = request.GET.get('country', '').strip()
@@ -1135,16 +1145,38 @@ def approvals_list_view(request):
 
     # Search filter
     if search_query:
-        complaints = complaints.filter(
-            Q(complaint_id__icontains=search_query)
-            | Q(brand__name__icontains=search_query)
-            | Q(model__name__icontains=search_query)
-            | Q(sku__code__icontains=search_query)
-            | Q(country__name__icontains=search_query)
-            | Q(factory_reason__icontains=search_query)
-            | Q(factory_action_plan__icontains=search_query)
-            | Q(batch_order__icontains=search_query)
-        )
+        if search_by == 'complaint_id':
+            complaints = complaints.filter(complaint_id__icontains=search_query)
+        elif search_by == 'complaint_type':
+            complaints = complaints.filter(complaint_type__icontains=search_query)
+        elif search_by == 'priority':
+            complaints = complaints.filter(
+                Q(factory_priority__icontains=search_query) | Q(priority__icontains=search_query)
+            )
+        elif search_by == 'country':
+            complaints = complaints.filter(country__name__icontains=search_query)
+        elif search_by == 'channel':
+            complaints = complaints.filter(channel__name__icontains=search_query)
+        elif search_by == 'vehicle':
+            complaints = complaints.filter(
+                Q(brand__name__icontains=search_query) | Q(model__name__icontains=search_query)
+            )
+        elif search_by == 'factory_reason':
+            complaints = complaints.filter(factory_reason__icontains=search_query)
+        elif search_by == 'factory_action_plan':
+            complaints = complaints.filter(factory_action_plan__icontains=search_query)
+        else:
+            complaints = complaints.filter(
+                Q(complaint_id__icontains=search_query)
+                | Q(brand__name__icontains=search_query)
+                | Q(model__name__icontains=search_query)
+                | Q(sku__code__icontains=search_query)
+                | Q(country__name__icontains=search_query)
+                | Q(channel__name__icontains=search_query)
+                | Q(factory_reason__icontains=search_query)
+                | Q(factory_action_plan__icontains=search_query)
+                | Q(batch_order__icontains=search_query)
+            )
 
     # Priority filter
     if selected_priority:
@@ -1235,6 +1267,7 @@ def approvals_list_view(request):
         'approval_items': approval_items,
         'status_filter': status_filter,
         'search_query': search_query,
+        'search_by': search_by,
         'selected_priority': selected_priority,
         'selected_type': selected_type,
         'selected_country': selected_country,
@@ -1688,25 +1721,23 @@ def upload_car_csv(request):
 def add_sku(request):
     form = SKUForm()
     search_query = request.GET.get('search', '').strip()
-    search_column = request.GET.get('column', '').strip()
-    new_search_enabled = request.user.is_authenticated and request.user.username == 'audit_country'
+    search_column = (request.GET.get('search_by') or request.GET.get('column', 'all')).strip()
+    new_search_enabled = True
+    scoped_search_enabled = True
     skus_qs = SKU.objects.select_related('region').all().order_by('code')
     if search_query:
-        if new_search_enabled:
-            if search_column == 'code':
-                skus_qs = skus_qs.filter(code__icontains=search_query)
-            elif search_column == 'description':
-                skus_qs = skus_qs.filter(description__icontains=search_query)
-            elif search_column == 'region':
-                skus_qs = skus_qs.filter(region__name__icontains=search_query)
-            else:
-                skus_qs = skus_qs.filter(
-                    Q(code__icontains=search_query) |
-                    Q(description__icontains=search_query) |
-                    Q(region__name__icontains=search_query)
-                )
-        else:
+        if search_column == 'code':
             skus_qs = skus_qs.filter(code__icontains=search_query)
+        elif search_column == 'description':
+            skus_qs = skus_qs.filter(description__icontains=search_query)
+        elif search_column == 'region':
+            skus_qs = skus_qs.filter(region__name__icontains=search_query)
+        else:
+            skus_qs = skus_qs.filter(
+                Q(code__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(region__name__icontains=search_query)
+            )
     paginator = Paginator(skus_qs, 50)
     page_number = request.GET.get('page')
     page_skus = paginator.get_page(page_number)
@@ -1795,7 +1826,9 @@ def add_sku(request):
         'page_obj': page_skus,
         'search_query': search_query,
         'search_column': search_column,
+        'search_by': search_column,
         'new_search_enabled': new_search_enabled,
+        'scoped_search_enabled': scoped_search_enabled,
         'upload_feedback': upload_feedback,
         'upload_form': upload_form,
     })

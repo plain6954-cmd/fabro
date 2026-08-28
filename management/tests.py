@@ -1,5 +1,6 @@
 import json
 from datetime import date, timedelta
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
@@ -9,6 +10,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
+from PIL import Image
 
 from .models import (
     Brand,
@@ -43,6 +45,7 @@ from .services.workflow import (
     submit_factory_review,
     visible_complaints_for_user,
 )
+from .views import get_sorted_chat_users
 
 
 class FabroBackendTests(TestCase):
@@ -305,6 +308,30 @@ class FabroBackendTests(TestCase):
         response = self.client.get(reverse("car_details"), {"search": "Toyota", "column": "brand"})
         self.assertContains(response, "CAMRY-HYBRID")
         self.assertNotContains(response, "MUSTANG-GT")
+
+        # Scoped catalog search must be available to every signed-in user, not
+        # only the account that originally received the interface rollout.
+        regular_user = self.create_workflow_user("catalog_search_user", "country_executive")
+        self.client.force_login(regular_user)
+
+        response = self.client.get(reverse("add_sku"), {"search": "Ford", "column": "description"})
+        self.assertTrue(response.context["scoped_search_enabled"])
+        self.assertContains(response, 'id="skuSearchDropdown"')
+        self.assertContains(response, "FRD-456")
+        self.assertNotContains(response, "TOY-123")
+
+        response = self.client.get(reverse("car_details"), {"search": "Toyota", "column": "brand"})
+        self.assertTrue(response.context["scoped_search_enabled"])
+        self.assertContains(response, 'id="vehicleSearchDropdown"')
+        self.assertContains(response, "CAMRY-HYBRID")
+        self.assertNotContains(response, "MUSTANG-GT")
+
+        response = self.client.get(reverse("complaint_list"))
+        self.assertContains(
+            response,
+            f'href="{reverse("add_complaint")}" class="btn btn-primary icon-btn"',
+        )
+        self.assertNotContains(response, "Add Complaint\n                </a>")
 
     def test_vehicle_csv_validation_does_not_raise_server_errors(self):
         self.login()
@@ -582,6 +609,48 @@ class FabroBackendTests(TestCase):
         )
 
         self.assertEqual(visible_ids, {own_pattern.complaint_id, own_production.complaint_id})
+
+    def test_factory_executive_sees_only_assigned_complaints_and_unknown_roles_fail_closed(self):
+        factory_user = self.create_workflow_user(
+            'scoped_factory',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        other_factory = self.create_workflow_user(
+            'other_factory',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        factory_user = get_user_model().objects.get(pk=factory_user.pk)
+        other_factory = get_user_model().objects.get(pk=other_factory.pk)
+        assigned = Complaint.objects.create(
+            date='2026-07-09',
+            assigned_factory_executive=factory_user,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            complaint_description='Assigned factory complaint',
+            batch_order='FACTORY-ASSIGNED',
+        )
+        hidden = Complaint.objects.create(
+            date='2026-07-09',
+            assigned_factory_executive=other_factory,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            complaint_description='Other factory complaint',
+            batch_order='FACTORY-HIDDEN',
+        )
+
+        visible_ids = set(
+            visible_complaints_for_user(factory_user).values_list('complaint_id', flat=True)
+        )
+        self.assertEqual(visible_ids, {assigned.complaint_id})
+
+        token = Token.objects.create(user=factory_user)
+        response = self.client.get(
+            reverse('api_complaint_detail', args=[hidden.complaint_id]),
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(response.status_code, 404)
+
+        UserProfile.objects.filter(user=factory_user).update(role='unexpected_role')
+        unconfigured_user = get_user_model().objects.get(pk=factory_user.pk)
+        self.assertFalse(visible_complaints_for_user(unconfigured_user).exists())
 
     def test_country_executive_api_forces_own_country_and_rejects_line_complaints(self):
         User = get_user_model()
@@ -1451,13 +1520,29 @@ class FabroBackendTests(TestCase):
             'country': self.country.pk,
             'department': 'KSA Operations',
             'approval_role': '',
+            'new_password': 'UpdatedPassword!999',
         })
         self.assertEqual(response.status_code, 302)
         configured.refresh_from_db()
         configured.workflow_profile.refresh_from_db()
+        self.assertTrue(configured.check_password('UpdatedPassword!999'))
         self.assertEqual(configured.workflow_profile.role, WorkflowRoles.COUNTRY_EXECUTIVE)
         self.assertEqual(configured.workflow_profile.country, self.country)
         self.assertEqual(configured.workflow_profile.approval_role, '')
+
+        # Test creating user via unified role choice 'approver_CAD'
+        response_cad = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'cad_approver_unified',
+            'email': 'cad.approver@example.com',
+            'password': 'CadApprover!234',
+            'role': 'approver_CAD',
+            'department': 'CAD Engineering',
+        })
+        self.assertEqual(response_cad.status_code, 200)
+        cad_user = get_user_model().objects.get(username='cad_approver_unified')
+        self.assertEqual(cad_user.workflow_profile.role, WorkflowRoles.APPROVER)
+        self.assertEqual(cad_user.workflow_profile.approval_role, ApprovalRoles.CAD)
 
     def test_create_preparation_preserves_explicit_complaint_category(self):
         complaint = Complaint(
@@ -1596,6 +1681,63 @@ class FabroBackendTests(TestCase):
         self.assertContains(post_response, 'save-status-pill')
         self.assertContains(post_response, 'Your profile details have been updated successfully.')
         self.assertNotContains(post_response, 'id="flash-messages"')
+
+    def test_profile_photo_upload_and_reflection(self):
+        self.login()
+        image_buffer = BytesIO()
+        Image.new('RGB', (2, 2), color='red').save(image_buffer, format='PNG')
+        photo = SimpleUploadedFile(
+            'avatar.png',
+            image_buffer.getvalue(),
+            content_type='image/png',
+        )
+
+        # Upload photo via profile update
+        response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': 'admin_photo@fabro.com',
+            'first_name': 'Hadi',
+            'last_name': 'Muhammed',
+            'photo': photo,
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        # Verify photo saved to profile
+        self.user.workflow_profile.refresh_from_db()
+        self.assertTrue(bool(self.user.workflow_profile.photo))
+        photo_url = self.user.workflow_profile.photo.url
+
+        # Verify photo and updated name reflected in base navbar and profile page
+        dashboard_response = self.client.get(reverse('index'))
+        self.assertContains(dashboard_response, photo_url)
+        self.assertContains(dashboard_response, 'Hadi Muhammed')
+
+        profile_response = self.client.get(reverse('profile_settings'))
+        self.assertContains(profile_response, photo_url)
+        self.assertContains(profile_response, 'Hadi Muhammed')
+
+        # Verify photo reflected in chat users api
+        chat_api_response = self.client.get(reverse('chat_users_api'))
+        self.assertEqual(chat_api_response.status_code, 200)
+
+    def test_profile_photo_rejects_non_image_content(self):
+        self.login()
+        fake_photo = SimpleUploadedFile(
+            'avatar.png',
+            b'<script>alert("not an image")</script>',
+            content_type='image/png',
+        )
+
+        response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': self.user.email,
+            'photo': fake_photo,
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Upload a valid image')
+        self.user.workflow_profile.refresh_from_db()
+        self.assertFalse(bool(self.user.workflow_profile.photo))
         country_user = self.create_workflow_user(
             'role_country',
             WorkflowRoles.COUNTRY_EXECUTIVE,
@@ -1768,6 +1910,47 @@ class ChatSystemTests(TestCase):
         self.assertEqual(users[1]['unread_count'], 1)
         self.assertEqual(users[2]['unread_count'], 0)
 
+    def test_chat_user_sorting_uses_a_bounded_query_count(self):
+        User = get_user_model()
+        extra_user = User.objects.create_user(username='query_count_user', password='password123')
+        ChatMessage.objects.create(
+            sender=extra_user,
+            recipient=self.sender,
+            message='Unread query-count message',
+        )
+
+        with self.assertNumQueries(2):
+            users_data = get_sorted_chat_users(self.sender)
+
+        self.assertEqual(users_data[0]['user'], extra_user)
+        self.assertEqual(users_data[0]['unread_count'], 1)
+
+    def test_chat_rejects_unavailable_complaint_context_and_oversized_messages(self):
+        UserProfile.objects.filter(user=self.sender).update(
+            role=WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        other_factory = get_user_model().objects.create_user(
+            username='chat_other_factory',
+            password='password123',
+        )
+        self.complaint.assigned_factory_executive = other_factory
+        self.complaint.save(update_fields=['assigned_factory_executive'])
+        self.client.force_login(self.sender)
+
+        hidden_context = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.recipient.id,
+            'message': 'Attempt to link hidden complaint',
+            'complaint_id': self.complaint.complaint_id,
+        })
+        self.assertEqual(hidden_context.status_code, 404)
+        self.assertFalse(ChatMessage.objects.filter(message='Attempt to link hidden complaint').exists())
+
+        oversized = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.recipient.id,
+            'message': 'x' * 5001,
+        })
+        self.assertEqual(oversized.status_code, 400)
+
 
 class ApprovalsWorkspaceTests(TestCase):
     def setUp(self):
@@ -1893,3 +2076,56 @@ class ApprovalsWorkspaceTests(TestCase):
         self.assertEqual(self.approval_pm.comment, 'Looks good to go')
 
 
+class HtmxNavigationTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username='htmx_admin',
+            email='htmx@example.com',
+            password='HtmxTest!234',
+        )
+        self.client.force_login(self.user)
+
+    def test_normal_navigation_keeps_complete_documents(self):
+        response = self.client.get(reverse('index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<!DOCTYPE html>', html=False)
+        self.assertContains(response, 'class="navbar"', html=False)
+        self.assertContains(response, 'id="app-content"', html=False)
+        self.assertContains(response, 'vendor/htmx/', html=False)
+        self.assertIn('HX-Request', response.headers.get('Vary', ''))
+
+    def test_htmx_navigation_returns_only_page_head_and_content(self):
+        shell_pages = [
+            'index',
+            'add_complaint',
+            'complaint_list',
+            'car_details',
+            'add_sku',
+            'master_settings',
+            'approvals_list',
+            'notification_list',
+            'profile_settings',
+        ]
+
+        for url_name in shell_pages:
+            with self.subTest(url_name=url_name):
+                response = self.client.get(
+                    reverse(url_name),
+                    HTTP_HX_REQUEST='true',
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'data-fabro-page-head', html=False)
+                self.assertContains(response, 'id="app-content"', html=False)
+                self.assertNotContains(response, '<!DOCTYPE html>', html=False)
+                self.assertNotContains(response, 'class="navbar"', html=False)
+                self.assertNotContains(response, 'vendor/htmx/htmx.min.js', html=False)
+                self.assertIn('HX-Request', response.headers.get('Vary', ''))
+
+    def test_chat_deliberately_remains_a_full_page(self):
+        response = self.client.get(reverse('chat_view'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<!DOCTYPE html>', html=False)
+        self.assertContains(response, 'class="navbar"', html=False)
+        self.assertNotContains(response, 'id="app-content"', html=False)

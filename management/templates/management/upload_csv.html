@@ -1,13 +1,15 @@
 {% load static %}
+{% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Vehicle CSV - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         .page-container {
             max-width: 800px;
             margin: 0 auto;
@@ -266,10 +268,13 @@
             }
         }
     </style>
+{% if is_htmx_request %}</template>{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
     
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">
@@ -359,7 +364,7 @@ Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
     <script>
         // File upload handling
         const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('csvFile');
+        const uploadCsvFileInput = document.getElementById('csvFile');
         const uploadBtn = document.getElementById('uploadBtn');
 
         // Drag and drop functionality
@@ -379,13 +384,13 @@ Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
             
             const files = e.dataTransfer.files;
             if (files.length > 0 && files[0].name.endsWith('.csv')) {
-                fileInput.files = files;
+                uploadCsvFileInput.files = files;
                 updateUploadArea(files[0]);
             }
         });
 
         // File input change
-        fileInput.addEventListener('change', function() {
+        uploadCsvFileInput.addEventListener('change', function() {
             if (this.files.length > 0) {
                 updateUploadArea(this.files[0]);
             }
@@ -409,12 +414,15 @@ Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
         });
 
         // Add active nav state
-        document.addEventListener('DOMContentLoaded', function() {
+        window.fabroOnPageLoad(function() {
             const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
             if (vehicleLink) {
                 vehicleLink.classList.add('active');
             }
         });
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

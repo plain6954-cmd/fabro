@@ -22,8 +22,9 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _currentUser = await _authService.getProfile();
-    } catch (e) {
+    } catch (_) {
       _currentUser = null;
+      _errorMessage = 'Unable to restore your session. Please retry.';
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -14,7 +14,7 @@ test('dashboard loads cards and navigation works', async ({ page }) => {
   await expect(page.getByText('System Statistics')).toBeVisible();
   await expect(page.getByText('Total Complaints')).toBeVisible();
   await openViaNav(page, 'Complaints', /\/complaints\/$/, /Complaint Management/i);
-  await openViaNav(page, 'Vehicles', /\/add-car-details\/$/, /Vehicle Management/i);
+  await openViaNav(page, 'Vehicles', /\/car-details\/$/, /Vehicle Management/i);
   await openViaNav(page, 'SKU', /\/add-sku\/$/, /SKU Management/i);
   await openViaNav(page, 'Master', /\/master-settings\/$/, /Master Settings/i);
   await expectNoDjangoError(page);

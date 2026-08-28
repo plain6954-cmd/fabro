@@ -19,7 +19,7 @@ export const routes = {
   complaints: '/complaints/',
   addComplaint: '/add-complaint/',
   vehicles: '/car-details/',
-  addVehicle: '/add-car-details/',
+  addVehicle: '/car-details/',
   sku: '/add-sku/',
   master: '/master-settings/',
   profile: '/profile/',

@@ -1,13 +1,15 @@
 {% load static %}
+{% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Vehicle - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         .page-container {
             max-width: 800px;
             margin: 0 auto;
@@ -330,10 +332,13 @@
             border-color: #cbd5e1 transparent transparent transparent;
         }
     </style>
+{% if is_htmx_request %}</template>{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
     
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">
@@ -493,12 +498,15 @@
         });
 
         // Add active nav state
-        document.addEventListener('DOMContentLoaded', function() {
+        window.fabroOnPageLoad(function() {
             const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
             if (vehicleLink) {
                 vehicleLink.classList.add('active');
             }
         });
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

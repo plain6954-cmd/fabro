@@ -18,6 +18,7 @@ staticfiles/
 test-results/
 playwright-report/
 media/complaint_media/
+media/profile_photos/
 .e2e.sqlite3
 .e2e-media/
 "db.sqlite3" 

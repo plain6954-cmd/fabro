@@ -712,8 +712,179 @@
             border-color: transparent transparent #cbd5e1 transparent;
         }
     </style>
-    {% if new_search_enabled %}
     <style>
+        /* Search Picker styles */
+        .header-search-form {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1 1 400px;
+            justify-content: flex-end;
+            min-width: 260px;
+        }
+
+        .search-picker {
+            position: relative;
+            flex: 1 1 320px;
+            max-width: 440px;
+            min-width: 220px;
+        }
+
+        .header-search-input {
+            width: 100%;
+            height: 2.85rem;
+            padding: 0.65rem 10.5rem 0.65rem 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            background: rgba(18, 18, 20, 0.82);
+            color: var(--dark-text);
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .header-search-input {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .header-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15);
+        }
+
+        .search-leading-icon {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+        }
+
+        body.light-mode .search-leading-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .search-field-label {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            max-width: 9.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.14);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.68rem;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        body.light-mode .search-field-label {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.16);
+        }
+
+        .search-options {
+            position: absolute;
+            z-index: 1200;
+            left: 0;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            display: none;
+            padding: 0.55rem;
+            border-radius: 8px;
+            background: rgba(24, 24, 27, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+        }
+
+        .search-picker.is-suggesting .search-options {
+            display: block;
+        }
+
+        body.light-mode .search-options {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.13);
+        }
+
+        .search-options-title {
+            margin: 0 0 0.45rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        body.light-mode .search-options-title {
+            color: var(--light-text-secondary);
+        }
+
+        .search-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem;
+        }
+
+        .search-option {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            min-height: 2.25rem;
+            padding: 0.48rem 0.58rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--dark-text);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .search-option:hover,
+        .search-option.is-active {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.88);
+            border-color: rgba(248, 113, 113, 0.55);
+        }
+
+        body.light-mode .search-option {
+            color: var(--light-text);
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .search-option:hover,
+        body.light-mode .search-option.is-active {
+            color: #ffffff;
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .icon-btn {
+            width: 2.85rem;
+            height: 2.85rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
         .page-container {
             max-width: 100% !important;
             margin: 0 !important;
@@ -729,7 +900,6 @@
             border-color: #cbd5e1 !important;
         }
     </style>
-    {% endif %}
 </head>
 <body>
     {% include 'management/base.html' %}
@@ -741,55 +911,80 @@
                     <i class="fas fa-car"></i>
                     Vehicle Management
                 </h1>
-
             </div>
-            {% if can_manage_catalog %}
-            <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
-                <a href="#" onclick="const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="action-header-btn" title="Add New Vehicle" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(229, 57, 53, 0.15); border: 1px solid rgba(229, 57, 53, 0.4); color: #ef4444; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s ease;">
+            <div class="header-actions" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+                {% if can_manage_catalog %}
+                <a href="#" onclick="const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="btn btn-primary icon-btn" title="Add New Vehicle" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
                     <i class="fas fa-plus"></i>
                 </a>
-                <a href="{% url 'upload_car_csv' %}" class="action-header-btn" title="Bulk Upload CSV" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s ease;">
+                <a href="{% url 'upload_car_csv' %}" class="btn btn-success icon-btn" title="Bulk Upload CSV" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
                     <i class="fas fa-file-csv"></i>
                 </a>
+                {% endif %}
+                <form method="GET" class="header-search-form" id="vehicle-search-form">
+                    <input type="hidden" name="search_by" id="vehicle-search-by" value="{{ search_by|default:'all' }}">
+                    <div class="search-picker" id="vehicle-search-picker">
+                        <i class="fas fa-search search-leading-icon"></i>
+                        <input type="text" name="search" id="vehicle-search-input" placeholder="Search vehicles..."
+                               value="{{ search_query }}" class="header-search-input" autocomplete="off"
+                               aria-label="Search vehicles" aria-describedby="vehicle-search-options-title"
+                               aria-haspopup="listbox" aria-expanded="false">
+                        <span class="search-field-label" id="vehicle-search-field-label">All Fields</span>
+                        <div class="search-options" id="vehicle-search-options">
+                            <div id="vehicleSearchDropdown" style="display: none;"></div>
+                            <p class="search-options-title" id="vehicle-search-options-title">Search this keyword in</p>
+                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                                <button type="button" class="search-option" data-search-by="layout_code" role="option">
+                                    <i class="fas fa-hashtag"></i>
+                                    Layout Code
+                                </button>
+                                <button type="button" class="search-option" data-search-by="brand" role="option">
+                                    <i class="fas fa-car-side"></i>
+                                    Brand
+                                </button>
+                                <button type="button" class="search-option" data-search-by="model" role="option">
+                                    <i class="fas fa-car"></i>
+                                    Model
+                                </button>
+                                <button type="button" class="search-option" data-search-by="sub_model" role="option">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Sub-Model
+                                </button>
+                                <button type="button" class="search-option" data-search-by="vehicle_country" role="option">
+                                    <i class="fas fa-globe"></i>
+                                    Vehicle Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="measurement_country" role="option">
+                                    <i class="fas fa-ruler-combined"></i>
+                                    Measurement Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="all" role="option">
+                                    <i class="fas fa-layer-group"></i>
+                                    All Fields
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary icon-btn" title="Search" aria-label="Search vehicles">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    {% if search_query %}
+                    <a href="{% url 'car_details' %}" class="btn btn-danger icon-btn" title="Clear Search" aria-label="Clear Search">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </form>
             </div>
-            {% endif %}
         </div>
 
         <!-- Vehicle List -->
-            <div class="table-section">
-                {% if new_search_enabled %}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; width: 100%;">
-                    <h2 class="section-title" style="margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-list"></i>
-                        Existing Vehicles
-                    </h2>
-                    <form id="vehicleSearchForm" method="get" style="display:flex; gap:0.5rem; position:relative; width: 100%; max-width: 450px; margin: 0;">
-                        <input type="hidden" name="column" id="vehicleSearchColumn" value="{{ search_column|default:'' }}">
-                        <div style="position:relative; flex-grow:1;">
-                            <input type="text" name="search" id="brandSearchInput" value="{{ search_query|default:'' }}" placeholder="{% if search_column == 'layout_code' %}Search by Layout Code...{% elif search_column == 'brand' %}Search by Brand...{% elif search_column == 'model' %}Search by Model...{% elif search_column == 'sub_model' %}Search by Sub-Model...{% else %}Search Vehicles...{% endif %}" class="search-input" style="width:100%; padding-right: 2.25rem; margin-bottom: 0;">
-                            <button type="button" id="clearVehicleSearch" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; display: {% if search_query %}block{% else %}none{% endif %}; height: auto; padding: 0; line-height: 1;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                            
-                            <!-- Dynamic Dropdown -->
-                            <div id="vehicleSearchDropdown" class="search-dropdown-menu"></div>
-                        </div>
-                        <button type="submit" class="btn btn-primary" title="Search" style="width:auto; padding: 0.5rem 0.85rem; display: inline-flex; align-items: center; justify-content: center; height: 100%; border-radius: 8px;">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </form>
-                </div>
-                {% else %}
-                <h2 class="section-title">
+        <div class="table-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; width: 100%;">
+                <h2 class="section-title" style="margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-list"></i>
-                    Existing Vehicles
+                    Existing Vehicles ({{ car_data|length }})
                 </h2>
-                <div class="search-bar">
-                    <input type="text" id="brandSearchInput" placeholder="Search by Layout Code..." class="search-input">
-                    <input type="text" id="modelSearchInput" placeholder="Search by Brand..." class="search-input">
-                    <input type="text" id="subModelSearchInput" placeholder="Search by Model..." class="search-input">
-                </div>
-                {% endif %}
+            </div>
 
                 {% if car_data %}
                     <div class="table-container">
@@ -1090,137 +1285,6 @@
             });
         }
 
-        {% if new_search_enabled %}
-        // Search functionality with column-specific dropdown suggestions
-        const vehicleSearchInput = document.getElementById('brandSearchInput');
-        const vehicleSearchDropdown = document.getElementById('vehicleSearchDropdown');
-        const vehicleSearchColumnInput = document.getElementById('vehicleSearchColumn');
-        const clearVehicleSearchBtn = document.getElementById('clearVehicleSearch');
-        const vehicleSearchForm = document.getElementById('vehicleSearchForm');
-
-        if (vehicleSearchInput && vehicleSearchDropdown) {
-            // Function to generate the dropdown items
-            function updateDropdown() {
-                const keyword = vehicleSearchInput.value.trim();
-                if (!keyword) {
-                    vehicleSearchDropdown.style.display = 'none';
-                    return;
-                }
-
-                vehicleSearchDropdown.innerHTML = `
-                    <div class="search-dropdown-item" data-column="all">
-                        <i class="fas fa-search"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>All Columns</span>
-                    </div>
-                    <div class="search-dropdown-item" data-column="layout_code">
-                        <i class="fas fa-barcode"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Layout Code</span>
-                    </div>
-                    <div class="search-dropdown-item" data-column="brand">
-                        <i class="fas fa-car-side"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Brand</span>
-                    </div>
-                    <div class="search-dropdown-item" data-column="model">
-                        <i class="fas fa-cogs"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Model</span>
-                    </div>
-                    <div class="search-dropdown-item" data-column="sub_model">
-                        <i class="fas fa-info-circle"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Sub-Model</span>
-                    </div>
-                `;
-                vehicleSearchDropdown.style.display = 'block';
-            }
-
-            function escapeHtml(str) {
-                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-            }
-
-            // Show suggestions on input
-            vehicleSearchInput.addEventListener('input', function() {
-                updateDropdown();
-                if (clearVehicleSearchBtn) {
-                    clearVehicleSearchBtn.style.display = this.value.length > 0 ? 'block' : 'none';
-                }
-
-                // Fast local table search filter
-                const searchTerm = this.value.toLowerCase().trim();
-                const rows = document.querySelectorAll('.table tbody tr');
-                rows.forEach(row => {
-                    if (row.id === 'inline-add-row') return;
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(searchTerm) ? '' : 'none';
-                });
-            });
-
-            // Handle keyboard arrow keys navigation on dropdown options
-            vehicleSearchInput.addEventListener('keydown', function(e) {
-                if (vehicleSearchDropdown.style.display !== 'block') return;
-
-                const items = vehicleSearchDropdown.querySelectorAll('.search-dropdown-item');
-                if (items.length === 0) return;
-
-                let currentIndex = -1;
-                items.forEach((item, idx) => {
-                    if (item.classList.contains('selected-item')) {
-                        currentIndex = idx;
-                    }
-                });
-
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    let nextIndex = currentIndex + 1;
-                    if (nextIndex >= items.length) nextIndex = 0; // Wrap around
-
-                    items.forEach(item => item.classList.remove('selected-item'));
-                    items[nextIndex].classList.add('selected-item');
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    let prevIndex = currentIndex - 1;
-                    if (prevIndex < 0) prevIndex = items.length - 1; // Wrap around
-
-                    items.forEach(item => item.classList.remove('selected-item'));
-                    items[prevIndex].classList.add('selected-item');
-                } else if (e.key === 'Enter') {
-                    if (currentIndex !== -1) {
-                        e.preventDefault();
-                        items[currentIndex].click();
-                    }
-                }
-            });
-
-            // Handle dropdown item click
-            vehicleSearchDropdown.addEventListener('click', function(e) {
-                const item = e.target.closest('.search-dropdown-item');
-                if (item) {
-                    const column = item.getAttribute('data-column');
-                    vehicleSearchColumnInput.value = column;
-                    vehicleSearchDropdown.style.display = 'none';
-                    vehicleSearchForm.submit();
-                }
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('#vehicleSearchForm')) {
-                    vehicleSearchDropdown.style.display = 'none';
-                }
-            });
-
-            // Focus handler to show dropdown again if text exists
-            vehicleSearchInput.addEventListener('focus', function() {
-                if (this.value.trim().length > 0) {
-                    updateDropdown();
-                }
-            });
-
-            // Clear search button
-            if (clearVehicleSearchBtn) {
-                clearVehicleSearchBtn.addEventListener('click', function() {
-                    vehicleSearchInput.value = '';
-                    vehicleSearchColumnInput.value = '';
-                    clearVehicleSearchBtn.style.display = 'none';
-                    vehicleSearchDropdown.style.display = 'none';
-                    window.location.href = window.location.pathname; // Reload page without query params
-                });
-            }
-        }
-
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Add active nav state
@@ -1467,50 +1531,74 @@
                     });
                 }
             });
-        });
-        {% else %}
-        // Standard Search functionality
-        function setupSearch() {
-            const brandInput = document.getElementById("brandSearchInput");
-            const modelInput = document.getElementById("modelSearchInput");
-            const subModelInput = document.getElementById("subModelSearchInput");
-            const rows = document.querySelectorAll(".table tbody tr");
 
-            function filterTable() {
-                const brandVal = brandInput.value.trim().toLowerCase();
-                const modelVal = modelInput.value.trim().toLowerCase();
-                const subModelVal = subModelInput.value.trim().toLowerCase();
+            // Search Picker logic
+            const searchForm = document.getElementById('vehicle-search-form');
+            const searchPicker = document.getElementById('vehicle-search-picker');
+            const searchInput = document.getElementById('vehicle-search-input');
+            const searchByInput = document.getElementById('vehicle-search-by');
+            const searchLabel = document.getElementById('vehicle-search-field-label');
+            const searchOptions = document.querySelectorAll('#vehicle-search-options .search-option');
+            const searchLabels = {
+                layout_code: 'Layout Code',
+                brand: 'Brand',
+                model: 'Model',
+                sub_model: 'Sub-Model',
+                vehicle_country: 'Vehicle Country',
+                measurement_country: 'Measurement Country',
+                all: 'All Fields'
+            };
 
-                rows.forEach(row => {
-                    if (row.id === 'inline-add-row') return;
-                    const layoutCode = row.cells[2].textContent.toLowerCase();
-                    const brand = row.cells[3].textContent.toLowerCase();
-                    const model = row.cells[4].textContent.toLowerCase();
-
-                    const matchBrand = !brandVal || layoutCode.includes(brandVal);
-                    const matchModel = !modelVal || brand.includes(modelVal);
-                    const matchSubModel = !subModelVal || model.includes(subModelVal);
-
-                    row.style.display = (matchBrand && matchModel && matchSubModel) ? "" : "none";
+            function refreshSearchChoice() {
+                if (!searchByInput || !searchLabel) return;
+                const selected = searchByInput.value || 'all';
+                searchLabel.textContent = searchLabels[selected] || 'All Fields';
+                searchOptions.forEach((option) => {
+                    option.classList.toggle('is-active', option.dataset.searchBy === selected);
                 });
             }
 
-            brandInput.addEventListener("input", filterTable);
-            modelInput.addEventListener("input", filterTable);
-            subModelInput.addEventListener("input", filterTable);
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            setupSearch();
-            
-            // Add active nav state
-            const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
-            if (vehicleLink) {
-                vehicleLink.classList.add('active');
+            function setSuggestionsOpen(isOpen) {
+                if (!searchPicker || !searchInput) return;
+                const shouldOpen = isOpen && searchInput.value.trim().length > 0;
+                searchPicker.classList.toggle('is-suggesting', shouldOpen);
+                searchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
             }
+
+            refreshSearchChoice();
+
+            if (searchInput && searchPicker) {
+                searchInput.addEventListener('input', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('focus', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        setSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            searchOptions.forEach((option) => {
+                option.addEventListener('click', function () {
+                    if (!searchByInput || !searchForm) return;
+                    searchByInput.value = option.dataset.searchBy;
+                    refreshSearchChoice();
+                    setSuggestionsOpen(false);
+                    if (searchInput && searchInput.value.trim()) {
+                        searchForm.submit();
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (searchPicker && !searchPicker.contains(event.target)) {
+                    setSuggestionsOpen(false);
+                }
+            });
         });
-        {% endif %}
 
         // Close modals when clicking outside
         window.onclick = function(event) {

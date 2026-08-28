@@ -1,12 +1,16 @@
 {% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Settings - Fabro Leather</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         .page-container {
             max-width: 1680px;
             margin: 0 auto;
@@ -450,10 +454,15 @@
             }
         }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
     
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">
@@ -635,7 +644,7 @@
         }
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        window.fabroOnPageLoad(function() {
             // Add active nav state
             const settingsLink = document.querySelector('a[href="{% url 'master_settings' %}"]');
             if (settingsLink) {
@@ -660,5 +669,8 @@
             showToast('Setting updated successfully!', 'success');
         {% endif %}
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

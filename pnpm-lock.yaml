@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      htmx.org:
+        specifier: 2.0.8
+        version: 2.0.8
     devDependencies:
       '@fortawesome/fontawesome-free':
         specifier: 6.7.2
@@ -31,6 +35,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  htmx.org@2.0.8:
+    resolution: {integrity: sha512-fm297iru0iWsNJlBrjvtN7V9zjaxd+69Oqjh4F/Vq9Wwi2kFisLcrLCiv5oBX0KLfOX/zG8AUo9ROMU5XUB44Q==}
+
   playwright-core@1.61.1:
     resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
     engines: {node: '>=18'}
@@ -51,6 +58,8 @@ snapshots:
 
   fsevents@2.3.2:
     optional: true
+
+  htmx.org@2.0.8: {}
 
   playwright-core@1.61.1: {}
 

@@ -10,9 +10,10 @@ from .services.workflow import (
 
 
 def workflow_access(request):
+    is_htmx_request = request.headers.get('HX-Request') == 'true'
     user = getattr(request, 'user', None)
     if not user or not user.is_authenticated:
-        return {}
+        return {'is_htmx_request': is_htmx_request}
 
     profile = get_user_profile(user)
     role_label = dict(WorkflowRoles.CHOICES).get(
@@ -45,6 +46,7 @@ def workflow_access(request):
             ).count()
 
     return {
+        'is_htmx_request': is_htmx_request,
         'workflow_profile': profile,
         'workflow_role_label': role_label,
         'can_create_complaint': can_user_create_complaint(user),

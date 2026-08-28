@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.utils.cache import patch_vary_headers
 
 
 class SecurityHeadersMiddleware:
@@ -16,4 +17,6 @@ class SecurityHeadersMiddleware:
             'camera=(self), microphone=(self), geolocation=(), payment=(), usb=()',
         )
         response.setdefault('Cross-Origin-Opener-Policy', 'same-origin')
+        if response.get('Content-Type', '').startswith('text/html'):
+            patch_vary_headers(response, ('HX-Request',))
         return response

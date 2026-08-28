@@ -63,9 +63,9 @@ if not DEBUG and (
     )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '127.0.0.1,localhost,10.0.2.2' if DEBUG else '')
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '127.0.0.1,localhost,10.0.2.2,.vercel.app' if DEBUG else '.vercel.app,127.0.0.1,localhost')
 if not ALLOWED_HOSTS:
-    raise ImproperlyConfigured('ALLOWED_HOSTS must be configured.')
+    ALLOWED_HOSTS = ['.vercel.app', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -107,12 +107,14 @@ STORAGES = {
         'BACKEND': 'storages.backends.s3.S3Storage' if USE_S3 else 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage' if not DEBUG else 'django.contrib.staticfiles.storage.StaticFilesStorage',
     },
 }
+WHITENOISE_MANIFEST_STRICT = False
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'management.middleware.SecurityHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -194,10 +196,11 @@ elif USE_POSTGRES:
         }
     }
 else:
+    db_path = Path('/tmp') / 'db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3'
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': db_path,
         }
     }
 
@@ -254,7 +257,9 @@ LOGOUT_REDIRECT_URL = 'logout_success'
 CORS_ALLOW_ALL_ORIGINS = DEBUG and env_bool('CORS_ALLOW_ALL_ORIGINS', True)
 CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = env_bool('CORS_ALLOW_CREDENTIALS', False)
-CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS', 'https://*.vercel.app' if DEBUG else 'https://*.vercel.app')
+if not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app']
 
 ALLOW_PUBLIC_REGISTRATION = env_bool('ALLOW_PUBLIC_REGISTRATION', False)
 LOGIN_MAX_ATTEMPTS = int(os.getenv('LOGIN_MAX_ATTEMPTS', '8'))

@@ -1,13 +1,15 @@
 {% load static %}
+{% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Complaint - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         .page-container {
             max-width: 1000px;
             margin: 0 auto;
@@ -391,10 +393,13 @@
             }
         }
     </style>
+{% if is_htmx_request %}</template>{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
     
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">
@@ -522,15 +527,15 @@
 
 
         // File upload handling
-        const fileInput = document.querySelector('.file-input');
-        const uploadArea = document.querySelector('.file-upload-area');
+        const editComplaintFileInput = document.querySelector('.file-input');
+        const editComplaintUploadArea = document.querySelector('.file-upload-area');
 
-        if (fileInput && uploadArea) {
-            fileInput.addEventListener('change', function() {
+        if (editComplaintFileInput && editComplaintUploadArea) {
+            editComplaintFileInput.addEventListener('change', function() {
                 const files = this.files;
                 if (files.length > 0) {
-                    uploadArea.style.borderColor = 'var(--success-color)';
-                    uploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    editComplaintUploadArea.style.borderColor = 'var(--success-color)';
+                    editComplaintUploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
                     document.querySelector('.file-upload-text').innerHTML = 
                         `<strong>${files.length} file(s) selected</strong><br>Ready to upload`;
                 }
@@ -538,7 +543,7 @@
         }
 
          // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        window.fabroOnPageLoad(function() {
             // Add active nav state
             const complaintListLink = document.querySelector('a[href="{% url 'complaint_list' %}"]');
             if (complaintListLink) {
@@ -547,7 +552,7 @@
         });
 
     
-    document.addEventListener('DOMContentLoaded', function () {
+    window.fabroOnPageLoad(function () {
         const brand = document.getElementById('id_brand');
         const model = document.getElementById('id_model');
         const subModel = document.getElementById('id_sub_model');
@@ -583,5 +588,8 @@
 
 
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

@@ -1,14 +1,17 @@
 {% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Fabro Leather</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         /* Lock the page to exactly one viewport — no scrolling */
         html, body {
             height: 100vh;
@@ -1148,11 +1151,15 @@
             border-bottom-color: rgba(0, 0, 0, 0.08) !important;
         }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
-
 <body>
     {% include 'management/base.html' %}
+{% endif %}
 
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="dashboard-wrapper">
         <div class="dashboard-container">
             <div class="dashboard-header">
@@ -1379,7 +1386,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        window.fabroOnPageLoad(function () {
             const currentPath = window.location.pathname;
             document.querySelectorAll('.nav-link').forEach(link => {
                 if (link.getAttribute('href') === currentPath) {
@@ -1403,6 +1410,8 @@
             detailsRow.style.display = isHidden ? 'table-row' : 'none';
         }
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
-
 </html>
+{% endif %}

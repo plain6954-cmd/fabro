@@ -1,16 +1,21 @@
 {% load static %}
+{% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Execute {{ complaint.complaint_id }} - Fabro Leather</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+{% if is_htmx_request %}</template>{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
 
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <main class="workflow-page">
         <header class="workflow-header">
             <div>
@@ -143,5 +148,8 @@
             </aside>
         </div>
     </main>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

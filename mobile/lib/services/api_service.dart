@@ -6,6 +6,7 @@ import '../utils/secure_storage.dart';
 
 class ApiService {
   static const Duration _requestTimeout = Duration(seconds: 20);
+  static const int _maxGetAttempts = 3;
   static final ApiService _instance = ApiService._internal();
   final _secureStorage = SecureStorage();
 
@@ -32,7 +33,30 @@ class ApiService {
   Future<http.Response> get(String endpoint) async {
     final url = Uri.parse('${Environment.apiUrl}$endpoint');
     final headers = await _getHeaders();
-    return http.get(url, headers: headers).timeout(_requestTimeout);
+    Object? lastError;
+    for (var attempt = 0; attempt < _maxGetAttempts; attempt++) {
+      try {
+        final response = await http
+            .get(url, headers: headers)
+            .timeout(_requestTimeout);
+        final isTransient = response.statusCode == 502 ||
+            response.statusCode == 503 ||
+            response.statusCode == 504;
+        if (!isTransient || attempt == _maxGetAttempts - 1) {
+          return response;
+        }
+      } catch (error) {
+        lastError = error;
+        if (attempt == _maxGetAttempts - 1) rethrow;
+      }
+
+      // A short exponential backoff covers backend/database cold starts without
+      // delaying authentication or permission failures.
+      await Future<void>.delayed(
+        Duration(milliseconds: 300 * (1 << attempt)),
+      );
+    }
+    throw StateError('GET request failed after retries: $lastError');
   }
 
   // POST Request

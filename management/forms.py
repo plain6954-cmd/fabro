@@ -21,6 +21,20 @@ from django.contrib.auth.password_validation import validate_password
 
 MAX_CSV_UPLOAD_SIZE = 5 * 1024 * 1024
 MAX_BRAND_LOGO_SIZE = 2 * 1024 * 1024
+MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024
+ALLOWED_IMAGE_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+
+
+def validate_profile_photo(photo):
+    if not photo:
+        return photo
+    if photo.size > MAX_PROFILE_PHOTO_SIZE:
+        raise forms.ValidationError('Profile photo must be 5 MB or smaller.')
+    content_type = (getattr(photo, 'content_type', '') or '').lower()
+    if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+        raise forms.ValidationError('Profile photo must be a JPG, PNG, WEBP, or GIF image.')
+    # ImageField asks Pillow to verify the bytes, not only the filename or MIME header.
+    return forms.ImageField().clean(photo)
 
 
 def validate_csv_upload(csv_file):
@@ -89,7 +103,7 @@ class CarDetailsForm(forms.Form):
         if logo.size > MAX_BRAND_LOGO_SIZE:
             raise forms.ValidationError('Brand logo must be 2 MB or smaller.')
         content_type = (getattr(logo, 'content_type', '') or '').lower()
-        if content_type not in {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}:
+        if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
             raise forms.ValidationError('Brand logo must be a JPG, PNG, WEBP, or GIF image.')
         return logo
 
@@ -332,50 +346,107 @@ class SKUUploadForm(forms.Form):
 from django import forms
 from django.contrib.auth.models import User, Group, Permission
 
+class UnifiedWorkflowRoles:
+    CHOICES = [
+        (WorkflowRoles.COUNTRY_EXECUTIVE, 'Country Executive'),
+        (WorkflowRoles.FACTORY_VIEWER, 'Factory Viewer'),
+        (WorkflowRoles.FACTORY_EXECUTIVE, 'Factory Executive'),
+        ('PM', 'PM'),
+        ('OM', 'OM'),
+        ('CAD', 'CAD'),
+        ('ED', 'ED'),
+        ('MD', 'MD'),
+        (WorkflowRoles.ADMIN, 'Admin'),
+    ]
+
+    ALL_CHOICES = CHOICES + [
+        (WorkflowRoles.APPROVER, 'Approver'),
+        ('approver_PM', 'PM'),
+        ('approver_OM', 'OM'),
+        ('approver_CAD', 'CAD'),
+        ('approver_ED', 'ED'),
+        ('approver_MD', 'MD'),
+    ]
+
+
+class PermissiveRoleChoiceField(forms.ChoiceField):
+    def valid_value(self, value):
+        text_value = str(value)
+        valid_keys = [str(k) for k, _ in UnifiedWorkflowRoles.ALL_CHOICES]
+        if text_value in valid_keys:
+            return True
+        return super().valid_value(value)
+
+
 class UserCreationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, validators=[validate_password])
-    role = forms.ChoiceField(choices=WorkflowRoles.CHOICES, initial=WorkflowRoles.FACTORY_VIEWER)
+    first_name = forms.CharField(max_length=150, required=False)
+    last_name = forms.CharField(max_length=150, required=False)
+    phone_number = forms.CharField(max_length=30, required=False)
+    photo = forms.ImageField(required=False)
+    role = PermissiveRoleChoiceField(choices=UnifiedWorkflowRoles.CHOICES, initial=WorkflowRoles.FACTORY_VIEWER)
     country = forms.ModelChoiceField(
         queryset=MasterSetting.objects.filter(category='Country').order_by('name'),
         required=False,
     )
     department = forms.CharField(max_length=100, required=False)
-    approval_role = forms.ChoiceField(
-        choices=[('', 'Not an approver')] + list(ApprovalRoles.CHOICES),
-        required=False,
-    )
+    approval_role = forms.CharField(required=False, widget=forms.HiddenInput())
     can_receive_factory_assignments = forms.BooleanField(required=False)
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'is_staff', 'is_superuser']
+        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'is_superuser']
 
     def clean(self):
         cleaned_data = super().clean()
-        role = cleaned_data.get('role')
-        approval_role = cleaned_data.get('approval_role')
-        if role == WorkflowRoles.APPROVER and not approval_role:
-            self.add_error('approval_role', 'Choose PM, OM, CAD, ED, or MD for an approver.')
-        elif role == WorkflowRoles.APPROVER and UserProfile.objects.filter(
+        role = cleaned_data.get('role', '')
+        approval_role = cleaned_data.get('approval_role', '')
+
+        if role.startswith('approver_'):
+            mapped_role = WorkflowRoles.APPROVER
+            mapped_approval = role.split('_', 1)[1]
+        elif role == WorkflowRoles.APPROVER:
+            mapped_role = WorkflowRoles.APPROVER
+            mapped_approval = approval_role or ''
+        elif role in [r[0] for r in ApprovalRoles.CHOICES]:
+            mapped_role = WorkflowRoles.APPROVER
+            mapped_approval = role
+        else:
+            mapped_role = role
+            mapped_approval = ''
+
+        if mapped_role == WorkflowRoles.APPROVER and not mapped_approval:
+            self.add_error('role', 'Choose PM, OM, CAD, ED, or MD for an approver.')
+        elif mapped_role == WorkflowRoles.APPROVER and UserProfile.objects.filter(
             role=WorkflowRoles.APPROVER,
-            approval_role=approval_role,
+            approval_role=mapped_approval,
             user__is_active=True,
         ).exists():
-            self.add_error('approval_role', f'An active {approval_role} approver already exists.')
-        if role == WorkflowRoles.COUNTRY_EXECUTIVE and not cleaned_data.get('country'):
+            self.add_error('role', f'An active {mapped_approval} approver already exists.')
+
+        if mapped_role == WorkflowRoles.COUNTRY_EXECUTIVE and not cleaned_data.get('country'):
             self.add_error('country', 'Country executives must be assigned to a country.')
-        if role != WorkflowRoles.APPROVER:
-            cleaned_data['approval_role'] = ''
-        if role != WorkflowRoles.FACTORY_EXECUTIVE:
+
+        if mapped_role != WorkflowRoles.FACTORY_EXECUTIVE:
             cleaned_data['can_receive_factory_assignments'] = False
+
+        cleaned_data['mapped_role'] = mapped_role
+        cleaned_data['mapped_approval_role'] = mapped_approval
         return cleaned_data
+
+    def clean_photo(self):
+        return validate_profile_photo(self.cleaned_data.get('photo'))
 
     def save_profile(self, user):
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        profile.role = self.cleaned_data['role']
+        profile.role = self.cleaned_data.get('mapped_role', WorkflowRoles.FACTORY_VIEWER)
+        profile.approval_role = self.cleaned_data.get('mapped_approval_role', '')
         profile.country = self.cleaned_data.get('country')
         profile.department = self.cleaned_data.get('department', '')
-        profile.approval_role = self.cleaned_data.get('approval_role', '')
+        if self.cleaned_data.get('phone_number'):
+            profile.phone_number = self.cleaned_data.get('phone_number')
+        if self.cleaned_data.get('photo'):
+            profile.photo = self.cleaned_data.get('photo')
         profile.can_receive_factory_assignments = self.cleaned_data.get(
             'can_receive_factory_assignments',
             False,
@@ -385,34 +456,60 @@ class UserCreationForm(forms.ModelForm):
 
 
 class UserWorkflowProfileForm(forms.ModelForm):
-    approval_role = forms.ChoiceField(
-        choices=[('', 'Not an approver')] + list(ApprovalRoles.CHOICES),
-        required=False,
-    )
+    role = PermissiveRoleChoiceField(choices=UnifiedWorkflowRoles.CHOICES, initial=WorkflowRoles.FACTORY_VIEWER)
+    approval_role = forms.CharField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = UserProfile
-        fields = ['role', 'country', 'department', 'approval_role', 'can_receive_factory_assignments']
+        fields = ['role', 'country', 'department', 'phone_number', 'photo', 'approval_role', 'can_receive_factory_assignments']
 
     def clean(self):
         cleaned_data = super().clean()
-        role = cleaned_data.get('role')
-        approval_role = cleaned_data.get('approval_role')
-        if role == WorkflowRoles.APPROVER and not approval_role:
-            self.add_error('approval_role', 'Choose PM, OM, CAD, ED, or MD for an approver.')
-        elif role == WorkflowRoles.APPROVER and UserProfile.objects.filter(
+        role = cleaned_data.get('role', '')
+        approval_role = cleaned_data.get('approval_role', '')
+
+        if role.startswith('approver_'):
+            mapped_role = WorkflowRoles.APPROVER
+            mapped_approval = role.split('_', 1)[1]
+        elif role == WorkflowRoles.APPROVER:
+            mapped_role = WorkflowRoles.APPROVER
+            mapped_approval = approval_role or ''
+        elif role in [r[0] for r in ApprovalRoles.CHOICES]:
+            mapped_role = WorkflowRoles.APPROVER
+            mapped_approval = role
+        else:
+            mapped_role = role
+            mapped_approval = ''
+
+        if mapped_role == WorkflowRoles.APPROVER and not mapped_approval:
+            self.add_error('role', 'Choose PM, OM, CAD, ED, or MD for an approver.')
+        elif mapped_role == WorkflowRoles.APPROVER and UserProfile.objects.filter(
             role=WorkflowRoles.APPROVER,
-            approval_role=approval_role,
+            approval_role=mapped_approval,
             user__is_active=True,
         ).exclude(pk=self.instance.pk).exists():
-            self.add_error('approval_role', f'An active {approval_role} approver already exists.')
-        if role == WorkflowRoles.COUNTRY_EXECUTIVE and not cleaned_data.get('country'):
+            self.add_error('role', f'An active {mapped_approval} approver already exists.')
+
+        if mapped_role == WorkflowRoles.COUNTRY_EXECUTIVE and not cleaned_data.get('country'):
             self.add_error('country', 'Country executives must be assigned to a country.')
-        if role != WorkflowRoles.APPROVER:
-            cleaned_data['approval_role'] = ''
-        if role != WorkflowRoles.FACTORY_EXECUTIVE:
+
+        if mapped_role != WorkflowRoles.FACTORY_EXECUTIVE:
             cleaned_data['can_receive_factory_assignments'] = False
+
+        cleaned_data['mapped_role'] = mapped_role
+        cleaned_data['mapped_approval_role'] = mapped_approval
         return cleaned_data
+
+    def clean_photo(self):
+        return validate_profile_photo(self.cleaned_data.get('photo'))
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.role = self.cleaned_data.get('mapped_role', instance.role)
+        instance.approval_role = self.cleaned_data.get('mapped_approval_role', '')
+        if commit:
+            instance.save()
+        return instance
 
 class GroupCreationForm(forms.ModelForm):
     class Meta:

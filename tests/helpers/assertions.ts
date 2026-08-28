@@ -26,7 +26,7 @@ export function attachPageDiagnostics(page: Page) {
   });
 
   page.on('pageerror', (error) => {
-    pageErrors.push(error.message);
+    pageErrors.push(error.stack || error.message);
   });
 
   page.on('requestfailed', (request: Request) => {
