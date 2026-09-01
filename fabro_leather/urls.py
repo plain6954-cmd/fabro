@@ -10,11 +10,10 @@ urlpatterns = [
     path('', include('management.urls')),
 ]
 
-# Serve media files in development
+# Serve local media and static files in development.
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    if settings.MEDIA_URL != '/media/':
-        urlpatterns += static('/media/', document_root=settings.MEDIA_ROOT)
+    if not settings.USE_S3:
+        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     # Serve from the collected staticfiles folder
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     # Also serve directly from STATICFILES_DIRS so new files don't need collectstatic

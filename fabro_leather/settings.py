@@ -85,19 +85,91 @@ INSTALLED_APPS = [
     'storages',
 ]
 
+SUPABASE_STORAGE_ACCESS_KEY_ID = os.getenv('SUPABASE_STORAGE_ACCESS_KEY_ID')
+SUPABASE_STORAGE_SECRET_ACCESS_KEY = os.getenv('SUPABASE_STORAGE_SECRET_ACCESS_KEY')
+SUPABASE_STORAGE_BUCKET_NAME = os.getenv('SUPABASE_STORAGE_BUCKET_NAME')
+SUPABASE_STORAGE_REGION = os.getenv('SUPABASE_STORAGE_REGION')
+SUPABASE_STORAGE_ENDPOINT_URL = os.getenv('SUPABASE_STORAGE_ENDPOINT_URL')
+SUPABASE_STORAGE_PUBLIC_URL_FORMAT = os.getenv('SUPABASE_STORAGE_PUBLIC_URL_FORMAT', '')
+SUPABASE_STORAGE_REQUIRED_SETTINGS = {
+    'SUPABASE_STORAGE_ACCESS_KEY_ID': SUPABASE_STORAGE_ACCESS_KEY_ID,
+    'SUPABASE_STORAGE_SECRET_ACCESS_KEY': SUPABASE_STORAGE_SECRET_ACCESS_KEY,
+    'SUPABASE_STORAGE_BUCKET_NAME': SUPABASE_STORAGE_BUCKET_NAME,
+    'SUPABASE_STORAGE_REGION': SUPABASE_STORAGE_REGION,
+    'SUPABASE_STORAGE_ENDPOINT_URL': SUPABASE_STORAGE_ENDPOINT_URL,
+}
+SUPABASE_STORAGE_CONFIGURED = all(SUPABASE_STORAGE_REQUIRED_SETTINGS.values())
+USE_SUPABASE_STORAGE = False if E2E_TESTING else env_bool(
+    'USE_SUPABASE_STORAGE',
+    SUPABASE_STORAGE_CONFIGURED,
+)
+if USE_SUPABASE_STORAGE and not SUPABASE_STORAGE_CONFIGURED:
+    missing_settings = ', '.join(
+        name for name, value in SUPABASE_STORAGE_REQUIRED_SETTINGS.items() if not value
+    )
+    raise ImproperlyConfigured(
+        f'USE_SUPABASE_STORAGE requires the following settings: {missing_settings}.'
+    )
+
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ap-south-2')
-USE_S3 = False if E2E_TESTING else env_bool('USE_S3', False)
-if USE_S3 and not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME]):
+USE_AWS_S3 = False if E2E_TESTING else env_bool('USE_S3', False)
+if USE_AWS_S3 and not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME]):
     raise ImproperlyConfigured('USE_S3 requires AWS access key, secret key, and bucket name.')
 
-if USE_S3:
+# Kept as the provider-neutral flag used by models and URL configuration.
+USE_S3 = USE_SUPABASE_STORAGE or USE_AWS_S3
+DEFAULT_STORAGE_OPTIONS = {}
+
+if USE_SUPABASE_STORAGE:
+    public_url = urlparse(
+        SUPABASE_STORAGE_PUBLIC_URL_FORMAT.format(
+            bucket=SUPABASE_STORAGE_BUCKET_NAME,
+            key='',
+        )
+    ) if SUPABASE_STORAGE_PUBLIC_URL_FORMAT else None
+    public_custom_domain = None
+    if public_url:
+        if public_url.scheme not in {'http', 'https'} or not public_url.netloc:
+            raise ImproperlyConfigured(
+                'SUPABASE_STORAGE_PUBLIC_URL_FORMAT must be an absolute HTTP(S) URL.'
+            )
+        public_custom_domain = f'{public_url.netloc}{public_url.path}'.rstrip('/')
+
+    DEFAULT_STORAGE_OPTIONS = {
+        'access_key': SUPABASE_STORAGE_ACCESS_KEY_ID,
+        'secret_key': SUPABASE_STORAGE_SECRET_ACCESS_KEY,
+        'bucket_name': SUPABASE_STORAGE_BUCKET_NAME,
+        'region_name': SUPABASE_STORAGE_REGION,
+        'endpoint_url': SUPABASE_STORAGE_ENDPOINT_URL.rstrip('/'),
+        'addressing_style': 'path',
+        'signature_version': 's3v4',
+        'file_overwrite': False,
+        'default_acl': None,
+        'querystring_auth': not bool(public_custom_domain),
+    }
+    if public_custom_domain:
+        DEFAULT_STORAGE_OPTIONS['custom_domain'] = public_custom_domain
+        DEFAULT_STORAGE_OPTIONS['url_protocol'] = f'{public_url.scheme}:'
+        MEDIA_URL = f'{public_url.scheme}://{public_custom_domain}/'
+    else:
+        MEDIA_URL = (
+            f'{SUPABASE_STORAGE_ENDPOINT_URL.rstrip("/")}/'
+            f'{SUPABASE_STORAGE_BUCKET_NAME}/'
+        )
+elif USE_AWS_S3:
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = True
+    DEFAULT_STORAGE_OPTIONS = {
+        'access_key': AWS_ACCESS_KEY_ID,
+        'secret_key': AWS_SECRET_ACCESS_KEY,
+        'bucket_name': AWS_STORAGE_BUCKET_NAME,
+        'region_name': AWS_S3_REGION_NAME,
+        'file_overwrite': False,
+        'default_acl': None,
+        'querystring_auth': True,
+    }
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 else:
     MEDIA_URL = '/media/'
@@ -105,6 +177,7 @@ else:
 STORAGES = {
     'default': {
         'BACKEND': 'storages.backends.s3.S3Storage' if USE_S3 else 'django.core.files.storage.FileSystemStorage',
+        'OPTIONS': DEFAULT_STORAGE_OPTIONS,
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage' if not DEBUG else 'django.contrib.staticfiles.storage.StaticFilesStorage',
