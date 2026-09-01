@@ -13,11 +13,13 @@ from management.models import (
     ComplaintTypes,
     DecisionStatuses,
     FactoryPriorities,
+    MasterSetting,
     Notification,
     UserProfile,
     WorkflowRoles,
     WorkflowStatuses,
     infer_complaint_type,
+    complaint_type_master_category,
 )
 
 
@@ -30,7 +32,6 @@ REPORT_EDITABLE_WORKFLOW_STATUSES = {
 
 REPORT_FIELD_LABELS = {
     'channel': 'Channel',
-    'person': 'Reported By',
     'series': 'Series',
     'material': 'Material',
     'sku': 'SKU',
@@ -50,6 +51,7 @@ JOURNEY_STAGES = (
     ('factory', 'Factory Review'),
     ('approval', 'Approval'),
     ('action', 'Action'),
+    ('verification', 'Verification'),
     ('final', 'Final Update'),
     ('closed', 'Closed'),
 )
@@ -63,8 +65,10 @@ JOURNEY_STAGE_BY_STATUS = {
     WorkflowStatuses.REWORK_REQUIRED: 2,
     WorkflowStatuses.APPROVED: 3,
     WorkflowStatuses.ACTION_IN_PROGRESS: 3,
-    WorkflowStatuses.PENDING_FINAL_UPDATE: 4,
-    WorkflowStatuses.CLOSED: 5,
+    WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION: 4,
+    WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED: 4,
+    WorkflowStatuses.PENDING_FINAL_UPDATE: 5,
+    WorkflowStatuses.CLOSED: 6,
 }
 
 
@@ -73,7 +77,7 @@ def complaint_journey_steps(complaint):
     current_index = JOURNEY_STAGE_BY_STATUS.get(complaint.workflow_status)
     if current_index is None:
         if complaint.closed_at:
-            current_index = 5
+            current_index = 6
         elif complaint.fully_approved_at:
             current_index = 3
         elif complaint.last_submitted_for_approval_at:
@@ -110,6 +114,20 @@ def is_country_executive(user):
     return bool(profile and profile.role == WorkflowRoles.COUNTRY_EXECUTIVE)
 
 
+def reporting_country_for_user(user):
+    """Return the authoritative complaint country for an authenticated user."""
+    profile = get_user_profile(user)
+    if profile and profile.role == WorkflowRoles.COUNTRY_EXECUTIVE:
+        if not profile.country_id:
+            raise PermissionError('Your account must be assigned to a country before reporting complaints.')
+        return profile.country
+
+    india = MasterSetting.objects.filter(category='Country', name__iexact='India').first()
+    if india is None:
+        india, _ = MasterSetting.objects.get_or_create(category='Country', name='India')
+    return india
+
+
 def is_factory_executive(user):
     profile = get_user_profile(user)
     return bool(
@@ -143,19 +161,36 @@ def can_user_manage_catalog(user):
 
 
 def can_user_create_complaint(user):
-    """Only reporting/execution roles and workflow administrators create reports."""
+    """Return whether the user has at least one registerable complaint type."""
+    return bool(allowed_complaint_types_for_user(user))
+
+
+def allowed_complaint_types_for_user(user):
+    """Return complaint types the user may register, in display order."""
     if not user or not user.is_authenticated:
-        return False
+        return ()
     if is_workflow_admin(user):
-        return True
+        return tuple(value for value, _ in ComplaintTypes.CHOICES)
+
     profile = get_user_profile(user)
-    return bool(
-        profile
-        and profile.role in {
-            WorkflowRoles.COUNTRY_EXECUTIVE,
-            WorkflowRoles.FACTORY_EXECUTIVE,
-        }
-    )
+    if not profile:
+        return ()
+    if profile.role == WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR:
+        return (ComplaintTypes.LINE,)
+    if profile.role in {
+        WorkflowRoles.COUNTRY_EXECUTIVE,
+        WorkflowRoles.FACTORY_EXECUTIVE,
+    }:
+        return (
+            ComplaintTypes.PATTERN,
+            ComplaintTypes.PRODUCTION,
+            ComplaintTypes.QUALITY,
+        )
+    return ()
+
+
+def can_user_create_complaint_type(user, complaint_type):
+    return complaint_type in allowed_complaint_types_for_user(user)
 
 
 def can_user_view_approvals(user):
@@ -197,13 +232,21 @@ def visible_complaints_for_user(user, queryset=None):
             return queryset.none()
         return queryset.filter(
             country_id=profile.country_id,
-            complaint_type__in=[ComplaintTypes.PATTERN, ComplaintTypes.PRODUCTION],
+            complaint_type__in=[
+                ComplaintTypes.PATTERN,
+                ComplaintTypes.PRODUCTION,
+                ComplaintTypes.QUALITY,
+            ],
         )
 
     if profile.role == WorkflowRoles.FACTORY_EXECUTIVE:
         return queryset.filter(assigned_factory_executive_id=user.id)
 
-    if profile.role in {WorkflowRoles.FACTORY_VIEWER, WorkflowRoles.APPROVER}:
+    if profile.role in {
+        WorkflowRoles.FACTORY_VIEWER,
+        WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+        WorkflowRoles.APPROVER,
+    }:
         return queryset
 
     # A newly created or malformed role must fail closed until configured.
@@ -361,13 +404,15 @@ def prepare_complaint_for_create(complaint, user):
     valid_types = {value for value, _ in ComplaintTypes.CHOICES}
     if complaint.complaint_type not in valid_types and complaint.case_sub_category_id:
         complaint.complaint_type = infer_complaint_type(complaint.case_sub_category.name)
-    if is_country_executive(user):
-        profile = get_user_profile(user)
-        if not profile or not profile.country_id:
-            raise PermissionError('Your account must be assigned to a country before reporting complaints.')
-        if complaint.complaint_type == ComplaintTypes.LINE:
-            raise PermissionError('Country executives cannot create line complaints.')
-        complaint.country = profile.country
+    expected_type_category = complaint_type_master_category(complaint.complaint_type)
+    if (
+        complaint.case_sub_category_id
+        and complaint.case_sub_category.category != expected_type_category
+    ):
+        raise ValueError('Select a complaint Type from the active complaint category.')
+    if not can_user_create_complaint_type(user, complaint.complaint_type):
+        raise PermissionError('Your role cannot create the selected complaint type.')
+    complaint.country = reporting_country_for_user(user)
     complaint.workflow_status = WorkflowStatuses.SUBMITTED
     return complaint
 
@@ -454,34 +499,50 @@ def find_approver_for_role(role):
     return configured[0].user if configured else None
 
 
-def latest_approval_round_number(complaint):
+def latest_approval_round_number(complaint, review_stages=None):
+    review_stages = set(review_stages or [])
     if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
-        approvals = complaint._prefetched_objects_cache['approvals']
+        approvals = [
+            approval for approval in complaint._prefetched_objects_cache['approvals']
+            if not review_stages or approval.review_stage in review_stages
+        ]
         if approvals:
             return max(a.approval_round for a in approvals)
         return 0
-    latest = complaint.approvals.order_by('-approval_round').values_list('approval_round', flat=True).first()
+    approvals = complaint.approvals.all()
+    if review_stages:
+        approvals = approvals.filter(review_stage__in=review_stages)
+    latest = approvals.order_by('-approval_round').values_list('approval_round', flat=True).first()
     return latest or 0
 
 
-def current_round_approvals(complaint):
-    approval_round = latest_approval_round_number(complaint)
+def current_round_approvals(complaint, review_stages=None):
+    review_stages = set(review_stages or [])
+    approval_round = latest_approval_round_number(complaint, review_stages)
     if not approval_round:
         if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
             return []
         return ComplaintApproval.objects.none()
 
     if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
-        return [a for a in complaint._prefetched_objects_cache['approvals'] if a.approval_round == approval_round and a.required]
+        return [
+            approval for approval in complaint._prefetched_objects_cache['approvals']
+            if approval.approval_round == approval_round
+            and approval.required
+            and (not review_stages or approval.review_stage in review_stages)
+        ]
 
-    return complaint.approvals.filter(
+    approvals = complaint.approvals.filter(
         approval_round=approval_round,
         required=True,
-    ).select_related('approver_user', 'trigger_approval', 'trigger_approval__approver_user')
+    )
+    if review_stages:
+        approvals = approvals.filter(review_stage__in=review_stages)
+    return approvals.select_related('approver_user', 'trigger_approval', 'trigger_approval__approver_user')
 
 
-def approval_progress(complaint):
-    approvals = list(current_round_approvals(complaint))
+def approval_progress(complaint, review_stages=None):
+    approvals = list(current_round_approvals(complaint, review_stages))
     decided = [approval for approval in approvals if approval.status != DecisionStatuses.PENDING]
     return {
         'round': approvals[0].approval_round if approvals else 0,
@@ -495,24 +556,33 @@ def approval_progress(complaint):
     }
 
 
-def get_user_current_approval(user, complaint):
+def get_user_current_approval(user, complaint, review_stages=None):
     if not user or not user.is_authenticated:
         return None
-    approval_round = latest_approval_round_number(complaint)
+    review_stages = set(review_stages or [])
+    approval_round = latest_approval_round_number(complaint, review_stages)
     if not approval_round:
         return None
 
     if hasattr(complaint, '_prefetched_objects_cache') and 'approvals' in complaint._prefetched_objects_cache:
         for a in complaint._prefetched_objects_cache['approvals']:
-            if a.approval_round == approval_round and a.approver_user_id == user.id and a.required:
+            if (
+                a.approval_round == approval_round
+                and a.approver_user_id == user.id
+                and a.required
+                and (not review_stages or a.review_stage in review_stages)
+            ):
                 return a
         return None
 
-    return complaint.approvals.filter(
+    approvals = complaint.approvals.filter(
         approval_round=approval_round,
         approver_user=user,
         required=True,
-    ).first()
+    )
+    if review_stages:
+        approvals = approvals.filter(review_stage__in=review_stages)
+    return approvals.first()
 
 
 def can_user_decide_approval(user, approval):
@@ -526,6 +596,8 @@ def can_user_decide_approval(user, approval):
     if approval.complaint.workflow_status not in [
         WorkflowStatuses.AWAITING_APPROVAL,
         WorkflowStatuses.PARTIALLY_APPROVED,
+        WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+        WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
     ]:
         return False
     return approval.approval_round == latest_approval_round_number(approval.complaint)
@@ -662,6 +734,54 @@ def _resolve_completed_approval_round(complaint, approvals):
     review_stage = approvals[0].review_stage
     rejected = [approval for approval in approvals if approval.status == DecisionStatuses.REJECTED]
 
+    if review_stage == ApprovalStages.EXECUTION_VERIFICATION:
+        if rejected:
+            ComplaintApproval.objects.filter(
+                complaint=complaint,
+                approval_round=approvals[0].approval_round,
+                status=DecisionStatuses.PENDING,
+            ).update(status=DecisionStatuses.SUPERSEDED, decided_at=timezone.now())
+            complaint.workflow_status = WorkflowStatuses.ACTION_IN_PROGRESS
+            complaint.save(update_fields=['workflow_status'])
+            rejected_roles = ', '.join(approval.approver_role for approval in rejected)
+            add_timeline_event(
+                complaint,
+                'execution_verification_rejected',
+                'Execution correction required',
+                f'Execution verification was rejected by {rejected_roles}. Correct the execution and resubmit it.',
+            )
+            notify_user(
+                complaint.assigned_factory_executive,
+                'Execution correction required',
+                f'{complaint.complaint_id} was rejected during execution verification. Review the verifier comment, correct the work, and resubmit.',
+                complaint=complaint,
+                notification_type='execution_verification_rejected',
+            )
+            return 'execution_rejected'
+
+        pending = [approval for approval in approvals if approval.status == DecisionStatuses.PENDING]
+        if pending:
+            complaint.workflow_status = WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED
+            complaint.save(update_fields=['workflow_status'])
+            return 'pending'
+
+        complaint.workflow_status = WorkflowStatuses.PENDING_FINAL_UPDATE
+        complaint.save(update_fields=['workflow_status'])
+        add_timeline_event(
+            complaint,
+            'execution_verified',
+            'Execution verified - final update unlocked',
+            'Every required approver verified that the approved action plan was executed correctly.',
+        )
+        notify_user(
+            complaint.assigned_factory_executive,
+            'Execution verified - final update unlocked',
+            f'{complaint.complaint_id} passed unanimous execution verification. Submit the CAD and container updates.',
+            complaint=complaint,
+            notification_type='execution_verified',
+        )
+        return 'execution_verified'
+
     if review_stage == ApprovalStages.INITIAL and rejected:
         _create_reconsideration_round(complaint, rejected[0], approvals)
         return 'reconsideration'
@@ -755,6 +875,9 @@ def record_approval_decision(approval_id, user, decision, comment=''):
     if approval.review_stage == ApprovalStages.RECONSIDERATION:
         decision_label = 'chose to proceed' if decision == DecisionStatuses.APPROVED else 'requested rework'
         description = f'{approval.approver_role} {decision_label} during reconsideration.'
+    elif approval.review_stage == ApprovalStages.EXECUTION_VERIFICATION:
+        decision_label = 'verified the execution' if decision == DecisionStatuses.APPROVED else 'requested execution correction'
+        description = f'{approval.approver_role} {decision_label}.'
     else:
         description = f'{approval.approver_role} {decision} the factory review.'
     if comment:
@@ -794,6 +917,9 @@ def can_user_execute_action(user, complaint):
     return complaint.workflow_status in [
         WorkflowStatuses.APPROVED,
         WorkflowStatuses.ACTION_IN_PROGRESS,
+        WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+        WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
+        WorkflowStatuses.PENDING_FINAL_UPDATE,
     ]
 
 
@@ -820,12 +946,71 @@ def start_action_execution(complaint, user):
 
 
 @transaction.atomic
+def submit_execution_for_verification(complaint, user):
+    complaint = Complaint.objects.select_for_update().get(pk=complaint.pk)
+    if not can_user_execute_action(user, complaint):
+        raise PermissionError('You are not allowed to submit this execution for verification.')
+    if complaint.workflow_status != WorkflowStatuses.ACTION_IN_PROGRESS:
+        raise ValueError('The action plan must be in progress before execution can be submitted for verification.')
+
+    source_round = latest_approval_round_number(complaint, [ApprovalStages.INITIAL])
+    source_approvals = list(ComplaintApproval.objects.filter(
+        complaint=complaint,
+        approval_round=source_round,
+        review_stage=ApprovalStages.INITIAL,
+        required=True,
+    ).select_related('approver_user'))
+    source_by_role = {approval.approver_role: approval for approval in source_approvals}
+    required_roles = required_approval_roles(complaint.factory_priority or complaint.priority)
+    missing_roles = [
+        role for role in required_roles
+        if role not in source_by_role or not source_by_role[role].approver_user_id
+    ]
+    if missing_roles:
+        raise ValueError(
+            f"The original action-plan approvers are unavailable for: {', '.join(missing_roles)}."
+        )
+
+    verification_round = latest_approval_round_number(complaint) + 1
+    approvals = [
+        ComplaintApproval.objects.create(
+            complaint=complaint,
+            approval_round=verification_round,
+            review_stage=ApprovalStages.EXECUTION_VERIFICATION,
+            approver_role=role,
+            approver_user=source_by_role[role].approver_user,
+            status=DecisionStatuses.PENDING,
+            required=True,
+        )
+        for role in required_roles
+    ]
+    complaint.workflow_status = WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION
+    complaint.save(update_fields=['workflow_status'])
+    add_timeline_event(
+        complaint,
+        'execution_verification_requested',
+        'Execution submitted for verification',
+        'The completed action plan was sent to the original approval matrix for verification.',
+        user,
+    )
+    for approval in approvals:
+        notify_user(
+            approval.approver_user,
+            'Execution waiting for verification',
+            f'Verify that {complaint.complaint_id} was executed according to the approved action plan.',
+            complaint=complaint,
+            notification_type='execution_verification',
+        )
+    return approvals
+
+
+@transaction.atomic
 def close_complaint_after_execution(complaint, user, cad_date, container_number=''):
     complaint = Complaint.objects.select_for_update().get(pk=complaint.pk)
     if not can_user_execute_action(user, complaint):
         raise PermissionError('You are not allowed to close this complaint.')
-    if complaint.workflow_status != WorkflowStatuses.ACTION_IN_PROGRESS:
-        raise ValueError('Start the approved action plan before submitting final updates.')
+    if complaint.workflow_status != WorkflowStatuses.PENDING_FINAL_UPDATE:
+        raise ValueError('Final updates are locked until every required approver verifies the execution.')
     if not cad_date:
         raise ValueError('CAD Updated Date is mandatory.')
     if cad_date > timezone.localdate():

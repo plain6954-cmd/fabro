@@ -1,12 +1,16 @@
 {% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKU Management - Fabro Leather</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         {% if new_search_enabled %}
         .page-container {
             max-width: 100%;
@@ -823,10 +827,14 @@
             cursor: pointer;
         }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
-    
+{% endif %}
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container">
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
             <div>
@@ -855,7 +863,6 @@
                                aria-haspopup="listbox" aria-expanded="false">
                         <span class="search-field-label" id="sku-search-field-label">All Fields</span>
                         <div class="search-options" id="sku-search-options">
-                            <div id="skuSearchDropdown" style="display: none;"></div>
                             <p class="search-options-title" id="sku-search-options-title">Search this keyword in</p>
                             <div class="search-option-grid" role="listbox" aria-label="Search field choices">
                                 <button type="button" class="search-option" data-search-by="code" role="option">
@@ -1165,177 +1172,6 @@
             }
         }
 
-        {% if new_search_enabled %}
-        // Search functionality with column-specific dropdown suggestions
-        const searchInput = document.getElementById('searchInput');
-        const searchDropdown = document.getElementById('skuSearchDropdown');
-        const searchColumnInput = document.getElementById('skuSearchColumn');
-        const clearSearchBtn = document.getElementById('clearSkuSearch');
-        const searchForm = document.getElementById('skuSearchForm');
-
-        if (searchInput && searchDropdown) {
-            // Function to generate the dropdown items
-            function updateDropdown() {
-                const keyword = searchInput.value.trim();
-                if (!keyword) {
-                    searchDropdown.style.display = 'none';
-                    return;
-                }
-
-                searchDropdown.innerHTML = `
-                    <div class="search-dropdown-item" data-column="all">
-                        <i class="fas fa-search"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>All Columns</span>
-                    </div>
-                    <div class="search-dropdown-item" data-column="code">
-                        <i class="fas fa-barcode"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>SKU Code</span>
-                    </div>
-                    <div class="search-dropdown-item" data-column="description">
-                        <i class="fas fa-align-left"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Description</span>
-                    </div>
-                    <div class="search-dropdown-item" data-column="region">
-                        <i class="fas fa-globe"></i> Search "<strong>${escapeHtml(keyword)}</strong>" in <span>Region</span>
-                    </div>
-                `;
-                searchDropdown.style.display = 'block';
-            }
-
-            function escapeHtml(str) {
-                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-            }
-
-            // Show suggestions on input
-            searchInput.addEventListener('input', function() {
-                updateDropdown();
-                if (clearSearchBtn) {
-                    clearSearchBtn.style.display = this.value.length > 0 ? 'block' : 'none';
-                }
-
-                // Also apply client-side fast filter to the current page rows
-                const searchTerm = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#skuTableBody tr[id^="sku-row-"]');
-                rows.forEach(row => {
-                    const codeCell = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
-                    const descCell = row.cells[2] ? row.cells[2].textContent.toLowerCase() : '';
-                    const regionCell = row.cells[3] ? row.cells[3].textContent.toLowerCase() : '';
-
-                    if (codeCell.includes(searchTerm) || descCell.includes(searchTerm) || regionCell.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-
-            // Handle keyboard arrow keys navigation on dropdown options
-            searchInput.addEventListener('keydown', function(e) {
-                if (searchDropdown.style.display !== 'block') return;
-
-                const items = searchDropdown.querySelectorAll('.search-dropdown-item');
-                if (items.length === 0) return;
-
-                let currentIndex = -1;
-                items.forEach((item, idx) => {
-                    if (item.classList.contains('selected-item')) {
-                        currentIndex = idx;
-                    }
-                });
-
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    let nextIndex = currentIndex + 1;
-                    if (nextIndex >= items.length) nextIndex = 0; // Wrap around
-
-                    items.forEach(item => item.classList.remove('selected-item'));
-                    items[nextIndex].classList.add('selected-item');
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    let prevIndex = currentIndex - 1;
-                    if (prevIndex < 0) prevIndex = items.length - 1; // Wrap around
-
-                    items.forEach(item => item.classList.remove('selected-item'));
-                    items[prevIndex].classList.add('selected-item');
-                } else if (e.key === 'Enter') {
-                    if (currentIndex !== -1) {
-                        e.preventDefault();
-                        items[currentIndex].click();
-                    }
-                }
-            });
-
-            // Handle dropdown item click
-            searchDropdown.addEventListener('click', function(e) {
-                const item = e.target.closest('.search-dropdown-item');
-                if (item) {
-                    const column = item.getAttribute('data-column');
-                    searchColumnInput.value = column;
-                    searchDropdown.style.display = 'none';
-                    searchForm.submit();
-                }
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('#skuSearchForm')) {
-                    searchDropdown.style.display = 'none';
-                }
-            });
-
-            // Focus handler to show dropdown again if text exists
-            searchInput.addEventListener('focus', function() {
-                if (this.value.trim().length > 0) {
-                    updateDropdown();
-                }
-            });
-
-            // Clear search button
-            if (clearSearchBtn) {
-                clearSearchBtn.addEventListener('click', function() {
-                    searchInput.value = '';
-                    searchColumnInput.value = '';
-                    clearSearchBtn.style.display = 'none';
-                    searchDropdown.style.display = 'none';
-                    window.location.href = window.location.pathname; // Reload page without query params
-                });
-            }
-        }
-        {% else %}
-        // Search functionality
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#skuTableBody tr[id^="sku-row-"]');
-
-                rows.forEach(row => {
-                    const codeCell = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
-                    const descCell = row.cells[2] ? row.cells[2].textContent.toLowerCase() : '';
-
-                    if (codeCell.includes(searchTerm) || descCell.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-        }
-        {% endif %}
-
-        // File upload handling
-        const fileInput = document.querySelector('.file-input');
-        const uploadArea = document.querySelector('.file-upload-area');
-
-        if (fileInput && uploadArea) {
-            fileInput.addEventListener('change', function() {
-                const files = this.files;
-                if (files.length > 0) {
-                    uploadArea.style.borderColor = 'var(--success-color)';
-                    uploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                    document.querySelector('.file-upload-text').innerHTML = 
-                        `<strong>${files[0].name}</strong><br>Ready to upload`;
-                }
-            });
-        }
-
         function closeDuplicateModal() {
             document.getElementById('duplicateModal').style.display = 'none';
         }
@@ -1352,8 +1188,25 @@
             }
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize on both full page loads and in-place portal navigation.
+        window.fabroOnPageLoad(function() {
+            // File upload handling
+            const fileInput = document.querySelector('.file-input');
+            const uploadArea = document.querySelector('.file-upload-area');
+            if (fileInput && uploadArea) {
+                fileInput.addEventListener('change', function() {
+                    const files = this.files;
+                    if (files.length > 0) {
+                        uploadArea.style.borderColor = 'var(--success-color)';
+                        uploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                        const uploadText = document.querySelector('.file-upload-text');
+                        if (uploadText) {
+                            uploadText.textContent = `${files[0].name} — Ready to upload`;
+                        }
+                    }
+                });
+            }
+
             const skuLink = document.querySelector('a[href="{% url 'add_sku' %}"]');
             if (skuLink) {
                 skuLink.classList.add('active');
@@ -1688,5 +1541,8 @@
             });
         });
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

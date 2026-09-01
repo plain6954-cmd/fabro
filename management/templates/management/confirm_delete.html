@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
     <title>Delete Complaint</title>
     {% load static %}
+    <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+    <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
+    <script src="{% static 'js/fabro-i18n.js' %}?v=20260831-search-clear" defer></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

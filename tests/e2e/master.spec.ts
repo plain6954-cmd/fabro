@@ -30,3 +30,30 @@ test('master settings supports add, edit modal and delete', async ({ page }) => 
   await expectNoDjangoError(page);
   await diagnostics.assertClean();
 });
+
+test('master settings translates its controls and built-in values', async ({ page }) => {
+  await page.goto(routes.master);
+
+  try {
+    await page.locator('.profile-trigger').click();
+    await page.locator('.language-menu-trigger').click();
+    await page.locator('.language-menu-option[value="ar"]').click();
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.getByRole('heading', { name: 'الإعدادات الرئيسية' })).toBeVisible();
+    await expect(page.getByText('إضافة إعداد جديد', { exact: true })).toBeVisible();
+    await expect(page.getByText('الإعدادات الحالية', { exact: true })).toBeVisible();
+    const addSettingForm = page.locator('.form-section');
+    await expect(addSettingForm.getByText('الفئة', { exact: true })).toBeVisible();
+    await expect(addSettingForm.getByText('الاسم', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'إضافة الإعداد' })).toBeVisible();
+    await expect(page.getByText('واتساب', { exact: true })).toBeVisible();
+  } finally {
+    if (!page.isClosed()) {
+      await page.locator('.profile-trigger').click();
+      await page.locator('.language-menu-trigger').click();
+      await page.locator('.language-menu-option[value="en"]').click();
+      await page.waitForLoadState('domcontentloaded');
+    }
+  }
+});

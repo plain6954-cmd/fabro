@@ -9,6 +9,7 @@ const ignoredConsolePatterns = [
 const ignoredRequestPatterns = [
   /favicon/i,
   /fontawesome/i,
+  /flagcdn\.com/i,
   /s3\.ap-south-2\.amazonaws\.com/i
 ];
 

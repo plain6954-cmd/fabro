@@ -188,22 +188,70 @@
             opacity: 0.28;
         }
 
-        .dashboard-status.status-open {
-            background: rgba(16, 185, 129, 0.16) !important;
-            border-color: rgba(52, 211, 153, 0.42) !important;
-            color: #6ee7b7 !important;
+        .dashboard-status.workflow-submitted {
+            background: rgba(113, 113, 122, 0.2) !important;
+            border-color: rgba(161, 161, 170, 0.45) !important;
+            color: #d4d4d8 !important;
         }
-
-        .dashboard-status.status-closed {
-            background: rgba(59, 130, 246, 0.16) !important;
-            border-color: rgba(96, 165, 250, 0.42) !important;
+        .dashboard-status.workflow-assigned_to_factory {
+            background: rgba(139, 92, 246, 0.18) !important;
+            border-color: rgba(167, 139, 250, 0.45) !important;
+            color: #c4b5fd !important;
+        }
+        .dashboard-status.workflow-factory_review {
+            background: rgba(99, 102, 241, 0.18) !important;
+            border-color: rgba(129, 140, 248, 0.45) !important;
+            color: #a5b4fc !important;
+        }
+        .dashboard-status.workflow-awaiting_approval {
+            background: rgba(245, 158, 11, 0.18) !important;
+            border-color: rgba(251, 191, 36, 0.48) !important;
+            color: #fcd34d !important;
+        }
+        .dashboard-status.workflow-partially_approved {
+            background: rgba(249, 115, 22, 0.18) !important;
+            border-color: rgba(251, 146, 60, 0.48) !important;
+            color: #fdba74 !important;
+        }
+        .dashboard-status.workflow-rework_required {
+            background: rgba(239, 68, 68, 0.18) !important;
+            border-color: rgba(248, 113, 113, 0.48) !important;
+            color: #fca5a5 !important;
+        }
+        .dashboard-status.workflow-approved {
+            background: rgba(34, 197, 94, 0.18) !important;
+            border-color: rgba(74, 222, 128, 0.45) !important;
+            color: #86efac !important;
+        }
+        .dashboard-status.workflow-action_in_progress {
+            background: rgba(59, 130, 246, 0.18) !important;
+            border-color: rgba(96, 165, 250, 0.45) !important;
             color: #93c5fd !important;
         }
-
-        .dashboard-status.status-on-hold {
-            background: rgba(217, 119, 6, 0.18) !important;
-            border-color: rgba(251, 191, 36, 0.42) !important;
-            color: #fde68a !important;
+        .dashboard-status.workflow-awaiting_execution_verification {
+            background: rgba(6, 182, 212, 0.18) !important;
+            border-color: rgba(34, 211, 238, 0.45) !important;
+            color: #67e8f9 !important;
+        }
+        .dashboard-status.workflow-execution_partially_verified {
+            background: rgba(20, 184, 166, 0.18) !important;
+            border-color: rgba(45, 212, 191, 0.45) !important;
+            color: #5eead4 !important;
+        }
+        .dashboard-status.workflow-pending_final_update {
+            background: rgba(236, 72, 153, 0.18) !important;
+            border-color: rgba(244, 114, 182, 0.45) !important;
+            color: #f9a8d4 !important;
+        }
+        .dashboard-status.workflow-closed {
+            background: rgba(16, 185, 129, 0.18) !important;
+            border-color: rgba(52, 211, 153, 0.45) !important;
+            color: #6ee7b7 !important;
+        }
+        .dashboard-status.workflow-on_hold {
+            background: rgba(234, 179, 8, 0.18) !important;
+            border-color: rgba(250, 204, 21, 0.48) !important;
+            color: #fde047 !important;
         }
 
         .dashboard-view-button {
@@ -526,7 +574,7 @@
 
         .complaint-type-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.5rem;
         }
         .complaint-type-box {
@@ -578,6 +626,7 @@
         .complaint-type-box.line { border-color: rgba(16, 185, 129, 0.35); }
         .complaint-type-box.pattern { border-color: rgba(245, 158, 11, 0.4); }
         .complaint-type-box.production { border-color: rgba(59, 130, 246, 0.35); }
+        .complaint-type-box.quality { border-color: rgba(16, 185, 129, 0.35); }
 
         /* ── Right Column: stat cards fill height evenly ── */
         .stats-sidebar-list {
@@ -1207,7 +1256,7 @@
                                     <td style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text);">{{ complaint.brand.name|default:"" }} {{ complaint.model.name|default:"N/A" }}</td>
                                     <td style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text);">{{ complaint.get_complaint_type_display }}</td>
                                     <td style="padding: 0.75rem; font-size: 0.8rem; white-space: nowrap;">
-                                        <span class="status-badge dashboard-status {% if complaint.status == 'Open' %}status-open{% elif complaint.status == 'Closed' %}status-closed{% else %}status-on-hold{% endif %}">
+                                        <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}">
                                             {{ complaint.get_workflow_status_display }}
                                         </span>
                                     </td>
@@ -1246,7 +1295,7 @@
                                             <div>
                                                 <h4 style="color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Workflow Status</h4>
                                                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--dark-text-secondary);">
-                                                    <div><strong style="color: var(--dark-text);">Workflow Status:</strong> <span class="status-badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.1rem 0.3rem; border-radius: 4px; font-weight: 600;">{{ complaint.get_workflow_status_display }}</span></div>
+                                                    <div><strong style="color: var(--dark-text);">Workflow Status:</strong> <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}">{{ complaint.get_workflow_status_display }}</span></div>
                                                     {% if complaint.assigned_factory_executive %}
                                                     <div><strong style="color: var(--dark-text);">Factory Executive:</strong> {{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}</div>
                                                     {% endif %}
@@ -1313,15 +1362,19 @@
                             <div class="complaint-type-grid">
                                 <a href="{% url 'complaint_list' %}?complaint_type=line" class="complaint-type-box line">
                                     <span class="complaint-type-value">{{ line_complaints|default:"0" }}</span>
-                                    <span class="complaint-type-label">Line</span>
+                                    <span class="complaint-type-label">Factory</span>
                                 </a>
                                 <a href="{% url 'complaint_list' %}?complaint_type=pattern" class="complaint-type-box pattern">
                                     <span class="complaint-type-value">{{ pattern_complaints|default:"0" }}</span>
-                                    <span class="complaint-type-label">Patt</span>
+                                    <span class="complaint-type-label">Pattern</span>
                                 </a>
                                 <a href="{% url 'complaint_list' %}?complaint_type=production" class="complaint-type-box production">
                                     <span class="complaint-type-value">{{ production_complaints|default:"0" }}</span>
                                     <span class="complaint-type-label">Production</span>
+                                </a>
+                                <a href="{% url 'complaint_list' %}?complaint_type=quality" class="complaint-type-box quality">
+                                    <span class="complaint-type-value">{{ quality_complaints|default:"0" }}</span>
+                                    <span class="complaint-type-label">Quality</span>
                                 </a>
                             </div>
                         </div>

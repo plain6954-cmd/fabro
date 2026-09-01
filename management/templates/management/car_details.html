@@ -1,12 +1,16 @@
 {% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Management - Fabro Leather</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         .page-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -712,8 +716,44 @@
             border-color: transparent transparent #cbd5e1 transparent;
         }
     </style>
-    <style>
+    <style data-fabro-page-asset>
         /* Search Picker styles */
+        .vehicle-csv-upload-form {
+            display: inline-flex;
+            margin: 0;
+        }
+
+        .vehicle-csv-file-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .vehicle-csv-upload-button {
+            width: 2.85rem;
+            height: 2.85rem;
+            margin: 0;
+            border: 1px solid #10b981 !important;
+            border-radius: 8px;
+            background: #059669 !important;
+            color: #ffffff !important;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .vehicle-csv-upload-button:hover,
+        .vehicle-csv-upload-button:focus-visible {
+            border-color: #34d399 !important;
+            background: #047857 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
         .header-search-form {
             display: flex;
             align-items: center;
@@ -900,10 +940,14 @@
             border-color: #cbd5e1 !important;
         }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
-    
+{% endif %}
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container" data-no-reveal>
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
             <div>
@@ -917,9 +961,17 @@
                 <a href="#" onclick="const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="btn btn-primary icon-btn" title="Add New Vehicle" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
                     <i class="fas fa-plus"></i>
                 </a>
-                <a href="{% url 'upload_car_csv' %}" class="btn btn-success icon-btn" title="Bulk Upload CSV" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
-                    <i class="fas fa-file-csv"></i>
-                </a>
+                <form method="post" action="{% url 'upload_car_csv' %}" enctype="multipart/form-data" class="vehicle-csv-upload-form" id="vehicle-csv-upload-form">
+                    {% csrf_token %}
+                    <input type="file" name="csv_file" id="vehicle-csv-file" class="vehicle-csv-file-input"
+                           accept=".csv,text/csv" required
+                           onchange="if (this.files && this.files.length) { this.form.requestSubmit(); }">
+                    <label for="vehicle-csv-file" class="btn btn-success icon-btn vehicle-csv-upload-button"
+                           title="Upload Vehicle CSV" aria-label="Upload Vehicle CSV" role="button" tabindex="0"
+                           onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.getElementById('vehicle-csv-file').click(); }">
+                        <i class="fas fa-file-csv" aria-hidden="true"></i>
+                    </label>
+                </form>
                 {% endif %}
                 <form method="GET" class="header-search-form" id="vehicle-search-form">
                     <input type="hidden" name="search_by" id="vehicle-search-by" value="{{ search_by|default:'all' }}">
@@ -931,7 +983,6 @@
                                aria-haspopup="listbox" aria-expanded="false">
                         <span class="search-field-label" id="vehicle-search-field-label">All Fields</span>
                         <div class="search-options" id="vehicle-search-options">
-                            <div id="vehicleSearchDropdown" style="display: none;"></div>
                             <p class="search-options-title" id="vehicle-search-options-title">Search this keyword in</p>
                             <div class="search-option-grid" role="listbox" aria-label="Search field choices">
                                 <button type="button" class="search-option" data-search-by="layout_code" role="option">
@@ -1160,17 +1211,15 @@
                                         <td>{{ car.doors }}</td>
                                         <td>{{ car.vehicle_country }}</td>
                                         <td>{{ car.measurement_country }}</td>
-                                        {% if new_search_enabled %}
+                                        {% if new_search_enabled or can_manage_catalog %}
                                         <td>
                                             <div class="action-buttons">
+                                                {% if new_search_enabled %}
                                                 <a href="{% url 'add_complaint' %}?brand={{ car.brand_id|default:'' }}&amp;model={{ car.model_id|default:'' }}&amp;sub_model={{ car.sub_model_id|default:'' }}&amp;year={{ car.id }}" class="action-btn" title="Add Complaint" style="background: linear-gradient(135deg, var(--primary-color), #f43f5e); box-shadow: 0 4px 10px rgba(220, 38, 38, 0.28);">
                                                     <i class="fas fa-plus"></i>
                                                 </a>
-                                            </div>
-                                        </td>
-                                        {% elif can_manage_catalog %}
-                                        <td>
-                                            <div class="action-buttons">
+                                                {% endif %}
+                                                {% if can_manage_catalog %}
                                                 <a href="{% url 'edit_car_detail' car.id %}" class="action-btn edit" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
@@ -1181,6 +1230,7 @@
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                                {% endif %}
                                             </div>
                                         </td>
                                         {% endif %}
@@ -1271,22 +1321,22 @@
             if (modal) modal.style.display = "none";
         }
 
-        // Logo preview filename display
-        const brandLogoInput = document.getElementById('brandLogoInput');
-        const logoPreviewName = document.getElementById('logoPreviewName');
-        if (brandLogoInput && logoPreviewName) {
-            brandLogoInput.addEventListener('change', function() {
-                if (this.files && this.files.length > 0) {
-                    logoPreviewName.textContent = this.files[0].name;
-                    logoPreviewName.style.display = 'block';
-                } else {
-                    logoPreviewName.style.display = 'none';
-                }
-            });
-        }
-
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        window.fabroOnPageLoad(function() {
+            // Logo preview filename display
+            const brandLogoInput = document.getElementById('brandLogoInput');
+            const logoPreviewName = document.getElementById('logoPreviewName');
+            if (brandLogoInput && logoPreviewName) {
+                brandLogoInput.addEventListener('change', function() {
+                    if (this.files && this.files.length > 0) {
+                        logoPreviewName.textContent = this.files[0].name;
+                        logoPreviewName.style.display = 'block';
+                    } else {
+                        logoPreviewName.style.display = 'none';
+                    }
+                });
+            }
+
             // Add active nav state
             const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
             if (vehicleLink) {
@@ -1607,5 +1657,8 @@
             }
         }
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

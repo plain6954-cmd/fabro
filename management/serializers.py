@@ -18,6 +18,8 @@ from .models import (
     SubModel,
     UserProfile,
     YearRange,
+    complaint_type_master_category,
+    complaint_type_from_master_setting,
 )
 
 class DashboardStatsSerializer(serializers.Serializer):
@@ -212,13 +214,37 @@ class ComplaintSerializer(serializers.ModelSerializer):
     sku_code = serializers.CharField(source='sku.code', read_only=True)
     channel_name = serializers.CharField(source='channel.name', read_only=True)
     country_name = serializers.CharField(source='country.name', read_only=True)
-    reported_by_name = serializers.CharField(source='person.name', read_only=True)
+    reported_by_name = serializers.SerializerMethodField()
     case_type_name = serializers.CharField(source='case_sub_category.name', read_only=True)
     series_name = serializers.CharField(source='series.name', read_only=True)
     material_name = serializers.CharField(source='material.name', read_only=True)
     media = ComplaintMediaSerializer(source='media_files', many=True, read_only=True)
     approvals = ComplaintApprovalSerializer(many=True, read_only=True)
     timeline_events = ComplaintTimelineSerializer(many=True, read_only=True)
+
+    def get_reported_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.username
+        return obj.person.name if obj.person else ''
+
+    def validate(self, attrs):
+        case_type = attrs.get(
+            'case_sub_category',
+            getattr(self.instance, 'case_sub_category', None),
+        )
+        complaint_type = attrs.get(
+            'complaint_type',
+            getattr(self.instance, 'complaint_type', None),
+        )
+        if self.instance is None and 'complaint_type' not in self.initial_data:
+            complaint_type = complaint_type_from_master_setting(case_type) or complaint_type
+        if case_type and complaint_type:
+            expected_category = complaint_type_master_category(complaint_type)
+            if case_type.category != expected_category:
+                raise serializers.ValidationError({
+                    'case_sub_category': 'Select a Type from the selected complaint category.'
+                })
+        return attrs
 
     class Meta:
         model = Complaint
@@ -228,6 +254,8 @@ class ComplaintSerializer(serializers.ModelSerializer):
             'date',
             'workflow_status',
             'created_by',
+            'person',
+            'country',
             'assigned_factory_executive',
             'status',
             'justification_from_factory',

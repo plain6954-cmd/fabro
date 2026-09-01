@@ -6,6 +6,7 @@ export const testUser = {
 
 export const workflowUsers = {
   factory: { username: 'fabro_e2e_factory', password: 'FabroWorkflow!234' },
+  factoryComplaintRegistrar: { username: 'audit_faccomplaint', password: 'fabro123' },
   pm: { username: 'fabro_e2e_pm', password: 'FabroWorkflow!234' },
   om: { username: 'fabro_e2e_om', password: 'FabroWorkflow!234' },
   cad: { username: 'fabro_e2e_cad', password: 'FabroWorkflow!234' },

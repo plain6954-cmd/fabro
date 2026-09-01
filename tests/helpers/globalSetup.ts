@@ -24,21 +24,16 @@ for category, name in [
     ("Channel", "WhatsApp"),
     ("Country", "KSA"),
     ("Reported By", "Playwright Reporter"),
-    ("Type", "Stitching"),
-    ("Type", "Pattern Complaint"),
-    ("Type", "Production Complaint"),
-    ("Type", "Line Complaint"),
+    ("Pattern Complaint Type", "Stitching"),
+    ("Pattern Complaint Type", "Pattern Complaint"),
+    ("Production Complaint Type", "Production Complaint"),
+    ("Quality Complaint Type", "Quality Inspection"),
+    ("Factory Complaint Type", "Factory Complaint"),
     ("Series", "Luxe"),
     ("Material", "Rexin"),
     ("Region", "E2E Region"),
 ]:
-    setting = MasterSetting.objects.filter(name=name).first()
-    if setting:
-        if setting.category != category:
-            setting.category = category
-            setting.save(update_fields=["category"])
-    else:
-        MasterSetting.objects.create(category=category, name=name)
+    MasterSetting.objects.get_or_create(category=category, name=name)
 brand, _ = Brand.objects.get_or_create(name="PLAYWRIGHT BRAND")
 model, _ = Model.objects.get_or_create(brand=brand, name="PLAYWRIGHT MODEL")
 sub_model, _ = SubModel.objects.get_or_create(model=model, name="PLAYWRIGHT SUB")
@@ -49,6 +44,7 @@ SKU.objects.get_or_create(code="PW-SKU-SEED", defaults={"description": "Seed SKU
 workflow_password = "FabroWorkflow!234"
 workflow_accounts = {
     "fabro_e2e_factory": (WorkflowRoles.FACTORY_EXECUTIVE, ""),
+    "audit_faccomplaint": (WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR, ""),
     "fabro_e2e_pm": (WorkflowRoles.APPROVER, ApprovalRoles.PM),
     "fabro_e2e_om": (WorkflowRoles.APPROVER, ApprovalRoles.OM),
     "fabro_e2e_cad": (WorkflowRoles.APPROVER, ApprovalRoles.CAD),
@@ -60,7 +56,7 @@ for workflow_username, (workflow_role, approval_role) in workflow_accounts.items
         username=workflow_username,
         defaults={"email": f"{workflow_username}@example.com"},
     )
-    workflow_user.set_password(workflow_password)
+    workflow_user.set_password("fabro123" if workflow_username == "audit_faccomplaint" else workflow_password)
     workflow_user.save()
     profile, _ = UserProfile.objects.get_or_create(user=workflow_user)
     profile.role = workflow_role
@@ -69,7 +65,10 @@ for workflow_username, (workflow_role, approval_role) in workflow_accounts.items
     profile.save()
     workflow_users[workflow_username] = workflow_user
 
-production_type = MasterSetting.objects.get(category="Type", name="Production Complaint")
+production_type = MasterSetting.objects.get(
+    category="Production Complaint Type",
+    name="Production Complaint",
+)
 country = MasterSetting.objects.get(category="Country", name="KSA")
 Complaint.objects.get_or_create(
     batch_order="E2E-WORKFLOW-APPROVAL",
@@ -84,6 +83,24 @@ Complaint.objects.get_or_create(
         "status": "Open",
         "priority": "Medium",
         "complaint_description": "E2E complete approval and closure workflow",
+    },
+)
+pattern_type = MasterSetting.objects.get(
+    category="Pattern Complaint Type",
+    name="Pattern Complaint",
+)
+Complaint.objects.get_or_create(
+    batch_order="E2E-COLUMN-FILTER",
+    defaults={
+        "date": "2026-07-13",
+        "country": country,
+        "case_sub_category": pattern_type,
+        "complaint_type": ComplaintTypes.PATTERN,
+        "workflow_status": WorkflowStatuses.CLOSED,
+        "created_by": user,
+        "status": "Closed",
+        "priority": "Low",
+        "complaint_description": "E2E complaint column filtering fixture",
     },
 )
 `);

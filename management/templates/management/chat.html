@@ -265,6 +265,7 @@
         /* Role Avatar Color Themes */
         .avatar-country_executive { background: linear-gradient(135deg, #059669, #10b981); }
         .avatar-factory_executive { background: linear-gradient(135deg, #d97706, #f59e0b); }
+        .avatar-factory_complaint_registrar { background: linear-gradient(135deg, #2563eb, #3b82f6); }
         .avatar-approver { background: linear-gradient(135deg, #4f46e5, #6366f1); }
         .avatar-workflow_admin { background: linear-gradient(135deg, #be123c, #ef4444); }
         .avatar-factory_viewer { background: linear-gradient(135deg, #475569, #64748b); }
@@ -1074,7 +1075,7 @@
             return String(str ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        window.fabroOnPageLoad(() => {
             const userSearch = document.getElementById('user-search');
             const userItems = document.querySelectorAll('.chat-user-item');
             const chatForm = document.getElementById('chat-form');

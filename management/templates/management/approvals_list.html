@@ -404,10 +404,12 @@
 
         .type-pattern { background: rgba(59, 130, 246, 0.18); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); }
         .type-production { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .type-quality { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
         .type-line { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); }
 
         body.light-mode .type-pattern { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
         body.light-mode .type-production { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
+        body.light-mode .type-quality { background: #d1fae5; color: #047857; border-color: #a7f3d0; }
         body.light-mode .type-line { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
 
         .priority-badge {
@@ -1172,7 +1174,7 @@
                             Approvals Workspace
                         </h1>
                         <p class="workspace-subtitle">
-                            Live complaint action plan approval matrix & reviewer tracker • 
+                            {% if workspace_stage == 'verification' %}Post-execution verification matrix{% else %}Pre-execution action plan approval matrix{% endif %} & reviewer tracker •
                             <strong>{{ workflow_role_label }}</strong> 
                             {% if workflow_profile.country %}({{ workflow_profile.country.name }}){% endif %}
                         </p>
@@ -1181,28 +1183,28 @@
 
                 <!-- KPI METRICS SUMMARY -->
                 <div class="kpi-row">
-                    <a href="?status=active" class="kpi-chip {% if status_filter == 'active' %}urgent{% endif %}">
+                    <a href="?stage={{ workspace_stage }}&status=active" class="kpi-chip {% if status_filter == 'active' %}urgent{% endif %}">
                         <i class="fas fa-bolt"></i> Active In Review
                         <span class="kpi-count">{{ total_active_count }}</span>
                     </a>
                     {% if my_pending_count > 0 %}
-                    <a href="?status=my_pending" class="kpi-chip urgent" style="animation: pulse 2s infinite;">
+                    <a href="?stage={{ workspace_stage }}&status=my_pending" class="kpi-chip urgent" style="animation: pulse 2s infinite;">
                         <i class="fas fa-hourglass-half"></i> Waiting My Vote
                         <span class="kpi-count">{{ my_pending_count }}</span>
                     </a>
                     {% endif %}
-                    <a href="?status=partially_approved" class="kpi-chip {% if status_filter == 'partially_approved' %}urgent{% endif %}">
-                        <i class="fas fa-tasks"></i> Partially Approved
+                    <a href="?stage={{ workspace_stage }}&status=partially_approved" class="kpi-chip {% if status_filter == 'partially_approved' %}urgent{% endif %}">
+                        <i class="fas fa-tasks"></i> {% if workspace_stage == 'verification' %}Partially Verified{% else %}Partially Approved{% endif %}
                         <span class="kpi-count">{{ partially_approved_count }}</span>
                     </a>
                     {% if reconsideration_count > 0 %}
-                    <a href="?status=reconsideration" class="kpi-chip {% if status_filter == 'reconsideration' %}urgent{% endif %}" style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
+                    <a href="?stage={{ workspace_stage }}&status=reconsideration" class="kpi-chip {% if status_filter == 'reconsideration' %}urgent{% endif %}" style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
                         <i class="fas fa-sync-alt"></i> Reconsiderations
                         <span class="kpi-count" style="background: #f43f5e; color: #fff;">{{ reconsideration_count }}</span>
                     </a>
                     {% endif %}
                     {% if top_priority_count > 0 %}
-                    <a href="?priority=top" class="kpi-chip" style="color: #fca5a5;">
+                    <a href="?stage={{ workspace_stage }}&priority=top" class="kpi-chip" style="color: #fca5a5;">
                         <i class="fas fa-exclamation-triangle"></i> Top Priority
                         <span class="kpi-count" style="background: #ef4444; color: #fff;">{{ top_priority_count }}</span>
                     </a>
@@ -1210,32 +1212,44 @@
                 </div>
             </div>
 
+            <div class="filter-tabs" role="navigation" aria-label="Approval stage workspace">
+                <a href="?stage=plan&status=active" class="tab-btn {% if workspace_stage == 'plan' %}active{% endif %}">
+                    <i class="fas fa-clipboard-list"></i> Before Execution
+                </a>
+                <a href="?stage=verification&status=active" class="tab-btn {% if workspace_stage == 'verification' %}active{% endif %}">
+                    <i class="fas fa-clipboard-check"></i> Verify Execution
+                </a>
+            </div>
+
             <!-- CONTROLS & FILTER TABS -->
             <div class="filter-controls-row">
                 <div class="filter-tabs">
-                    <a href="?status=active{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
+                    <a href="?stage={{ workspace_stage }}&status=active{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
                         <i class="fas fa-hourglass-half"></i> Active Pending
                     </a>
                     {% if is_workflow_approver %}
-                    <a href="?status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
+                    <a href="?stage={{ workspace_stage }}&status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
                         <i class="fas fa-user-clock"></i> My Pending Reviews {% if my_pending_count %}({{ my_pending_count }}){% endif %}
                     </a>
                     {% endif %}
-                    <a href="?status=partially_approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'partially_approved' %}active{% endif %}">
-                        <i class="fas fa-check-circle"></i> Partially Approved
+                    <a href="?stage={{ workspace_stage }}&status=partially_approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'partially_approved' %}active{% endif %}">
+                        <i class="fas fa-check-circle"></i> {% if workspace_stage == 'verification' %}Partially Verified{% else %}Partially Approved{% endif %}
                     </a>
+                    {% if workspace_stage == 'plan' %}
                     <a href="?status=reconsideration{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'reconsideration' %}active{% endif %}">
                         <i class="fas fa-redo-alt"></i> Reconsideration Rounds
                     </a>
-                    <a href="?status=approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'approved' %}active{% endif %}">
-                        <i class="fas fa-thumbs-up"></i> Approved & Executing
+                    {% endif %}
+                    <a href="?stage={{ workspace_stage }}&status=approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'approved' %}active{% endif %}">
+                        <i class="fas fa-thumbs-up"></i> {% if workspace_stage == 'verification' %}Verified{% else %}Approved & Executing{% endif %}
                     </a>
-                    <a href="?status=all{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'all' %}active{% endif %}">
+                    <a href="?stage={{ workspace_stage }}&status=all{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'all' %}active{% endif %}">
                         <i class="fas fa-list-alt"></i> All History
                     </a>
                 </div>
 
                 <form method="get" class="search-and-filters" id="approvals-search-form">
+                    <input type="hidden" name="stage" value="{{ workspace_stage }}">
                     <input type="hidden" name="status" value="{{ status_filter }}">
                     <input type="hidden" name="search_by" id="approvals-search-by" value="{{ search_by|default:'all' }}">
                     <div class="search-picker" id="approvals-search-picker">
@@ -1302,7 +1316,8 @@
                         <option value="">All Types</option>
                         <option value="pattern" {% if selected_type == 'pattern' %}selected{% endif %}>Pattern</option>
                         <option value="production" {% if selected_type == 'production' %}selected{% endif %}>Production</option>
-                        <option value="line" {% if selected_type == 'line' %}selected{% endif %}>Line</option>
+                        <option value="quality" {% if selected_type == 'quality' %}selected{% endif %}>Quality</option>
+                        <option value="line" {% if selected_type == 'line' %}selected{% endif %}>Factory</option>
                     </select>
 
                     {% if countries %}
@@ -1315,7 +1330,7 @@
                     {% endif %}
 
                     {% if search_query or selected_priority or selected_type or selected_country %}
-                    <a href="{% url 'approvals_list' %}?status={{ status_filter }}" class="btn-action-secondary" title="Clear Filters" style="padding: 0.35rem 0.6rem;">
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary" title="Clear Filters" style="padding: 0.35rem 0.6rem;">
                         <i class="fas fa-times"></i>
                     </a>
                     {% endif %}
@@ -1344,9 +1359,10 @@
                             </span>
 
                             <span class="round-stage-badge {% if item.progress.stage == 'reconsideration' %}reconsideration{% endif %}">
-                                <i class="fas {% if item.progress.stage == 'reconsideration' %}fa-sync-alt{% else %}fa-layer-group{% endif %}"></i>
+                                <i class="fas {% if item.progress.stage == 'reconsideration' %}fa-sync-alt{% elif item.progress.stage == 'execution_verification' %}fa-clipboard-check{% else %}fa-layer-group{% endif %}"></i>
                                 Round {{ item.progress.round }}
                                 {% if item.progress.stage == 'reconsideration' %}• Reconsideration{% endif %}
+                                {% if item.progress.stage == 'execution_verification' %}• Execution Verification{% endif %}
                             </span>
 
                             {% if item.can_decide %}
@@ -1473,6 +1489,8 @@
                                 <i class="fas fa-gavel"></i>
                                 {% if item.progress.stage == 'reconsideration' %}
                                     Submit Reconsideration Vote
+                                {% elif item.progress.stage == 'execution_verification' %}
+                                    Verify Executed Action
                                 {% else %}
                                     Review & Submit Decision
                                 {% endif %}
@@ -1503,7 +1521,7 @@
                         {% endif %}
                     </p>
                     {% if search_query or selected_priority or selected_type or selected_country %}
-                    <a href="{% url 'approvals_list' %}?status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
                         <i class="fas fa-redo"></i> Reset Filters
                     </a>
                     {% endif %}
@@ -1578,6 +1596,10 @@
                 document.getElementById('modalTitle').textContent = 'Submit Reconsideration Vote';
                 document.getElementById('approveLabel').textContent = 'Proceed with Plan';
                 document.getElementById('rejectLabel').textContent = 'Return for Rework';
+            } else if (reviewStage === 'execution_verification') {
+                document.getElementById('modalTitle').textContent = 'Verify Executed Action Plan';
+                document.getElementById('approveLabel').textContent = 'Execution Is Correct';
+                document.getElementById('rejectLabel').textContent = 'Needs Correction';
             } else {
                 document.getElementById('modalTitle').textContent = 'Submit Approval Decision';
                 document.getElementById('approveLabel').textContent = 'Approve Plan';
@@ -1669,7 +1691,7 @@
         }
 
         // Search Picker logic for Approvals Workspace
-        document.addEventListener('DOMContentLoaded', function () {
+        window.fabroOnPageLoad(function () {
             const searchForm = document.getElementById('approvals-search-form');
             const searchPicker = document.getElementById('approvals-search-picker');
             const searchInput = document.getElementById('approvals-search-input');

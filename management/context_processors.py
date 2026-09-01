@@ -1,4 +1,5 @@
 from .models import WorkflowRoles, ChatMessage, Complaint, WorkflowStatuses, ComplaintApproval, DecisionStatuses
+from django.utils.translation import get_language
 from .services.workflow import (
     can_user_create_complaint,
     can_user_manage_catalog,
@@ -32,6 +33,8 @@ def workflow_access(request):
                 complaint__workflow_status__in=[
                     WorkflowStatuses.AWAITING_APPROVAL,
                     WorkflowStatuses.PARTIALLY_APPROVED,
+                    WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+                    WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
                 ],
             ).count()
         else:
@@ -41,6 +44,8 @@ def workflow_access(request):
                     workflow_status__in=[
                         WorkflowStatuses.AWAITING_APPROVAL,
                         WorkflowStatuses.PARTIALLY_APPROVED,
+                        WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+                        WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
                     ]
                 )
             ).count()
@@ -58,4 +63,10 @@ def workflow_access(request):
         'can_view_approvals': can_view_approvals_flag,
         'pending_approvals_count': pending_approvals_count,
         'unread_chat_count': unread_chat_count,
+        'current_language': get_language() or 'en',
+        'portal_languages': [
+            ('en', 'English'),
+            ('ar', 'العربية'),
+            ('hi', 'हिन्दी'),
+        ],
     }

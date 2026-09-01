@@ -1,13 +1,17 @@
 {% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complaint List - Fabro Leather</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
-    <style>
+    <style data-fabro-page-asset>
         .page-container {
             max-width: 1550px;
             margin: 0 auto;
@@ -61,7 +65,7 @@
         .header-search-input {
             width: 100%;
             height: 2.9rem;
-            padding: 0.75rem 10.5rem 0.75rem 2.65rem;
+            padding: 0.75rem 12.25rem 0.75rem 2.65rem;
             border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 8px;
             background: rgba(18, 18, 20, 0.82);
@@ -93,6 +97,53 @@
 
         body.light-mode .search-leading-icon {
             color: var(--light-text-secondary);
+        }
+
+        .search-clear-button {
+            position: absolute;
+            z-index: 2;
+            right: 10.25rem;
+            top: 50%;
+            width: 1.6rem;
+            height: 1.6rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transform: translateY(-50%);
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: var(--dark-text-secondary);
+            cursor: pointer;
+            transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+        }
+
+        .search-clear-button:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-clear-button:active {
+            transform: translateY(-50%) scale(0.92);
+        }
+
+        .search-clear-button:focus-visible {
+            outline: 2px solid rgba(248, 113, 113, 0.75);
+            outline-offset: 1px;
+        }
+
+        .search-clear-button[hidden] {
+            display: none;
+        }
+
+        body.light-mode .search-clear-button {
+            color: var(--light-text-secondary);
+        }
+
+        body.light-mode .search-clear-button:hover {
+            color: var(--light-text);
+            background: rgba(24, 24, 27, 0.08);
         }
 
         .search-field-label {
@@ -210,6 +261,32 @@
             padding: 0.2rem;
             border-radius: 4px;
             transition: all 0.2s ease;
+        }
+
+        .table th[data-filter-col] {
+            position: relative;
+            overflow: visible;
+            z-index: 31;
+        }
+
+        .table thead {
+            position: relative;
+            z-index: 30;
+        }
+
+        .table tr[hidden] {
+            display: none !important;
+        }
+
+        .column-filter-dropdown {
+            width: max-content;
+            max-width: min(20rem, calc(100vw - 2rem));
+        }
+
+        .table th[data-filter-col="5"] .column-filter-dropdown,
+        .table th[data-filter-col="6"] .column-filter-dropdown {
+            right: 0;
+            left: auto !important;
         }
         .column-filter-trigger:hover {
             background: rgba(255, 255, 255, 0.1);
@@ -498,26 +575,41 @@
             background-color: rgba(99, 102, 241, 0.15);
             color: #818cf8;
         }
-        .status-awaiting_approval,
-        .status-partially_approved {
+        .status-awaiting_approval {
             background-color: rgba(245, 158, 11, 0.15);
             color: #fbbf24;
+        }
+        .status-partially_approved {
+            background-color: rgba(249, 115, 22, 0.15);
+            color: #fdba74;
         }
         .status-rework_required {
             background-color: rgba(239, 68, 68, 0.15);
             color: #fca5a5;
         }
         .status-approved {
-            background-color: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7;
+            background-color: rgba(132, 204, 22, 0.15);
+            color: #bef264;
         }
         .status-action_in_progress {
             background-color: rgba(59, 130, 246, 0.15);
             color: #93c5fd;
         }
-        .status-pending_final_update {
+        .status-awaiting_execution_verification {
             background-color: rgba(6, 182, 212, 0.15);
             color: #67e8f9;
+        }
+        .status-execution_partially_verified {
+            background-color: rgba(20, 184, 166, 0.15);
+            color: #5eead4;
+        }
+        .status-pending_final_update {
+            background-color: rgba(236, 72, 153, 0.15);
+            color: #f9a8d4;
+        }
+        .status-on_hold {
+            background-color: rgba(234, 179, 8, 0.15);
+            color: #fde047;
         }
 
         body.light-mode .status-badge {
@@ -554,26 +646,41 @@
             background-color: rgba(99, 102, 241, 0.25);
             color: #3730a3;
         }
-        body.light-mode .status-awaiting_approval,
-        body.light-mode .status-partially_approved {
+        body.light-mode .status-awaiting_approval {
             background-color: rgba(245, 158, 11, 0.25);
             color: #92400e;
+        }
+        body.light-mode .status-partially_approved {
+            background-color: rgba(249, 115, 22, 0.25);
+            color: #9a3412;
         }
         body.light-mode .status-rework_required {
             background-color: rgba(239, 68, 68, 0.25);
             color: #b91c1c;
         }
         body.light-mode .status-approved {
-            background-color: rgba(16, 185, 129, 0.25);
-            color: #047857;
+            background-color: rgba(132, 204, 22, 0.25);
+            color: #3f6212;
         }
         body.light-mode .status-action_in_progress {
             background-color: rgba(59, 130, 246, 0.25);
             color: #1e40af;
         }
-        body.light-mode .status-pending_final_update {
+        body.light-mode .status-awaiting_execution_verification {
             background-color: rgba(6, 182, 212, 0.25);
-            color: #075985;
+            color: #155e75;
+        }
+        body.light-mode .status-execution_partially_verified {
+            background-color: rgba(20, 184, 166, 0.25);
+            color: #115e59;
+        }
+        body.light-mode .status-pending_final_update {
+            background-color: rgba(236, 72, 153, 0.25);
+            color: #9d174d;
+        }
+        body.light-mode .status-on_hold {
+            background-color: rgba(234, 179, 8, 0.28);
+            color: #854d0e;
         }
 
         body.light-mode .status-high {
@@ -1199,11 +1306,18 @@
         }
 
         .journey-column-inline {
-            display: block;
-            padding: 0.45rem 0.85rem 0.55rem;
+            display: grid;
+            grid-template-columns: max-content minmax(0, 1fr);
+            align-items: center;
+            gap: 1rem;
+            padding: 0.55rem 0.85rem;
             background: rgba(18, 18, 20, 0.4);
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            overscroll-behavior-inline: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(239, 68, 68, 0.45) transparent;
         }
 
         body.light-mode .journey-column-inline {
@@ -1212,10 +1326,9 @@
         }
 
         .journey-summary-inline {
-            display: flex;
+            display: block;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.4rem;
+            margin: 0;
         }
 
         .journey-title-inline {
@@ -1230,20 +1343,12 @@
             color: var(--light-text-secondary);
         }
 
-        .journey-current-inline {
-            color: #fca5a5;
-            font-size: 0.68rem;
-            font-weight: 800;
-        }
-
-        body.light-mode .journey-current-inline {
-            color: #b91c1c;
-        }
-
         .journey-track-inline {
             display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(5.6rem, 1fr);
             align-items: start;
+            min-width: 0;
         }
 
         .journey-step-inline {
@@ -1299,9 +1404,10 @@
 
         .journey-label-inline {
             max-width: 100%;
-            font-size: 0.62rem;
+            font-size: clamp(0.56rem, 0.7vw, 0.64rem);
             font-weight: 700;
             line-height: 1.2;
+            white-space: nowrap;
         }
 
         .journey-step-inline.current, .journey-step-inline.completed {
@@ -1396,13 +1502,10 @@
                 min-width: 0 !important;
             }
 
-            .journey-track-inline {
-                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-                gap: 0.55rem;
-            }
-
-            .journey-step-inline:not(:last-child)::after {
-                display: none !important;
+            .journey-column-inline {
+                grid-template-columns: max-content minmax(39rem, 1fr);
+                gap: 0.75rem;
+                padding: 0.55rem 0.7rem;
             }
         }
 
@@ -1457,6 +1560,7 @@
             height: calc(100vh - 2.5rem);
             height: calc(100dvh - 2.5rem);
             margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             background: linear-gradient(135deg, rgba(30, 30, 32, 0.98), rgba(18, 18, 20, 0.98));
@@ -1486,8 +1590,8 @@
             position: sticky;
             top: 0;
             z-index: 3;
-            margin: -2rem -2rem 1.5rem;
-            padding: 1.25rem 2rem;
+            margin: 0;
+            padding: 0.8rem 1rem;
             background: rgba(18, 18, 20, 0.94);
             backdrop-filter: blur(14px);
             border-bottom-color: rgba(220, 38, 38, 0.22);
@@ -1533,8 +1637,403 @@
         }
 
         .complaint-modal .modal-body {
-            overflow: auto;
-            padding-right: 0.35rem;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            padding: 0.75rem;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 0.7rem;
+        }
+
+        .complaint-modal .modal-journey-panel {
+            margin: 0;
+            padding: 0.62rem 0.8rem 0.68rem;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+
+        .complaint-modal .modal-journey-header {
+            align-items: center;
+            margin-bottom: 0.52rem;
+        }
+
+        .complaint-modal .modal-journey-kicker {
+            margin-bottom: 0.12rem;
+            font-size: 0.62rem;
+        }
+
+        .complaint-modal .modal-journey-heading {
+            font-size: 0.84rem;
+        }
+
+        .complaint-modal .modal-journey-status {
+            padding: 0.35rem 0.5rem;
+            font-size: 0.66rem;
+        }
+
+        .complaint-modal .modal-journey-rail {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            padding-top: 0;
+        }
+
+        .complaint-modal .modal-journey-node {
+            width: 1.65rem;
+            height: 1.65rem;
+            font-size: 0.7rem;
+        }
+
+        .complaint-modal .modal-journey-step:not(:last-child)::after {
+            top: 0.78rem;
+            height: 2px;
+        }
+
+        .complaint-modal .modal-journey-copy {
+            margin-top: 0.35rem;
+            font-size: 0.62rem;
+        }
+
+        .modal-record-heading {
+            min-width: 0;
+        }
+
+        .modal-record-kicker {
+            display: block;
+            margin-bottom: 0.18rem;
+            color: #f87171;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .modal-record-title-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+        }
+
+        .modal-record-title-row h2 {
+            margin: 0;
+            color: var(--dark-text);
+            font-size: clamp(1rem, 1.5vw, 1.3rem);
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        .modal-record-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem 0.85rem;
+            margin-top: 0.32rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+        }
+
+        .modal-record-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .complaint-record-layout {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.85fr);
+            gap: 0.75rem;
+        }
+
+        .complaint-record-details,
+        .complaint-media-pane {
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(220, 38, 38, 0.55) transparent;
+        }
+
+        .complaint-record-details {
+            padding: 0.05rem 0.7rem 1rem 0.05rem;
+        }
+
+        .record-section {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .record-section:first-child {
+            padding-top: 0.1rem;
+        }
+
+        .record-section:last-child {
+            border-bottom: 0;
+        }
+
+        .record-section-title {
+            margin: 0 0 0.58rem;
+            color: #f87171;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .record-description {
+            margin: 0;
+            max-width: 70ch;
+            color: var(--dark-text);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            text-wrap: pretty;
+        }
+
+        .record-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.18rem 1.4rem;
+            margin: 0;
+        }
+
+        .record-field {
+            min-width: 0;
+            display: grid;
+            grid-template-columns: minmax(6.6rem, 0.42fr) minmax(0, 1fr);
+            gap: 0.65rem;
+            align-items: baseline;
+            padding: 0.38rem 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+
+        .record-field dt,
+        .record-field dd {
+            margin: 0;
+        }
+
+        .record-field dt {
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .record-field dd {
+            min-width: 0;
+            color: var(--dark-text);
+            font-size: 0.78rem;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .record-field.is-wide {
+            grid-column: 1 / -1;
+        }
+
+        .complaint-media-pane {
+            padding: 0.8rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(8, 8, 10, 0.42);
+        }
+
+        .media-pane-header {
+            position: sticky;
+            top: -0.8rem;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin: -0.8rem -0.8rem 0.75rem;
+            padding: 0.78rem 0.85rem;
+            background: rgba(15, 15, 17, 0.94);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+        }
+
+        .media-pane-header h3 {
+            margin: 0;
+            color: var(--dark-text);
+            font-size: 0.86rem;
+        }
+
+        .media-count {
+            color: var(--dark-text-secondary);
+            font-size: 0.7rem;
+        }
+
+        .complaint-media-pane .media-grid {
+            grid-template-columns: 1fr;
+            gap: 0.65rem;
+            margin: 0;
+        }
+
+        .complaint-media-pane .media-item {
+            position: relative;
+            min-height: 10rem;
+            display: grid;
+            place-items: center;
+            background: #0b0b0d;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .complaint-media-pane .media-item:hover {
+            transform: none;
+            border-color: rgba(248, 113, 113, 0.42);
+        }
+
+        .complaint-media-pane .media-thumbnail {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            min-height: 10rem;
+            object-fit: contain;
+            background: #09090b;
+        }
+
+        .video-play-button {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            align-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            border: 0;
+            color: #fff;
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.2), rgba(9, 9, 11, 0.9) 62%);
+            cursor: pointer;
+            transition: background-color 180ms ease, opacity 180ms ease;
+        }
+
+        .video-play-button:hover {
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.32), rgba(9, 9, 11, 0.86) 66%);
+        }
+
+        .video-play-button i {
+            display: grid;
+            place-items: center;
+            width: 2.8rem;
+            height: 2.8rem;
+            padding-left: 0.14rem;
+            border-radius: 50%;
+            background: #dc2626;
+            box-shadow: 0 12px 30px rgba(220, 38, 38, 0.35);
+        }
+
+        .video-play-button span {
+            font-size: 0.72rem;
+            font-weight: 750;
+        }
+
+        .video-play-button[hidden] {
+            display: none;
+        }
+
+        .media-empty {
+            min-height: 14rem;
+            display: grid;
+            place-items: center;
+            align-content: center;
+            gap: 0.45rem;
+            color: var(--dark-text-secondary);
+            text-align: center;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+        }
+
+        .media-empty i {
+            font-size: 1.4rem;
+            color: #f87171;
+        }
+
+        .record-section .progress-row {
+            margin-bottom: 0.55rem;
+        }
+
+        .approval-round-group {
+            margin-top: 0.6rem;
+        }
+
+        .approval-round-title {
+            margin: 0 0 0.4rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+        }
+
+        .approval-rail,
+        .timeline-list {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .approval-step,
+        .timeline-entry {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.48rem 0.55rem;
+            background: rgba(255, 255, 255, 0.035);
+            border-radius: 6px;
+        }
+
+        .approval-role {
+            color: #fca5a5;
+            font-size: 0.68rem;
+            font-weight: 850;
+        }
+
+        .approval-person,
+        .timeline-entry > div {
+            min-width: 0;
+            display: grid;
+            gap: 0.08rem;
+        }
+
+        .approval-person strong,
+        .timeline-entry strong {
+            color: var(--dark-text);
+            font-size: 0.74rem;
+        }
+
+        .approval-person span,
+        .timeline-entry span {
+            color: var(--dark-text-secondary);
+            font-size: 0.68rem;
+        }
+
+        .timeline-entry {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .timeline-marker {
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        body.light-mode .modal-record-title-row h2,
+        body.light-mode .record-description,
+        body.light-mode .record-field dd,
+        body.light-mode .media-pane-header h3,
+        body.light-mode .approval-person strong,
+        body.light-mode .timeline-entry strong {
+            color: var(--light-text);
+        }
+
+        body.light-mode .record-section,
+        body.light-mode .record-field,
+        body.light-mode .complaint-media-pane,
+        body.light-mode .media-pane-header {
+            border-color: rgba(24, 24, 27, 0.1);
+        }
+
+        body.light-mode .complaint-media-pane,
+        body.light-mode .media-pane-header {
+            background: rgba(250, 250, 250, 0.9);
         }
 
         body.light-mode .modal-body {
@@ -1700,7 +2199,11 @@
             }
 
             .header-search-input {
-                padding-right: 8.25rem;
+                padding-right: 10.1rem;
+            }
+
+            .search-clear-button {
+                right: 7.95rem;
             }
 
             .search-field-label {
@@ -1743,15 +2246,62 @@
             }
 
             .complaint-modal .modal-header {
-                margin: -2rem -2rem 1.25rem;
+                margin: 0;
                 padding: 1rem 1.25rem;
             }
         }
+
+        @media (max-width: 1050px) {
+            .complaint-modal .modal-body {
+                overflow-y: auto;
+                grid-template-rows: auto auto;
+            }
+
+            .complaint-record-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .complaint-record-details,
+            .complaint-media-pane {
+                overflow: visible;
+            }
+
+            .complaint-media-pane {
+                border-left: 0;
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .media-pane-header {
+                position: static;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .record-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .record-field.is-wide {
+                grid-column: auto;
+            }
+
+            .modal-record-meta {
+                display: none;
+            }
+
+            .modal-journey-heading {
+                display: none;
+            }
+        }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
-    
+{% endif %}
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">
@@ -1783,6 +2333,9 @@
                                value="{{ search_query }}" class="header-search-input" autocomplete="off"
                                aria-label="Search complaints" aria-describedby="search-options-title"
                                aria-haspopup="listbox" aria-expanded="false">
+                        <button type="button" class="search-clear-button" id="header-search-clear" aria-label="Clear search" title="Clear search" hidden>
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
                         <span class="search-field-label" id="search-field-label">Complaint ID</span>
                         <div class="search-options" id="search-options">
                             <p class="search-options-title" id="search-options-title">Search this keyword in</p>
@@ -1866,10 +2419,10 @@
                     </select>
 
                     <select name="person" class="filter-select">
-                        <option value="">All Persons</option>
+                        <option value="">All Reporters</option>
                         {% for person in persons %}
                             <option value="{{ person.id }}" {% if selected_person == person.id|stringformat:"s" %}selected{% endif %}>
-                                {{ person.name }}
+                                {{ person.username }}
                             </option>
                         {% endfor %}
                     </select>
@@ -2005,7 +2558,7 @@
                                 <span class="material-secondary">Material: {{ complaint.material|default:"-" }}</span>
                             </td>
                             <td class="reporter-source-cell" style="vertical-align: middle;">
-                                <span class="reporter-primary">{{ complaint.person.name|default:"-" }}</span>
+                                <span class="reporter-primary">{% if complaint.created_by %}{{ complaint.created_by.username }}{% else %}{{ complaint.person.name|default:"-" }}{% endif %}</span>
                                 <span class="source-secondary">{{ complaint.country|default:"-" }} | {{ complaint.channel|default:"-" }}</span>
                             </td>
                             <td class="priority-cell" style="vertical-align: middle;">
@@ -2065,7 +2618,6 @@
                                 <div class="journey-column-inline">
                                     <div class="journey-summary-inline">
                                         <span class="journey-title-inline">Complaint Journey</span>
-                                        <span class="journey-current-inline">{{ complaint.get_workflow_status_display }}</span>
                                     </div>
                                     <div class="journey-track-inline" aria-label="Complaint journey: {{ complaint.get_workflow_status_display }}">
                                         {% for step in complaint.journey_steps %}
@@ -2081,31 +2633,24 @@
 
                         <!-- Modal for each complaint -->
                         <div id="modal-{{ complaint.complaint_id }}" class="modal complaint-modal">
-                            <div class="modal-content">
+                            <article class="modal-content" aria-labelledby="modal-title-{{ complaint.complaint_id }}">
                                 <div class="modal-header">
-                                    <div class="detail-value">
-                                                <h2>{{ complaint.date|date:"d-M-y" }} - 
-                                                <span class="status-badge status-{{ complaint.status|lower|cut:' ' }}">
-                                                    {{ complaint.status }}
-                                                </span> </h2>
-                                                <div class="workflow-stack">
-                                                    <span class="workflow-chip">
-                                                        <i class="fas fa-route"></i>
-                                                        {{ complaint.get_workflow_status_display }}
-                                                    </span>
-                                                    <span class="workflow-chip">
-                                                        <i class="fas fa-layer-group"></i>
-                                                        {{ complaint.get_complaint_type_display }}
-                                                    </span>
-                                                    {% if complaint.assigned_factory_executive %}
-                                                    <span class="workflow-chip">
-                                                        <i class="fas fa-user-cog"></i>
-                                                        {{ complaint.assigned_factory_executive.username }}
-                                                    </span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                    <button class="close-btn" onclick="closeModal('{{ complaint.complaint_id }}')">
+                                    <div class="modal-record-heading">
+                                        <span class="modal-record-kicker">{{ complaint.complaint_id }}</span>
+                                        <div class="modal-record-title-row">
+                                            <h2 id="modal-title-{{ complaint.complaint_id }}">{{ complaint.get_complaint_type_display }}</h2>
+                                            <span class="status-badge status-{{ complaint.status|lower|cut:' ' }}">{{ complaint.status }}</span>
+                                        </div>
+                                        <div class="modal-record-meta">
+                                            <span><i class="fas fa-calendar-alt"></i>{{ complaint.date|date:"d M Y" }}</span>
+                                            <span><i class="fas fa-flag"></i>{{ complaint.priority }} priority</span>
+                                            <span><i class="fas fa-user"></i>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}Unknown reporter{% endif %}</span>
+                                            {% if complaint.assigned_factory_executive %}
+                                                <span><i class="fas fa-industry"></i>{{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <button type="button" class="close-btn" onclick="closeModal('{{ complaint.complaint_id }}')" aria-label="Close complaint details">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -2115,11 +2660,11 @@
                                             <div>
                                                 <span class="modal-journey-kicker">
                                                     <i class="fas fa-route"></i>
-                                                    Workflow journey
+                                                    Workflow status
                                                 </span>
-                                                <h3 class="modal-journey-heading">{{ complaint.complaint_id }} approval path</h3>
+                                                <h3 class="modal-journey-heading">{{ complaint.get_workflow_status_display }}</h3>
                                             </div>
-                                            <span class="modal-journey-status">{{ complaint.get_workflow_status_display }}</span>
+                                            <span class="modal-journey-status">{{ complaint.approval_summary.decided }}/{{ complaint.approval_summary.total }} reviews</span>
                                         </div>
                                         <div class="modal-journey-rail">
                                             {% for step in complaint.journey_steps %}
@@ -2133,6 +2678,8 @@
                                                             <i class="fas fa-clipboard-check"></i>
                                                         {% elif step.key == 'action' %}
                                                             <i class="fas fa-tools"></i>
+                                                        {% elif step.key == 'verification' %}
+                                                            <i class="fas fa-user-check"></i>
                                                         {% elif step.key == 'final' %}
                                                             <i class="fas fa-box"></i>
                                                         {% elif step.key == 'closed' %}
@@ -2145,94 +2692,63 @@
                                         </div>
                                     </section>
 
-                                    <!-- PRODUCT & SOURCE -->
-                                    <h3 class="section-title">Product & Source:</h3>
-                                    <div class="detail-grid">
-                                        <div class="detail-item">
-                                            <div class="detail-label">Country</div>
-                                            <div class="detail-value">{{ complaint.country|default:"-" }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Reported By</div>
-                                            <div class="detail-value">{{ complaint.person|default:"-" }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Type</div>
-                                            <div class="detail-value">{{ complaint.case_sub_category|default:"-" }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Vehicle</div>
-                                            <div class="detail-value">
-                                                {{ complaint.brand }} {{ complaint.model }}
-                                                {% if complaint.year %}
-                                                     {{ complaint.year.year_start|stringformat:"s"|slice:"-2:" }}-{{ complaint.year.year_end|stringformat:"s"|slice:"-2:" }}
-                                                {% else %}
-                                                     -
-                                                {% endif %}
-                                                 {{ complaint.sub_model|default:"-" }}
-                                            </div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Series</div>
-                                            <div class="detail-value">{{ complaint.series|default:"-" }}</div>
-                                        </div>
-                                    </div>
+                                    <div class="complaint-record-layout">
+                                        <div class="complaint-record-details">
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Description</h3>
+                                                <p class="record-description">{{ complaint.complaint_description|default:"No description provided." }}</p>
+                                            </section>
 
-                                    <!-- COMPLAINT DETAILS -->
-                                    <h3 class="section-title">Complaint Details:</h3>
-                                    <div class="detail-grid">
-                                        <div class="detail-item">
-                                            <div class="detail-label">Complaint Description</div>
-                                            <div class="detail-value">{{ complaint.complaint_description }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Batch/Order#</div>
-                                            <div class="detail-value">{{ complaint.batch_order }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">SKU</div>
-                                            <div class="detail-value">{{ complaint.sku|default:"-" }}</div>
-                                        </div>
-                                    </div>
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Complaint details</h3>
+                                                <dl class="record-fields">
+                                                    <div class="record-field"><dt>Complaint ID</dt><dd>{{ complaint.complaint_id }}</dd></div>
+                                                    <div class="record-field"><dt>Complaint type</dt><dd>{{ complaint.get_complaint_type_display }}</dd></div>
+                                                    <div class="record-field"><dt>Report status</dt><dd>{{ complaint.status }}</dd></div>
+                                                    <div class="record-field"><dt>Priority</dt><dd>{{ complaint.priority|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Report date</dt><dd>{{ complaint.date|date:"d M Y" }}</dd></div>
+                                                    <div class="record-field"><dt>Batch / Order #</dt><dd>{{ complaint.batch_order|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Updated Order #</dt><dd>{{ complaint.updated_order_no|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Created by</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}-{% endif %}</dd></div>
+                                                </dl>
+                                            </section>
 
-                                    <!-- FROM FACTORY -->
-                                    <h3 class="section-title">From Factory:</h3>
-                                    <div class="detail-grid">
-                                        <div class="detail-item">
-                                            <div class="detail-label">Reason</div>
-                                            <div class="detail-value">{{ complaint.factory_reason|default:complaint.justification_from_factory }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Resolution</div>
-                                            <div class="detail-value">{{ complaint.factory_action_plan|default:complaint.action_from_factory }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Factory Priority</div>
-                                            <div class="detail-value">{{ complaint.get_factory_priority_display|default:"-" }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">CAD Date</div>
-                                            <div class="detail-value">
-                                                {% if complaint.cad_date %}
-                                                    {{ complaint.cad_date|date:"d-M-y" }}
-                                                {% else %}
-                                                    -
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Updated Order#</div>
-                                            <div class="detail-value">{{ complaint.updated_order_no }}</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Production Updates Container</div>
-                                            <div class="detail-value">{{ complaint.production_updates_container|default:"-" }}</div>
-                                        </div>
-                                    </div>
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Product and source</h3>
+                                                <dl class="record-fields">
+                                                    <div class="record-field"><dt>Country</dt><dd>{{ complaint.country|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Channel</dt><dd>{{ complaint.channel|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Reported by</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.username }}{% else %}{{ complaint.person|default:"-" }}{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Defect type</dt><dd>{{ complaint.case_sub_category|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Brand</dt><dd>{{ complaint.brand|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Model</dt><dd>{{ complaint.model|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Submodel</dt><dd>{{ complaint.sub_model|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Year</dt><dd>{% if complaint.year %}{{ complaint.year.year_start }}–{{ complaint.year.year_end }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Series</dt><dd>{{ complaint.series|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Material</dt><dd>{{ complaint.material|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>SKU</dt><dd>{% if complaint.sku %}{{ complaint.sku.code }}{% if complaint.sku.description %} — {{ complaint.sku.description }}{% endif %}{% else %}-{% endif %}</dd></div>
+                                                </dl>
+                                            </section>
+
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Factory response</h3>
+                                                <dl class="record-fields">
+                                                    <div class="record-field"><dt>Factory executive</dt><dd>{% if complaint.assigned_factory_executive %}{{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Factory priority</dt><dd>{{ complaint.get_factory_priority_display|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>Root cause</dt><dd>{{ complaint.factory_reason|default:complaint.justification_from_factory|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>Action plan</dt><dd>{{ complaint.factory_action_plan|default:complaint.action_from_factory|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>Execution notes</dt><dd>{{ complaint.execution_notes|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>CAD updated date</dt><dd>{% if complaint.cad_date %}{{ complaint.cad_date|date:"d M Y" }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Container number</dt><dd>{{ complaint.production_updates_container|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Closed by</dt><dd>{% if complaint.closed_by %}{{ complaint.closed_by.get_full_name|default:complaint.closed_by.username }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Closed at</dt><dd>{% if complaint.closed_at %}{{ complaint.closed_at|date:"d M Y, H:i" }}{% else %}-{% endif %}</dd></div>
+                                                </dl>
+                                            </section>
 
                                     {% if complaint.approval_summary.total %}
-                                        <h3 class="section-title">Approval History</h3>
-                                        <div class="progress-row" style="margin-bottom: 0.8rem;">
+                                        <section class="record-section">
+                                        <h3 class="record-section-title">Approval history</h3>
+                                        <div class="progress-row">
                                             <div class="progress-track">
                                                 <div class="progress-fill" style="width: {% widthratio complaint.approval_summary.decided complaint.approval_summary.total 100 %}%;"></div>
                                             </div>
@@ -2264,10 +2780,12 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                        </section>
                                     {% endif %}
 
                                     {% if complaint.timeline_events.all %}
-                                        <h3 class="section-title">Complaint Journey</h3>
+                                        <section class="record-section">
+                                        <h3 class="record-section-title">Activity</h3>
                                         <div class="timeline-list">
                                             {% for event in complaint.timeline_events.all %}
                                                 <div class="timeline-entry">
@@ -2283,31 +2801,48 @@
                                                 </div>
                                             {% endfor %}
                                         </div>
+                                        </section>
                                     {% endif %}
+                                        </div>
 
-                                    <!-- MEDIA FILES -->
-                                    {% if complaint.media_files.count > 0 %}
-                                        <h3 class="section-title">Media Files ({{ complaint.media_files.count }})</h3>
+                                        <aside class="complaint-media-pane" aria-label="Complaint media">
+                                            <div class="media-pane-header">
+                                                <h3>Images and videos</h3>
+                                                <span class="media-count">{{ complaint.media_files.count }} file{{ complaint.media_files.count|pluralize }}</span>
+                                            </div>
+                                            {% if complaint.media_files.count > 0 %}
                                         <div class="media-grid">
                                             {% for media in complaint.media_files.all %}
                                                 {% if not media.is_available %}
                                                     <div class="media-item"><span>Unavailable</span></div>
-                                                {% elif ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower %}
+                                                {% elif ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower or ".webp" in media.file|lower or ".gif" in media.file|lower %}
                                                     <div class="media-item" onclick="enlargeImage('{{ media.url|escapejs }}')">
-                                                        <img src="{{ media.url }}" class="media-thumbnail" alt="Complaint Image">
+                                                        <img src="{{ media.url }}" class="media-thumbnail" alt="Media attached to complaint {{ complaint.complaint_id }}" loading="lazy">
                                                     </div>
-                                                {% elif ".mp4" in media.file|lower or ".webm" in media.file|lower %}
-                                                    <div class="media-item" onclick="enlargeVideo('{{ media.url|escapejs }}')">
-                                                        <video class="media-thumbnail" muted>
-                                                            <source src="{{ media.url }}" type="video/mp4">
-                                                        </video>
+                                                {% elif ".mp4" in media.file|lower or ".webm" in media.file|lower or ".mov" in media.file|lower %}
+                                                    <div class="media-item">
+                                                        <video class="media-thumbnail complaint-video" preload="none" playsinline
+                                                               data-src="{{ media.url }}" aria-label="Video attached to complaint {{ complaint.complaint_id }}"></video>
+                                                        <button type="button" class="video-play-button" onclick="playComplaintVideo(this)" aria-label="Play attached video">
+                                                            <i class="fas fa-play" aria-hidden="true"></i>
+                                                            <span>Play video</span>
+                                                        </button>
                                                     </div>
+                                                {% else %}
+                                                    <a class="media-item" href="{{ media.url }}" target="_blank" rel="noopener">Open attached file</a>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
-                                    {% endif %}
+                                            {% else %}
+                                                <div class="media-empty">
+                                                    <i class="fas fa-photo-film"></i>
+                                                    <span>No media attached</span>
+                                                </div>
+                                            {% endif %}
+                                        </aside>
+                                    </div>
                                 </div>
-                            </div>
+                            </article>
                         </div>
 
                         {% endfor %}
@@ -2357,24 +2892,44 @@
         </div>
     </div>
 
-    <!-- Video Modal -->
-    <div id="videoModal" class="modal">
-        <div class="modal-content" style="max-width: 90%; text-align: center;">
-            <div class="modal-header">
-                <h2 class="modal-title">Video Preview</h2>
-                <button class="close-btn" onclick="closeVideoModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <video id="modalVideo" style="max-width: 100%; max-height: 70vh; border-radius: 8px;" controls>
-                <source id="modalVideoSource" src="" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        </div>
-    </div>
-
     <script>
         // Modal functions
+        function resetComplaintVideo(video) {
+            if (!video) return;
+            video.pause();
+            video.removeAttribute('src');
+            video.removeAttribute('controls');
+            video.load();
+            const playButton = video.parentElement?.querySelector('.video-play-button');
+            if (playButton) playButton.hidden = false;
+        }
+
+        function releaseComplaintVideos(scope) {
+            scope?.querySelectorAll('.complaint-video').forEach(resetComplaintVideo);
+        }
+
+        async function playComplaintVideo(playButton) {
+            const video = playButton.parentElement?.querySelector('.complaint-video');
+            if (!video?.dataset.src) return;
+
+            document.querySelectorAll('.complaint-video').forEach((otherVideo) => {
+                if (otherVideo !== video) resetComplaintVideo(otherVideo);
+            });
+
+            if (!video.getAttribute('src')) {
+                video.src = video.dataset.src;
+                video.setAttribute('controls', '');
+                video.load();
+            }
+            playButton.hidden = true;
+            try {
+                await video.play();
+            } catch (error) {
+                playButton.hidden = false;
+                console.error('Unable to play complaint video:', error);
+            }
+        }
+
         function openModal(id) {
             const modal = document.getElementById('modal-' + id);
             if (modal && modal.parentElement !== document.body) {
@@ -2391,6 +2946,7 @@
 
         function closeModal(id) {
             const modal = document.getElementById('modal-' + id);
+            releaseComplaintVideos(modal);
             modal.classList.remove('is-open');
             modal.removeAttribute('aria-modal');
             document.body.style.overflow = 'auto';
@@ -2409,46 +2965,43 @@
             document.body.style.overflow = 'auto';
         }
 
-        function enlargeVideo(src) {
-            const modal = document.getElementById("videoModal");
-            const video = document.getElementById("modalVideo");
-            const source = document.getElementById("modalVideoSource");
-            
-            source.src = src;
-            video.load();
-            modal.classList.add('is-open');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeVideoModal() {
-            const modal = document.getElementById("videoModal");
-            const video = document.getElementById("modalVideo");
-            modal.classList.remove('is-open');
-            video.pause();
-            video.currentTime = 0;
-            document.body.style.overflow = 'auto';
-        }
-
         // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
+                releaseComplaintVideos(event.target);
                 event.target.classList.remove('is-open');
                 event.target.removeAttribute('aria-modal');
                 document.body.style.overflow = 'auto';
             }
         }
 
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                document.querySelectorAll('.modal.is-open').forEach((modal) => {
-                    modal.classList.remove('is-open');
-                    modal.removeAttribute('aria-modal');
-                });
-                document.body.style.overflow = 'auto';
-            }
-        });
+        window.fabroOnPageLoad(function () {
+            window.__fabroComplaintPageController?.abort();
+            const complaintPageController = new AbortController();
+            const complaintPageSignal = complaintPageController.signal;
+            window.__fabroComplaintPageController = complaintPageController;
 
-        document.addEventListener("DOMContentLoaded", function () {
+            document.addEventListener('fabro:before-page-swap', function () {
+                complaintPageController.abort();
+            }, { once: true, signal: complaintPageSignal });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    document.querySelectorAll('.modal.is-open').forEach((modal) => {
+                        releaseComplaintVideos(modal);
+                        modal.classList.remove('is-open');
+                        modal.removeAttribute('aria-modal');
+                    });
+                    document.querySelectorAll('.column-filter-dropdown').forEach((dropdown) => {
+                        dropdown.style.display = 'none';
+                    });
+                    document.querySelectorAll('.column-filter-trigger').forEach((trigger) => {
+                        trigger.setAttribute('aria-expanded', 'false');
+                    });
+                    document.body.style.overflow = 'auto';
+                }
+            }, { signal: complaintPageSignal });
+
             // Add active nav state
             const complaintListLink = document.querySelector('a[href="{% url 'complaint_list' %}"]');
             if (complaintListLink) {
@@ -2468,6 +3021,7 @@
             const searchForm = document.getElementById('header-search-form');
             const searchPicker = document.getElementById('search-picker');
             const searchInput = document.getElementById('header-search-input');
+            const searchClear = document.getElementById('header-search-clear');
             const searchByInput = document.getElementById('header-search-by');
             const searchLabel = document.getElementById('search-field-label');
             const searchOptions = document.querySelectorAll('.search-option');
@@ -2499,10 +3053,17 @@
                 searchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
             }
 
+            function refreshSearchClear() {
+                if (!searchInput || !searchClear) return;
+                searchClear.hidden = searchInput.value.length === 0;
+            }
+
             refreshSearchChoice();
+            refreshSearchClear();
 
             if (searchInput && searchPicker) {
                 searchInput.addEventListener('input', function () {
+                    refreshSearchClear();
                     setSuggestionsOpen(true);
                 });
                 searchInput.addEventListener('focus', function () {
@@ -2511,6 +3072,20 @@
                 searchInput.addEventListener('keydown', function (event) {
                     if (event.key === 'Escape') {
                         setSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            if (searchClear && searchInput && searchForm) {
+                searchClear.addEventListener('click', function () {
+                    const hadSubmittedSearch = searchInput.defaultValue.trim().length > 0;
+                    searchInput.value = '';
+                    refreshSearchClear();
+                    setSuggestionsOpen(false);
+                    if (hadSubmittedSearch) {
+                        searchForm.requestSubmit();
+                    } else {
+                        searchInput.focus();
                     }
                 });
             }
@@ -2531,10 +3106,31 @@
                 if (searchPicker && !searchPicker.contains(event.target)) {
                     setSuggestionsOpen(false);
                 }
-            });
+            }, { signal: complaintPageSignal });
 
             // Column filter dropdowns logic for Complaints Table
             const filterHeaders = document.querySelectorAll('th[data-filter-col]');
+
+            function getComplaintFilterValue(infoRow, colIdx) {
+                const cell = infoRow.cells[colIdx];
+                if (!cell) return '';
+                if (colIdx === 1) {
+                    return cell.querySelector('.complaint-id-badge')?.textContent.trim() || '';
+                }
+                if (colIdx === 2) {
+                    return cell.querySelector('.vehicle-primary')?.textContent.trim() || '';
+                }
+                if (colIdx === 3) {
+                    return cell.querySelector('.type-primary')?.textContent.trim() || '';
+                }
+                if (colIdx === 4) {
+                    return cell.querySelector('.reporter-primary')?.textContent.trim() || '';
+                }
+                if (colIdx === 5 || colIdx === 6) {
+                    return cell.querySelector('.status-badge')?.textContent.trim() || '';
+                }
+                return cell.textContent.trim();
+            }
             
             function runFilters() {
                 const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
@@ -2555,27 +3151,17 @@
                     let isVisible = true;
                     
                     for (const [colIdx, allowedValues] of Object.entries(activeFilters)) {
-                        const cell = infoRow.cells[colIdx];
-                        if (!cell) continue;
-                        const cellText = cell.textContent.toLowerCase();
-                        
-                        let match = false;
-                        for (const val of allowedValues) {
-                            if (cellText.includes(val)) {
-                                match = true;
-                                break;
-                            }
-                        }
-                        if (!match) {
+                        const rowValue = getComplaintFilterValue(infoRow, Number(colIdx)).toLowerCase();
+                        if (!allowedValues.has(rowValue)) {
                             isVisible = false;
                             break;
                         }
                     }
 
-                    infoRow.style.display = isVisible ? '' : 'none';
+                    infoRow.hidden = !isVisible;
                     const workflowRow = infoRow.nextElementSibling;
                     if (workflowRow && workflowRow.classList.contains('complaint-workflow-row')) {
-                        workflowRow.style.display = isVisible ? '' : 'none';
+                        workflowRow.hidden = !isVisible;
                     }
                 });
 
@@ -2611,6 +3197,7 @@
 
             filterHeaders.forEach(th => {
                 const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                th.querySelector('.column-filter-dropdown')?.remove();
                 
                 // Create dropdown element
                 const dropdown = document.createElement('div');
@@ -2675,24 +3262,8 @@
                 const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
                 const uniqueValues = new Set();
                 infoRows.forEach(row => {
-                    const cell = row.cells[colIdx];
-                    if (cell) {
-                        let val = '';
-                        if (colIdx === 1) {
-                            val = cell.querySelector('.complaint-id-badge')?.textContent.trim() || '';
-                        } else if (colIdx === 2) {
-                            val = cell.querySelector('.vehicle-primary')?.textContent.trim() || '';
-                        } else if (colIdx === 3) {
-                            val = cell.querySelector('.type-primary')?.textContent.trim() || '';
-                        } else if (colIdx === 4) {
-                            val = cell.querySelector('.reporter-primary')?.textContent.trim() || '';
-                        } else if (colIdx === 5 || colIdx === 6) {
-                            val = cell.querySelector('.status-badge')?.textContent.trim() || '';
-                        } else {
-                            val = cell.textContent.trim();
-                        }
-                        if (val) uniqueValues.add(val);
-                    }
+                    const val = getComplaintFilterValue(row, colIdx);
+                    if (val) uniqueValues.add(val);
                 });
 
                 // Render checkboxes
@@ -2707,8 +3278,11 @@
                         return;
                     }
 
+                    let visibleMatches = 0;
                     sortedValues.forEach(val => {
                         if (term && !val.toLowerCase().includes(term)) return;
+
+                        visibleMatches += 1;
 
                         const label = document.createElement('label');
                         label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; margin: 0; font-weight: normal;';
@@ -2724,6 +3298,10 @@
                         label.appendChild(document.createTextNode(val));
                         valuesContainer.appendChild(label);
                     });
+
+                    if (visibleMatches === 0) {
+                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No matching values</div>';
+                    }
                 }
 
                 renderList();
@@ -2756,6 +3334,9 @@
                 // Header level clear trigger
                 const clearBtn = th.querySelector('.column-filter-clear');
                 if (clearBtn) {
+                    clearBtn.setAttribute('role', 'button');
+                    clearBtn.setAttribute('tabindex', '0');
+                    clearBtn.setAttribute('aria-label', 'Clear this column filter');
                     clearBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
                         th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
@@ -2763,22 +3344,47 @@
                         });
                         runFilters();
                     });
+                    clearBtn.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            clearBtn.click();
+                        }
+                    });
                 }
 
                 // Toggle dropdown on trigger click
                 const trigger = th.querySelector('.column-filter-trigger');
                 if (trigger) {
-                    trigger.addEventListener('click', function(e) {
+                    trigger.setAttribute('role', 'button');
+                    trigger.setAttribute('tabindex', '0');
+                    trigger.setAttribute('aria-haspopup', 'menu');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    trigger.setAttribute('aria-label', 'Filter this column');
+
+                    const toggleDropdown = function(e) {
                         e.stopPropagation();
                         // Close other dropdowns
                         document.querySelectorAll('.column-filter-dropdown').forEach(d => {
-                            if (d !== dropdown) d.style.display = 'none';
+                            if (d !== dropdown) {
+                                d.style.display = 'none';
+                                d.parentElement?.querySelector('.column-filter-trigger')?.setAttribute('aria-expanded', 'false');
+                            }
                         });
-                        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                        const isOpening = dropdown.style.display === 'none';
+                        dropdown.style.display = isOpening ? 'block' : 'none';
+                        trigger.setAttribute('aria-expanded', isOpening ? 'true' : 'false');
                         
                         // Focus on search input when opening
-                        if (dropdown.style.display === 'block') {
+                        if (isOpening) {
                             setTimeout(() => searchInput.focus(), 50);
+                        }
+                    };
+
+                    trigger.addEventListener('click', toggleDropdown);
+                    trigger.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleDropdown(e);
                         }
                     });
                 }
@@ -2789,9 +3395,10 @@
                 if (!e.target.closest('.column-filter-dropdown') && !e.target.closest('.column-filter-trigger')) {
                     document.querySelectorAll('.column-filter-dropdown').forEach(d => {
                         d.style.display = 'none';
+                        d.parentElement?.querySelector('.column-filter-trigger')?.setAttribute('aria-expanded', 'false');
                     });
                 }
-            });
+            }, { signal: complaintPageSignal });
         });
     </script>
 
@@ -3007,7 +3614,7 @@
     </div>
 
     <script>
-        let activePopoverComplaintId = '';
+        var activePopoverComplaintId = '';
 
         function toggleChatUserPopover(e, complaintId) {
             if (e) {
@@ -3085,7 +3692,8 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        window.fabroOnPageLoad(() => {
+            const complaintPageSignal = window.__fabroComplaintPageController?.signal;
             const popoverSearch = document.getElementById('popover-search-input');
             if (popoverSearch) {
                 popoverSearch.addEventListener('input', filterPopoverUsers);
@@ -3096,8 +3704,11 @@
                 if (popover && popover.style.display === 'block' && !popover.contains(e.target) && !e.target.closest('.action-btn.chat')) {
                     closeChatPopover();
                 }
-            });
+            }, complaintPageSignal ? { signal: complaintPageSignal } : undefined);
         });
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

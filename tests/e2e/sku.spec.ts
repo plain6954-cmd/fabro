@@ -15,19 +15,19 @@ test('SKU page supports add, search, edit and delete', async ({ page }) => {
   await page.locator('#id_description').fill('Playwright SKU description');
   await page.locator('#id_region').selectOption({ index: 1 }).catch(() => {});
   await page.locator('button[name="add_sku"]').click({ force: true });
-  await expect(page.getByText(sample.skuCode)).toBeVisible();
+  await expect(page.locator(`#skuTableBody tr[id^="sku-row-"]`, { hasText: sample.skuCode })).toBeVisible();
 
   await page.getByPlaceholder(/Search SKUs/i).fill(sample.skuCode);
-  await expect(page.locator('#skuSearchDropdown')).toBeVisible();
-  await expect(page.locator('#skuSearchDropdown')).toContainText('All Columns');
-  await expect(page.locator('#skuSearchDropdown')).toContainText('SKU Code');
-  await expect(page.locator('#skuSearchDropdown')).toContainText('Description');
-  await expect(page.locator('#skuSearchDropdown')).toContainText('Region');
-  await page.locator('#skuSearchDropdown [data-column="code"]').click();
-  await expect.poll(() => new URL(page.url()).searchParams.get('column')).toBe('code');
+  await expect(page.locator('#sku-search-options')).toBeVisible();
+  await expect(page.locator('#sku-search-options')).toContainText('All Fields');
+  await expect(page.locator('#sku-search-options')).toContainText('SKU Code');
+  await expect(page.locator('#sku-search-options')).toContainText('Description');
+  await expect(page.locator('#sku-search-options')).toContainText('Region');
+  await page.locator('#sku-search-options [data-search-by="code"]').click();
+  await expect.poll(() => new URL(page.url()).searchParams.get('search_by')).toBe('code');
   await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(sample.skuCode);
   await expect(page.locator('#skuTableBody')).toContainText(sample.skuCode);
-  const skuRow = page.locator('tr', { hasText: sample.skuCode });
+  const skuRow = page.locator('#skuTableBody tr[id^="sku-row-"]', { hasText: sample.skuCode });
   const skuRowId = await skuRow.getAttribute('id');
   const skuId = skuRowId?.replace('sku-row-', '');
   await skuRow.locator('.action-btn.edit').click({ force: true });
@@ -37,7 +37,7 @@ test('SKU page supports add, search, edit and delete', async ({ page }) => {
   await expect(page).toHaveURL(/\/add-sku\/$/);
 
   page.once('dialog', (dialog) => dialog.accept());
-  await page.locator('tr', { hasText: sample.skuCode }).locator('.action-btn.delete').click({ force: true });
+  await page.locator('#skuTableBody tr[id^="sku-row-"]', { hasText: sample.skuCode }).locator('.action-btn.delete').click({ force: true });
   await expect(page.getByText(sample.skuCode)).toHaveCount(0);
   await expectNoDjangoError(page);
   await diagnostics.assertClean();

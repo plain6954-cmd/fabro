@@ -19,10 +19,10 @@
     <main class="workflow-page">
         <header class="workflow-header">
             <div>
-                <h1 class="workflow-title"><i class="fas fa-clipboard-check"></i> {{ approval.approver_role }} {% if approval.review_stage == 'reconsideration' %}Reconsideration{% else %}Review{% endif %}</h1>
+                <h1 class="workflow-title"><i class="fas fa-clipboard-check"></i> {{ approval.approver_role }} {% if approval.review_stage == 'reconsideration' %}Reconsideration{% elif approval.review_stage == 'execution_verification' %}Execution Verification{% else %}Review{% endif %}</h1>
                 <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }} | Approval round {{ approval.approval_round }}</p>
             </div>
-            <a href="{% url 'approval_inbox' %}" class="workflow-btn secondary">
+            <a href="{% url 'approvals_list' %}?stage={% if approval.review_stage == 'execution_verification' %}verification{% else %}plan{% endif %}" class="workflow-btn secondary">
                 <i class="fas fa-arrow-left"></i> Approval Inbox
             </a>
         </header>
@@ -147,6 +147,8 @@
                         <p class="workflow-subtitle" style="font-size: 0.78rem; margin-bottom: 1rem;">
                             {% if approval.review_stage == 'reconsideration' %}
                                 Every reconsideration opinion is collected before the complaint proceeds or returns for rework.
+                            {% elif approval.review_stage == 'execution_verification' %}
+                                Confirm that the approved action plan was executed correctly. A correction request returns execution to the Factory Executive.
                             {% else %}
                                 A rejection opens a new review for every other required approver.
                             {% endif %}

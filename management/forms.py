@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from .models import (
     ApprovalStages,
     ApprovalRoles,
@@ -6,6 +7,7 @@ from .models import (
     Complaint,
     ComplaintMedia,
     ComplaintTypes,
+    complaint_type_master_category,
     DecisionStatuses,
     FactoryPriorities,
     MasterSetting,
@@ -116,19 +118,25 @@ class MasterSettingForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-input'}),
             }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].choices = [
+            (value, label)
+            for value, label in MasterSetting.CATEGORY_CHOICES
+            if value not in {'Country', 'Reported By'}
+        ]
+
 class ComplaintForm(forms.ModelForm):
     class Meta:
         model = Complaint
         fields = [
-            'date', 'channel', 'country', 'person','case_sub_category', 'series', 'material', 
+            'date', 'channel', 'case_sub_category', 'series', 'material',
             'brand', 'model', 'sub_model', 'year', 'status','priority','sku', 'updated_order_no',
             'complaint_description', 'batch_order'
         ]
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
             'channel': forms.Select(attrs={'class': 'form-select'}),
-            'country': forms.Select(attrs={'class': 'form-select'}),
-            'person': forms.Select(attrs={'class': 'form-select'}),
             'case_sub_category': forms.Select(attrs={'class': 'form-select'}),
             'series': forms.Select(attrs={'class': 'form-select'}),
             'material': forms.Select(attrs={'class': 'form-select'}),
@@ -145,7 +153,7 @@ class ComplaintForm(forms.ModelForm):
 
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, complaint_type=None, **kwargs):
         super().__init__(*args, **kwargs)
         today = date.today()
         if not self.instance.pk:
@@ -161,8 +169,21 @@ class ComplaintForm(forms.ModelForm):
         self.fields['sku'].empty_label = 'Select SKU'
         self.fields['sku'].label_from_instance = lambda sku: f"{sku.code} - {sku.description}" if sku.description else sku.code
 
+        selected_complaint_type = complaint_type or getattr(self.instance, 'complaint_type', None)
+        type_category = complaint_type_master_category(selected_complaint_type)
+        type_queryset = MasterSetting.objects.none()
+        if type_category:
+            type_queryset = MasterSetting.objects.filter(category=type_category)
+        if self.instance.pk and self.instance.case_sub_category_id:
+            type_queryset = MasterSetting.objects.filter(
+                Q(category=type_category)
+                | Q(pk=self.instance.case_sub_category_id)
+            )
+        self.fields['case_sub_category'].queryset = type_queryset.order_by('name')
+        self.fields['case_sub_category'].empty_label = 'Select Type'
+
         optional_fields = [
-            'channel', 'country', 'person', 'case_sub_category', 'series', 'material',
+            'channel', 'case_sub_category', 'series', 'material',
             'brand', 'model', 'sub_model', 'year', 'sku', 'updated_order_no',
             'complaint_description', 'batch_order'
         ]
@@ -258,6 +279,15 @@ class ApprovalDecisionForm(forms.Form):
             self.fields['comment'].widget.attrs['placeholder'] = (
                 'Optional when proceeding. Required when returning for rework.'
             )
+        elif approval_stage == ApprovalStages.EXECUTION_VERIFICATION:
+            self.fields['decision'].label = 'Execution verification decision'
+            self.fields['decision'].choices = [
+                (DecisionStatuses.APPROVED, 'Execution Is Correct'),
+                (DecisionStatuses.REJECTED, 'Execution Needs Correction'),
+            ]
+            self.fields['comment'].widget.attrs['placeholder'] = (
+                'Optional when verifying. Required when requesting an execution correction.'
+            )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -351,6 +381,7 @@ class UnifiedWorkflowRoles:
         (WorkflowRoles.COUNTRY_EXECUTIVE, 'Country Executive'),
         (WorkflowRoles.FACTORY_VIEWER, 'Factory Viewer'),
         (WorkflowRoles.FACTORY_EXECUTIVE, 'Factory Executive'),
+        (WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR, 'Factory Complaint Registrar'),
         ('PM', 'PM'),
         ('OM', 'OM'),
         ('CAD', 'CAD'),

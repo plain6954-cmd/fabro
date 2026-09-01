@@ -12,6 +12,7 @@ class WorkflowRoles:
     COUNTRY_EXECUTIVE = 'country_executive'
     FACTORY_VIEWER = 'factory_viewer'
     FACTORY_EXECUTIVE = 'factory_executive'
+    FACTORY_COMPLAINT_REGISTRAR = 'factory_complaint_registrar'
     APPROVER = 'approver'
     ADMIN = 'admin'
 
@@ -19,6 +20,7 @@ class WorkflowRoles:
         (COUNTRY_EXECUTIVE, 'Country Executive'),
         (FACTORY_VIEWER, 'Factory Viewer'),
         (FACTORY_EXECUTIVE, 'Factory Executive'),
+        (FACTORY_COMPLAINT_REGISTRAR, 'Factory Complaint Registrar'),
         (APPROVER, 'Approver'),
         (ADMIN, 'Admin'),
     ]
@@ -43,19 +45,44 @@ class ApprovalRoles:
 class ComplaintTypes:
     PATTERN = 'pattern'
     PRODUCTION = 'production'
+    QUALITY = 'quality'
     LINE = 'line'
 
     CHOICES = [
         (PATTERN, 'Pattern Complaint'),
         (PRODUCTION, 'Production Complaint'),
-        (LINE, 'Line Complaint'),
+        (QUALITY, 'Quality Complaint'),
+        (LINE, 'Factory Complaint'),
     ]
 
     PREFIXES = {
         PATTERN: 'PAT',
         PRODUCTION: 'PRO',
+        QUALITY: 'QUA',
         LINE: 'LIN',
     }
+
+
+COMPLAINT_TYPE_MASTER_CATEGORIES = {
+    ComplaintTypes.PATTERN: 'Pattern Complaint Type',
+    ComplaintTypes.PRODUCTION: 'Production Complaint Type',
+    ComplaintTypes.QUALITY: 'Quality Complaint Type',
+    ComplaintTypes.LINE: 'Factory Complaint Type',
+}
+
+
+def complaint_type_master_category(complaint_type):
+    return COMPLAINT_TYPE_MASTER_CATEGORIES.get(complaint_type)
+
+
+def complaint_type_from_master_setting(setting):
+    if not setting:
+        return None
+    category_to_type = {
+        category: complaint_type
+        for complaint_type, category in COMPLAINT_TYPE_MASTER_CATEGORIES.items()
+    }
+    return category_to_type.get(setting.category)
 
 
 class WorkflowStatuses:
@@ -67,6 +94,8 @@ class WorkflowStatuses:
     REWORK_REQUIRED = 'rework_required'
     APPROVED = 'approved'
     ACTION_IN_PROGRESS = 'action_in_progress'
+    AWAITING_EXECUTION_VERIFICATION = 'awaiting_execution_verification'
+    EXECUTION_PARTIALLY_VERIFIED = 'execution_partially_verified'
     PENDING_FINAL_UPDATE = 'pending_final_update'
     CLOSED = 'closed'
     ON_HOLD = 'on_hold'
@@ -80,6 +109,8 @@ class WorkflowStatuses:
         (REWORK_REQUIRED, 'Rework Required'),
         (APPROVED, 'Approved'),
         (ACTION_IN_PROGRESS, 'Action In Progress'),
+        (AWAITING_EXECUTION_VERIFICATION, 'Awaiting Execution Verification'),
+        (EXECUTION_PARTIALLY_VERIFIED, 'Execution Partially Verified'),
         (PENDING_FINAL_UPDATE, 'Pending Final Update'),
         (CLOSED, 'Closed'),
         (ON_HOLD, 'On Hold'),
@@ -115,17 +146,21 @@ class DecisionStatuses:
 class ApprovalStages:
     INITIAL = 'initial'
     RECONSIDERATION = 'reconsideration'
+    EXECUTION_VERIFICATION = 'execution_verification'
 
     CHOICES = [
         (INITIAL, 'Initial approval'),
         (RECONSIDERATION, 'Rejection reconsideration'),
+        (EXECUTION_VERIFICATION, 'Execution verification'),
     ]
 
 
 def infer_complaint_type(type_name):
     value = (type_name or '').strip().lower()
-    if 'line' in value:
+    if 'line' in value or 'factory' in value:
         return ComplaintTypes.LINE
+    if 'quality' in value:
+        return ComplaintTypes.QUALITY
     if 'production' in value:
         return ComplaintTypes.PRODUCTION
     return ComplaintTypes.PATTERN
@@ -187,14 +222,17 @@ class MasterSetting(models.Model):
         ('Channel', 'Channel'),
         ('Country', 'Country'),
         ('Reported By', 'Reported By'),
-        ('Type', 'Type'),
+        ('Pattern Complaint Type', 'Pattern Complaint Types'),
+        ('Production Complaint Type', 'Production Complaint Types'),
+        ('Quality Complaint Type', 'Quality Complaint Types'),
+        ('Factory Complaint Type', 'Factory Complaint Types'),
         ('Series', 'Series'),
         ('Material', 'Material'),
         ('Region', 'Region'),
     ]
 
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     class Meta:
         unique_together = ('category', 'name')
 
@@ -203,6 +241,12 @@ class MasterSetting(models.Model):
 
 
 class UserProfile(models.Model):
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('ar', 'العربية'),
+        ('hi', 'हिन्दी'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='workflow_profile')
     role = models.CharField(max_length=30, choices=WorkflowRoles.CHOICES, default=WorkflowRoles.FACTORY_VIEWER)
     country = models.ForeignKey(
@@ -218,6 +262,11 @@ class UserProfile(models.Model):
     approval_role = models.CharField(max_length=10, choices=ApprovalRoles.CHOICES, blank=True)
     can_receive_factory_assignments = models.BooleanField(default=False)
     photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
+    preferred_language = models.CharField(
+        max_length=5,
+        choices=LANGUAGE_CHOICES,
+        default='en',
+    )
 
     @property
     def avatar_url(self):
@@ -230,9 +279,16 @@ class UserProfile(models.Model):
 
     @property
     def country_flag_url(self):
-        if not self.country:
+        # Country executives are scoped to their configured country. Every other
+        # role reports for India, regardless of any legacy profile-country value.
+        if self.role == WorkflowRoles.COUNTRY_EXECUTIVE:
+            country = self.country
+        else:
+            country = None
+
+        if self.role == WorkflowRoles.COUNTRY_EXECUTIVE and not country:
             return None
-        country_name = self.country.name.strip().lower()
+        country_name = country.name.strip().lower() if country else 'india'
         mapping = {
             'ksa': 'sa',
             'saudi arabia': 'sa',
@@ -263,7 +319,7 @@ class UserProfile(models.Model):
 class Complaint(models.Model):
     complaint_id = models.CharField(primary_key=True, max_length=20, unique=True, editable=False)
     complaint_type = models.CharField(max_length=20, choices=ComplaintTypes.CHOICES, default=ComplaintTypes.PATTERN, db_index=True)
-    workflow_status = models.CharField(max_length=30, choices=WorkflowStatuses.CHOICES, default=WorkflowStatuses.SUBMITTED, db_index=True)
+    workflow_status = models.CharField(max_length=40, choices=WorkflowStatuses.CHOICES, default=WorkflowStatuses.SUBMITTED, db_index=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_complaints')
     assigned_factory_executive = models.ForeignKey(
         User,
@@ -298,7 +354,7 @@ class Complaint(models.Model):
         'management.MasterSetting',
         on_delete=models.SET_NULL,
         null=True,
-        limit_choices_to={'category': 'Type'},
+        limit_choices_to={'category__in': list(COMPLAINT_TYPE_MASTER_CATEGORIES.values())},
         related_name="complaints_as_case_sub_category"
     )
     series = models.ForeignKey(
@@ -444,7 +500,7 @@ class ComplaintApproval(models.Model):
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name='approvals')
     approval_round = models.PositiveIntegerField(default=1)
     review_stage = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=ApprovalStages.CHOICES,
         default=ApprovalStages.INITIAL,
     )

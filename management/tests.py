@@ -1,10 +1,12 @@
 import json
 from datetime import date, timedelta
 from io import BytesIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -42,10 +44,11 @@ from .services.workflow import (
     record_approval_decision,
     required_approval_roles,
     start_action_execution,
+    submit_execution_for_verification,
     submit_factory_review,
     visible_complaints_for_user,
 )
-from .views import get_sorted_chat_users
+from .views import _validate_complaint_media_files, get_sorted_chat_users
 
 
 class FabroBackendTests(TestCase):
@@ -61,7 +64,10 @@ class FabroBackendTests(TestCase):
         self.channel = MasterSetting.objects.create(category="Channel", name="WhatsApp")
         self.country = MasterSetting.objects.create(category="Country", name="KSA")
         self.person = MasterSetting.objects.create(category="Reported By", name="Backend Reporter")
-        self.case_type = MasterSetting.objects.create(category="Type", name="Stitching")
+        self.case_type = MasterSetting.objects.create(
+            category="Pattern Complaint Type",
+            name="Stitching",
+        )
         self.series = MasterSetting.objects.create(category="Series", name="Luxe")
         self.material = MasterSetting.objects.create(category="Material", name="Rexin")
         self.region = MasterSetting.objects.create(category="Region", name="Backend Region")
@@ -158,6 +164,17 @@ class FabroBackendTests(TestCase):
         self.assertContains(default_response, 'id="complaint-type-indicator"')
         self.assertContains(default_response, 'Pattern Complaint')
         self.assertContains(default_response, 'Save Pattern Complaint')
+        self.assertContains(default_response, 'FACTORY COMPLAINT')
+        self.assertNotContains(default_response, 'LINE COMPLAINT')
+        self.assertNotContains(default_response, 'id="id_person"')
+        self.assertNotContains(default_response, 'id="id_country"')
+        self.assertContains(default_response, 'https://flagcdn.com/w40/in.png')
+
+        master_response = self.client.get(reverse('master_settings'))
+        self.assertEqual(master_response.status_code, 200)
+        self.assertNotContains(master_response, '>Reported By<', html=False)
+        self.assertNotIn('Reported By', master_response.context['master_settings'])
+        self.assertNotIn('Country', master_response.context['master_settings'])
 
         invalid_production_response = self.client.post(reverse('add_complaint'), {
             'complaint_type': ComplaintTypes.PRODUCTION,
@@ -170,15 +187,110 @@ class FabroBackendTests(TestCase):
         self.assertContains(invalid_production_response, 'type-production')
         self.assertContains(invalid_production_response, 'Save Production Complaint')
 
+        invalid_quality_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.QUALITY,
+        })
+        self.assertEqual(invalid_quality_response.status_code, 200)
+        self.assertEqual(
+            invalid_quality_response.context['selected_complaint_type'],
+            ComplaintTypes.QUALITY,
+        )
+        self.assertContains(invalid_quality_response, 'id="complaint-type-quality"')
+        self.assertContains(invalid_quality_response, 'Save Quality Complaint')
+
+    def test_complaint_type_master_catalogs_are_independent_and_enforced(self):
+        production_type = MasterSetting.objects.create(
+            category='Production Complaint Type',
+            name='Stitching',
+        )
+        quality_type = MasterSetting.objects.create(
+            category='Quality Complaint Type',
+            name='Surface Inspection',
+        )
+        factory_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Installation Fitment',
+        )
+        self.login()
+
+        master_response = self.client.get(reverse('master_settings'))
+        self.assertEqual(master_response.status_code, 200)
+        for category in (
+            'Pattern Complaint Type',
+            'Production Complaint Type',
+            'Quality Complaint Type',
+            'Factory Complaint Type',
+        ):
+            self.assertIn(category, master_response.context['master_settings'])
+        self.assertNotIn('Type', master_response.context['master_settings'])
+
+        expected_options = {
+            ComplaintTypes.PATTERN: [self.case_type.name],
+            ComplaintTypes.PRODUCTION: [production_type.name],
+            ComplaintTypes.QUALITY: [quality_type.name],
+            ComplaintTypes.LINE: [factory_type.name],
+        }
+        for complaint_type, expected_names in expected_options.items():
+            response = self.client.get(
+                reverse('get_complaint_type_options', args=[complaint_type])
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual([item['name'] for item in response.json()], expected_names)
+
+        mismatched_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PRODUCTION,
+            'status': 'Open',
+            'priority': 'Medium',
+            'case_sub_category': self.case_type.id,
+            'complaint_description': 'Wrong catalog must be rejected',
+            'batch_order': 'TYPE-MISMATCH-WEB',
+        })
+        self.assertEqual(mismatched_response.status_code, 200)
+        self.assertFormError(
+            mismatched_response.context['form'],
+            'case_sub_category',
+            'Select a valid choice. That choice is not one of the available choices.',
+        )
+        self.assertFalse(Complaint.objects.filter(batch_order='TYPE-MISMATCH-WEB').exists())
+
+        valid_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PRODUCTION,
+            'status': 'Open',
+            'priority': 'Medium',
+            'case_sub_category': production_type.id,
+            'complaint_description': 'Correct production catalog',
+            'batch_order': 'TYPE-PRODUCTION-WEB',
+        })
+        self.assertEqual(valid_response.status_code, 302)
+        complaint = Complaint.objects.get(batch_order='TYPE-PRODUCTION-WEB')
+        self.assertEqual(complaint.complaint_type, ComplaintTypes.PRODUCTION)
+        self.assertEqual(complaint.case_sub_category, production_type)
+
+        token = Token.objects.create(user=self.user)
+        api_response = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.QUALITY,
+                'case_sub_category': production_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Wrong API catalog',
+                'batch_order': 'TYPE-MISMATCH-API',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(api_response.status_code, 400)
+        self.assertIn('case_sub_category', api_response.json())
+
     def test_complaint_create_edit_delete_and_media_fallback(self):
         self.login()
         upload = SimpleUploadedFile("backend-test.png", b"fake-png", content_type="image/png")
+        video_upload = SimpleUploadedFile("backend-video.mp4", b"fake-video", content_type="video/mp4")
         response = self.client.post(reverse("add_complaint"), {
             "status": "Open",
             "priority": "Medium",
             "channel": self.channel.id,
             "country": self.country.id,
-            "person": self.person.id,
             "case_sub_category": self.case_type.id,
             "series": self.series.id,
             "material": self.material.id,
@@ -189,11 +301,14 @@ class FabroBackendTests(TestCase):
             "year": self.year.id,
             "complaint_description": "Backend complaint",
             "batch_order": "BATCH-1",
-            "media_files": upload,
+            "media_files": [upload, video_upload],
         })
         self.assertEqual(response.status_code, 302)
         complaint = Complaint.objects.get(complaint_description="Backend complaint")
-        self.assertEqual(complaint.media_files.count(), 1)
+        self.assertEqual(complaint.created_by, self.user)
+        self.assertIsNone(complaint.person)
+        self.assertEqual(complaint.country.name, 'India')
+        self.assertEqual(complaint.media_files.count(), 2)
         media = complaint.media_files.first()
         self.assertTrue(media.file.startswith("complaint_media/"))
         self.assertTrue(media.url.startswith("/media/"))
@@ -213,6 +328,49 @@ class FabroBackendTests(TestCase):
         response = self.client.post(reverse("delete_complaint", args=[complaint.complaint_id]))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Complaint.objects.filter(complaint_id=complaint.complaint_id).exists())
+
+    @patch('management.signals.default_storage.delete')
+    def test_admin_can_delete_complaint_when_video_file_is_locked(self, storage_delete):
+        self.login()
+        storage_delete.side_effect = PermissionError(
+            32,
+            'The process cannot access the file because it is being used by another process.',
+        )
+        complaint = Complaint.objects.create(
+            date='2026-08-30',
+            status='Open',
+            priority='Medium',
+            complaint_description='Locked video cleanup regression.',
+            batch_order='LOCKED-VIDEO',
+        )
+        ComplaintMedia.objects.create(
+            complaint=complaint,
+            file=f'complaint_media/complaint_{complaint.complaint_id}/locked-video.mov',
+        )
+
+        with self.assertLogs('management.signals', level='WARNING'):
+            response = self.client.post(
+                reverse('delete_complaint', args=[complaint.complaint_id]),
+                follow=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, reverse('complaint_list'))
+        self.assertContains(response, 'id="flash-messages" hidden')
+        self.assertContains(response, 'Complaint deleted successfully.')
+        self.assertFalse(Complaint.objects.filter(pk=complaint.complaint_id).exists())
+        storage_delete.assert_called_once()
+
+    def test_complaint_media_accepts_100_mb_and_rejects_larger_files(self):
+        class UploadedMediaStub:
+            def __init__(self, size):
+                self.name = 'factory-video.mp4'
+                self.content_type = 'video/mp4'
+                self.size = size
+
+        _validate_complaint_media_files([UploadedMediaStub(100 * 1024 * 1024)])
+        with self.assertRaisesMessage(ValidationError, 'file size exceeds 100 MB'):
+            _validate_complaint_media_files([UploadedMediaStub((100 * 1024 * 1024) + 1)])
 
     def test_vehicle_sku_and_master_crud_routes(self):
         self.login()
@@ -370,6 +528,32 @@ class FabroBackendTests(TestCase):
         response = self.client.get(reverse("get_year_ranges", args=[self.sub_model.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()[0]["range"], "24-26")
+
+    def test_sku_filter_includes_selected_vehicle_year(self):
+        self.login()
+        matching_sku = SKU.objects.create(
+            code='BACKEND-24260',
+            description='BACKEND BRAND BACKEND MODEL BACKEND SUB 24-26',
+            region=self.region,
+        )
+        SKU.objects.create(
+            code='BACKEND-20230',
+            description='BACKEND BRAND BACKEND MODEL BACKEND SUB 20-23',
+            region=self.region,
+        )
+
+        response = self.client.get(reverse('get_filtered_skus'), {
+            'brand': self.brand.id,
+            'model': self.model.id,
+            'sub_model': self.sub_model.id,
+            'year': self.year.id,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [sku['id'] for sku in response.json()],
+            [matching_sku.id],
+        )
 
     def test_export_complaints_csv(self):
         self.login()
@@ -554,7 +738,7 @@ class FabroBackendTests(TestCase):
         self.assertEqual(data["total_settings"], 7)
         self.assertEqual(data["total_master_settings"], 7)
 
-    def test_country_executive_sees_only_own_country_pattern_and_production_complaints(self):
+    def test_country_executive_sees_own_country_pattern_production_and_quality_complaints(self):
         User = get_user_model()
         country_user = User.objects.create_user(
             username="ksa_country_exec",
@@ -585,6 +769,15 @@ class FabroBackendTests(TestCase):
             complaint_description="Own country production complaint",
             batch_order="OWN-PRODUCTION",
         )
+        own_quality = Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.QUALITY,
+            status="Open",
+            priority="Medium",
+            complaint_description="Own country quality complaint",
+            batch_order="OWN-QUALITY",
+        )
         Complaint.objects.create(
             date="2026-07-09",
             country=self.country,
@@ -608,7 +801,11 @@ class FabroBackendTests(TestCase):
             visible_complaints_for_user(country_user).values_list("complaint_id", flat=True)
         )
 
-        self.assertEqual(visible_ids, {own_pattern.complaint_id, own_production.complaint_id})
+        self.assertEqual(
+            visible_ids,
+            {own_pattern.complaint_id, own_production.complaint_id, own_quality.complaint_id},
+        )
+        self.assertTrue(own_quality.complaint_id.startswith('QUA-'))
 
     def test_factory_executive_sees_only_assigned_complaints_and_unknown_roles_fail_closed(self):
         factory_user = self.create_workflow_user(
@@ -669,6 +866,7 @@ class FabroBackendTests(TestCase):
         payload = {
             'date': '2026-07-09',
             'country': other_country.id,
+            'person': self.person.id,
             'case_sub_category': self.case_type.id,
             'priority': 'Medium',
             'complaint_description': 'Country must be forced by the API',
@@ -685,8 +883,13 @@ class FabroBackendTests(TestCase):
         complaint = Complaint.objects.get(complaint_description=payload['complaint_description'])
         self.assertEqual(complaint.country, self.country)
         self.assertEqual(complaint.created_by, country_user)
+        self.assertIsNone(complaint.person)
+        self.assertEqual(response.json()['reported_by_name'], country_user.username)
 
-        line_type = MasterSetting.objects.create(category='Type', name='Line Complaint')
+        line_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Factory Complaint',
+        )
         payload.update({
             'case_sub_category': line_type.id,
             'complaint_description': 'Country line attempt',
@@ -700,6 +903,45 @@ class FabroBackendTests(TestCase):
         )
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Complaint.objects.filter(batch_order='API-LINE-BLOCKED').exists())
+
+    def test_reporting_country_flags_follow_role_and_non_country_api_uses_india(self):
+        country_user = self.create_workflow_user(
+            'flag_country_exec',
+            WorkflowRoles.COUNTRY_EXECUTIVE,
+        )
+        UserProfile.objects.filter(user=country_user).update(country=self.country)
+        country_user.workflow_profile.refresh_from_db()
+        self.assertEqual(
+            country_user.workflow_profile.country_flag_url,
+            'https://flagcdn.com/w40/sa.png',
+        )
+
+        factory_user = self.create_workflow_user(
+            'india_factory_exec',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        self.assertEqual(
+            factory_user.workflow_profile.country_flag_url,
+            'https://flagcdn.com/w40/in.png',
+        )
+        token = Token.objects.create(user=factory_user)
+        response = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'country': self.country.id,
+                'case_sub_category': self.case_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Non-country API reports under India',
+                'batch_order': 'API-INDIA-FORCE',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        complaint = Complaint.objects.get(batch_order='API-INDIA-FORCE')
+        self.assertEqual(complaint.country.name, 'India')
+        self.assertEqual(response.json()['country_name'], 'India')
 
     def test_country_executive_complaint_list_hides_line_and_other_country_records(self):
         User = get_user_model()
@@ -811,6 +1053,7 @@ class FabroBackendTests(TestCase):
             (ComplaintTypes.LINE, 'TYPE-LINE'),
             (ComplaintTypes.PATTERN, 'TYPE-PATTERN'),
             (ComplaintTypes.PRODUCTION, 'TYPE-PRODUCTION'),
+            (ComplaintTypes.QUALITY, 'TYPE-QUALITY'),
         ]:
             Complaint.objects.create(
                 date='2026-07-16',
@@ -828,14 +1071,17 @@ class FabroBackendTests(TestCase):
         self.assertEqual(dashboard.context['line_complaints'], 1)
         self.assertEqual(dashboard.context['pattern_complaints'], 1)
         self.assertEqual(dashboard.context['production_complaints'], 1)
+        self.assertEqual(dashboard.context['quality_complaints'], 1)
         self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=line')
         self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=pattern')
         self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=production')
+        self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=quality')
 
         line_response = self.client.get(reverse('complaint_list'), {'complaint_type': ComplaintTypes.LINE})
         self.assertEqual(line_response.context['selected_complaint_type'], ComplaintTypes.LINE)
         self.assertEqual(len(line_response.context['complaints']), 1)
         self.assertEqual(line_response.context['complaints'][0].complaint_type, ComplaintTypes.LINE)
+        self.assertEqual(line_response.context['complaints'][0].get_complaint_type_display(), 'Factory Complaint')
 
     def test_visible_complaints_preserves_an_empty_supplied_queryset(self):
         empty_ordered_queryset = Complaint.objects.filter(
@@ -1305,7 +1551,7 @@ class FabroBackendTests(TestCase):
             3,
         )
 
-    def test_unanimous_medium_approval_gives_green_light_and_allows_closure(self):
+    def test_unanimous_medium_approval_requires_execution_verification_before_closure(self):
         reporter = self.create_workflow_user('green_reporter', WorkflowRoles.COUNTRY_EXECUTIVE)
         factory_user = self.create_workflow_user('green_factory', WorkflowRoles.FACTORY_EXECUTIVE)
         roles = [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED]
@@ -1349,6 +1595,38 @@ class FabroBackendTests(TestCase):
         complaint.refresh_from_db()
         self.assertEqual(complaint.workflow_status, WorkflowStatuses.ACTION_IN_PROGRESS)
 
+        with self.assertRaisesMessage(ValueError, 'locked until every required approver verifies'):
+            close_complaint_after_execution(
+                complaint,
+                factory_user,
+                date(2026, 7, 14),
+                'LOCKED-CONTAINER',
+            )
+
+        verification_approvals = submit_execution_for_verification(complaint, factory_user)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION)
+        self.assertEqual(
+            {approval.approver_role: approval.approver_user_id for approval in verification_approvals},
+            {role: approvers[role].id for role in roles},
+        )
+        self.assertTrue(all(
+            approval.review_stage == ApprovalStages.EXECUTION_VERIFICATION
+            for approval in verification_approvals
+        ))
+
+        verification_outcome = None
+        for approval in verification_approvals:
+            _, verification_outcome = record_approval_decision(
+                approval.pk,
+                approvers[approval.approver_role],
+                DecisionStatuses.APPROVED,
+                f'{approval.approver_role} verified execution.',
+            )
+        complaint.refresh_from_db()
+        self.assertEqual(verification_outcome, 'execution_verified')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.PENDING_FINAL_UPDATE)
+
         close_complaint_after_execution(
             complaint,
             factory_user,
@@ -1366,13 +1644,62 @@ class FabroBackendTests(TestCase):
             notification_type='closed',
         ).exists())
 
+    def test_execution_verification_rejection_returns_case_for_correction(self):
+        factory_user = self.create_workflow_user('verify_rework_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        roles = [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD]
+        approvers = self.create_approval_accounts(roles, 'verify_rework')
+        complaint = Complaint.objects.create(
+            date=timezone.localdate(),
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.ACTION_IN_PROGRESS,
+            assigned_factory_executive=factory_user,
+            factory_priority=FactoryPriorities.LOW,
+            status='Open',
+            priority='Low',
+            complaint_description='Execution verification rejection path',
+            batch_order='VERIFY-REWORK',
+        )
+        for role in roles:
+            ComplaintApproval.objects.create(
+                complaint=complaint,
+                approval_round=1,
+                review_stage=ApprovalStages.INITIAL,
+                approver_role=role,
+                approver_user=approvers[role],
+                status=DecisionStatuses.APPROVED,
+            )
+
+        verification = submit_execution_for_verification(complaint, factory_user)
+        pm_verification = next(item for item in verification if item.approver_role == ApprovalRoles.PM)
+        _, outcome = record_approval_decision(
+            pm_verification.pk,
+            approvers[ApprovalRoles.PM],
+            DecisionStatuses.REJECTED,
+            'The corrective stitch was not applied to the full batch.',
+        )
+
+        complaint.refresh_from_db()
+        self.assertEqual(outcome, 'execution_rejected')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.ACTION_IN_PROGRESS)
+        self.assertFalse(ComplaintApproval.objects.filter(
+            complaint=complaint,
+            approval_round=verification[0].approval_round,
+            status=DecisionStatuses.PENDING,
+        ).exists())
+        self.assertTrue(Notification.objects.filter(
+            recipient=factory_user,
+            complaint=complaint,
+            notification_type='execution_verification_rejected',
+        ).exists())
+
     def test_line_complaint_closes_without_production_container(self):
         factory_user = self.create_workflow_user('line_factory', WorkflowRoles.FACTORY_EXECUTIVE)
         complaint = Complaint.objects.create(
             date='2026-07-14',
             country=self.country,
             complaint_type=ComplaintTypes.LINE,
-            workflow_status=WorkflowStatuses.ACTION_IN_PROGRESS,
+            workflow_status=WorkflowStatuses.PENDING_FINAL_UPDATE,
             assigned_factory_executive=factory_user,
             status='Open',
             priority='Low',
@@ -1391,7 +1718,7 @@ class FabroBackendTests(TestCase):
             date=timezone.localdate(),
             country=self.country,
             complaint_type=ComplaintTypes.PRODUCTION,
-            workflow_status=WorkflowStatuses.ACTION_IN_PROGRESS,
+            workflow_status=WorkflowStatuses.PENDING_FINAL_UPDATE,
             assigned_factory_executive=factory_user,
             status='Open',
             priority='Medium',
@@ -1415,7 +1742,7 @@ class FabroBackendTests(TestCase):
             )
 
         complaint.refresh_from_db()
-        self.assertEqual(complaint.workflow_status, WorkflowStatuses.ACTION_IN_PROGRESS)
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.PENDING_FINAL_UPDATE)
         self.assertEqual(complaint.status, 'Open')
 
     def test_approval_api_allows_blank_approval_comment_and_requires_rejection_comment(self):
@@ -1516,19 +1843,55 @@ class FabroBackendTests(TestCase):
             'user_id': configured.pk,
             'username': configured.username,
             'email': configured.email,
+            'first_name': 'Updated',
+            'last_name': 'Operator',
             'role': WorkflowRoles.COUNTRY_EXECUTIVE,
             'country': self.country.pk,
             'department': 'KSA Operations',
+            'phone_number': '+966500000000',
             'approval_role': '',
-            'new_password': 'UpdatedPassword!999',
+            'is_staff': 'on',
         })
         self.assertEqual(response.status_code, 302)
         configured.refresh_from_db()
         configured.workflow_profile.refresh_from_db()
-        self.assertTrue(configured.check_password('UpdatedPassword!999'))
+        self.assertEqual(configured.first_name, 'Updated')
+        self.assertEqual(configured.last_name, 'Operator')
+        self.assertTrue(configured.is_staff)
         self.assertEqual(configured.workflow_profile.role, WorkflowRoles.COUNTRY_EXECUTIVE)
         self.assertEqual(configured.workflow_profile.country, self.country)
+        self.assertEqual(configured.workflow_profile.phone_number, '+966500000000')
         self.assertEqual(configured.workflow_profile.approval_role, '')
+
+        # Password reset is a separate action and needs no profile fields.
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': configured.pk,
+            'new_password': 'UpdatedPassword!999',
+            'reset_password': '1',
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Password reset successfully for configured_approver.')
+        self.assertContains(response, 'edit-user-feedback success')
+        self.assertContains(response, "const editUserToReopen = '%s'" % configured.pk)
+        configured.refresh_from_db()
+        configured.workflow_profile.refresh_from_db()
+        self.assertTrue(configured.check_password('UpdatedPassword!999'))
+        self.assertTrue(Client().login(
+            username=configured.username,
+            password='UpdatedPassword!999',
+        ))
+        self.assertEqual(configured.first_name, 'Updated')
+        self.assertEqual(configured.workflow_profile.role, WorkflowRoles.COUNTRY_EXECUTIVE)
+
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': configured.pk,
+            'reset_password': '1',
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enter a new password.')
+        self.assertContains(response, 'edit-user-feedback error')
+        configured.refresh_from_db()
+        self.assertTrue(configured.check_password('UpdatedPassword!999'))
 
         # Test creating user via unified role choice 'approver_CAD'
         response_cad = self.client.post(reverse('admin_panel'), {
@@ -1545,11 +1908,15 @@ class FabroBackendTests(TestCase):
         self.assertEqual(cad_user.workflow_profile.approval_role, ApprovalRoles.CAD)
 
     def test_create_preparation_preserves_explicit_complaint_category(self):
+        production_case_type = MasterSetting.objects.create(
+            category='Production Complaint Type',
+            name='Production Stitching',
+        )
         complaint = Complaint(
             date='2026-07-14',
             country=self.country,
             complaint_type=ComplaintTypes.PRODUCTION,
-            case_sub_category=self.case_type,
+            case_sub_category=production_case_type,
             status='Open',
             priority='Low',
             complaint_description='Explicit category must not be inferred from the defect type.',
@@ -1601,10 +1968,14 @@ class FabroBackendTests(TestCase):
             complaint_description='Journey tracker regression complaint.',
             batch_order='JOURNEY-TRACKER',
         )
+        ComplaintMedia.objects.create(
+            complaint=complaint,
+            file='https://media.example.com/journey-video.mp4',
+        )
 
         steps = complaint_journey_steps(complaint)
         self.assertEqual([step['state'] for step in steps], [
-            'completed', 'completed', 'current', 'pending', 'pending', 'pending',
+            'completed', 'completed', 'current', 'pending', 'pending', 'pending', 'pending',
         ])
 
         complaint.workflow_status = WorkflowStatuses.REWORK_REQUIRED
@@ -1625,6 +1996,20 @@ class FabroBackendTests(TestCase):
         self.assertContains(response, 'Complaint Journey')
         self.assertContains(response, 'Partially Approved')
         self.assertContains(response, 'journey-step current')
+        self.assertContains(response, 'class="complaint-record-layout"')
+        self.assertContains(response, 'class="complaint-record-details"')
+        self.assertContains(response, 'class="complaint-media-pane"')
+        self.assertContains(response, 'Product and source')
+        self.assertContains(response, 'Factory response')
+        self.assertContains(response, 'class="media-thumbnail complaint-video" preload="none"')
+        self.assertContains(response, 'class="video-play-button"')
+        self.assertContains(response, 'data-src="https://media.example.com/journey-video.mp4"')
+        self.assertNotContains(response, '<source src="https://media.example.com/journey-video.mp4"')
+        rendered = response.content.decode()
+        self.assertLess(
+            rendered.index('class="modal-journey-panel"'),
+            rendered.index('class="complaint-record-layout"'),
+        )
 
     def test_profile_admin_button_and_panel_follow_workflow_admin_permission(self):
         workflow_admin = self.create_workflow_user('workflow_admin', WorkflowRoles.ADMIN)
@@ -1637,6 +2022,7 @@ class FabroBackendTests(TestCase):
         self.assertContains(profile_response, 'data-testid="open-admin-panel"')
         self.assertContains(profile_response, reverse('admin_panel'))
         self.assertEqual(panel_response.status_code, 200)
+        self.assertContains(panel_response, 'Factory Complaint Registrar')
 
         create_response = self.client.post(reverse('admin_panel'), {
             'add_user': '1',
@@ -1651,6 +2037,22 @@ class FabroBackendTests(TestCase):
         created_user = get_user_model().objects.get(username='workflow_created_user')
         self.assertFalse(created_user.is_staff)
         self.assertFalse(created_user.is_superuser)
+
+        registrar_response = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'workflow_created_registrar',
+            'email': 'workflow.registrar@example.com',
+            'password': 'WorkflowRegistrar!234',
+            'role': WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+            'can_receive_factory_assignments': 'on',
+        })
+        self.assertEqual(registrar_response.status_code, 200)
+        registrar = get_user_model().objects.get(username='workflow_created_registrar')
+        self.assertEqual(
+            registrar.workflow_profile.role,
+            WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+        )
+        self.assertFalse(registrar.workflow_profile.can_receive_factory_assignments)
 
         normal_user = self.create_workflow_user('factory_viewer', WorkflowRoles.FACTORY_VIEWER)
         self.client.force_login(normal_user)
@@ -1676,11 +2078,26 @@ class FabroBackendTests(TestCase):
             'email': 'updated_admin@fabro.com',
             'first_name': 'Hadi',
             'last_name': 'Muhammed',
+            'phone_number': '+971 50 123 4567',
         }, follow=True)
         self.assertEqual(post_response.status_code, 200)
         self.assertContains(post_response, 'save-status-pill')
         self.assertContains(post_response, 'Your profile details have been updated successfully.')
         self.assertNotContains(post_response, 'id="flash-messages"')
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.phone_number, '+971 50 123 4567')
+        self.assertContains(post_response, 'value="+971 50 123 4567"')
+
+        clear_response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': 'updated_admin@fabro.com',
+            'first_name': 'Hadi',
+            'last_name': 'Muhammed',
+            'phone_number': '',
+        }, follow=True)
+        self.assertEqual(clear_response.status_code, 200)
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.phone_number, '')
 
     def test_profile_photo_upload_and_reflection(self):
         self.login()
@@ -1738,6 +2155,8 @@ class FabroBackendTests(TestCase):
         self.assertContains(response, 'Upload a valid image')
         self.user.workflow_profile.refresh_from_db()
         self.assertFalse(bool(self.user.workflow_profile.photo))
+
+    def test_role_aware_navigation_and_creation_access(self):
         country_user = self.create_workflow_user(
             'role_country',
             WorkflowRoles.COUNTRY_EXECUTIVE,
@@ -1755,7 +2174,10 @@ class FabroBackendTests(TestCase):
         )
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 200)
         country_add_response = self.client.get(reverse('add_complaint'))
-        self.assertFalse(country_add_response.context['can_create_line'])
+        self.assertNotIn(
+            ComplaintTypes.LINE,
+            country_add_response.context['allowed_complaint_types'],
+        )
         self.assertNotContains(country_add_response, 'id="complaint-type-line"')
 
         # Country Executive can view vehicle details read-only
@@ -1790,6 +2212,169 @@ class FabroBackendTests(TestCase):
         self.assertContains(approver_dashboard, reverse('approvals_list'))
         self.assertNotContains(approver_dashboard, reverse('add_complaint'))
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
+
+    def test_factory_complaint_registrar_creation_permissions_are_enforced(self):
+        factory_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Registrar Factory Issue',
+        )
+        factory_executor = self.create_workflow_user(
+            'registrar_assignment_target',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        registrar = self.create_workflow_user(
+            'factory_complaint_registrar',
+            WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+        )
+
+        self.client.force_login(registrar)
+        add_page = self.client.get(reverse('add_complaint'))
+        self.assertEqual(add_page.status_code, 200)
+        self.assertEqual(
+            add_page.context['allowed_complaint_types'],
+            (ComplaintTypes.LINE,),
+        )
+        self.assertEqual(add_page.context['selected_complaint_type'], ComplaintTypes.LINE)
+        self.assertContains(add_page, 'id="complaint-type-line"')
+        self.assertNotContains(add_page, 'id="complaint-type-pattern"')
+        self.assertNotContains(add_page, 'id="complaint-type-production"')
+        self.assertNotContains(add_page, 'id="complaint-type-quality"')
+        self.assertContains(add_page, '--complaint-type-dock-width: 280px;')
+
+        forbidden_web = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PATTERN,
+            'case_sub_category': self.case_type.id,
+            'priority': 'Medium',
+            'complaint_description': 'Registrar forged pattern complaint',
+            'batch_order': 'REGISTRAR-FORGED-WEB',
+        })
+        self.assertEqual(forbidden_web.status_code, 403)
+        self.assertFalse(
+            Complaint.objects.filter(batch_order='REGISTRAR-FORGED-WEB').exists()
+        )
+
+        valid_web = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.LINE,
+            'case_sub_category': factory_type.id,
+            'priority': 'Medium',
+            'complaint_description': 'Registrar factory complaint',
+            'batch_order': 'REGISTRAR-VALID-WEB',
+        })
+        self.assertEqual(valid_web.status_code, 302)
+        complaint = Complaint.objects.get(batch_order='REGISTRAR-VALID-WEB')
+        self.assertEqual(complaint.complaint_type, ComplaintTypes.LINE)
+        self.assertEqual(complaint.created_by, registrar)
+        self.assertEqual(complaint.country.name, 'India')
+        self.assertEqual(complaint.assigned_factory_executive, factory_executor)
+
+        token = Token.objects.create(user=registrar)
+        valid_api = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.LINE,
+                'case_sub_category': factory_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Registrar factory API complaint',
+                'batch_order': 'REGISTRAR-VALID-API',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(valid_api.status_code, 201)
+        self.assertEqual(valid_api.json()['complaint_type'], ComplaintTypes.LINE)
+
+        forbidden_api = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.QUALITY,
+                'priority': 'Medium',
+                'complaint_description': 'Registrar forged API complaint',
+                'batch_order': 'REGISTRAR-FORGED-API',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(forbidden_api.status_code, 403)
+        self.assertFalse(
+            Complaint.objects.filter(batch_order='REGISTRAR-FORGED-API').exists()
+        )
+
+    def test_factory_and_admin_complaint_type_docks_follow_role_policy(self):
+        factory = self.create_workflow_user(
+            'factory_creation_policy',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        self.client.force_login(factory)
+        factory_page = self.client.get(reverse('add_complaint'))
+        self.assertEqual(
+            factory_page.context['allowed_complaint_types'],
+            (
+                ComplaintTypes.PATTERN,
+                ComplaintTypes.PRODUCTION,
+                ComplaintTypes.QUALITY,
+            ),
+        )
+        self.assertNotContains(factory_page, 'id="complaint-type-line"')
+        self.assertContains(factory_page, '--complaint-type-dock-width: 760px;')
+
+        factory_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Forbidden Factory Type',
+        )
+        forbidden = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.LINE,
+            'case_sub_category': factory_type.id,
+            'priority': 'Medium',
+            'complaint_description': 'Factory executive forged factory complaint',
+            'batch_order': 'FACTORY-EXEC-FORGED-LINE',
+        })
+        self.assertEqual(forbidden.status_code, 403)
+
+        token = Token.objects.create(user=factory)
+        forbidden_api = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.LINE,
+                'case_sub_category': factory_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Factory executive forged API factory complaint',
+                'batch_order': 'FACTORY-EXEC-FORGED-API-LINE',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(forbidden_api.status_code, 403)
+
+        self.client.force_login(self.user)
+        admin_page = self.client.get(reverse('add_complaint'))
+        self.assertEqual(len(admin_page.context['allowed_complaint_types']), 4)
+        self.assertContains(admin_page, 'id="complaint-type-line"')
+        self.assertContains(admin_page, '--complaint-type-dock-width: 980px;')
+
+    def test_factory_complaint_registrar_keeps_normal_complaint_visibility(self):
+        registrar = self.create_workflow_user(
+            'registrar_visibility',
+            WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+        )
+        pattern = Complaint.objects.create(
+            date='2026-09-01',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            complaint_description='Visible pattern to registrar',
+            batch_order='REGISTRAR-VISIBLE-PATTERN',
+        )
+        factory = Complaint.objects.create(
+            date='2026-09-01',
+            country=self.country,
+            complaint_type=ComplaintTypes.LINE,
+            complaint_description='Visible factory to registrar',
+            batch_order='REGISTRAR-VISIBLE-FACTORY',
+        )
+
+        visible_ids = set(
+            visible_complaints_for_user(registrar).values_list('complaint_id', flat=True)
+        )
+        self.assertEqual(visible_ids, {pattern.complaint_id, factory.complaint_id})
 
     def test_workflow_admin_can_manage_catalog_and_master_without_superuser_flag(self):
         workflow_admin = self.create_workflow_user('catalog_admin', WorkflowRoles.ADMIN)
@@ -2062,6 +2647,36 @@ class ApprovalsWorkspaceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'PAT-26081001')
 
+    def test_execution_verification_has_a_separate_approval_sub_workspace(self):
+        self.complaint_ksa.workflow_status = WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION
+        self.complaint_ksa.save(update_fields=['workflow_status'])
+        ComplaintApproval.objects.create(
+            complaint=self.complaint_ksa,
+            approval_round=2,
+            review_stage=ApprovalStages.EXECUTION_VERIFICATION,
+            approver_role=ApprovalRoles.PM,
+            approver_user=self.pm_approver,
+            status=DecisionStatuses.PENDING,
+            required=True,
+        )
+        self.client.force_login(self.pm_approver)
+
+        verification_response = self.client.get(
+            reverse('approvals_list'),
+            {'stage': 'verification', 'status': 'active'},
+        )
+        self.assertEqual(verification_response.status_code, 200)
+        self.assertContains(verification_response, 'PAT-26081001')
+        self.assertContains(verification_response, 'Execution Verification')
+        self.assertContains(verification_response, 'Verify Execution')
+        self.assertNotContains(verification_response, 'PRO-26081002')
+
+        plan_response = self.client.get(
+            reverse('approvals_list'),
+            {'stage': 'plan', 'status': 'active'},
+        )
+        self.assertNotContains(plan_response, 'PAT-26081001')
+
     def test_quick_approval_decision_api(self):
         self.client.force_login(self.pm_approver)
         response = self.client.post(
@@ -2094,6 +2709,84 @@ class HtmxNavigationTests(TestCase):
         self.assertContains(response, 'id="app-content"', html=False)
         self.assertContains(response, 'vendor/htmx/', html=False)
         self.assertIn('HX-Request', response.headers.get('Vary', ''))
+
+    def test_complaint_search_has_clear_control(self):
+        response = self.client.get(reverse('complaint_list'), {'search': 'PAT-26070001'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="header-search-clear"', html=False)
+        self.assertContains(response, 'aria-label="Clear search"', html=False)
+        self.assertContains(response, 'class="fas fa-times"', html=False)
+
+    def test_vehicle_search_styles_are_included_for_htmx_navigation(self):
+        response = self.client.get(reverse('car_details'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            '<style data-fabro-page-asset>\n        /* Search Picker styles */',
+            html=False,
+        )
+        self.assertContains(response, 'id="vehicle-search-picker"', html=False)
+
+    def test_vehicle_csv_button_opens_direct_file_upload(self):
+        response = self.client.get(reverse('car_details'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'action="{reverse("upload_car_csv")}" enctype="multipart/form-data"',
+            html=False,
+        )
+        self.assertContains(response, 'id="vehicle-csv-file"', html=False)
+        self.assertContains(response, 'name="csv_file"', html=False)
+        self.assertContains(response, 'accept=".csv,text/csv"', html=False)
+        self.assertContains(response, 'class="btn btn-success icon-btn vehicle-csv-upload-button"', html=False)
+        self.assertNotContains(
+            response,
+            f'<a href="{reverse("upload_car_csv")}"',
+            html=False,
+        )
+
+    def test_sku_search_options_initialize_after_htmx_navigation(self):
+        response = self.client.get(reverse('add_sku'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="sku-search-picker"', html=False)
+        self.assertContains(response, 'id="sku-search-options"', html=False)
+        self.assertContains(response, 'data-search-by="code"', html=False)
+        self.assertContains(response, 'data-search-by="description"', html=False)
+        self.assertContains(response, 'data-search-by="region"', html=False)
+        self.assertContains(response, 'data-search-by="all"', html=False)
+        self.assertContains(response, 'window.fabroOnPageLoad(function() {', html=False)
+
+    def test_complaint_column_filters_work_after_htmx_navigation(self):
+        response = self.client.get(reverse('complaint_list'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'th[data-filter-col]', html=False)
+        self.assertContains(response, '.table tr[hidden]', html=False)
+        self.assertContains(response, 'function getComplaintFilterValue(infoRow, colIdx)', html=False)
+        self.assertContains(response, 'infoRow.hidden = !isVisible;', html=False)
+        self.assertContains(response, 'workflowRow.hidden = !isVisible;', html=False)
+        self.assertContains(response, 'window.__fabroComplaintPageController?.abort();', html=False)
+        self.assertContains(response, "trigger.setAttribute('aria-expanded', 'false');", html=False)
+        self.assertContains(response, 'window.fabroOnPageLoad(function () {', html=False)
+
+    def test_interactive_shell_pages_use_navigation_safe_initializers(self):
+        interactive_pages = (
+            'complaint_list',
+            'car_details',
+            'add_sku',
+            'approvals_list',
+        )
+
+        for url_name in interactive_pages:
+            with self.subTest(url_name=url_name):
+                response = self.client.get(reverse(url_name), HTTP_HX_REQUEST='true')
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'window.fabroOnPageLoad', html=False)
+                self.assertNotContains(response, 'DOMContentLoaded', html=False)
 
     def test_htmx_navigation_returns_only_page_head_and_content(self):
         shell_pages = [
@@ -2129,3 +2822,84 @@ class HtmxNavigationTests(TestCase):
         self.assertContains(response, '<!DOCTYPE html>', html=False)
         self.assertContains(response, 'class="navbar"', html=False)
         self.assertNotContains(response, 'id="app-content"', html=False)
+
+
+class PortalLanguageTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username='language_user',
+            email='language@example.com',
+            password='LanguageTest!234',
+        )
+        self.client.force_login(self.user)
+
+    def test_profile_menu_contains_all_supported_languages(self):
+        response = self.client.get(reverse('index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="language-menu"', html=False)
+        self.assertContains(response, 'class="language-menu-trigger"', html=False)
+        self.assertContains(response, 'aria-controls="language-menu-options"', html=False)
+        self.assertNotContains(response, '<details class="language-menu">', html=False)
+        self.assertContains(
+            response,
+            'onsubmit="this.elements.next.value = window.location.pathname + window.location.search + window.location.hash"',
+            html=False,
+        )
+        self.assertContains(response, 'value="en" class="language-menu-option is-selected"', html=False)
+        self.assertContains(response, '<span>English</span>', html=False)
+        self.assertContains(response, '<span>العربية</span>', html=False)
+        self.assertContains(response, '<span>हिन्दी</span>', html=False)
+        self.assertContains(response, 'static/js/fabro-i18n.js', html=False)
+
+    def test_language_choice_is_saved_and_sets_cookie(self):
+        response = self.client.post(
+            reverse('set_portal_language'),
+            {'language': 'ar', 'next': reverse('complaint_list')},
+        )
+
+        self.assertRedirects(response, reverse('complaint_list'), fetch_redirect_response=False)
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.preferred_language, 'ar')
+        self.assertEqual(response.cookies['fabro_language'].value, 'ar')
+
+        page = self.client.get(reverse('index'))
+        self.assertContains(page, "window.FABRO_LANGUAGE = 'ar'", html=False)
+
+    def test_invalid_language_falls_back_to_english_and_rejects_external_redirect(self):
+        response = self.client.post(
+            reverse('set_portal_language'),
+            {'language': 'unsupported', 'next': 'https://example.com/redirect'},
+        )
+
+        self.assertRedirects(response, reverse('index'), fetch_redirect_response=False)
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.preferred_language, 'en')
+        self.assertEqual(response.cookies['fabro_language'].value, 'en')
+
+    def test_saved_hindi_language_is_activated_on_a_new_request(self):
+        UserProfile.objects.filter(user=self.user).update(preferred_language='hi')
+
+        response = self.client.get(reverse('index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "window.FABRO_LANGUAGE = 'hi'", html=False)
+
+    def test_primary_pages_render_in_every_supported_language(self):
+        pages = [
+            'index', 'add_complaint', 'complaint_list', 'car_details',
+            'add_sku', 'master_settings', 'approvals_list',
+            'notification_list', 'profile_settings', 'admin_panel', 'chat_view',
+        ]
+
+        for language in ('en', 'ar', 'hi'):
+            UserProfile.objects.filter(user=self.user).update(preferred_language=language)
+            for url_name in pages:
+                with self.subTest(language=language, page=url_name):
+                    response = self.client.get(reverse(url_name))
+                    self.assertEqual(response.status_code, 200)
+                    self.assertContains(
+                        response,
+                        f"window.FABRO_LANGUAGE = '{language}'",
+                        html=False,
+                    )

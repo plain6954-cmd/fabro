@@ -5,10 +5,12 @@ import uuid
 from io import TextIOWrapper
 
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group, Permission, User
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.sessions.models import Session
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.storage import default_storage
@@ -22,7 +24,10 @@ from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.utils.text import get_valid_filename
 from django.utils.timezone import now
+from django.utils import translation
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from PIL import Image, UnidentifiedImageError
 
 from .forms import (
     AssignUserToGroupForm,
@@ -49,6 +54,7 @@ from .models import (
     ComplaintApproval,
     ComplaintMedia,
     ComplaintTypes,
+    complaint_type_master_category,
     DecisionStatuses,
     MasterSetting,
     Model,
@@ -64,7 +70,9 @@ from .services.workflow import (
     REPORT_EDITABLE_FIELDS,
     approval_progress,
     can_start_factory_review,
+    allowed_complaint_types_for_user,
     can_user_create_complaint,
+    can_user_create_complaint_type,
     can_user_decide_approval,
     can_user_edit_report_step,
     can_user_execute_action,
@@ -76,11 +84,12 @@ from .services.workflow import (
     get_user_current_approval,
     initialize_created_complaint,
     get_user_profile,
-    is_country_executive,
     prepare_complaint_for_create,
     record_approval_decision,
     record_report_edit,
+    reporting_country_for_user,
     start_action_execution,
+    submit_execution_for_verification,
     submit_factory_review,
     is_workflow_admin,
     visible_complaints_for_user,
@@ -88,7 +97,7 @@ from .services.workflow import (
 
 
 MAX_COMPLAINT_MEDIA_FILES = 10
-MAX_COMPLAINT_MEDIA_SIZE = 10 * 1024 * 1024
+MAX_COMPLAINT_MEDIA_SIZE = 100 * 1024 * 1024
 MAX_CSV_IMPORT_ROWS = 5000
 ALLOWED_COMPLAINT_MEDIA_EXTENSIONS = {
     '.jpg', '.jpeg', '.png', '.webp', '.gif',
@@ -147,14 +156,9 @@ def _configure_complaint_form(form, user):
     if 'status' in form.fields:
         form.fields['status'].disabled = True
     if form.instance.pk:
-        for field_name in ('country', 'case_sub_category'):
+        for field_name in ('case_sub_category',):
             if field_name in form.fields:
                 form.fields[field_name].disabled = True
-    elif is_country_executive(user) and 'country' in form.fields:
-        profile = get_user_profile(user)
-        if profile and profile.country_id:
-            form.fields['country'].initial = profile.country_id
-            form.fields['country'].disabled = True
 
 
 def _validate_complaint_media_files(uploaded_files, existing_count=0):
@@ -169,7 +173,7 @@ def _validate_complaint_media_files(uploaded_files, existing_count=0):
         if not (content_type.startswith('image/') or content_type.startswith('video/')):
             raise ValidationError(f'{uploaded_file.name}: only image and video files are allowed.')
         if uploaded_file.size > MAX_COMPLAINT_MEDIA_SIZE:
-            raise ValidationError(f'{uploaded_file.name}: file size exceeds 10 MB.')
+            raise ValidationError(f'{uploaded_file.name}: file size exceeds 100 MB.')
 
 
 def _save_complaint_media_files(complaint, uploaded_files, existing_count=0):
@@ -192,12 +196,8 @@ def _save_complaint_media_files(complaint, uploaded_files, existing_count=0):
 
 
 def _delete_complaint_media_record(media):
-    storage_name = media.storage_name
-    if storage_name:
-        try:
-            default_storage.delete(storage_name)
-        except Exception:
-            logger.warning('Unable to remove stored complaint media %s', storage_name, exc_info=True)
+    # ComplaintMedia's post-delete signal owns physical storage cleanup. Keeping
+    # one cleanup path avoids a second unguarded attempt for Windows-locked files.
     media.delete()
 
 @login_required
@@ -243,6 +243,7 @@ def index(request):
         'on_hold_complaints': complaint_status_counts.get('On Hold', 0),
         'pattern_complaints': complaint_type_counts.get(ComplaintTypes.PATTERN, 0),
         'production_complaints': complaint_type_counts.get(ComplaintTypes.PRODUCTION, 0),
+        'quality_complaints': complaint_type_counts.get(ComplaintTypes.QUALITY, 0),
         'line_complaints': complaint_type_counts.get(ComplaintTypes.LINE, 0),
         'complaints_this_month': complaints_this_month,
         'resolved_this_month': resolved_this_month,
@@ -540,6 +541,8 @@ def master_settings(request):
     # Fetch existing master settings, grouped by category
     master_settings = {}
     for category, _ in MasterSetting.CATEGORY_CHOICES:
+        if category in {'Country', 'Reported By'}:
+            continue
         master_settings[category] = MasterSetting.objects.filter(category=category)
 
     return render(request, 'management/master_settings.html', {
@@ -593,16 +596,26 @@ def delete_master_setting(request, setting_id):
 def add_complaint(request):
     if not can_user_create_complaint(request.user):
         raise PermissionDenied('Your role can view complaints but cannot create them.')
-    valid_complaint_types = {value for value, _ in ComplaintTypes.CHOICES}
-    selected_complaint_type = request.POST.get('complaint_type', ComplaintTypes.PATTERN)
-    if selected_complaint_type not in valid_complaint_types:
-        selected_complaint_type = ComplaintTypes.PATTERN
+    allowed_complaint_types = allowed_complaint_types_for_user(request.user)
+    default_complaint_type = allowed_complaint_types[0]
+    selected_complaint_type = request.POST.get('complaint_type', default_complaint_type)
+    if request.method == 'POST' and not can_user_create_complaint_type(
+        request.user,
+        selected_complaint_type,
+    ):
+        raise PermissionDenied('Your role cannot create the selected complaint type.')
+    if selected_complaint_type not in allowed_complaint_types:
+        selected_complaint_type = default_complaint_type
     template_context = {
         'selected_complaint_type': selected_complaint_type,
-        'can_create_line': not is_country_executive(request.user),
+        'allowed_complaint_types': allowed_complaint_types,
+        'complaint_type_dock_width': {1: 280, 3: 760, 4: 980}.get(
+            len(allowed_complaint_types),
+            980,
+        ),
     }
     if request.method == 'POST':
-        form = ComplaintForm(request.POST)
+        form = ComplaintForm(request.POST, complaint_type=selected_complaint_type)
         _configure_complaint_form(form, request.user)
         uploaded_files = request.FILES.getlist('media_files')
         try:
@@ -615,7 +628,7 @@ def add_complaint(request):
             complaint.complaint_type = selected_complaint_type
             try:
                 prepare_complaint_for_create(complaint, request.user)
-            except PermissionError as exc:
+            except (PermissionError, ValueError) as exc:
                 messages.error(request, str(exc))
                 return render(request, 'management/add_complaint.html', {'form': form, **template_context})
             stored_names = []
@@ -652,7 +665,7 @@ def add_complaint(request):
         if year_id:
             initial['year'] = year_id
             
-        form = ComplaintForm(initial=initial)
+        form = ComplaintForm(initial=initial, complaint_type=selected_complaint_type)
         _configure_complaint_form(form, request.user)
     return render(request, 'management/add_complaint.html', {'form': form, **template_context})
 
@@ -673,8 +686,21 @@ def get_sub_models(request, model_id):
 
 @login_required
 def get_year_ranges(request, sub_model_id):
-    year_ranges = YearRange.objects.filter(sub_model_id=sub_model_id).values('id', 'year_start', 'year_end')
+    year_ranges = YearRange.objects.filter(sub_model_id=sub_model_id).order_by(
+        'year_start', 'year_end'
+    ).values('id', 'year_start', 'year_end')
     return JsonResponse([{'id': yr['id'], 'range': f"{yr['year_start'] % 100}-{yr['year_end'] % 100}"} for yr in year_ranges], safe=False)
+
+
+@login_required
+def get_complaint_type_options(request, complaint_type):
+    if not can_user_create_complaint_type(request.user, complaint_type):
+        raise PermissionDenied('Your role cannot create the selected complaint type.')
+    category = complaint_type_master_category(complaint_type)
+    if not category:
+        return JsonResponse({'error': 'Unknown complaint type.'}, status=400)
+    options = MasterSetting.objects.filter(category=category).order_by('name').values('id', 'name')
+    return JsonResponse(list(options), safe=False)
 
 @login_required
 def get_filtered_skus(request):
@@ -686,8 +712,18 @@ def get_filtered_skus(request):
 
     if region_id:
         region_filter = Q(region_id=region_id)
-    elif country_id:
-        selected_country = MasterSetting.objects.filter(pk=country_id).first()
+    else:
+        selected_country = None
+        if country_id:
+            selected_country = MasterSetting.objects.filter(
+                pk=country_id,
+                category='Country',
+            ).first()
+        if selected_country is None:
+            try:
+                selected_country = reporting_country_for_user(request.user)
+            except PermissionError:
+                selected_country = None
         if selected_country:
             region_filter = Q(region__name__iexact=selected_country.name)
 
@@ -707,6 +743,26 @@ def get_filtered_skus(request):
         if not term:
             continue
         skus = skus.filter(Q(code__icontains=term) | Q(description__icontains=term))
+
+    year_id = request.GET.get('year')
+    if year_id:
+        selected_year = YearRange.objects.filter(pk=year_id).values(
+            'year_start', 'year_end'
+        ).first()
+        if selected_year:
+            year_start = selected_year['year_start']
+            year_end = selected_year['year_end']
+            short_range = f'{year_start % 100:02d}-{year_end % 100:02d}'
+            full_range = f'{year_start}-{year_end}'
+            compact_range = f'{year_start % 100:02d}{year_end % 100:02d}'
+            skus = skus.filter(
+                Q(code__icontains=short_range)
+                | Q(description__icontains=short_range)
+                | Q(code__icontains=full_range)
+                | Q(description__icontains=full_range)
+                | Q(code__icontains=compact_range)
+                | Q(description__icontains=compact_range)
+            )
 
     data = [
         {
@@ -752,7 +808,6 @@ def complaint_list(request):
         'description': 'complaint_description',
         'brand': 'brand__name',
         'model': 'model__name',
-        'reported_by': 'person__name',
     }
     search_by = request.GET.get('search_by', 'complaint_id')
     search_field = allowed_search_fields.get(search_by, 'complaint_id')
@@ -769,7 +824,14 @@ def complaint_list(request):
 
     if search_query:
         trimmed_search_query = search_query[:200]
-        if search_by == 'complaint_type':
+        if search_by == 'reported_by':
+            complaints = complaints.filter(
+                Q(created_by__username__icontains=trimmed_search_query)
+                | Q(created_by__first_name__icontains=trimmed_search_query)
+                | Q(created_by__last_name__icontains=trimmed_search_query)
+                | Q(person__name__icontains=trimmed_search_query)
+            )
+        elif search_by == 'complaint_type':
             matching_type_values = [
                 value
                 for value, label in ComplaintTypes.CHOICES
@@ -790,7 +852,7 @@ def complaint_list(request):
     if selected_channel:
         complaints = complaints.filter(channel=selected_channel)
     if selected_person:
-        complaints = complaints.filter(person=selected_person) 
+        complaints = complaints.filter(created_by_id=selected_person)
 
     if selected_brand:
         complaints = complaints.filter(brand_id=selected_brand)
@@ -814,7 +876,9 @@ def complaint_list(request):
     brands = Brand.objects.all().order_by('name')
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
     channels = MasterSetting.objects.filter(category='Channel').order_by('name')
-    persons = MasterSetting.objects.filter(category='Reported By').order_by('name')
+    persons = User.objects.filter(
+        created_complaints__in=complaints,
+    ).distinct().order_by('username')
     statuses = ['Open', 'Closed', 'On Hold']
     priorities = ['High', 'Medium', 'Low']
     sku = SKU.objects.values_list('code', flat=True).distinct()[:100]
@@ -901,6 +965,40 @@ def logout_success(request):
 
 
 @login_required
+@require_POST
+def set_portal_language(request):
+    language = (request.POST.get('language') or 'en').strip().lower()
+    if language not in {'en', 'ar', 'hi'}:
+        language = 'en'
+
+    profile = get_user_profile(request.user)
+    if profile.preferred_language != language:
+        profile.preferred_language = language
+        profile.save(update_fields=['preferred_language'])
+    request.session[settings.LANGUAGE_COOKIE_NAME] = language
+    request.session['_language'] = language
+    translation.activate(language)
+
+    next_url = request.POST.get('next') or reverse('index')
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse('index')
+    response = redirect(next_url)
+    response.set_cookie(
+        settings.LANGUAGE_COOKIE_NAME,
+        language,
+        max_age=31536000,
+        secure=settings.SESSION_COOKIE_SECURE,
+        httponly=False,
+        samesite='Lax',
+    )
+    return response
+
+
+@login_required
 def edit_complaint(request, complaint_id):
     complaint = get_object_or_404(
         visible_complaints_for_user(request.user, Complaint.objects.all()),
@@ -916,7 +1014,11 @@ def edit_complaint(request, complaint_id):
             field_name: getattr(complaint, field_name)
             for field_name in REPORT_EDITABLE_FIELDS
         }
-        form = ComplaintForm(request.POST, instance=complaint)
+        form = ComplaintForm(
+            request.POST,
+            instance=complaint,
+            complaint_type=complaint.complaint_type,
+        )
         _configure_complaint_form(form, request.user)
         uploaded_files = request.FILES.getlist('media_files')
         media_to_delete = request.POST.getlist('delete_media')
@@ -968,7 +1070,7 @@ def edit_complaint(request, complaint_id):
 
             return redirect('complaint_list')
     else:
-        form = ComplaintForm(instance=complaint)
+        form = ComplaintForm(instance=complaint, complaint_type=complaint.complaint_type)
         _configure_complaint_form(form, request.user)
 
     media_files = complaint.media_files.all()
@@ -1037,6 +1139,22 @@ def approvals_list_view(request):
 
     profile = get_user_profile(request.user)
     user_role = getattr(profile, 'role', '')
+    workspace_stage = request.GET.get('stage', 'plan').strip().lower()
+    if workspace_stage not in {'plan', 'verification'}:
+        workspace_stage = 'plan'
+    stage_filters = (
+        [ApprovalStages.EXECUTION_VERIFICATION]
+        if workspace_stage == 'verification'
+        else [ApprovalStages.INITIAL, ApprovalStages.RECONSIDERATION]
+    )
+    active_statuses = (
+        [
+            WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+            WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
+        ]
+        if workspace_stage == 'verification'
+        else [WorkflowStatuses.AWAITING_APPROVAL, WorkflowStatuses.PARTIALLY_APPROVED]
+    )
     
     # Base queryset scoped to user visibility
     base_qs = visible_complaints_for_user(
@@ -1062,12 +1180,12 @@ def approvals_list_view(request):
     selected_country = request.GET.get('country', '').strip()
 
     # KPI counts calculated across all visible complaints
-    active_complaints_all = base_qs.filter(
-        workflow_status__in=[
-            WorkflowStatuses.AWAITING_APPROVAL,
-            WorkflowStatuses.PARTIALLY_APPROVED,
-        ]
+    staged_base_qs = (
+        base_qs.filter(approvals__review_stage__in=stage_filters).distinct()
+        if workspace_stage == 'verification'
+        else base_qs
     )
+    active_complaints_all = staged_base_qs.filter(workflow_status__in=active_statuses)
     total_active_count = active_complaints_all.count()
 
     my_pending_count = 0
@@ -1075,13 +1193,16 @@ def approvals_list_view(request):
         my_pending_count = ComplaintApproval.objects.filter(
             approver_user=request.user,
             status=DecisionStatuses.PENDING,
-            complaint__workflow_status__in=[
-                WorkflowStatuses.AWAITING_APPROVAL,
-                WorkflowStatuses.PARTIALLY_APPROVED,
-            ],
+            review_stage__in=stage_filters,
+            complaint__workflow_status__in=active_statuses,
         ).count()
 
-    partially_approved_count = base_qs.filter(workflow_status=WorkflowStatuses.PARTIALLY_APPROVED).count()
+    partial_status = (
+        WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED
+        if workspace_stage == 'verification'
+        else WorkflowStatuses.PARTIALLY_APPROVED
+    )
+    partially_approved_count = staged_base_qs.filter(workflow_status=partial_status).count()
     
     reconsideration_count = active_complaints_all.filter(
         approvals__review_stage=ApprovalStages.RECONSIDERATION,
@@ -1093,35 +1214,23 @@ def approvals_list_view(request):
     ).distinct().count()
 
     # Filter applied to list
-    complaints = base_qs
+    complaints = staged_base_qs
     if status_filter == 'active':
-        complaints = complaints.filter(
-            workflow_status__in=[
-                WorkflowStatuses.AWAITING_APPROVAL,
-                WorkflowStatuses.PARTIALLY_APPROVED,
-            ]
-        )
+        complaints = complaints.filter(workflow_status__in=active_statuses)
     elif status_filter == 'my_pending':
         if profile and profile.role == WorkflowRoles.APPROVER:
             complaints = complaints.filter(
-                workflow_status__in=[
-                    WorkflowStatuses.AWAITING_APPROVAL,
-                    WorkflowStatuses.PARTIALLY_APPROVED,
-                ],
+                workflow_status__in=active_statuses,
                 approvals__approver_user=request.user,
                 approvals__status=DecisionStatuses.PENDING,
+                approvals__review_stage__in=stage_filters,
             ).distinct()
         else:
-            complaints = complaints.filter(
-                workflow_status__in=[
-                    WorkflowStatuses.AWAITING_APPROVAL,
-                    WorkflowStatuses.PARTIALLY_APPROVED,
-                ]
-            )
+            complaints = complaints.filter(workflow_status__in=active_statuses)
     elif status_filter == 'partially_approved':
-        complaints = complaints.filter(workflow_status=WorkflowStatuses.PARTIALLY_APPROVED)
+        complaints = complaints.filter(workflow_status=partial_status)
     elif status_filter == 'reconsideration':
-        complaints = complaints.filter(
+        complaints = complaints.none() if workspace_stage == 'verification' else complaints.filter(
             approvals__review_stage=ApprovalStages.RECONSIDERATION,
             workflow_status__in=[
                 WorkflowStatuses.AWAITING_APPROVAL,
@@ -1132,14 +1241,19 @@ def approvals_list_view(request):
     elif status_filter == 'rework':
         complaints = complaints.filter(workflow_status=WorkflowStatuses.REWORK_REQUIRED)
     elif status_filter == 'approved':
-        complaints = complaints.filter(
-            workflow_status__in=[
+        approved_statuses = (
+            [WorkflowStatuses.PENDING_FINAL_UPDATE, WorkflowStatuses.CLOSED]
+            if workspace_stage == 'verification'
+            else [
                 WorkflowStatuses.APPROVED,
                 WorkflowStatuses.ACTION_IN_PROGRESS,
+                WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+                WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
                 WorkflowStatuses.PENDING_FINAL_UPDATE,
                 WorkflowStatuses.CLOSED,
             ]
         )
+        complaints = complaints.filter(workflow_status__in=approved_statuses)
     elif status_filter == 'all':
         complaints = complaints.filter(approvals__isnull=False).distinct()
 
@@ -1197,8 +1311,8 @@ def approvals_list_view(request):
     # Build enriched approval item list
     approval_items = []
     for complaint in complaints:
-        prog = approval_progress(complaint)
-        my_appr = get_user_current_approval(request.user, complaint)
+        prog = approval_progress(complaint, stage_filters)
+        my_appr = get_user_current_approval(request.user, complaint, stage_filters)
         can_decide = can_user_decide_approval(request.user, my_appr) if my_appr else False
         
         progress_pct = int((prog['decided'] / prog['total'] * 100)) if prog['total'] > 0 else 0
@@ -1208,10 +1322,10 @@ def approvals_list_view(request):
             assigned_exec_name = complaint.assigned_factory_executive.get_full_name() or complaint.assigned_factory_executive.username
 
         reporter_name = "-"
-        if complaint.person:
+        if complaint.created_by:
+            reporter_name = complaint.created_by.username
+        elif complaint.person:
             reporter_name = complaint.person.name
-        elif complaint.created_by:
-            reporter_name = complaint.created_by.get_full_name() or complaint.created_by.username
 
         country_flag_url = None
         if complaint.created_by:
@@ -1257,6 +1371,7 @@ def approvals_list_view(request):
     # Recent decisions history
     recent_decisions = ComplaintApproval.objects.filter(
         status__in=[DecisionStatuses.APPROVED, DecisionStatuses.REJECTED],
+        review_stage__in=stage_filters,
     ).select_related(
         'complaint',
         'complaint__country',
@@ -1280,6 +1395,7 @@ def approvals_list_view(request):
         'countries': countries,
         'profile': profile,
         'user_role': user_role,
+        'workspace_stage': workspace_stage,
     })
 
 
@@ -1330,7 +1446,7 @@ def quick_approval_decision_api(request, approval_id):
     Notification.objects.filter(
         recipient=request.user,
         complaint=approval.complaint,
-        notification_type='approval',
+        notification_type__in=['approval', 'approval_reconsideration', 'execution_verification'],
     ).update(is_read=True)
 
     return JsonResponse({
@@ -1390,6 +1506,10 @@ def approval_review(request, approval_id):
                 )
                 if outcome == 'approved':
                     messages.success(request, 'All required members approved. The executive has received the green light.')
+                elif outcome == 'execution_verified':
+                    messages.success(request, 'Execution was verified unanimously. Final CAD and container updates are now unlocked.')
+                elif outcome == 'execution_rejected':
+                    messages.warning(request, 'Execution correction was requested and the case returned to the Factory Executive.')
                 elif outcome == 'rejected':
                     messages.warning(request, 'All reconsideration reviews are complete. The complaint was returned for rework.')
                 elif outcome == 'reconsideration':
@@ -1399,7 +1519,7 @@ def approval_review(request, approval_id):
                 Notification.objects.filter(
                     recipient=request.user,
                     complaint=complaint,
-                    notification_type='approval',
+                    notification_type__in=['approval', 'approval_reconsideration', 'execution_verification'],
                 ).update(is_read=True)
                 return redirect('approval_inbox')
     else:
@@ -1410,7 +1530,7 @@ def approval_review(request, approval_id):
         'complaint': complaint,
         'form': form,
         'can_decide': can_user_decide_approval(request.user, approval),
-        'approval_summary': approval_progress(complaint),
+        'approval_summary': approval_progress(complaint, [approval.review_stage]),
         'media_files': complaint.media_files.all(),
     })
 
@@ -1444,7 +1564,22 @@ def execute_complaint(request, complaint_id):
                     object_type='complaint',
                     object_name=complaint.complaint_id,
                 )
-                messages.success(request, 'Action plan started. Submit the final production updates when execution is complete.')
+                messages.success(request, 'Action plan started. Submit the execution for verification when implementation is complete.')
+            return redirect('execute_complaint', complaint_id=complaint.complaint_id)
+
+        if action == 'submit_verification':
+            try:
+                submit_execution_for_verification(complaint, request.user)
+            except (PermissionError, ValueError) as exc:
+                messages.error(request, str(exc))
+            else:
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action='submitted execution for verification',
+                    object_type='complaint',
+                    object_name=complaint.complaint_id,
+                )
+                messages.success(request, 'Execution submitted to the original approvers for verification.')
             return redirect('execute_complaint', complaint_id=complaint.complaint_id)
 
         form = FinalComplaintUpdateForm(request.POST, complaint=complaint)
@@ -1504,14 +1639,18 @@ def open_notification(request, notification_id):
     complaint = notification.complaint
     if not complaint:
         return redirect('notification_list')
-    if notification.notification_type == 'approval':
+    if notification.notification_type in ['approval', 'approval_reconsideration', 'execution_verification']:
         approval = get_user_current_approval(request.user, complaint)
         if approval:
             return redirect('approval_review', approval_id=approval.pk)
     if notification.notification_type in ['assignment', 'rework']:
         if can_user_review_factory_step(request.user, complaint) and can_start_factory_review(complaint):
             return redirect('factory_review_complaint', complaint_id=complaint.complaint_id)
-    if notification.notification_type == 'fully_approved' and can_user_execute_action(request.user, complaint):
+    if notification.notification_type in [
+        'fully_approved',
+        'execution_verification_rejected',
+        'execution_verified',
+    ] and can_user_execute_action(request.user, complaint):
         return redirect('execute_complaint', complaint_id=complaint.complaint_id)
     return redirect(f"{reverse('complaint_list')}?search={complaint.complaint_id}&search_by=complaint_id")
 
@@ -1542,7 +1681,7 @@ def delete_complaint(request, complaint_id):
     for media in complaint.media_files.all():
         _delete_complaint_media_record(media)
     complaint.delete()
-    messages.success(request, 'Complaint deleted successfully!')
+    messages.success(request, 'Complaint deleted successfully.')
     ActivityLog.objects.create(
         user=request.user,
         action="deleted",
@@ -1608,7 +1747,11 @@ def export_complaints(request):
             complaint.date.strftime('%Y-%m-%d') if complaint.date else '',
             complaint.channel.name if complaint.channel else '',
             complaint.country.name if complaint.country else '',
-            complaint.person.name if complaint.person else '',
+            (
+                complaint.created_by.username
+                if complaint.created_by
+                else complaint.person.name if complaint.person else ''
+            ),
             complaint.case_sub_category.name if complaint.case_sub_category else '',
             complaint.series.name if complaint.series else '',
             complaint.material.name if complaint.material else '',
@@ -1886,7 +2029,7 @@ def admin_panel_view(request):
 
     if request.method == "POST":
         if 'add_user' in request.POST:
-            user_form = UserCreationForm(request.POST)
+            user_form = UserCreationForm(request.POST, request.FILES)
             if not request.user.is_superuser:
                 user_form.fields.pop('is_staff', None)
                 user_form.fields.pop('is_superuser', None)
@@ -1904,6 +2047,10 @@ def admin_panel_view(request):
                     object_type="User",
                     object_name=user.username
                 )
+                messages.success(request, f'User {user.username} was created successfully.')
+            for errors in user_form.errors.values():
+                for error in errors:
+                    messages.error(request, error)
 
         elif 'add_group' in request.POST:
             group_form = GroupCreationForm(request.POST)
@@ -1915,6 +2062,7 @@ def admin_panel_view(request):
                     object_type="Group",
                     object_name=group.name
                 )
+                messages.success(request, f'Group {group.name} was created successfully.')
 
         elif 'assign_group' in request.POST:
             assign_form = AssignUserToGroupForm(request.POST)
@@ -1928,11 +2076,36 @@ def admin_panel_view(request):
                     object_type="Group",
                     object_name=f"{user.username} → {group.name}"
                 )
+                messages.success(request, f'{user.username} was assigned to {group.name}.')
         
-    users = User.objects.select_related('workflow_profile__country').all()
+    users = list(User.objects.select_related('workflow_profile__country').all())
     groups = Group.objects.prefetch_related('permissions__content_type')
     permissions = Permission.objects.select_related('content_type').all()
     active_users = get_active_users()
+    online_user_ids = {entry['user'].pk for entry in active_users}
+    for listed_user in users:
+        listed_user.is_online = listed_user.pk in online_user_ids
+
+    role_counts = {
+        role: 0
+        for role in (
+            WorkflowRoles.COUNTRY_EXECUTIVE,
+            WorkflowRoles.FACTORY_VIEWER,
+            WorkflowRoles.FACTORY_EXECUTIVE,
+            WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+            WorkflowRoles.ADMIN,
+            *[role for role, _ in ApprovalRoles.CHOICES],
+        )
+    }
+    for listed_user in users:
+        profile = listed_user.workflow_profile
+        role_key = profile.approval_role if profile.role == WorkflowRoles.APPROVER else profile.role
+        role_counts[role_key] = role_counts.get(role_key, 0) + 1
+
+    countries = MasterSetting.objects.filter(category='Country').annotate(
+        user_count=Count('workflow_users'),
+    ).order_by('name')
+    resolved_filter = Q(workflow_status=WorkflowStatuses.CLOSED) | Q(status__iexact='closed')
 
     logs = ActivityLog.objects.select_related('user').order_by('-timestamp')[:20]
 
@@ -1946,9 +2119,20 @@ def admin_panel_view(request):
         'permissions': permissions,
         'active_sessions': active_users,
         'activity_logs': logs,
+        'total_users_count': len(users),
+        'active_users_count': len(online_user_ids),
+        'active_sessions_count': len(active_users),
+        'total_complaints_count': Complaint.objects.count(),
+        'complaints_resolved_count': Complaint.objects.filter(resolved_filter).count(),
+        'complaints_in_progress_count': Complaint.objects.exclude(resolved_filter).count(),
+        'role_counts': role_counts,
+        'skus': SKU.objects.select_related('region').order_by('code'),
+        'brands': Brand.objects.prefetch_related('models').order_by('name'),
+        'master_settings': MasterSetting.objects.order_by('category', 'name'),
         'workflow_role_choices': WorkflowRoles.CHOICES,
         'approval_role_choices': ApprovalRoles.CHOICES,
-        'workflow_countries': MasterSetting.objects.filter(category='Country').order_by('name'),
+        'workflow_countries': countries,
+        'edit_user_id': request.GET.get('edit_user', '').strip(),
     })
 
 
@@ -2000,52 +2184,135 @@ def delete_group(request):
 def edit_user(request):
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
+        edit_redirect = f"{reverse('admin_panel')}?edit_user={user_id}#users"
+
+        def add_edit_feedback(level, text):
+            messages.add_message(
+                request,
+                level,
+                text,
+                extra_tags='edit-user-feedback',
+            )
+
+        if 'reset_password' in request.POST:
+            new_password = request.POST.get('new_password') or ''
+            try:
+                user = User.objects.get(id=user_id)
+                if user.is_superuser and not request.user.is_superuser:
+                    add_edit_feedback(
+                        messages.ERROR,
+                        'Only a Django superuser can reset another superuser password.',
+                    )
+                    return redirect(edit_redirect)
+                if not new_password:
+                    add_edit_feedback(messages.ERROR, 'Enter a new password.')
+                    return redirect(edit_redirect)
+                try:
+                    validate_password(new_password, user=user)
+                except ValidationError as exc:
+                    for error in exc.messages:
+                        add_edit_feedback(messages.ERROR, error)
+                    return redirect(edit_redirect)
+
+                user.set_password(new_password)
+                user.save(update_fields=['password'])
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action='reset password',
+                    object_type='User',
+                    object_name=user.username,
+                )
+                if user.pk == request.user.pk:
+                    update_session_auth_hash(request, user)
+                add_edit_feedback(
+                    messages.SUCCESS,
+                    f'Password reset successfully for {user.username}.',
+                )
+            except User.DoesNotExist:
+                add_edit_feedback(messages.ERROR, 'User not found.')
+            return redirect(edit_redirect)
+
         username = (request.POST.get('username') or '').strip()
         email = (request.POST.get('email') or '').strip()
+        first_name = (request.POST.get('first_name') or '').strip()
+        last_name = (request.POST.get('last_name') or '').strip()
 
         try:
             if not username:
-                messages.error(request, "Username is required.")
-                return redirect('admin_panel')
+                add_edit_feedback(messages.ERROR, 'Username is required.')
+                return redirect(edit_redirect)
             if User.objects.filter(username=username).exclude(id=user_id).exists():
-                messages.error(request, "That username is already in use.")
-                return redirect('admin_panel')
+                add_edit_feedback(messages.ERROR, 'That username is already in use.')
+                return redirect(edit_redirect)
             if len(username) > 150:
-                messages.error(request, 'Username must be 150 characters or fewer.')
-                return redirect('admin_panel')
+                add_edit_feedback(messages.ERROR, 'Username must be 150 characters or fewer.')
+                return redirect(edit_redirect)
+            if len(first_name) > 150 or len(last_name) > 150:
+                add_edit_feedback(messages.ERROR, 'Names must be 150 characters or fewer.')
+                return redirect(edit_redirect)
             if email:
                 try:
                     validate_email(email)
                 except ValidationError:
-                    messages.error(request, 'Enter a valid email address.')
-                    return redirect('admin_panel')
+                    add_edit_feedback(messages.ERROR, 'Enter a valid email address.')
+                    return redirect(edit_redirect)
             user = User.objects.select_related('workflow_profile').get(id=user_id)
             if user.is_superuser and not request.user.is_superuser:
-                messages.error(request, 'Only a Django superuser can edit another superuser account.')
-                return redirect('admin_panel')
+                add_edit_feedback(messages.ERROR, 'Only a Django superuser can edit another superuser account.')
+                return redirect(edit_redirect)
             profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile_form = UserWorkflowProfileForm(request.POST, instance=profile)
+            profile_form = UserWorkflowProfileForm(request.POST, request.FILES, instance=profile)
             if not profile_form.is_valid():
                 for errors in profile_form.errors.values():
                     for error in errors:
-                        messages.error(request, error)
-                return redirect('admin_panel')
+                        add_edit_feedback(messages.ERROR, error)
+                return redirect(edit_redirect)
+
+            new_is_staff = user.is_staff
+            new_is_superuser = user.is_superuser
+            if request.user.is_superuser:
+                new_is_superuser = request.POST.get('is_superuser') == 'on'
+                new_is_staff = request.POST.get('is_staff') == 'on' or new_is_superuser
+                removing_final_superuser = (
+                    user.is_superuser
+                    and not new_is_superuser
+                    and User.objects.filter(is_superuser=True, is_active=True).count() <= 1
+                )
+                if removing_final_superuser:
+                    add_edit_feedback(messages.ERROR, 'The final active superuser cannot be demoted.')
+                    return redirect(edit_redirect)
+
             user.username = username
             user.email = email
+            user.first_name = first_name
+            user.last_name = last_name
+            user.is_staff = new_is_staff
+            user.is_superuser = new_is_superuser
+            old_photo_name = profile.photo.name if profile.photo else ''
+            remove_photo = request.POST.get('remove_photo') == '1'
             with transaction.atomic():
                 user.save()
-                profile_form.save()
-            ActivityLog.objects.create(
-                user=request.user,
-                action="edited",
-                object_type="User",
-                object_name=username
-            )
-            messages.success(request, f'User {username} and workflow access were updated.')
-        except User.DoesNotExist:
-            messages.error(request, "User not found.")
+                updated_profile = profile_form.save(commit=False)
+                if remove_photo:
+                    updated_profile.photo = None
+                updated_profile.save()
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action="edited",
+                    object_type="User",
+                    object_name=username
+                )
 
-    return redirect('admin_panel')
+            if remove_photo and old_photo_name:
+                transaction.on_commit(lambda: default_storage.delete(old_photo_name))
+            add_edit_feedback(
+                messages.SUCCESS,
+                f'User {username} and workflow access were updated.',
+            )
+        except User.DoesNotExist:
+            add_edit_feedback(messages.ERROR, 'User not found.')
+
+    return redirect(edit_redirect)
 
 
 @user_passes_test(is_workflow_admin)
@@ -2115,8 +2382,13 @@ def profile_settings(request):
             first_name = request.POST.get('first_name', '').strip()
             last_name = request.POST.get('last_name', '').strip()
             email = request.POST.get('email', '').strip()
+            phone_number = request.POST.get('phone_number', '').strip()
+            profile_photo = request.FILES.get('photo')
             if len(first_name) > 150 or len(last_name) > 150:
                 messages.error(request, 'Names must be 150 characters or fewer.')
+                return redirect('profile_settings')
+            if len(phone_number) > UserProfile._meta.get_field('phone_number').max_length:
+                messages.error(request, 'Phone number must be 30 characters or fewer.')
                 return redirect('profile_settings')
             if email:
                 try:
@@ -2125,10 +2397,34 @@ def profile_settings(request):
                     messages.error(request, 'Enter a valid email address.')
                     return redirect('profile_settings')
 
-            user.first_name = first_name
-            user.last_name = last_name
-            user.email = email
-            user.save()
+            if profile_photo:
+                if profile_photo.size > 5 * 1024 * 1024:
+                    messages.error(request, 'Profile photo must be 5 MB or smaller.')
+                    return redirect('profile_settings')
+                try:
+                    image = Image.open(profile_photo)
+                    image.verify()
+                    profile_photo.seek(0)
+                except (UnidentifiedImageError, OSError, ValueError):
+                    messages.error(request, 'Upload a valid image.')
+                    return redirect('profile_settings')
+
+            with transaction.atomic():
+                user.first_name = first_name
+                user.last_name = last_name
+                user.email = email
+                user.save(update_fields=['first_name', 'last_name', 'email'])
+
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+                profile.phone_number = phone_number
+                profile_fields = ['phone_number']
+                if request.POST.get('remove_photo') == '1':
+                    profile.photo = None
+                    profile_fields.append('photo')
+                elif profile_photo:
+                    profile.photo = profile_photo
+                    profile_fields.append('photo')
+                profile.save(update_fields=profile_fields)
             
             ActivityLog.objects.create(
                 user=request.user,
@@ -2193,21 +2489,41 @@ def terminate_all_sessions_view(request):
 
 
 def get_sorted_chat_users(current_user):
-    user_list = User.objects.filter(is_active=True).exclude(id=current_user.id)
+    user_list = list(
+        User.objects.filter(is_active=True)
+        .exclude(id=current_user.id)
+        .select_related('workflow_profile__country')
+    )
+    conversation_messages = list(
+        ChatMessage.objects.filter(Q(sender=current_user) | Q(recipient=current_user))
+        .select_related('complaint')
+        .order_by('created_at')
+    )
+    unread_counts = {}
+    latest_unread_times = {}
+    last_messages = {}
+    for chat_message in conversation_messages:
+        other_user_id = (
+            chat_message.recipient_id
+            if chat_message.sender_id == current_user.id
+            else chat_message.sender_id
+        )
+        last_messages[other_user_id] = chat_message
+        if chat_message.recipient_id == current_user.id and not chat_message.is_read:
+            unread_counts[other_user_id] = unread_counts.get(other_user_id, 0) + 1
+            latest_unread_times[other_user_id] = chat_message.created_at
     raw_users = []
     
     for u in user_list:
-        prof = get_user_profile(u)
+        try:
+            prof = u.workflow_profile
+        except UserProfile.DoesNotExist:
+            prof = None
         role_code = getattr(prof, 'role', '')
         role_label = dict(WorkflowRoles.CHOICES).get(role_code, 'User')
         
-        unread_qs = ChatMessage.objects.filter(sender=u, recipient=current_user, is_read=False)
-        unread_count = unread_qs.count()
-        latest_unread_msg = unread_qs.order_by('-created_at').first()
-        
-        last_msg = ChatMessage.objects.filter(
-            Q(sender=current_user, recipient=u) | Q(sender=u, recipient=current_user)
-        ).order_by('-created_at').first()
+        unread_count = unread_counts.get(u.id, 0)
+        last_msg = last_messages.get(u.id)
 
         raw_users.append({
             'user': u,
@@ -2215,7 +2531,7 @@ def get_sorted_chat_users(current_user):
             'role_label': role_label,
             'country_flag_url': getattr(prof, 'country_flag_url', None),
             'unread_count': unread_count,
-            'latest_unread_time': latest_unread_msg.created_at if latest_unread_msg else None,
+            'latest_unread_time': latest_unread_times.get(u.id),
             'last_message': last_msg,
             'last_message_time': last_msg.created_at if last_msg else None,
         })
@@ -2343,11 +2659,16 @@ def chat_send_api(request):
 
     if not recipient_id or not message_text:
         return JsonResponse({'status': 'error', 'error': 'Recipient and message content are required.'}, status=400)
+    if len(message_text) > 5000:
+        return JsonResponse({'status': 'error', 'error': 'Messages must be 5000 characters or fewer.'}, status=400)
 
-    recipient = get_object_or_404(User, id=recipient_id)
+    recipient = get_object_or_404(User.objects.filter(is_active=True).exclude(id=request.user.id), id=recipient_id)
     complaint = None
     if complaint_id:
-        complaint = Complaint.objects.filter(complaint_id=complaint_id).first()
+        complaint = get_object_or_404(
+            visible_complaints_for_user(request.user),
+            complaint_id=complaint_id,
+        )
 
     chat_msg = ChatMessage.objects.create(
         sender=request.user,

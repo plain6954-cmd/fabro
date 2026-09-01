@@ -15,6 +15,7 @@ async function openSeededComplaint(page) {
 }
 
 test('factory review, parallel approvals, green light and final close work end to end', async ({ page }) => {
+  test.setTimeout(90_000);
   const diagnostics = attachPageDiagnostics(page);
 
   await loginAs(page, workflowUsers.factory);
@@ -48,6 +49,29 @@ test('factory review, parallel approvals, green light and final close work end t
   await row.locator('.action-btn.execute').click({ force: true });
   await expect(page.locator('.green-light').getByText(/Green Light/i)).toBeVisible();
   await page.getByRole('button', { name: /Proceed With Action Plan/i }).click();
+
+  await page.getByRole('button', { name: /Submit Execution For Verification/i }).click();
+  await expect(page.getByText(/Execution Verification In Progress/i)).toBeVisible();
+
+  for (const [role, credentials] of Object.entries({
+    PM: workflowUsers.pm,
+    OM: workflowUsers.om,
+    CAD: workflowUsers.cad,
+    ED: workflowUsers.ed
+  })) {
+    await loginAs(page, credentials);
+    await page.goto('/approvals/?stage=verification&status=active');
+    await expect(page.getByRole('heading', { name: /Approvals Workspace/i })).toBeVisible();
+    await page.getByRole('link', { name: /Full Review Page/i }).first().click();
+    await page.getByLabel(/Execution Is Correct/i).check();
+    await page.getByLabel(/Review comment/i).fill(`${role} verified the completed execution.`);
+    await page.getByRole('button', { name: /Submit Review/i }).click();
+    await expect(page.getByRole('heading', { name: /Approvals Workspace/i })).toBeVisible();
+  }
+
+  await loginAs(page, workflowUsers.factory);
+  row = await openSeededComplaint(page);
+  await row.locator('.action-btn.execute').click({ force: true });
   await page.getByLabel(/CAD Updated Date/i).fill(new Date().toISOString().slice(0, 10));
   await page.getByLabel(/New Production Container Number/i).fill('E2E-CONTAINER-READY');
   await page.getByRole('button', { name: /Save Updates And Close Case/i }).click();

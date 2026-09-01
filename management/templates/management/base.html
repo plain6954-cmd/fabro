@@ -1,4 +1,7 @@
 {% load static %}
+<link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+<script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
+<script src="{% static 'js/fabro-i18n.js' %}?v=20260901-master-settings" defer></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
 <style>
         * {
@@ -224,6 +227,11 @@
             user-select: none;
         }
 
+        .profile-trigger:focus-visible {
+            outline: 3px solid rgba(248, 113, 113, 0.38);
+            outline-offset: 3px;
+        }
+
         body.light-mode .profile-trigger {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(244, 244, 245, 0.86));
             border-color: rgba(24, 24, 27, 0.12);
@@ -303,7 +311,7 @@
             color: var(--light-text-secondary);
         }
 
-        .profile-dropdown:hover .profile-trigger .fa-chevron-down {
+        .profile-dropdown.is-open .profile-trigger .fa-chevron-down {
             transform: rotate(180deg);
         }
 
@@ -339,9 +347,20 @@
             background: transparent;
         }
 
-        .profile-dropdown:hover .profile-dropdown-content {
+        .profile-dropdown.is-open .profile-dropdown-content {
             display: block;
             animation: fadeInUp 0.2s ease;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .profile-dropdown:hover .profile-trigger .fa-chevron-down {
+                transform: rotate(180deg);
+            }
+
+            .profile-dropdown:hover .profile-dropdown-content {
+                display: block;
+                animation: fadeInUp 0.2s ease;
+            }
         }
 
         @keyframes fadeInUp {
@@ -884,12 +903,13 @@
             .profile-dropdown-content {
                 position: fixed;
                 top: 4.25rem;
-                right: 0.75rem;
-                left: 0.75rem;
-                width: auto;
+                right: max(1rem, env(safe-area-inset-right));
+                left: auto;
+                width: min(20rem, calc(100vw - 2rem));
                 min-width: 0;
                 max-height: calc(100dvh - 5rem);
                 overflow-y: auto;
+                box-sizing: border-box;
             }
 
             .page-container,
@@ -1049,22 +1069,63 @@
         }
 
         /* Notification Toast */
-        .toast {
+        .toast-stack {
+            position: absolute;
+            top: calc(100% + 0.55rem);
+            right: 0;
+            width: min(20rem, calc(100vw - 1.5rem));
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.45rem;
+            pointer-events: none;
+            z-index: 1003;
+        }
+
+        .toast-stack.is-fallback {
             position: fixed;
             top: 1rem;
             right: 1rem;
+        }
+
+        .toast {
+            position: relative;
+            width: fit-content;
+            max-width: 100%;
             background-color: var(--success-color);
             color: white;
-            padding: 1rem 1.5rem;
-            border-radius: var(--border-radius);
+            padding: 0.65rem 0.8rem;
+            border-radius: 9px;
             box-shadow: var(--shadow-lg);
-            z-index: 1002;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
+            font-size: 0.82rem;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+            opacity: 0;
+            transform: translate3d(1rem, -0.3rem, 0);
+            transition: opacity 320ms ease, transform 320ms var(--motion-ease);
+            will-change: opacity, transform;
+            pointer-events: none;
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.45rem;
+        }
+
+        .toast-content i {
+            margin-top: 0.12rem;
+            flex: 0 0 auto;
         }
 
         .toast.show {
-            transform: translateX(0);
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+
+        .toast.is-hiding {
+            opacity: 0;
+            transform: translate3d(1.25rem, 0.45rem, 0);
         }
 
         .toast.error {
@@ -1132,7 +1193,6 @@
 
         .profile-dropdown-content,
         .messages,
-        .toast,
         .form-section,
         .form-container,
         .table-section,
@@ -1733,24 +1793,34 @@
         };
 
         // Toast Notifications
-        const showToast = (message, type = 'success') => {
+        const showToast = (message, type = 'success', duration = 4000) => {
+            let toastStack = document.getElementById('global-toast-stack');
+            if (!toastStack) {
+                toastStack = document.createElement('div');
+                toastStack.id = 'global-toast-stack';
+                toastStack.className = 'toast-stack is-fallback';
+                toastStack.setAttribute('aria-live', 'polite');
+                document.body.appendChild(toastStack);
+            }
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
-                    ${message}
-                </div>
-            `;
+            const toastContent = document.createElement('div');
+            toastContent.className = 'toast-content';
+            const toastIcon = document.createElement('i');
+            toastIcon.className = `fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}`;
+            const toastMessage = document.createElement('span');
+            toastMessage.textContent = message;
+            toastContent.append(toastIcon, toastMessage);
+            toast.appendChild(toastContent);
 
+            toastStack.appendChild(toast);
 
-            document.body.appendChild(toast);
-
-            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => toast.classList.add('show'), 50);
             setTimeout(() => {
+                toast.classList.add('is-hiding');
                 toast.classList.remove('show');
-                setTimeout(() => document.body.removeChild(toast), 300);
-            }, 3000);
+                setTimeout(() => toast.remove(), 350);
+            }, duration + 50);
         };
 
         const initScrollDynamics = () => {};
@@ -1786,6 +1856,77 @@
                         submitter.setAttribute('aria-busy', 'true');
                     }
                 });
+            });
+        };
+
+        const initProfileDropdown = () => {
+            const dropdown = document.querySelector('.profile-dropdown');
+            const trigger = dropdown?.querySelector('.profile-trigger');
+            const languageMenu = dropdown?.querySelector('.language-menu');
+            const languageTrigger = languageMenu?.querySelector('.language-menu-trigger');
+            if (!dropdown || !trigger || trigger.dataset.dropdownBound === 'true') {
+                return;
+            }
+
+            let profilePinned = false;
+            let languagePinned = false;
+
+            const renderPinnedState = () => {
+                const profileOpen = profilePinned;
+                dropdown.classList.toggle('is-open', profileOpen);
+                languageMenu?.classList.toggle('is-pinned', languagePinned);
+                trigger.setAttribute('aria-expanded', String(profileOpen));
+                languageTrigger?.setAttribute('aria-expanded', String(languagePinned));
+            };
+
+            const closePinnedMenus = () => {
+                profilePinned = false;
+                languagePinned = false;
+                renderPinnedState();
+            };
+
+            trigger.dataset.dropdownBound = 'true';
+            trigger.addEventListener('click', (event) => {
+                event.stopPropagation();
+                profilePinned = !profilePinned;
+                if (!profilePinned) languagePinned = false;
+                renderPinnedState();
+            });
+            trigger.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    profilePinned = !profilePinned;
+                    if (!profilePinned) languagePinned = false;
+                    renderPinnedState();
+                }
+            });
+
+            languageTrigger?.addEventListener('click', (event) => {
+                event.stopPropagation();
+                languagePinned = !languagePinned;
+                renderPinnedState();
+            });
+
+            dropdown.addEventListener('mouseleave', () => {
+                if (!profilePinned && languagePinned) {
+                    languagePinned = false;
+                    renderPinnedState();
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!dropdown.contains(event.target)) {
+                    closePinnedMenus();
+                } else if (languagePinned && !languageMenu.contains(event.target)) {
+                    languagePinned = false;
+                    renderPinnedState();
+                }
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && (profilePinned || languagePinned)) {
+                    closePinnedMenus();
+                    trigger.focus();
+                }
             });
         };
 
@@ -1991,21 +2132,27 @@
             initTheme();
             initActiveWindowLabel();
             initPremiumInteractions();
+            initProfileDropdown();
             initAppShellRouter();
             runWhenIdle(initScrollDynamics, 1400);
 
-            setTimeout(function () {
-                const flashMessages = document.getElementById('flash-messages');
-                if (flashMessages) {
-                    flashMessages.style.transition = 'opacity 0.5s ease';
-                    flashMessages.style.opacity = '0';
-                    setTimeout(() => flashMessages.remove(), 500);
-                }
-            }, 6000);
+            const flashMessages = document.getElementById('flash-messages');
+            if (flashMessages) {
+                flashMessages.querySelectorAll('.alert').forEach((alert) => {
+                    const type = alert.classList.contains('error')
+                        ? 'error'
+                        : alert.classList.contains('warning')
+                            ? 'warning'
+                            : 'success';
+                    const message = alert.textContent.trim();
+                    if (message) showToast(message, type, 3000);
+                });
+                flashMessages.remove();
+            }
         });
     </script>
     {% if messages and request.resolver_match.url_name != 'profile_settings' and request.resolver_match.url_name != 'admin_panel' %}
-    <div class="messages" id="flash-messages">
+    <div class="messages" id="flash-messages" hidden>
         {% for message in messages %}
         <div class="alert {{ message.tags }}">{{ message }}</div>
         {% endfor %}
@@ -2047,12 +2194,6 @@
                 <i class="fas fa-barcode"></i>
                 <span>SKU</span>
             </a>
-            {% if can_manage_workflow %}
-            <a href="{% url 'master_settings' %}" class="nav-link">
-                <i class="fas fa-cog"></i>
-                <span>Master</span>
-            </a>
-            {% endif %}
             {% if can_view_approvals %}
             <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' %}active{% endif %}" data-shell-badge-host="approvals">
                 <i class="fas fa-clipboard-check"></i>
@@ -2069,12 +2210,18 @@
                 <span class="nav-chat-badge" data-shell-badge="chat">{{ unread_chat_count }}</span>
                 {% endif %}
             </a>
+            {% if can_manage_workflow %}
+            <a href="{% url 'master_settings' %}" class="nav-link">
+                <i class="fas fa-cog"></i>
+                <span>Master</span>
+            </a>
+            {% endif %}
         </div>
 
         <div class="profile-dropdown">
-            <div class="profile-trigger">
-                {% if workflow_profile.role == 'country_executive' and workflow_profile.country_flag_url %}
-                <img src="{{ workflow_profile.country_flag_url }}" class="profile-country-flag" alt="{{ workflow_profile.country.name }} Flag">
+            <div class="profile-trigger" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu">
+                {% if workflow_profile.country_flag_url %}
+                <img src="{{ workflow_profile.country_flag_url }}" class="profile-country-flag" alt="Reporting country flag">
                 {% endif %}
                 <div class="profile-avatar">
                     {% if workflow_profile.photo %}
@@ -2096,7 +2243,7 @@
                 <i class="fas fa-chevron-down" style="font-size: 0.75rem; opacity: 0.7; flex-shrink: 0;"></i>
             </div>
 
-            <div class="profile-dropdown-content">
+            <div class="profile-dropdown-content" id="profile-menu">
                 <div class="dropdown-header">
                     <div style="font-weight: 600;">
                         {% if request.user.first_name %}
@@ -2125,6 +2272,29 @@
                 </a>
                 {% endif %}
 
+                <form action="{% url 'set_portal_language' %}" method="post" class="language-switcher" data-no-htmx onsubmit="this.elements.next.value = window.location.pathname + window.location.search + window.location.hash">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <i class="fas fa-language" aria-hidden="true"></i>
+                    <span class="sr-only">Language</span>
+                    <div class="language-menu">
+                        <button type="button" class="language-menu-trigger" aria-label="Language" aria-haspopup="listbox" aria-expanded="false" aria-controls="language-menu-options">
+                            {% for code, label in portal_languages %}
+                                {% if current_language == code %}<span data-i18n-skip>{{ label }}</span>{% endif %}
+                            {% endfor %}
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="language-menu-options" id="language-menu-options" role="listbox" aria-label="Language">
+                        {% for code, label in portal_languages %}
+                            <button type="submit" name="language" value="{{ code }}" class="language-menu-option{% if current_language == code %} is-selected{% endif %}" role="option" aria-selected="{% if current_language == code %}true{% else %}false{% endif %}" data-i18n-skip>
+                                <span>{{ label }}</span>
+                                {% if current_language == code %}<i class="fas fa-check" aria-hidden="true"></i>{% endif %}
+                            </button>
+                        {% endfor %}
+                        </div>
+                    </div>
+                </form>
+
                 <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">
                     {% csrf_token %}
                 </form>
@@ -2133,6 +2303,7 @@
                     <span>Logout</span>
                 </a>
             </div>
+            <div class="toast-stack" id="global-toast-stack" aria-live="polite" aria-atomic="false"></div>
         </div>
 
         <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">

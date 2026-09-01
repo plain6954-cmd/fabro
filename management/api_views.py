@@ -33,22 +33,25 @@ from .models import (
     MasterSetting,
     WorkflowRoles,
     WorkflowStatuses,
+    complaint_type_from_master_setting,
     infer_complaint_type,
 )
 from .services.workflow import (
     REPORT_EDITABLE_FIELDS,
     approval_progress,
+    can_user_create_complaint_type,
     can_user_create_complaint,
     can_user_manage_catalog,
     close_complaint_after_execution,
     initialize_created_complaint,
-    is_country_executive,
     is_workflow_admin,
     can_user_edit_report_step,
     get_user_profile,
     record_approval_decision,
     record_report_edit,
+    reporting_country_for_user,
     start_action_execution,
+    submit_execution_for_verification,
     submit_factory_review,
     visible_complaints_for_user,
 )
@@ -187,8 +190,10 @@ class ComplaintListCreateAPIView(ListCreateAPIView):
         if not can_user_create_complaint(self.request.user):
             raise PermissionDenied('Your role can view complaints but cannot create them.')
         case_type = serializer.validated_data.get('case_sub_category')
-        complaint_type = serializer.validated_data.get('complaint_type') or infer_complaint_type(
-            case_type.name if case_type else ''
+        complaint_type = (
+            serializer.validated_data.get('complaint_type')
+            or complaint_type_from_master_setting(case_type)
+            or infer_complaint_type(case_type.name if case_type else '')
         )
         create_values = {
             'created_by': self.request.user,
@@ -196,13 +201,12 @@ class ComplaintListCreateAPIView(ListCreateAPIView):
             'workflow_status': WorkflowStatuses.SUBMITTED,
             'date': timezone.localdate(),
         }
-        if is_country_executive(self.request.user):
-            profile = get_user_profile(self.request.user)
-            if not profile or not profile.country_id:
-                raise PermissionDenied('Your account must be assigned to a country before reporting complaints.')
-            if complaint_type == ComplaintTypes.LINE:
-                raise PermissionDenied('Country executives cannot create line complaints.')
-            create_values['country'] = profile.country
+        if not can_user_create_complaint_type(self.request.user, complaint_type):
+            raise PermissionDenied('Your role cannot create the selected complaint type.')
+        try:
+            create_values['country'] = reporting_country_for_user(self.request.user)
+        except PermissionError as exc:
+            raise PermissionDenied(str(exc)) from exc
         complaint = serializer.save(
             **create_values,
         )
@@ -289,6 +293,8 @@ class ApprovalInboxAPIView(APIView):
             complaint__workflow_status__in=[
                 WorkflowStatuses.AWAITING_APPROVAL,
                 WorkflowStatuses.PARTIALLY_APPROVED,
+                WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+                WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
             ],
         ).select_related('complaint', 'approver_user').order_by('-created_at')
         current = [
@@ -363,6 +369,28 @@ class ComplaintFinalUpdateAPIView(APIView):
         except ValueError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(ComplaintSerializer(complaint).data)
+
+
+class ComplaintSubmitExecutionVerificationAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, complaint_id, *args, **kwargs):
+        complaint = visible_complaints_for_user(request.user, Complaint.objects.all()).filter(
+            complaint_id=complaint_id,
+        ).first()
+        if not complaint:
+            return Response({'error': 'Complaint not found.'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            approvals = submit_execution_for_verification(complaint, request.user)
+        except PermissionError as exc:
+            raise PermissionDenied(str(exc)) from exc
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        complaint.refresh_from_db()
+        return Response({
+            'complaint': ComplaintSerializer(complaint).data,
+            'approvals': ComplaintApprovalSerializer(approvals, many=True).data,
+        })
 
 
 class NotificationListAPIView(APIView):

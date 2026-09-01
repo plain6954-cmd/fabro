@@ -30,8 +30,8 @@
         <section class="green-light" aria-live="polite">
             <div class="green-light-icon"><i class="fas fa-check"></i></div>
             <div class="green-light-copy">
-                <strong>{% if complaint.workflow_status == 'approved' %}Green Light | Ready to Go{% else %}Approved Action In Progress{% endif %}</strong>
-                <span>Every required member approved the factory action plan. Approval round {{ approval_summary.round }} is complete.</span>
+                <strong>{% if complaint.workflow_status == 'approved' %}Green Light | Ready to Go{% elif complaint.workflow_status == 'pending_final_update' %}Execution Verified | Final Update Unlocked{% elif complaint.workflow_status == 'awaiting_execution_verification' or complaint.workflow_status == 'execution_partially_verified' %}Execution Verification In Progress{% else %}Approved Action In Progress{% endif %}</strong>
+                <span>{% if complaint.workflow_status == 'pending_final_update' %}Every required member verified the execution. CAD and container updates are now available.{% elif complaint.workflow_status == 'awaiting_execution_verification' or complaint.workflow_status == 'execution_partially_verified' %}The original action-plan approvers are checking that execution matches the approved plan.{% else %}Every required member approved the factory action plan.{% endif %}</span>
             </div>
             {% if complaint.workflow_status == 'approved' %}
                 <form method="post">
@@ -105,7 +105,7 @@
                     </div>
                 </section>
 
-                {% if complaint.workflow_status == 'action_in_progress' %}
+                {% if complaint.workflow_status == 'pending_final_update' %}
                     <section class="workflow-panel">
                         <h2 class="workflow-section-title"><i class="fas fa-box-check"></i> Final Production Update</h2>
                         <form method="post">
@@ -126,7 +126,7 @@
                             {% else %}
                                 {{ form.production_updates_container }}
                                 <p class="workflow-subtitle" style="font-size: 0.78rem; margin-bottom: 1rem;">
-                                    A production container number is not required for Line Complaints.
+                                    A production container number is not required for Factory Complaints.
                                 </p>
                             {% endif %}
                             <div class="workflow-actions">
@@ -135,6 +135,29 @@
                                 </button>
                             </div>
                         </form>
+                    </section>
+                {% elif complaint.workflow_status == 'action_in_progress' %}
+                    <section class="workflow-panel">
+                        <div class="empty-workflow">
+                            <i class="fas fa-clipboard-check"></i>
+                            <strong>Submit completed execution for verification</strong>
+                            <p>The CAD and container fields unlock only after every original approver verifies the execution.</p>
+                            <form method="post" style="margin-top: 1rem;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="submit_verification">
+                                <button type="submit" class="workflow-btn success">
+                                    <i class="fas fa-paper-plane"></i> Submit Execution For Verification
+                                </button>
+                            </form>
+                        </div>
+                    </section>
+                {% elif complaint.workflow_status == 'awaiting_execution_verification' or complaint.workflow_status == 'execution_partially_verified' %}
+                    <section class="workflow-panel">
+                        <div class="empty-workflow">
+                            <i class="fas fa-user-check"></i>
+                            <strong>Waiting for execution verification</strong>
+                            <p>{{ approval_summary.approved }} of {{ approval_summary.total }} required approvers have verified the execution.</p>
+                        </div>
                     </section>
                 {% else %}
                     <section class="workflow-panel">

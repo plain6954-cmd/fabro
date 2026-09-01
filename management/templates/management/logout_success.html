@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <title>Logged Out</title>
     {% load static %}
+    <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+    <script>window.FABRO_LANGUAGE = '{{ LANGUAGE_CODE|default:"en"|escapejs }}';</script>
+    <script src="{% static 'js/fabro-i18n.js' %}?v=20260831-search-clear" defer></script>
     <style>
         body {
             background-color: #121214;

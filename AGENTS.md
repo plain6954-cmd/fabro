@@ -15,7 +15,7 @@ This document serves as the authoritative specification for the **FABRO Leather 
 * **Database:** PostgreSQL (Supabase host).
 * **REST API:** Django REST Framework (DRF) endpoints in `management/api_views.py` serving the Flutter mobile app in `mobile/`.
 * **Frontend:** Server-rendered HTML5 templates (`management/templates/`) styled with vanilla CSS (dark/light mode support) and JavaScript.
-* **File Storage:** Local filesystem / Supabase Storage for brand logos and complaint media files (up to 10 MB per file, max 10 files per complaint).
+* **File Storage:** Local filesystem / Supabase Storage for brand logos and complaint media files (up to 100 MB per file, max 10 files per complaint).
 
 ---
 
@@ -24,7 +24,8 @@ This document serves as the authoritative specification for the **FABRO Leather 
 ### 2.1 Complaint Types
 * **Pattern Complaints (`PAT-YYMMXXXX`):** Dimension mismatches, template issues, or cutting errors.
 * **Production Complaints (`PRO-YYMMXXXX`):** Manufacturing defects, leather material flaws, or stitching errors.
-* **Line Complaints (`LIN-YYMMXXXX`):** Urgent assembly-line fitment issues reported directly during factory installation.
+* **Quality Complaints (`QUA-YYMMXXXX`):** Quality-related complaints using the same report fields and workflow as the existing complaint types.
+* **Factory Complaints (`LIN-YYMMXXXX`, internal code `line`):** Urgent factory/assembly-line fitment issues. The legacy internal code and ID prefix remain stable for compatibility.
 
 ### 2.2 Workflow Statuses
 1. `submitted`: Initial state upon creation.
@@ -35,12 +36,14 @@ This document serves as the authoritative specification for the **FABRO Leather 
 6. `rework_required`: Plan rejected after reconsideration; returned to factory for revision.
 7. `approved`: All required approvers have granted approval (green light).
 8. `action_in_progress`: Factory Executive is executing the approved plan.
-9. `pending_final_update`: Execution complete; waiting for final CAD/container numbers.
-10. `closed`: Final updates saved; complaint fully resolved.
-11. `on_hold`: Manually paused complaint.
+9. `awaiting_execution_verification`: Execution was submitted to the original action-plan approvers for verification.
+10. `execution_partially_verified`: Some required approvers verified execution; others remain pending.
+11. `pending_final_update`: Every required approver verified execution; waiting for final CAD/container numbers.
+12. `closed`: Final updates saved; complaint fully resolved.
+13. `on_hold`: Manually paused complaint.
 
 ### 2.3 Master & Catalog Entities
-* **Master Settings:** Categories for `Channel`, `Country`, `Reported By`, `Type`, `Series`, `Material`, `Region`.
+* **Master Settings:** Editable categories are `Channel`, four complaint-specific type catalogs (`Pattern Complaint Type`, `Production Complaint Type`, `Quality Complaint Type`, `Factory Complaint Type`), `Series`, `Material`, and `Region`. A complaint can use only a Type from its own catalog. Complaint reporter identity and reporting country are system-assigned and are not editable master-setting options. Country records remain internal reference data for user assignment and historical complaints.
 * **Vehicle Catalog:** `Brand` (with logo), `Model`, `SubModel`, `YearRange` (with `year_start`, `year_end`, `number_of_seats`, `number_of_doors`, and unique `layout_code`).
 * **SKU Catalog:** `SKU` with unique `code`, `description`, and `region` reference.
 
@@ -50,20 +53,27 @@ This document serves as the authoritative specification for the **FABRO Leather 
 
 1. **Country Executive:**
    * Scoped strictly to their assigned country (`profile.country`).
-   * Can create and view **Pattern** and **Production** complaints.
-   * Cannot create **Line** complaints. Cannot view complaints from other countries.
-2. **Factory Viewer:**
+   * Their profile flag and every complaint they create use their assigned country automatically.
+   * Can create and view **Pattern**, **Production**, and **Quality** complaints.
+   * Cannot create **Factory** complaints. Cannot view complaints from other countries.
+2. **Factory Complaint Registrar:**
+   * Can register **Factory** complaints only; cannot register Pattern, Production, or Quality complaints.
+   * Retains normal complaint visibility, while Factory Executives and Approvers continue the existing workflow.
+3. **Factory Viewer:**
    * Read-only observer across all complaints and countries. Cannot create or edit complaints or approve actions.
-3. **Factory Executive:**
+4. **Factory Executive:**
    * Receives complaints assigned to their factory.
+   * Can register **Pattern**, **Production**, and **Quality** complaints, but not Factory complaints.
    * Conducts **Factory Review** (inputs `Factory Reason`, `Factory Action Plan`, `Factory Priority`).
    * Receives notifications for rework or green light.
    * Executes approved action plans (`Action In Progress`) and submits CAD dates and container numbers to close complaints.
-4. **Approver (PM, OM, CAD, ED, MD):**
+5. **Approver (PM, OM, CAD, ED, MD):**
    * Configured with specific approval roles. Accesses a personal **Approval Inbox**.
    * Approves or rejects action plans during initial and reconsideration rounds.
-5. **Workflow Admin / Superuser:**
+   * After execution, the same approver accounts that reviewed the final action-plan matrix verify whether the approved plan was executed correctly.
+6. **Workflow Admin / Superuser:**
    * Unrestricted management access to Master Settings, Vehicle/SKU Catalogs, User & Group creation, Session termination, and System Activity Logs.
+   * Like every non-Country-Executive role, their profile flag and complaint reporting country default automatically to India.
 
 ---
 
@@ -80,13 +90,16 @@ This document serves as the authoritative specification for the **FABRO Leather 
                                [Phase 5: Action Execution] ◄─── [Phase 4: Reconsideration & Rework]
                                             │
                                             ▼
-                                   [Phase 6: Closed]
+                             [Phase 6: Execution Verification]
+                                            │
+                                            ▼
+                              [Phase 7: Final Update & Closed]
 ```
 
 ### Phase 1: Creation & Initialization
-1. Reporter fills complaint form (Complaint Type, Vehicle details, SKU, Channel, Priority, Description, Media uploads).
+1. Reporter fills complaint form (Complaint Type, Vehicle details, SKU, Channel, Priority, Description, Media uploads). Country and Factory Executives can register Pattern, Production, and Quality complaints; Factory Complaint Registrars can register Factory complaints only; admins can register every type. Reporter identity is the authenticated username. Country is assigned from a Country Executive's profile; all other roles report under India.
 2. Unique ID generated sequentially per month (e.g., `PAT-26070001`).
-3. Initial status set to `submitted`. Media files validated (max 10, max 10MB each, images/videos only).
+3. Initial status set to `submitted`. Media files validated (max 10, max 100MB each, images/videos only).
 
 ### Phase 2: Factory Assignment & Review
 1. Complaint assigned to Factory Executive; status shifts to `factory_review`.
@@ -119,8 +132,15 @@ This document serves as the authoritative specification for the **FABRO Leather 
 1. Once fully approved, status changes to `approved` and Factory Executive receives green-light notification.
 2. Factory Executive clicks **Start Action Plan**; status shifts to `action_in_progress`.
 
-### Phase 6: Final Update & Resolution
-1. Factory Executive enters mandatory **CAD Updated Date** and **New Production Container Number** (container number optional for Line complaints).
+### Phase 6: Execution Verification
+1. When implementation is complete, the Factory Executive submits the execution for verification; status shifts to `awaiting_execution_verification`.
+2. Verification tickets are issued to the same approver accounts from the latest action-plan approval matrix: Low = PM/OM/CAD, Medium = PM/OM/CAD/ED, Top = PM/OM/CAD/ED/MD.
+3. While some verification decisions remain pending, status is `execution_partially_verified`.
+4. If any verifier rejects, a mandatory correction comment is required, remaining verification tickets are superseded, and the complaint returns to `action_in_progress` for correction and resubmission.
+5. Only unanimous verification grants the post-execution green light and changes status to `pending_final_update`.
+
+### Phase 7: Final Update & Resolution
+1. Only after unanimous execution verification does the Factory Executive see and enter mandatory **CAD Updated Date** and **New Production Container Number** (container number optional for Factory complaints).
 2. Status shifts to `closed` (`status='Closed'`), setting `closed_at` timestamp and `closed_by` user.
 3. Creator receives resolution notification.
 
@@ -128,7 +148,8 @@ This document serves as the authoritative specification for the **FABRO Leather 
 
 ## 5. Approvals Workspace Window (`/approvals/`)
 
-* **Purpose & Layout:** Dedicated full-screen interactive workspace window (analogous to the chat workspace) providing live tracking and matrix visualization of complaints currently in the approval pipeline (`awaiting_approval`, `partially_approved`, `reconsideration`, `approved`).
+* **Purpose & Layout:** Dedicated full-screen interactive workspace window (analogous to the chat workspace) providing live tracking and matrix visualization of complaints in both approval pipelines.
+* **Separated Sub-Workspaces:** The window provides a **Before Execution** sub-workspace for action-plan approval/reconsideration and an **Execution Verification** sub-workspace for post-execution verification. Filters, counts, decisions, and history remain scoped to the selected sub-workspace.
 * **Live Status Matrix:** Shows the complete reviewer grid for every complaint ("where the approval is") — highlighting each approver's role, status (`Approved`, `Rejected`, `Pending`), decision timestamp, and review comment.
 * **Role-Based Access Control (RBAC):**
   * **Country Executive:** Can view approvals for complaints originating within their assigned country.
@@ -141,8 +162,8 @@ This document serves as the authoritative specification for the **FABRO Leather 
 
 ## 6. Security & System Features
 
-* **Session Management:** Admin panel tracks active user login sessions and allows single or bulk session termination (`terminate_session_view`).
+* **Session Management:** Admin panel tracks active user login sessions and allows single or bulk session termination (`terminate_session_view`). Admins can reset a selected user's password through a dedicated action without submitting or modifying profile/workflow fields.
 * **Activity Logging:** System changes write to `ActivityLog` (action, object type, user, timestamp).
 * **Audit Edit Logs:** Field-level changes to report fields and approval decisions are preserved in `ComplaintEditLog`.
 * **Timeline Events:** Every workflow transition writes a human-readable event to `ComplaintTimeline`.
-
+* **Localization:** English is the default interface language. Authenticated users can persistently switch the portal to Arabic or Hindi from the profile dropdown. Arabic uses right-to-left document direction; Arabic and Hindi use language-appropriate system font stacks without changing the established component design.

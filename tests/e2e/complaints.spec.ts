@@ -1,12 +1,24 @@
 import { expect, test } from '@playwright/test';
 import path from 'path';
-import { login } from '../helpers/auth';
+import { login, loginAs } from '../helpers/auth';
 import { attachPageDiagnostics, expectNoDjangoError } from '../helpers/assertions';
-import { routes, sample } from '../helpers/testData';
+import { routes, sample, workflowUsers } from '../helpers/testData';
 import { searchComplaints } from '../helpers/navigation';
 
 test.beforeEach(async ({ page }) => {
   await login(page);
+});
+
+test('factory complaint registrar sees only the factory complaint option', async ({ page }) => {
+  await loginAs(page, workflowUsers.factoryComplaintRegistrar);
+  await page.goto(routes.addComplaint);
+
+  await expect(page.locator('#complaint-type-line')).toBeVisible();
+  await expect(page.locator('#complaint-type-pattern')).toHaveCount(0);
+  await expect(page.locator('#complaint-type-production')).toHaveCount(0);
+  await expect(page.locator('#complaint-type-quality')).toHaveCount(0);
+  await expect(page.locator('#id_complaint_type')).toHaveValue('line');
+  await expect(page.locator('.complaint-type-dock')).toHaveCSS('width', '280px');
 });
 
 test('complaint type remains recognizable and synchronized while editing', async ({ page }) => {
@@ -20,6 +32,7 @@ test('complaint type remains recognizable and synchronized while editing', async
   await expect(typeInput).toHaveValue('pattern');
   await expect(indicatorTitle).toHaveText('Pattern Complaint');
   await expect(saveButton).toHaveAttribute('aria-label', 'Save Pattern Complaint');
+  await expect(page.locator('#id_case_sub_category')).toContainText('Pattern Complaint');
 
   await page.locator('#complaint-type-production').click();
   await expect(typeInput).toHaveValue('production');
@@ -27,16 +40,19 @@ test('complaint type remains recognizable and synchronized while editing', async
   await expect(indicatorTitle).toHaveText('Production Complaint');
   await expect(saveButton).toHaveAttribute('aria-label', 'Save Production Complaint');
   await expect(page.locator('#complaint-type-production')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#id_case_sub_category')).toContainText('Production Complaint');
+  await expect(page.locator('#id_case_sub_category')).not.toContainText('Pattern Complaint');
 
   await page.locator('#complaint-type-line').click();
   await expect(typeInput).toHaveValue('line');
   await expect(indicator).toHaveClass(/type-line/);
-  await expect(indicatorTitle).toHaveText('Line Complaint');
-  await expect(saveButton).toHaveAttribute('aria-label', 'Save Line Complaint');
+  await expect(indicatorTitle).toHaveText('Factory Complaint');
+  await expect(saveButton).toHaveAttribute('aria-label', 'Save Factory Complaint');
+  await expect(page.locator('#id_case_sub_category')).toContainText('Factory Complaint');
 
   await page.getByRole('button', { name: /Clear complaint form/i }).click();
   await expect(typeInput).toHaveValue('line');
-  await expect(indicatorTitle).toHaveText('Line Complaint');
+  await expect(indicatorTitle).toHaveText('Factory Complaint');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
@@ -104,4 +120,34 @@ test('cancel returns from add complaint to complaint list', async ({ page }) => 
   await page.goto(routes.addComplaint);
   await page.getByRole('link', { name: /Cancel/i }).click({ force: true });
   await expect(page).toHaveURL(/\/complaints\/$/);
+});
+
+test('complaint column menus filter both complaint and journey rows', async ({ page }) => {
+  const diagnostics = attachPageDiagnostics(page);
+  await page.goto(routes.complaints);
+
+  const infoRows = page.locator('tbody tr.complaint-info-row');
+  const workflowRows = page.locator('tbody tr.complaint-workflow-row');
+  await expect(infoRows).toHaveCount(2);
+  await expect(workflowRows).toHaveCount(2);
+
+  const statusHeader = page.locator('th[data-filter-col="6"]');
+  const trigger = statusHeader.locator('.column-filter-trigger');
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+  const dropdown = statusHeader.locator('.column-filter-dropdown');
+  await expect(dropdown).toBeVisible();
+  await dropdown.locator('label', { hasText: 'Assigned to Factory' }).locator('input').check();
+
+  await expect(page.locator('tbody tr.complaint-info-row:not([hidden])')).toHaveCount(1);
+  await expect(page.locator('tbody tr.complaint-workflow-row:not([hidden])')).toHaveCount(1);
+  await expect(page.locator('tbody tr.complaint-info-row[hidden]')).toHaveCount(1);
+  await expect(page.locator('tbody tr.complaint-workflow-row[hidden]')).toHaveCount(1);
+
+  await statusHeader.locator('.column-filter-clear').click();
+  await expect(page.locator('tbody tr.complaint-info-row:not([hidden])')).toHaveCount(2);
+  await expect(page.locator('tbody tr.complaint-workflow-row:not([hidden])')).toHaveCount(2);
+  await expectNoDjangoError(page);
+  await diagnostics.assertClean();
 });

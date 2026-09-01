@@ -44,13 +44,15 @@
         }
 
         .complaint-type-dock {
-            width: min(760px, calc(100% - 1rem));
+            width: min(var(--complaint-type-dock-width, 980px), calc(100% - 1rem));
             margin: 0 auto 0.9rem;
-            display: flex;
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(0, 1fr);
             align-items: center;
-            justify-content: center;
             gap: 0.28rem;
             padding: 0.36rem;
+            box-sizing: border-box;
             border-radius: 999px;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
             border: 1px solid rgba(255, 255, 255, 0.12);
@@ -66,6 +68,8 @@
         }
 
         .complaint-type-tab {
+            width: 100%;
+            min-width: 0;
             border: 0;
             min-height: 2.7rem;
             padding: 0.62rem 1rem;
@@ -170,6 +174,11 @@
             border-left-color: #d97706;
         }
 
+        .complaint-type-indicator.type-quality {
+            border-color: rgba(16, 185, 129, 0.42);
+            border-left-color: #059669;
+        }
+
         .complaint-type-indicator.type-line {
             border-color: rgba(59, 130, 246, 0.42);
             border-left-color: #2563eb;
@@ -189,6 +198,7 @@
         }
 
         .type-production .complaint-type-indicator-icon { background: #b45309; }
+        .type-quality .complaint-type-indicator-icon { background: #059669; }
         .type-line .complaint-type-indicator-icon { background: #2563eb; }
 
         .complaint-type-indicator-copy {
@@ -643,8 +653,9 @@
 
             .complaint-type-dock {
                 width: 100%;
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-auto-flow: row;
+                grid-auto-columns: auto;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 justify-content: stretch;
                 gap: 0.25rem;
                 overflow: visible;
@@ -709,25 +720,37 @@
             <p class="page-subtitle">Register a new customer complaint with detailed information</p>
         </div>
 
-        <div class="complaint-type-dock" aria-label="Complaint window type">
+        <div class="complaint-type-dock" aria-label="Complaint window type" style="--complaint-type-dock-width: {{ complaint_type_dock_width }}px;">
+            {% if 'pattern' in allowed_complaint_types %}
             <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'pattern' %} is-active{% endif %}"
                     id="complaint-type-pattern" data-complaint-type="pattern"
                     aria-pressed="{% if selected_complaint_type == 'pattern' %}true{% else %}false{% endif %}">
                 <i class="fas fa-draw-polygon"></i>
                 <span>PATTERN COMPLAINT</span>
             </button>
+            {% endif %}
+            {% if 'production' in allowed_complaint_types %}
             <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'production' %} is-active{% endif %}"
                     id="complaint-type-production" data-complaint-type="production"
                     aria-pressed="{% if selected_complaint_type == 'production' %}true{% else %}false{% endif %}">
                 <i class="fas fa-industry"></i>
                 <span>PRODUCTION COMPLAINT</span>
             </button>
-            {% if can_create_line %}
+            {% endif %}
+            {% if 'quality' in allowed_complaint_types %}
+            <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'quality' %} is-active{% endif %}"
+                    id="complaint-type-quality" data-complaint-type="quality"
+                    aria-pressed="{% if selected_complaint_type == 'quality' %}true{% else %}false{% endif %}">
+                <i class="fas fa-award"></i>
+                <span>QUALITY COMPLAINT</span>
+            </button>
+            {% endif %}
+            {% if 'line' in allowed_complaint_types %}
             <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'line' %} is-active{% endif %}"
                     id="complaint-type-line" data-complaint-type="line"
                     aria-pressed="{% if selected_complaint_type == 'line' %}true{% else %}false{% endif %}">
                 <i class="fas fa-layer-group"></i>
-                <span>LINE COMPLAINT</span>
+                <span>FACTORY COMPLAINT</span>
             </button>
             {% endif %}
         </div>
@@ -740,15 +763,15 @@
                      id="complaint-type-indicator" aria-live="polite" aria-atomic="true">
                 <span class="complaint-type-indicator-icon" aria-hidden="true">
                     <i id="complaint-type-indicator-icon"
-                       class="fas {% if selected_complaint_type == 'production' %}fa-industry{% elif selected_complaint_type == 'line' %}fa-layer-group{% else %}fa-draw-polygon{% endif %}"></i>
+                       class="fas {% if selected_complaint_type == 'production' %}fa-industry{% elif selected_complaint_type == 'quality' %}fa-award{% elif selected_complaint_type == 'line' %}fa-layer-group{% else %}fa-draw-polygon{% endif %}"></i>
                 </span>
                 <span class="complaint-type-indicator-copy">
                     <span class="complaint-type-indicator-kicker">Creating</span>
                     <strong class="complaint-type-indicator-title" id="complaint-type-indicator-title">
-                        {% if selected_complaint_type == 'production' %}Production Complaint{% elif selected_complaint_type == 'line' %}Line Complaint{% else %}Pattern Complaint{% endif %}
+                        {% if selected_complaint_type == 'production' %}Production Complaint{% elif selected_complaint_type == 'quality' %}Quality Complaint{% elif selected_complaint_type == 'line' %}Factory Complaint{% else %}Pattern Complaint{% endif %}
                     </strong>
                     <span class="complaint-type-indicator-description" id="complaint-type-indicator-description">
-                        {% if selected_complaint_type == 'production' %}Manufacturing, material, or stitching defect.{% elif selected_complaint_type == 'line' %}Urgent assembly-line fitment issue.{% else %}Template, dimension, or cutting issue.{% endif %}
+                        {% if selected_complaint_type == 'production' %}Manufacturing, material, or stitching defect.{% elif selected_complaint_type == 'quality' %}Quality-related complaint using the standard report fields.{% elif selected_complaint_type == 'line' %}Urgent assembly-line fitment issue.{% else %}Template, dimension, or cutting issue.{% endif %}
                     </span>
                 </span>
             </section>
@@ -799,15 +822,6 @@
                         {{ form.channel }}
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">{{ form.country.label }}</label>
-                        {{ form.country }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Reported By</label>
-                        {{ form.person }}
-                    </div>
                 </div>
 
                 <!-- Vehicle Information -->
@@ -906,7 +920,7 @@
                     </div>
                     <div class="file-upload-text">
                         <strong>Click to upload</strong> or drag and drop<br>
-                        Images and videos (Max 10MB each)
+                        Images and videos (Max 100MB each)
                     </div>
                     <input type="file" name="media_files" id="media_files" multiple class="file-input" accept="image/*,video/*">
                 </div>
@@ -925,7 +939,7 @@
                 <button type="submit" class="btn btn-primary" id="save-complaint-button"
                         aria-label="Save {{ selected_complaint_type }} complaint" title="Save {{ selected_complaint_type }} complaint">
                     <i class="fas fa-save"></i>
-                    <span class="btn-label" id="save-complaint-label">Save {% if selected_complaint_type == 'production' %}Production{% elif selected_complaint_type == 'line' %}Line{% else %}Pattern{% endif %} Complaint</span>
+                    <span class="btn-label" id="save-complaint-label">Save {% if selected_complaint_type == 'production' %}Production{% elif selected_complaint_type == 'quality' %}Quality{% elif selected_complaint_type == 'line' %}Factory{% else %}Pattern{% endif %} Complaint</span>
                 </button>
             </div>
         </form>
@@ -1019,12 +1033,60 @@
                 description: 'Manufacturing, material, or stitching defect.',
                 icon: 'fas fa-industry',
             },
+            quality: {
+                label: 'Quality Complaint',
+                description: 'Quality-related complaint using the standard report fields.',
+                icon: 'fas fa-award',
+            },
             line: {
-                label: 'Line Complaint',
+                label: 'Factory Complaint',
                 description: 'Urgent assembly-line fitment issue.',
                 icon: 'fas fa-layer-group',
             },
         };
+
+        let complaintTypeRequestController = null;
+
+        function refreshComplaintTypeOptions(complaintType) {
+            const typeSelect = document.getElementById('id_case_sub_category');
+            if (!typeSelect) return;
+
+            const previousValue = typeSelect.value;
+            typeSelect.innerHTML = '<option value="">Loading types...</option>';
+            typeSelect.disabled = true;
+            complaintTypeRequestController?.abort();
+            complaintTypeRequestController = new AbortController();
+
+            fetch(`/api/complaint-types/${encodeURIComponent(complaintType)}/`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+                signal: complaintTypeRequestController.signal,
+            })
+                .then((response) => {
+                    if (!response.ok) throw new Error(`Type request failed with ${response.status}`);
+                    return response.json();
+                })
+                .then((items) => {
+                    typeSelect.innerHTML = '<option value="">Select Type</option>';
+                    items.forEach((item) => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        typeSelect.appendChild(option);
+                    });
+                    if (items.some((item) => String(item.id) === previousValue)) {
+                        typeSelect.value = previousValue;
+                    }
+                    typeSelect.disabled = false;
+                })
+                .catch((error) => {
+                    if (error.name === 'AbortError') return;
+                    console.error('Error loading complaint types:', error);
+                    typeSelect.innerHTML = '<option value="">Unable to load types</option>';
+                    typeSelect.disabled = false;
+                    showToast('Error loading complaint types', 'error');
+                });
+        }
 
         function syncComplaintTypeRecognition(requestedType) {
             const tabs = Array.from(document.querySelectorAll('.complaint-type-tab'));
@@ -1053,7 +1115,7 @@
             const actionLabel = `Save ${definition.label}`;
 
             if (indicator) {
-                indicator.classList.remove('type-pattern', 'type-production', 'type-line');
+                indicator.classList.remove('type-pattern', 'type-production', 'type-quality', 'type-line');
                 indicator.classList.add(`type-${complaintType}`);
             }
             if (indicatorIcon) indicatorIcon.className = definition.icon;
@@ -1065,6 +1127,7 @@
                 saveButton.title = actionLabel;
             }
             if (savingMessage) savingMessage.textContent = `Saving ${definition.label.toLowerCase()}...`;
+            refreshComplaintTypeOptions(complaintType);
         }
 
         function syncComplaintTypeStickyOffset() {
@@ -1111,13 +1174,23 @@
         }
 
         // Dynamic form loading
+        const dependentDataRequests = new Map();
+
         function loadDependentData(url, targetId, emptyMessage) {
             const targetSelect = document.getElementById(targetId);
+            dependentDataRequests.get(targetId)?.abort();
+            const requestController = new AbortController();
+            dependentDataRequests.set(targetId, requestController);
             targetSelect.innerHTML = `<option value="">${emptyMessage}</option>`;
             targetSelect.disabled = true;
 
-            fetch(url)
-                .then(response => response.json())
+            fetch(url, { signal: requestController.signal })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Dependent data request failed with ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     data.forEach(item => {
                         const option = document.createElement('option');
@@ -1128,8 +1201,16 @@
                     targetSelect.disabled = false;
                 })
                 .catch(error => {
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
                     console.error('Error loading data:', error);
                     showToast('Error loading data', 'error');
+                })
+                .finally(() => {
+                    if (dependentDataRequests.get(targetId) === requestController) {
+                        dependentDataRequests.delete(targetId);
+                    }
                 });
         }
 
@@ -1144,6 +1225,8 @@
             skuSelect.classList.remove('is-invalid');
         }
 
+        let skuRequestController = null;
+
         function refreshSkuOptions() {
             const skuSelect = document.getElementById('id_sku');
             if (!skuSelect) {
@@ -1151,18 +1234,21 @@
             }
 
             const params = new URLSearchParams({
-                country: document.getElementById('id_country')?.value || '',
                 brand: document.getElementById('id_brand')?.value || '',
                 model: document.getElementById('id_model')?.value || '',
                 sub_model: document.getElementById('id_sub_model')?.value || '',
+                year: document.getElementById('id_year')?.value || '',
             });
 
             resetSkuOptions('Loading SKUs...');
             skuSelect.disabled = true;
+            skuRequestController?.abort();
+            skuRequestController = new AbortController();
 
             fetch(`{% url 'get_filtered_skus' %}?${params.toString()}`, {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'same-origin',
+                signal: skuRequestController.signal,
             })
                 .then(response => {
                     if (!response.ok) {
@@ -1185,6 +1271,9 @@
                     skuSelect.disabled = false;
                 })
                 .catch(error => {
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
                     console.error('Error loading SKUs:', error);
                     resetSkuOptions('Select SKU');
                     skuSelect.disabled = false;
@@ -1194,20 +1283,34 @@
 
         document.getElementById('id_brand').addEventListener('change', function () {
             const brandId = this.value;
+            const modelSelect = document.getElementById('id_model');
+            const subModelSelect = document.getElementById('id_sub_model');
+            const yearSelect = document.getElementById('id_year');
             if (brandId) {
                 loadDependentData(`/api/models/${brandId}/`, 'id_model', 'Select Model');
+            } else {
+                modelSelect.innerHTML = '<option value="">Select Model</option>';
+                modelSelect.disabled = true;
             }
-            document.getElementById('id_sub_model').disabled = true;
-            document.getElementById('id_year').disabled = true;
+            subModelSelect.innerHTML = '<option value="">Select Sub-Model (Optional)</option>';
+            subModelSelect.disabled = true;
+            yearSelect.innerHTML = '<option value="">Select Year</option>';
+            yearSelect.disabled = true;
             refreshSkuOptions();
         });
 
         document.getElementById('id_model').addEventListener('change', function () {
             const modelId = this.value;
+            const subModelSelect = document.getElementById('id_sub_model');
+            const yearSelect = document.getElementById('id_year');
             if (modelId) {
                 loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
+            } else {
+                subModelSelect.innerHTML = '<option value="">Select Sub-Model (Optional)</option>';
+                subModelSelect.disabled = true;
             }
-            document.getElementById('id_year').disabled = true;
+            yearSelect.innerHTML = '<option value="">Select Year</option>';
+            yearSelect.disabled = true;
             refreshSkuOptions();
         });
 
@@ -1215,19 +1318,35 @@
             const subModelId = this.value;
             if (subModelId) {
                 loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', 'Select Year');
+            } else {
+                const yearSelect = document.getElementById('id_year');
+                yearSelect.innerHTML = '<option value="">Select Year</option>';
+                yearSelect.disabled = true;
             }
             refreshSkuOptions();
         });
 
         document.getElementById('id_year').addEventListener('change', refreshSkuOptions);
-        document.getElementById('id_country').addEventListener('change', refreshSkuOptions);
 
         // File upload handling
+        const complaintDescriptionInput = document.getElementById('id_complaint_description');
         const addComplaintFileInput = document.getElementById('media_files');
         const addComplaintUploadArea = document.querySelector('.file-upload-area');
         const uploadText = document.querySelector('.file-upload-text');
         const mediaPreviewStrip = document.getElementById('mediaPreviewStrip');
         const defaultUploadText = uploadText ? uploadText.innerHTML : '';
+        const maxMediaFiles = 10;
+        const maxMediaFileSize = 100 * 1024 * 1024;
+        let selectedMediaFiles = [];
+
+        function clearDefaultComplaintDescription() {
+            if (complaintDescriptionInput?.value.trim().toLowerCase() === 'not provided') {
+                complaintDescriptionInput.value = '';
+            }
+        }
+
+        complaintDescriptionInput?.addEventListener('focus', clearDefaultComplaintDescription);
+        complaintDescriptionInput?.addEventListener('click', clearDefaultComplaintDescription);
 
         function clearMediaPreview() {
             if (!mediaPreviewStrip) {
@@ -1281,15 +1400,52 @@
             mediaPreviewStrip.classList.add('has-files');
         }
 
-        addComplaintFileInput.addEventListener('change', function() {
-            const files = this.files;
-            if (files.length > 0) {
+        function mediaFileKey(file) {
+            return [file.name, file.size, file.type, file.lastModified].join('::');
+        }
+
+        function syncSelectedMediaFiles() {
+            const transfer = new DataTransfer();
+            selectedMediaFiles.forEach(file => transfer.items.add(file));
+            addComplaintFileInput.files = transfer.files;
+
+            if (selectedMediaFiles.length) {
                 addComplaintUploadArea.style.borderColor = 'var(--success-color)';
                 addComplaintUploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
                 uploadText.innerHTML =
-                    `<strong>${files.length} file(s) selected</strong><br>Ready to upload`;
-                renderMediaPreview(files);
+                    `<strong>${selectedMediaFiles.length} file(s) selected</strong><br>Ready to upload`;
+            } else {
+                addComplaintUploadArea.style.borderColor = '';
+                addComplaintUploadArea.style.backgroundColor = '';
+                uploadText.innerHTML = defaultUploadText;
             }
+            renderMediaPreview(selectedMediaFiles);
+        }
+
+        addComplaintFileInput.addEventListener('change', function() {
+            const existingKeys = new Set(selectedMediaFiles.map(mediaFileKey));
+            const newFiles = Array.from(this.files);
+            let rejectedForSize = false;
+
+            newFiles.forEach(file => {
+                if (file.size > maxMediaFileSize) {
+                    rejectedForSize = true;
+                    return;
+                }
+                const key = mediaFileKey(file);
+                if (!existingKeys.has(key) && selectedMediaFiles.length < maxMediaFiles) {
+                    selectedMediaFiles.push(file);
+                    existingKeys.add(key);
+                }
+            });
+
+            if (rejectedForSize) {
+                showToast('Each media file must be 100 MB or smaller.', 'error');
+            }
+            if (selectedMediaFiles.length >= maxMediaFiles && newFiles.some(file => !existingKeys.has(mediaFileKey(file)))) {
+                showToast(`A complaint can contain at most ${maxMediaFiles} media files.`, 'error');
+            }
+            syncSelectedMediaFiles();
         });
 
         const clearButton = document.getElementById('clearComplaintForm');
@@ -1306,6 +1462,8 @@
                     if (uploadText) {
                         uploadText.innerHTML = defaultUploadText;
                     }
+                    selectedMediaFiles = [];
+                    addComplaintFileInput.value = '';
                     clearMediaPreview();
                     ['id_model', 'id_sub_model', 'id_year'].forEach((id) => {
                         const select = document.getElementById(id);
