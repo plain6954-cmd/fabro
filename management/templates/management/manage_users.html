@@ -1,0 +1,32 @@
+<h1>Manage Users</h1>
+
+<h2>Create User</h2>
+<form method="POST">{% csrf_token %}
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <select name="group" required>
+        <option value="" disabled selected>Select User Group</option>
+        {% for g in groups %}
+            <option value="{{ g.id }}">{{ g.name }}</option>
+        {% endfor %}
+    </select>
+    <select name="user_type" required>
+        <option value="" disabled selected>Select User Type</option>
+        <option value="ksa">KSA</option>
+        <option value="india">India</option>
+    </select>
+    <button type="submit">Create User</button>
+</form>
+
+<h2>Users</h2>
+<table border="1" cellpadding="5" cellspacing="0">
+    <tr><th>Username</th><th>Group</th><th>User Type</th><th>Actions</th></tr>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.userprofile.group.name if user.userprofile.group else 'None' }}</td>
+        <td>{{ user.userprofile.get_user_type_display }}</td>
+        <td>
+            <form method="POST" style="display:inline;">{% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" name="delete

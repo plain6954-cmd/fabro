@@ -1,0 +1,2905 @@
+import json
+from datetime import date, timedelta
+from io import BytesIO
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.contrib.sessions.models import Session
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework.authtoken.models import Token
+from PIL import Image
+
+from .models import (
+    Brand,
+    ChatMessage,
+    Complaint,
+    ComplaintApproval,
+    ComplaintEditLog,
+    ComplaintMedia,
+    ComplaintTypes,
+    ApprovalRoles,
+    ApprovalStages,
+    DecisionStatuses,
+    FactoryPriorities,
+    MasterSetting,
+    Model,
+    Notification,
+    SKU,
+    SubModel,
+    UserProfile,
+    WorkflowRoles,
+    WorkflowStatuses,
+    YearRange,
+)
+from .services.workflow import (
+    close_complaint_after_execution,
+    complaint_journey_steps,
+    create_approval_round,
+    prepare_complaint_for_create,
+    record_approval_decision,
+    required_approval_roles,
+    start_action_execution,
+    submit_execution_for_verification,
+    submit_factory_review,
+    visible_complaints_for_user,
+)
+from .views import _validate_complaint_media_files, get_sorted_chat_users
+
+
+class FabroBackendTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser(
+            username="backend_test_admin",
+            email="backend@example.com",
+            password="BackendTest!234",
+        )
+        self.client = Client()
+
+        self.channel = MasterSetting.objects.create(category="Channel", name="WhatsApp")
+        self.country = MasterSetting.objects.create(category="Country", name="KSA")
+        self.person = MasterSetting.objects.create(category="Reported By", name="Backend Reporter")
+        self.case_type = MasterSetting.objects.create(
+            category="Pattern Complaint Type",
+            name="Stitching",
+        )
+        self.series = MasterSetting.objects.create(category="Series", name="Luxe")
+        self.material = MasterSetting.objects.create(category="Material", name="Rexin")
+        self.region = MasterSetting.objects.create(category="Region", name="Backend Region")
+        self.sku = SKU.objects.create(code="BACKEND-SKU", description="Backend test SKU", region=self.region)
+        self.brand = Brand.objects.create(name="BACKEND BRAND")
+        self.model = Model.objects.create(brand=self.brand, name="BACKEND MODEL")
+        self.sub_model = SubModel.objects.create(model=self.model, name="BACKEND SUB")
+        self.year = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2024,
+            year_end=2026,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="BACKEND-LAYOUT",
+        )
+
+    def login(self):
+        self.client.force_login(self.user)
+
+    def create_workflow_user(self, username, role, approval_role=''):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username=username,
+            email=f'{username}@example.com',
+            password='WorkflowTest!234',
+        )
+        UserProfile.objects.filter(user=user).update(
+            role=role,
+            approval_role=approval_role,
+            can_receive_factory_assignments=role == WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        return user
+
+    def create_approval_accounts(self, roles, suffix):
+        return {
+            role: self.create_workflow_user(
+                f'{suffix}_{role.lower()}',
+                WorkflowRoles.APPROVER,
+                role,
+            )
+            for role in roles
+        }
+
+    def test_required_approval_roles_follow_the_agreed_priority_matrix(self):
+        self.assertEqual(
+            required_approval_roles(FactoryPriorities.LOW),
+            [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD],
+        )
+        self.assertEqual(
+            required_approval_roles(FactoryPriorities.MEDIUM),
+            [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED],
+        )
+        self.assertEqual(
+            required_approval_roles(FactoryPriorities.TOP),
+            [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD],
+        )
+
+    def test_protected_routes_redirect_anonymous_users(self):
+        for route_name in ["index", "complaint_list", "add_complaint", "car_details", "add_sku", "master_settings", "profile_settings"]:
+            response = self.client.get(reverse(route_name))
+            self.assertEqual(response.status_code, 302, route_name)
+            self.assertIn("/login/", response["Location"])
+
+    def test_health_endpoint_and_security_headers(self):
+        response = self.client.get(reverse('health_check'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+        self.assertIn('Content-Security-Policy', response.headers)
+        self.assertIn('Permissions-Policy', response.headers)
+
+    @override_settings(
+        LOGIN_MAX_ATTEMPTS=2,
+        LOGIN_RATE_WINDOW_SECONDS=60,
+        LOGIN_LOCKOUT_SECONDS=60,
+    )
+    def test_web_login_is_rate_limited(self):
+        cache.clear()
+        payload = {'username': self.user.username, 'password': 'wrong-password'}
+        self.assertEqual(self.client.post(reverse('login'), payload).status_code, 200)
+        self.assertEqual(self.client.post(reverse('login'), payload).status_code, 200)
+        self.assertEqual(self.client.post(reverse('login'), payload).status_code, 429)
+        cache.clear()
+
+    def test_dashboard_and_main_pages_render_for_authenticated_user(self):
+        self.login()
+        for route_name in ["index", "complaint_list", "add_complaint", "car_details", "add_sku", "master_settings", "profile_settings"]:
+            response = self.client.get(reverse(route_name))
+            self.assertEqual(response.status_code, 200, route_name)
+
+    def test_add_complaint_recognition_defaults_and_preserves_submitted_type(self):
+        self.login()
+
+        default_response = self.client.get(reverse('add_complaint'))
+        self.assertContains(default_response, 'id="complaint-type-indicator"')
+        self.assertContains(default_response, 'Pattern Complaint')
+        self.assertContains(default_response, 'Save Pattern Complaint')
+        self.assertContains(default_response, 'FACTORY COMPLAINT')
+        self.assertNotContains(default_response, 'LINE COMPLAINT')
+        self.assertNotContains(default_response, 'id="id_person"')
+        self.assertNotContains(default_response, 'id="id_country"')
+        self.assertContains(default_response, 'https://flagcdn.com/w40/in.png')
+
+        master_response = self.client.get(reverse('master_settings'))
+        self.assertEqual(master_response.status_code, 200)
+        self.assertNotContains(master_response, '>Reported By<', html=False)
+        self.assertNotIn('Reported By', master_response.context['master_settings'])
+        self.assertNotIn('Country', master_response.context['master_settings'])
+
+        invalid_production_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PRODUCTION,
+        })
+        self.assertEqual(invalid_production_response.status_code, 200)
+        self.assertEqual(
+            invalid_production_response.context['selected_complaint_type'],
+            ComplaintTypes.PRODUCTION,
+        )
+        self.assertContains(invalid_production_response, 'type-production')
+        self.assertContains(invalid_production_response, 'Save Production Complaint')
+
+        invalid_quality_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.QUALITY,
+        })
+        self.assertEqual(invalid_quality_response.status_code, 200)
+        self.assertEqual(
+            invalid_quality_response.context['selected_complaint_type'],
+            ComplaintTypes.QUALITY,
+        )
+        self.assertContains(invalid_quality_response, 'id="complaint-type-quality"')
+        self.assertContains(invalid_quality_response, 'Save Quality Complaint')
+
+    def test_complaint_type_master_catalogs_are_independent_and_enforced(self):
+        production_type = MasterSetting.objects.create(
+            category='Production Complaint Type',
+            name='Stitching',
+        )
+        quality_type = MasterSetting.objects.create(
+            category='Quality Complaint Type',
+            name='Surface Inspection',
+        )
+        factory_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Installation Fitment',
+        )
+        self.login()
+
+        master_response = self.client.get(reverse('master_settings'))
+        self.assertEqual(master_response.status_code, 200)
+        for category in (
+            'Pattern Complaint Type',
+            'Production Complaint Type',
+            'Quality Complaint Type',
+            'Factory Complaint Type',
+        ):
+            self.assertIn(category, master_response.context['master_settings'])
+        self.assertNotIn('Type', master_response.context['master_settings'])
+
+        expected_options = {
+            ComplaintTypes.PATTERN: [self.case_type.name],
+            ComplaintTypes.PRODUCTION: [production_type.name],
+            ComplaintTypes.QUALITY: [quality_type.name],
+            ComplaintTypes.LINE: [factory_type.name],
+        }
+        for complaint_type, expected_names in expected_options.items():
+            response = self.client.get(
+                reverse('get_complaint_type_options', args=[complaint_type])
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual([item['name'] for item in response.json()], expected_names)
+
+        mismatched_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PRODUCTION,
+            'status': 'Open',
+            'priority': 'Medium',
+            'case_sub_category': self.case_type.id,
+            'complaint_description': 'Wrong catalog must be rejected',
+            'batch_order': 'TYPE-MISMATCH-WEB',
+        })
+        self.assertEqual(mismatched_response.status_code, 200)
+        self.assertFormError(
+            mismatched_response.context['form'],
+            'case_sub_category',
+            'Select a valid choice. That choice is not one of the available choices.',
+        )
+        self.assertFalse(Complaint.objects.filter(batch_order='TYPE-MISMATCH-WEB').exists())
+
+        valid_response = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PRODUCTION,
+            'status': 'Open',
+            'priority': 'Medium',
+            'case_sub_category': production_type.id,
+            'complaint_description': 'Correct production catalog',
+            'batch_order': 'TYPE-PRODUCTION-WEB',
+        })
+        self.assertEqual(valid_response.status_code, 302)
+        complaint = Complaint.objects.get(batch_order='TYPE-PRODUCTION-WEB')
+        self.assertEqual(complaint.complaint_type, ComplaintTypes.PRODUCTION)
+        self.assertEqual(complaint.case_sub_category, production_type)
+
+        token = Token.objects.create(user=self.user)
+        api_response = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.QUALITY,
+                'case_sub_category': production_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Wrong API catalog',
+                'batch_order': 'TYPE-MISMATCH-API',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(api_response.status_code, 400)
+        self.assertIn('case_sub_category', api_response.json())
+
+    def test_complaint_create_edit_delete_and_media_fallback(self):
+        self.login()
+        upload = SimpleUploadedFile("backend-test.png", b"fake-png", content_type="image/png")
+        video_upload = SimpleUploadedFile("backend-video.mp4", b"fake-video", content_type="video/mp4")
+        response = self.client.post(reverse("add_complaint"), {
+            "status": "Open",
+            "priority": "Medium",
+            "channel": self.channel.id,
+            "country": self.country.id,
+            "case_sub_category": self.case_type.id,
+            "series": self.series.id,
+            "material": self.material.id,
+            "sku": self.sku.id,
+            "brand": self.brand.id,
+            "model": self.model.id,
+            "sub_model": self.sub_model.id,
+            "year": self.year.id,
+            "complaint_description": "Backend complaint",
+            "batch_order": "BATCH-1",
+            "media_files": [upload, video_upload],
+        })
+        self.assertEqual(response.status_code, 302)
+        complaint = Complaint.objects.get(complaint_description="Backend complaint")
+        self.assertEqual(complaint.created_by, self.user)
+        self.assertIsNone(complaint.person)
+        self.assertEqual(complaint.country.name, 'India')
+        self.assertEqual(complaint.media_files.count(), 2)
+        media = complaint.media_files.first()
+        self.assertTrue(media.file.startswith("complaint_media/"))
+        self.assertTrue(media.url.startswith("/media/"))
+        self.assertTrue(media.is_available)
+
+        response = self.client.post(reverse("edit_complaint", args=[complaint.complaint_id]), {
+            "status": "Closed",
+            "priority": "High",
+            "complaint_description": "Backend complaint updated",
+            "batch_order": "BATCH-2",
+        })
+        self.assertEqual(response.status_code, 302)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.status, "Open")
+        self.assertEqual(complaint.priority, "High")
+
+        response = self.client.post(reverse("delete_complaint", args=[complaint.complaint_id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Complaint.objects.filter(complaint_id=complaint.complaint_id).exists())
+
+    @patch('management.signals.default_storage.delete')
+    def test_admin_can_delete_complaint_when_video_file_is_locked(self, storage_delete):
+        self.login()
+        storage_delete.side_effect = PermissionError(
+            32,
+            'The process cannot access the file because it is being used by another process.',
+        )
+        complaint = Complaint.objects.create(
+            date='2026-08-30',
+            status='Open',
+            priority='Medium',
+            complaint_description='Locked video cleanup regression.',
+            batch_order='LOCKED-VIDEO',
+        )
+        ComplaintMedia.objects.create(
+            complaint=complaint,
+            file=f'complaint_media/complaint_{complaint.complaint_id}/locked-video.mov',
+        )
+
+        with self.assertLogs('management.signals', level='WARNING'):
+            response = self.client.post(
+                reverse('delete_complaint', args=[complaint.complaint_id]),
+                follow=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, reverse('complaint_list'))
+        self.assertContains(response, 'id="flash-messages" hidden')
+        self.assertContains(response, 'Complaint deleted successfully.')
+        self.assertFalse(Complaint.objects.filter(pk=complaint.complaint_id).exists())
+        storage_delete.assert_called_once()
+
+    def test_complaint_media_accepts_100_mb_and_rejects_larger_files(self):
+        class UploadedMediaStub:
+            def __init__(self, size):
+                self.name = 'factory-video.mp4'
+                self.content_type = 'video/mp4'
+                self.size = size
+
+        _validate_complaint_media_files([UploadedMediaStub(100 * 1024 * 1024)])
+        with self.assertRaisesMessage(ValidationError, 'file size exceeds 100 MB'):
+            _validate_complaint_media_files([UploadedMediaStub((100 * 1024 * 1024) + 1)])
+
+    def test_vehicle_sku_and_master_crud_routes(self):
+        self.login()
+        response = self.client.post(reverse("car_details"), {
+            "layout_code": "BACKEND-NEW-CAR",
+            "brand_name": "BACKEND NEW BRAND",
+            "model_name": "BACKEND NEW MODEL",
+            "sub_model_name": "BACKEND NEW SUB",
+            "year_start": 2020,
+            "year_end": 2022,
+            "number_of_seats": 5,
+            "number_of_doors": 4,
+        })
+        self.assertEqual(response.status_code, 302)
+        new_year = YearRange.objects.get(layout_code="BACKEND-NEW-CAR")
+
+        response = self.client.post(reverse("add_sku"), {
+            "add_sku": "1",
+            "code": "BACKEND-NEW-SKU",
+            "description": "New SKU",
+            "region": self.region.id,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(SKU.objects.filter(code="BACKEND-NEW-SKU").exists())
+
+        response = self.client.post(reverse("master_settings"), {
+            "category": "Channel",
+            "name": "Backend Channel",
+        })
+        self.assertEqual(response.status_code, 302)
+        setting = MasterSetting.objects.get(name="Backend Channel")
+
+        response = self.client.post(reverse("delete_master_setting", args=[setting.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(MasterSetting.objects.filter(id=setting.id).exists())
+
+        response = self.client.post(reverse("delete_car_detail", args=[new_year.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(YearRange.objects.filter(id=new_year.id).exists())
+
+    def test_catalog_search_filtering(self):
+        user = self.create_workflow_user("audit_country", "country_executive")
+        self.client.force_login(user)
+        # Create test vehicles and SKUs
+        brand1 = Brand.objects.create(name="Toyota")
+        model1 = Model.objects.create(brand=brand1, name="Camry")
+        sub_model1 = SubModel.objects.create(model=model1, name="Hybrid")
+        yr1 = YearRange.objects.create(
+            sub_model=sub_model1,
+            year_start=2021,
+            year_end=2023,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="CAMRY-HYBRID"
+        )
+
+        brand2 = Brand.objects.create(name="Ford")
+        model2 = Model.objects.create(brand=brand2, name="Mustang")
+        sub_model2 = SubModel.objects.create(model=model2, name="GT")
+        yr2 = YearRange.objects.create(
+            sub_model=sub_model2,
+            year_start=2022,
+            year_end=2024,
+            number_of_seats=4,
+            number_of_doors=2,
+            layout_code="MUSTANG-GT"
+        )
+
+        sku1 = SKU.objects.create(code="TOY-123", description="Toyota part", region=self.region)
+        sku2 = SKU.objects.create(code="FRD-456", description="Ford part", region=self.region)
+
+        # Test SKU search by code
+        response = self.client.get(reverse("add_sku"), {"search": "TOY", "column": "code"})
+        self.assertContains(response, "TOY-123")
+        self.assertNotContains(response, "FRD-456")
+
+        # Test SKU search by description
+        response = self.client.get(reverse("add_sku"), {"search": "Ford", "column": "description"})
+        self.assertContains(response, "FRD-456")
+        self.assertNotContains(response, "TOY-123")
+
+        # Test SKU search all columns
+        response = self.client.get(reverse("add_sku"), {"search": "part", "column": "all"})
+        self.assertContains(response, "TOY-123")
+        self.assertContains(response, "FRD-456")
+
+        # Test Vehicle search by layout_code
+        response = self.client.get(reverse("car_details"), {"search": "MUSTANG", "column": "layout_code"})
+        self.assertContains(response, "MUSTANG-GT")
+        self.assertNotContains(response, "CAMRY-HYBRID")
+
+        # Test Vehicle search by brand
+        response = self.client.get(reverse("car_details"), {"search": "Toyota", "column": "brand"})
+        self.assertContains(response, "CAMRY-HYBRID")
+        self.assertNotContains(response, "MUSTANG-GT")
+
+        # Scoped catalog search must be available to every signed-in user, not
+        # only the account that originally received the interface rollout.
+        regular_user = self.create_workflow_user("catalog_search_user", "country_executive")
+        self.client.force_login(regular_user)
+
+        response = self.client.get(reverse("add_sku"), {"search": "Ford", "column": "description"})
+        self.assertTrue(response.context["scoped_search_enabled"])
+        self.assertContains(response, 'id="skuSearchDropdown"')
+        self.assertContains(response, "FRD-456")
+        self.assertNotContains(response, "TOY-123")
+
+        response = self.client.get(reverse("car_details"), {"search": "Toyota", "column": "brand"})
+        self.assertTrue(response.context["scoped_search_enabled"])
+        self.assertContains(response, 'id="vehicleSearchDropdown"')
+        self.assertContains(response, "CAMRY-HYBRID")
+        self.assertNotContains(response, "MUSTANG-GT")
+
+        response = self.client.get(reverse("complaint_list"))
+        self.assertContains(
+            response,
+            f'href="{reverse("add_complaint")}" class="btn btn-primary icon-btn"',
+        )
+        self.assertNotContains(response, "Add Complaint\n                </a>")
+
+    def test_vehicle_csv_validation_does_not_raise_server_errors(self):
+        self.login()
+        missing_headers = SimpleUploadedFile(
+            'missing-columns.csv',
+            b'brand,model\nFABRO,TEST\n',
+            content_type='text/csv',
+        )
+        response = self.client.post(reverse('upload_car_csv'), {'csv_file': missing_headers})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Missing required CSV columns')
+
+        malformed_row = SimpleUploadedFile(
+            'malformed-row.csv',
+            (
+                b'brand,model,sub_model,year_start,year_end,number_of_seats,'
+                b'number_of_doors,layout_code\n'
+                b'MALFORMED BRAND,MODEL,SUB,not-a-year,2026,5,4,MALFORMED-LAYOUT\n'
+            ),
+            content_type='text/csv',
+        )
+        response = self.client.post(reverse('upload_car_csv'), {'csv_file': malformed_row})
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(YearRange.objects.filter(layout_code='MALFORMED-LAYOUT').exists())
+
+    def test_dropdown_json_endpoints(self):
+        self.login()
+        response = self.client.get(reverse("get_models", args=[self.brand.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["name"], "BACKEND MODEL")
+
+        response = self.client.get(reverse("get_sub_models", args=[self.model.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["name"], "BACKEND SUB")
+
+        response = self.client.get(reverse("get_year_ranges", args=[self.sub_model.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["range"], "24-26")
+
+    def test_sku_filter_includes_selected_vehicle_year(self):
+        self.login()
+        matching_sku = SKU.objects.create(
+            code='BACKEND-24260',
+            description='BACKEND BRAND BACKEND MODEL BACKEND SUB 24-26',
+            region=self.region,
+        )
+        SKU.objects.create(
+            code='BACKEND-20230',
+            description='BACKEND BRAND BACKEND MODEL BACKEND SUB 20-23',
+            region=self.region,
+        )
+
+        response = self.client.get(reverse('get_filtered_skus'), {
+            'brand': self.brand.id,
+            'model': self.model.id,
+            'sub_model': self.sub_model.id,
+            'year': self.year.id,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [sku['id'] for sku in response.json()],
+            [matching_sku.id],
+        )
+
+    def test_export_complaints_csv(self):
+        self.login()
+        Complaint.objects.create(
+            date="2026-07-02",
+            status="Open",
+            priority="Medium",
+            complaint_description="CSV complaint",
+            batch_order="CSV-BATCH",
+        )
+        response = self.client.get(reverse("export_complaints"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv")
+        self.assertIn(b"CSV complaint", response.content)
+
+    def test_api_register_is_disabled_by_default(self):
+        response = self.client.post(
+            reverse("api_register"),
+            data=json.dumps({
+                "username": "blocked_mobile_user",
+                "email": "blocked@example.com",
+                "password": "MobileUser!234",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(get_user_model().objects.filter(username="blocked_mobile_user").exists())
+
+    @override_settings(ALLOW_PUBLIC_REGISTRATION=True)
+    def test_api_register_never_grants_staff_or_superuser(self):
+        User = get_user_model()
+        response = self.client.post(
+            reverse("api_register"),
+            data=json.dumps({
+                "username": "mobile_regular_user",
+                "email": "mobile@example.com",
+                "password": "MobileUser!234",
+                "is_staff": True,
+                "is_superuser": True,
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        created_user = User.objects.get(username="mobile_regular_user")
+        self.assertFalse(created_user.is_staff)
+        self.assertFalse(created_user.is_superuser)
+
+    def test_destructive_catalog_routes_reject_get(self):
+        self.login()
+        for route_name, object_id in [
+            ("delete_car_detail", self.year.id),
+            ("delete_sku", self.sku.id),
+            ("delete_master_setting", self.channel.id),
+        ]:
+            response = self.client.get(reverse(route_name, args=[object_id]))
+            self.assertEqual(response.status_code, 405, route_name)
+
+    def test_non_admin_cannot_delete_complaints_or_write_catalog_api(self):
+        User = get_user_model()
+        viewer = User.objects.create_user(
+            username="read_only_factory_user",
+            password="ReadOnly!234",
+        )
+        complaint = Complaint.objects.create(
+            date="2026-07-10",
+            status="Open",
+            priority="Medium",
+            complaint_description="Protected complaint",
+            batch_order="PROTECTED",
+        )
+        self.client.force_login(viewer)
+        response = self.client.post(reverse("delete_complaint", args=[complaint.complaint_id]))
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Complaint.objects.filter(pk=complaint.pk).exists())
+
+        token, _ = Token.objects.get_or_create(user=viewer)
+        response = self.client.post(
+            reverse("api_skus_list_create"),
+            data=json.dumps({"code": "FORBIDDEN-SKU"}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_factory_viewer_cannot_edit_the_original_report_step(self):
+        User = get_user_model()
+        viewer = User.objects.create_user(
+            username="factory_report_viewer",
+            password="ReadOnly!234",
+        )
+        complaint = Complaint.objects.create(
+            date="2026-07-10",
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            status="Open",
+            priority="Medium",
+            complaint_description="Read-only reporter step",
+            batch_order="READ-ONLY",
+        )
+
+        self.client.force_login(viewer)
+        response = self.client.get(reverse("edit_complaint", args=[complaint.complaint_id]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("complaint_list"))
+
+    def test_missing_legacy_media_is_not_exposed_as_available(self):
+        complaint = Complaint.objects.create(
+            date="2026-07-10",
+            status="Open",
+            priority="Medium",
+            complaint_description="Legacy media",
+            batch_order="LEGACY-MEDIA",
+        )
+        media = ComplaintMedia.objects.create(
+            complaint=complaint,
+            file="complaint_media/missing/legacy-image.jpg",
+        )
+
+        self.assertFalse(media.is_available)
+        self.assertEqual(media.url, "/media/complaint_media/missing/legacy-image.jpg")
+
+    def test_invalid_complaint_search_field_does_not_raise_server_error(self):
+        self.login()
+        response = self.client.get(reverse("complaint_list"), {
+            "search": "test",
+            "search_by": "created_by__password",
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_complaint_search_does_not_submit_none_for_blank_filters(self):
+        self.login()
+
+        response = self.client.get(reverse('complaint_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'value="None"', html=False)
+
+    def test_api_profile_can_be_viewed_and_updated_with_token(self):
+        token, _ = Token.objects.get_or_create(user=self.user)
+        response = self.client.patch(
+            reverse("api_profile"),
+            data=json.dumps({
+                "first_name": "Fabro",
+                "last_name": "Tester",
+                "email": "updated-backend@example.com",
+            }),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Fabro")
+        self.assertEqual(self.user.last_name, "Tester")
+        self.assertEqual(self.user.email, "updated-backend@example.com")
+        self.assertTrue(response.json()["is_staff"])
+
+    def test_api_dashboard_requires_auth_and_returns_stats(self):
+        anonymous_response = self.client.get(reverse("api_dashboard"))
+        self.assertIn(anonymous_response.status_code, [401, 403])
+
+        Complaint.objects.create(date="2026-07-08", status="Open", priority="Medium", complaint_description="Open API complaint")
+        Complaint.objects.create(date="2026-07-08", status="Closed", priority="Medium", complaint_description="Closed API complaint")
+        Complaint.objects.create(date="2026-07-08", status="On Hold", priority="High", complaint_description="Hold API complaint")
+
+        token, _ = Token.objects.get_or_create(user=self.user)
+        response = self.client.get(
+            reverse("api_dashboard"),
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["total_complaints"], 3)
+        self.assertEqual(data["open_complaints"], 1)
+        self.assertEqual(data["closed_complaints"], 1)
+        self.assertEqual(data["on_hold_complaints"], 1)
+        self.assertEqual(data["total_vehicles"], 1)
+        self.assertEqual(data["total_skus"], 1)
+        self.assertEqual(data["total_settings"], 7)
+        self.assertEqual(data["total_master_settings"], 7)
+
+    def test_country_executive_sees_own_country_pattern_production_and_quality_complaints(self):
+        User = get_user_model()
+        country_user = User.objects.create_user(
+            username="ksa_country_exec",
+            email="ksa.exec@example.com",
+            password="CountryExec!234",
+        )
+        UserProfile.objects.filter(user=country_user).update(
+            role=WorkflowRoles.COUNTRY_EXECUTIVE,
+            country=self.country,
+        )
+        other_country = MasterSetting.objects.create(category="Country", name="UAE")
+
+        own_pattern = Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            status="Open",
+            priority="Medium",
+            complaint_description="Own country pattern complaint",
+            batch_order="OWN-PATTERN",
+        )
+        own_production = Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            status="Open",
+            priority="Medium",
+            complaint_description="Own country production complaint",
+            batch_order="OWN-PRODUCTION",
+        )
+        own_quality = Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.QUALITY,
+            status="Open",
+            priority="Medium",
+            complaint_description="Own country quality complaint",
+            batch_order="OWN-QUALITY",
+        )
+        Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.LINE,
+            status="Open",
+            priority="Medium",
+            complaint_description="Hidden line complaint",
+            batch_order="HIDDEN-LINE",
+        )
+        Complaint.objects.create(
+            date="2026-07-09",
+            country=other_country,
+            complaint_type=ComplaintTypes.PATTERN,
+            status="Open",
+            priority="Medium",
+            complaint_description="Hidden other country complaint",
+            batch_order="HIDDEN-COUNTRY",
+        )
+
+        visible_ids = set(
+            visible_complaints_for_user(country_user).values_list("complaint_id", flat=True)
+        )
+
+        self.assertEqual(
+            visible_ids,
+            {own_pattern.complaint_id, own_production.complaint_id, own_quality.complaint_id},
+        )
+        self.assertTrue(own_quality.complaint_id.startswith('QUA-'))
+
+    def test_factory_executive_sees_only_assigned_complaints_and_unknown_roles_fail_closed(self):
+        factory_user = self.create_workflow_user(
+            'scoped_factory',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        other_factory = self.create_workflow_user(
+            'other_factory',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        factory_user = get_user_model().objects.get(pk=factory_user.pk)
+        other_factory = get_user_model().objects.get(pk=other_factory.pk)
+        assigned = Complaint.objects.create(
+            date='2026-07-09',
+            assigned_factory_executive=factory_user,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            complaint_description='Assigned factory complaint',
+            batch_order='FACTORY-ASSIGNED',
+        )
+        hidden = Complaint.objects.create(
+            date='2026-07-09',
+            assigned_factory_executive=other_factory,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            complaint_description='Other factory complaint',
+            batch_order='FACTORY-HIDDEN',
+        )
+
+        visible_ids = set(
+            visible_complaints_for_user(factory_user).values_list('complaint_id', flat=True)
+        )
+        self.assertEqual(visible_ids, {assigned.complaint_id})
+
+        token = Token.objects.create(user=factory_user)
+        response = self.client.get(
+            reverse('api_complaint_detail', args=[hidden.complaint_id]),
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(response.status_code, 404)
+
+        UserProfile.objects.filter(user=factory_user).update(role='unexpected_role')
+        unconfigured_user = get_user_model().objects.get(pk=factory_user.pk)
+        self.assertFalse(visible_complaints_for_user(unconfigured_user).exists())
+
+    def test_country_executive_api_forces_own_country_and_rejects_line_complaints(self):
+        User = get_user_model()
+        country_user = User.objects.create_user(
+            username='api_country_exec',
+            email='api.country@example.com',
+            password='CountryExec!234',
+        )
+        UserProfile.objects.filter(user=country_user).update(
+            role=WorkflowRoles.COUNTRY_EXECUTIVE,
+            country=self.country,
+        )
+        other_country = MasterSetting.objects.create(category='Country', name='API UAE')
+        token = Token.objects.create(user=country_user)
+        headers = {'HTTP_AUTHORIZATION': f'Token {token.key}'}
+        payload = {
+            'date': '2026-07-09',
+            'country': other_country.id,
+            'person': self.person.id,
+            'case_sub_category': self.case_type.id,
+            'priority': 'Medium',
+            'complaint_description': 'Country must be forced by the API',
+            'batch_order': 'API-COUNTRY-FORCE',
+        }
+
+        response = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps(payload),
+            content_type='application/json',
+            **headers,
+        )
+        self.assertEqual(response.status_code, 201)
+        complaint = Complaint.objects.get(complaint_description=payload['complaint_description'])
+        self.assertEqual(complaint.country, self.country)
+        self.assertEqual(complaint.created_by, country_user)
+        self.assertIsNone(complaint.person)
+        self.assertEqual(response.json()['reported_by_name'], country_user.username)
+
+        line_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Factory Complaint',
+        )
+        payload.update({
+            'case_sub_category': line_type.id,
+            'complaint_description': 'Country line attempt',
+            'batch_order': 'API-LINE-BLOCKED',
+        })
+        response = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps(payload),
+            content_type='application/json',
+            **headers,
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Complaint.objects.filter(batch_order='API-LINE-BLOCKED').exists())
+
+    def test_reporting_country_flags_follow_role_and_non_country_api_uses_india(self):
+        country_user = self.create_workflow_user(
+            'flag_country_exec',
+            WorkflowRoles.COUNTRY_EXECUTIVE,
+        )
+        UserProfile.objects.filter(user=country_user).update(country=self.country)
+        country_user.workflow_profile.refresh_from_db()
+        self.assertEqual(
+            country_user.workflow_profile.country_flag_url,
+            'https://flagcdn.com/w40/sa.png',
+        )
+
+        factory_user = self.create_workflow_user(
+            'india_factory_exec',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        self.assertEqual(
+            factory_user.workflow_profile.country_flag_url,
+            'https://flagcdn.com/w40/in.png',
+        )
+        token = Token.objects.create(user=factory_user)
+        response = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'country': self.country.id,
+                'case_sub_category': self.case_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Non-country API reports under India',
+                'batch_order': 'API-INDIA-FORCE',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        complaint = Complaint.objects.get(batch_order='API-INDIA-FORCE')
+        self.assertEqual(complaint.country.name, 'India')
+        self.assertEqual(response.json()['country_name'], 'India')
+
+    def test_country_executive_complaint_list_hides_line_and_other_country_records(self):
+        User = get_user_model()
+        country_user = User.objects.create_user(
+            username="portal_country_exec",
+            email="portal.exec@example.com",
+            password="CountryExec!234",
+        )
+        UserProfile.objects.filter(user=country_user).update(
+            role=WorkflowRoles.COUNTRY_EXECUTIVE,
+            country=self.country,
+        )
+        other_country = MasterSetting.objects.create(category="Country", name="QATAR")
+
+        Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            status="Open",
+            priority="Medium",
+            complaint_description="Visible production complaint",
+            batch_order="VISIBLE-PRODUCTION",
+        )
+        Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.LINE,
+            status="Open",
+            priority="Medium",
+            complaint_description="Invisible line complaint",
+            batch_order="INVISIBLE-LINE",
+        )
+        Complaint.objects.create(
+            date="2026-07-09",
+            country=other_country,
+            complaint_type=ComplaintTypes.PATTERN,
+            status="Open",
+            priority="Medium",
+            complaint_description="Invisible country complaint",
+            batch_order="INVISIBLE-COUNTRY",
+        )
+
+        self.client.force_login(country_user)
+        response = self.client.get(reverse("complaint_list"))
+
+        self.assertContains(response, "Visible production complaint")
+        self.assertNotContains(response, "Invisible line complaint")
+        self.assertNotContains(response, "Invisible country complaint")
+
+    def test_dashboard_replaces_master_stat_with_scoped_monthly_summary_for_non_admins(self):
+        country_user = self.create_workflow_user(
+            'monthly_country_exec',
+            WorkflowRoles.COUNTRY_EXECUTIVE,
+        )
+        UserProfile.objects.filter(user=country_user).update(country=self.country)
+        other_country = MasterSetting.objects.create(category='Country', name='MONTHLY-UAE')
+        today = timezone.localdate()
+
+        Complaint.objects.create(
+            date=today,
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            status='Open',
+            priority='Medium',
+            complaint_description='Visible monthly complaint',
+            batch_order='MONTHLY-OPEN',
+        )
+        Complaint.objects.create(
+            date=today,
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.CLOSED,
+            status='Closed',
+            priority='Low',
+            complaint_description='Visible resolved complaint',
+            batch_order='MONTHLY-CLOSED',
+            closed_at=timezone.now(),
+        )
+        Complaint.objects.create(
+            date=today,
+            country=other_country,
+            complaint_type=ComplaintTypes.PATTERN,
+            status='Open',
+            priority='Medium',
+            complaint_description='Other country monthly complaint',
+            batch_order='MONTHLY-HIDDEN',
+        )
+
+        self.client.force_login(country_user)
+        response = self.client.get(reverse('index'))
+
+        self.assertEqual(response.context['complaints_this_month'], 2)
+        self.assertEqual(response.context['resolved_this_month'], 1)
+        self.assertContains(response, '<div class="stat-card-compact monthly-stats-card">', html=False)
+        self.assertContains(response, 'This Month')
+
+        self.client.force_login(self.user)
+        admin_response = self.client.get(reverse('index'))
+        self.assertContains(admin_response, reverse('master_settings'))
+        self.assertNotContains(
+            admin_response,
+            '<div class="stat-card-compact monthly-stats-card">',
+            html=False,
+        )
+
+    def test_dashboard_complaint_type_summary_links_apply_real_filters(self):
+        viewer = self.create_workflow_user('type_summary_viewer', WorkflowRoles.FACTORY_VIEWER)
+        for complaint_type, batch_order in [
+            (ComplaintTypes.LINE, 'TYPE-LINE'),
+            (ComplaintTypes.PATTERN, 'TYPE-PATTERN'),
+            (ComplaintTypes.PRODUCTION, 'TYPE-PRODUCTION'),
+            (ComplaintTypes.QUALITY, 'TYPE-QUALITY'),
+        ]:
+            Complaint.objects.create(
+                date='2026-07-16',
+                country=self.country,
+                complaint_type=complaint_type,
+                status='Open',
+                priority='Medium',
+                complaint_description=f'{complaint_type} summary complaint',
+                batch_order=batch_order,
+            )
+
+        self.client.force_login(viewer)
+        dashboard = self.client.get(reverse('index'))
+
+        self.assertEqual(dashboard.context['line_complaints'], 1)
+        self.assertEqual(dashboard.context['pattern_complaints'], 1)
+        self.assertEqual(dashboard.context['production_complaints'], 1)
+        self.assertEqual(dashboard.context['quality_complaints'], 1)
+        self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=line')
+        self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=pattern')
+        self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=production')
+        self.assertContains(dashboard, f'{reverse("complaint_list")}?complaint_type=quality')
+
+        line_response = self.client.get(reverse('complaint_list'), {'complaint_type': ComplaintTypes.LINE})
+        self.assertEqual(line_response.context['selected_complaint_type'], ComplaintTypes.LINE)
+        self.assertEqual(len(line_response.context['complaints']), 1)
+        self.assertEqual(line_response.context['complaints'][0].complaint_type, ComplaintTypes.LINE)
+        self.assertEqual(line_response.context['complaints'][0].get_complaint_type_display(), 'Factory Complaint')
+
+    def test_visible_complaints_preserves_an_empty_supplied_queryset(self):
+        empty_ordered_queryset = Complaint.objects.filter(
+            batch_order='DOES-NOT-EXIST',
+        ).order_by('-complaint_id')
+
+        visible = visible_complaints_for_user(self.user, empty_ordered_queryset)
+
+        self.assertTrue(visible.ordered)
+        self.assertFalse(visible.exists())
+
+    def test_factory_review_requires_mandatory_fields(self):
+        User = get_user_model()
+        factory_user = User.objects.create_user(
+            username="factory_exec_required",
+            email="factory.required@example.com",
+            password="FactoryExec!234",
+        )
+        UserProfile.objects.filter(user=factory_user).update(
+            role=WorkflowRoles.FACTORY_EXECUTIVE,
+            can_receive_factory_assignments=True,
+        )
+        complaint = Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.ASSIGNED_TO_FACTORY,
+            assigned_factory_executive=factory_user,
+            status="Open",
+            priority="Medium",
+            complaint_description="Needs factory review validation",
+            batch_order="FACTORY-VALIDATION",
+        )
+
+        self.client.force_login(factory_user)
+        response = self.client.post(reverse("factory_review_complaint", args=[complaint.complaint_id]), {
+            "factory_reason": "",
+            "factory_action_plan": "",
+            "factory_priority": "",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required")
+        self.assertFalse(ComplaintApproval.objects.filter(complaint=complaint).exists())
+
+    def test_factory_review_submission_creates_parallel_approval_round(self):
+        User = get_user_model()
+        factory_user = User.objects.create_user(
+            username="factory_exec_submit",
+            email="factory.submit@example.com",
+            password="FactoryExec!234",
+        )
+        UserProfile.objects.filter(user=factory_user).update(
+            role=WorkflowRoles.FACTORY_EXECUTIVE,
+            can_receive_factory_assignments=True,
+        )
+
+        for role in [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED]:
+            approver = User.objects.create_user(
+                username=f"approver_{role.lower()}",
+                email=f"{role.lower()}@example.com",
+                password="Approver!234",
+            )
+            UserProfile.objects.filter(user=approver).update(
+                role=WorkflowRoles.APPROVER,
+                approval_role=role,
+            )
+
+        complaint = Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.ASSIGNED_TO_FACTORY,
+            assigned_factory_executive=factory_user,
+            status="Open",
+            priority="Medium",
+            complaint_description="Needs factory review submit",
+            batch_order="FACTORY-SUBMIT",
+        )
+
+        self.client.force_login(factory_user)
+        response = self.client.post(reverse("factory_review_complaint", args=[complaint.complaint_id]), {
+            "factory_reason": "Seat pattern measurement mismatch found in side panel.",
+            "factory_action_plan": "Revise pattern allowance and send corrected CAD for approval.",
+            "factory_priority": FactoryPriorities.MEDIUM,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.AWAITING_APPROVAL)
+        self.assertEqual(complaint.factory_priority, FactoryPriorities.MEDIUM)
+        self.assertEqual(complaint.justification_from_factory, complaint.factory_reason)
+        self.assertEqual(complaint.action_from_factory, complaint.factory_action_plan)
+        self.assertIsNotNone(complaint.factory_review_started_at)
+        self.assertIsNotNone(complaint.last_submitted_for_approval_at)
+
+        approvals = ComplaintApproval.objects.filter(complaint=complaint)
+        self.assertEqual(approvals.count(), 4)
+        self.assertEqual(
+            set(approvals.values_list("approver_role", flat=True)),
+            {ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED},
+        )
+        self.assertEqual(approvals.filter(status=DecisionStatuses.PENDING).count(), 4)
+        self.assertEqual(Notification.objects.filter(complaint=complaint, notification_type="approval").count(), 4)
+
+    def test_opening_factory_review_is_read_only(self):
+        User = get_user_model()
+        country_user = User.objects.create_user(
+            username="country_locked_edit",
+            email="country.locked@example.com",
+            password="CountryExec!234",
+        )
+        UserProfile.objects.filter(user=country_user).update(
+            role=WorkflowRoles.COUNTRY_EXECUTIVE,
+            country=self.country,
+        )
+        factory_user = User.objects.create_user(
+            username="factory_lock_edit",
+            email="factory.lock@example.com",
+            password="FactoryExec!234",
+        )
+        UserProfile.objects.filter(user=factory_user).update(
+            role=WorkflowRoles.FACTORY_EXECUTIVE,
+            can_receive_factory_assignments=True,
+        )
+        complaint = Complaint.objects.create(
+            date="2026-07-09",
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.ASSIGNED_TO_FACTORY,
+            created_by=country_user,
+            assigned_factory_executive=factory_user,
+            status="Open",
+            priority="Medium",
+            complaint_description="Country edit should lock after review starts",
+            batch_order="COUNTRY-LOCK",
+        )
+
+        self.client.force_login(factory_user)
+        response = self.client.get(reverse("factory_review_complaint", args=[complaint.complaint_id]))
+        self.assertEqual(response.status_code, 200)
+        complaint.refresh_from_db()
+        self.assertIsNone(complaint.factory_review_started_at)
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.ASSIGNED_TO_FACTORY)
+
+        self.client.force_login(country_user)
+        response = self.client.get(reverse("edit_complaint", args=[complaint.complaint_id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_country_report_edit_is_audited_and_notifies_factory_executive(self):
+        country_user = self.create_workflow_user('report_editor', WorkflowRoles.COUNTRY_EXECUTIVE)
+        UserProfile.objects.filter(user=country_user).update(country=self.country)
+        factory_user = self.create_workflow_user('report_edit_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.ASSIGNED_TO_FACTORY,
+            created_by=country_user,
+            assigned_factory_executive=factory_user,
+            channel=self.channel,
+            person=self.person,
+            case_sub_category=self.case_type,
+            status='Open',
+            priority='Medium',
+            complaint_description='Original country report',
+            batch_order='REPORT-EDIT-1',
+        )
+
+        self.client.force_login(country_user)
+        response = self.client.post(reverse('edit_complaint', args=[complaint.complaint_id]), {
+            'channel': self.channel.id,
+            'person': self.person.id,
+            'priority': 'High',
+            'complaint_description': 'Updated after checking the fitment photos',
+            'batch_order': 'REPORT-EDIT-2',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.priority, 'High')
+        self.assertEqual(complaint.batch_order, 'REPORT-EDIT-2')
+        self.assertTrue(ComplaintEditLog.objects.filter(
+            complaint=complaint,
+            edited_by=country_user,
+            field_name='complaint_description',
+        ).exists())
+        self.assertTrue(complaint.timeline_events.filter(action_type='report_updated').exists())
+        self.assertTrue(Notification.objects.filter(
+            recipient=factory_user,
+            complaint=complaint,
+            notification_type='report_updated',
+        ).exists())
+
+    def test_report_edit_is_locked_during_approval_and_after_closure(self):
+        country_user = self.create_workflow_user('locked_reporter', WorkflowRoles.COUNTRY_EXECUTIVE)
+        UserProfile.objects.filter(user=country_user).update(country=self.country)
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.AWAITING_APPROVAL,
+            created_by=country_user,
+            status='Open',
+            priority='Medium',
+            complaint_description='Approval snapshot must remain immutable',
+            batch_order='LOCKED-REPORT',
+        )
+
+        self.client.force_login(country_user)
+        response = self.client.get(reverse('edit_complaint', args=[complaint.complaint_id]))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('edit_complaint', args=[complaint.complaint_id]))
+        self.assertEqual(response.status_code, 302)
+
+        complaint.workflow_status = WorkflowStatuses.CLOSED
+        complaint.status = 'Closed'
+        complaint.save(update_fields=['workflow_status', 'status'])
+        response = self.client.get(reverse('edit_complaint', args=[complaint.complaint_id]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_api_report_edit_uses_the_same_audit_and_workflow_lock(self):
+        country_user = self.create_workflow_user('api_report_editor', WorkflowRoles.COUNTRY_EXECUTIVE)
+        UserProfile.objects.filter(user=country_user).update(country=self.country)
+        factory_user = self.create_workflow_user('api_report_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        complaint = Complaint.objects.create(
+            date=timezone.localdate(),
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.ASSIGNED_TO_FACTORY,
+            created_by=country_user,
+            assigned_factory_executive=factory_user,
+            status='Open',
+            priority='Medium',
+            complaint_description='Original API report',
+            batch_order='API-REPORT-EDIT',
+        )
+        token = Token.objects.create(user=country_user)
+        headers = {'HTTP_AUTHORIZATION': f'Token {token.key}'}
+
+        response = self.client.patch(
+            reverse('api_complaint_detail', args=[complaint.complaint_id]),
+            data=json.dumps({'complaint_description': 'Audited API report update'}),
+            content_type='application/json',
+            **headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(ComplaintEditLog.objects.filter(
+            complaint=complaint,
+            edited_by=country_user,
+            field_name='complaint_description',
+        ).exists())
+        self.assertTrue(Notification.objects.filter(
+            recipient=factory_user,
+            complaint=complaint,
+            notification_type='report_updated',
+        ).exists())
+
+        complaint.workflow_status = WorkflowStatuses.AWAITING_APPROVAL
+        complaint.save(update_fields=['workflow_status'])
+        response = self.client.patch(
+            reverse('api_complaint_detail', args=[complaint.complaint_id]),
+            data=json.dumps({'complaint_description': 'Forbidden approval-stage edit'}),
+            content_type='application/json',
+            **headers,
+        )
+        self.assertEqual(response.status_code, 403)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.complaint_description, 'Audited API report update')
+
+    def test_rejection_opens_reconsideration_for_every_other_approver(self):
+        factory_user = self.create_workflow_user('wait_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        approvers = self.create_approval_accounts(
+            [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD],
+            'wait',
+        )
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.FACTORY_REVIEW,
+            assigned_factory_executive=factory_user,
+            factory_reason='Pattern allowance is incorrect.',
+            factory_action_plan='Correct the CAD and verify the revised sample.',
+            factory_priority=FactoryPriorities.LOW,
+            status='Open',
+            priority='Low',
+            complaint_description='Wait for every opinion',
+            batch_order='WAIT-ALL',
+        )
+        approvals = create_approval_round(complaint, factory_user)
+        approvals_by_role = {approval.approver_role: approval for approval in approvals}
+
+        _, outcome = record_approval_decision(
+            approvals_by_role[ApprovalRoles.PM].pk,
+            approvers[ApprovalRoles.PM],
+            DecisionStatuses.REJECTED,
+            'Increase the side-panel allowance before release.',
+        )
+        complaint.refresh_from_db()
+        self.assertEqual(outcome, 'reconsideration')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.AWAITING_APPROVAL)
+        reconsideration = ComplaintApproval.objects.filter(
+            complaint=complaint,
+            approval_round=2,
+            review_stage=ApprovalStages.RECONSIDERATION,
+        )
+        self.assertEqual(
+            set(reconsideration.values_list('approver_role', flat=True)),
+            {ApprovalRoles.OM, ApprovalRoles.CAD},
+        )
+        self.assertTrue(reconsideration.filter(
+            trigger_approval=approvals_by_role[ApprovalRoles.PM],
+        ).exists())
+        self.assertEqual(Notification.objects.filter(
+            complaint=complaint,
+            notification_type='approval_reconsideration',
+        ).count(), 2)
+
+        reconsideration_by_role = {
+            approval.approver_role: approval for approval in reconsideration
+        }
+        _, outcome = record_approval_decision(
+            reconsideration_by_role[ApprovalRoles.OM].pk,
+            approvers[ApprovalRoles.OM],
+            DecisionStatuses.APPROVED,
+            'Operations chooses to proceed.',
+        )
+        complaint.refresh_from_db()
+        self.assertEqual(outcome, 'pending')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.PARTIALLY_APPROVED)
+        self.assertFalse(Notification.objects.filter(complaint=complaint, notification_type='rework').exists())
+
+        _, outcome = record_approval_decision(
+            reconsideration_by_role[ApprovalRoles.CAD].pk,
+            approvers[ApprovalRoles.CAD],
+            DecisionStatuses.APPROVED,
+            'CAD also chooses to proceed.',
+        )
+        complaint.refresh_from_db()
+        self.assertEqual(outcome, 'approved')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.APPROVED)
+        self.assertEqual(ComplaintApproval.objects.filter(complaint=complaint).count(), 5)
+        self.assertTrue(Notification.objects.filter(
+            recipient=factory_user,
+            complaint=complaint,
+            notification_type='fully_approved',
+        ).exists())
+
+    def test_reconsideration_waits_for_all_then_returns_for_rework(self):
+        factory_user = self.create_workflow_user('return_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        approvers = self.create_approval_accounts(
+            [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD],
+            'return',
+        )
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.FACTORY_REVIEW,
+            assigned_factory_executive=factory_user,
+            factory_reason='Pattern allowance is incorrect.',
+            factory_action_plan='Correct the CAD and verify the revised sample.',
+            factory_priority=FactoryPriorities.LOW,
+            status='Open',
+            priority='Low',
+            complaint_description='Reconsideration return test',
+            batch_order='RETURN-ALL',
+        )
+        first_round = create_approval_round(complaint, factory_user)
+        pm_approval = next(item for item in first_round if item.approver_role == ApprovalRoles.PM)
+        record_approval_decision(
+            pm_approval.pk,
+            approvers[ApprovalRoles.PM],
+            DecisionStatuses.REJECTED,
+            'The allowance must be corrected.',
+        )
+        reconsideration = {
+            item.approver_role: item
+            for item in ComplaintApproval.objects.filter(complaint=complaint, approval_round=2)
+        }
+        _, outcome = record_approval_decision(
+            reconsideration[ApprovalRoles.OM].pk,
+            approvers[ApprovalRoles.OM],
+            DecisionStatuses.REJECTED,
+            'Return this to the factory executive.',
+        )
+        self.assertEqual(outcome, 'pending')
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.PARTIALLY_APPROVED)
+
+        _, outcome = record_approval_decision(
+            reconsideration[ApprovalRoles.CAD].pk,
+            approvers[ApprovalRoles.CAD],
+            DecisionStatuses.APPROVED,
+            'CAD would proceed.',
+        )
+        complaint.refresh_from_db()
+        self.assertEqual(outcome, 'rejected')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.REWORK_REQUIRED)
+
+    def test_rework_submission_creates_a_fresh_parallel_approval_round(self):
+        factory_user = self.create_workflow_user('rework_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        approvers = self.create_approval_accounts(
+            [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD],
+            'rework_round',
+        )
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.FACTORY_REVIEW,
+            assigned_factory_executive=factory_user,
+            factory_priority=FactoryPriorities.LOW,
+            status='Open',
+            priority='Low',
+            complaint_description='Rework round test',
+            batch_order='REWORK-ROUND',
+        )
+        first_round = create_approval_round(complaint, factory_user)
+        pm_approval = next(item for item in first_round if item.approver_role == ApprovalRoles.PM)
+        record_approval_decision(
+            pm_approval.pk,
+            approvers[ApprovalRoles.PM],
+            DecisionStatuses.REJECTED,
+            'PM rejected the first review.',
+        )
+        reconsideration = {
+            item.approver_role: item
+            for item in ComplaintApproval.objects.filter(complaint=complaint, approval_round=2)
+        }
+        record_approval_decision(
+            reconsideration[ApprovalRoles.OM].pk,
+            approvers[ApprovalRoles.OM],
+            DecisionStatuses.APPROVED,
+            'OM would proceed.',
+        )
+        record_approval_decision(
+            reconsideration[ApprovalRoles.CAD].pk,
+            approvers[ApprovalRoles.CAD],
+            DecisionStatuses.REJECTED,
+            'CAD requests rework.',
+        )
+
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.REWORK_REQUIRED)
+        second_round = submit_factory_review(
+            complaint,
+            factory_user,
+            'The rejected pattern allowance has been corrected.',
+            'Issue the revised CAD and verify a replacement sample.',
+            FactoryPriorities.LOW,
+        )
+
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.AWAITING_APPROVAL)
+        self.assertEqual({approval.approval_round for approval in second_round}, {3})
+        self.assertEqual(ComplaintApproval.objects.filter(complaint=complaint).count(), 8)
+        self.assertEqual(
+            ComplaintApproval.objects.filter(
+                complaint=complaint,
+                approval_round=3,
+                status=DecisionStatuses.PENDING,
+            ).count(),
+            3,
+        )
+
+    def test_unanimous_medium_approval_requires_execution_verification_before_closure(self):
+        reporter = self.create_workflow_user('green_reporter', WorkflowRoles.COUNTRY_EXECUTIVE)
+        factory_user = self.create_workflow_user('green_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        roles = [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED]
+        approvers = self.create_approval_accounts(roles, 'green')
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.FACTORY_REVIEW,
+            created_by=reporter,
+            assigned_factory_executive=factory_user,
+            factory_reason='Production stitching guide was offset.',
+            factory_action_plan='Correct the guide and issue a replacement batch.',
+            factory_priority=FactoryPriorities.MEDIUM,
+            status='Open',
+            priority='Medium',
+            complaint_description='Unanimous approval closes after execution',
+            batch_order='GREEN-LIGHT',
+        )
+        approvals = create_approval_round(complaint, factory_user)
+
+        outcome = None
+        for approval in approvals:
+            _, outcome = record_approval_decision(
+                approval.pk,
+                approvers[approval.approver_role],
+                DecisionStatuses.APPROVED,
+                f'{approval.approver_role} approves the action plan.',
+            )
+        complaint.refresh_from_db()
+        self.assertEqual(outcome, 'approved')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.APPROVED)
+        self.assertIsNotNone(complaint.fully_approved_at)
+        self.assertTrue(Notification.objects.filter(
+            recipient=factory_user,
+            complaint=complaint,
+            notification_type='fully_approved',
+        ).exists())
+
+        start_action_execution(complaint, factory_user)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.ACTION_IN_PROGRESS)
+
+        with self.assertRaisesMessage(ValueError, 'locked until every required approver verifies'):
+            close_complaint_after_execution(
+                complaint,
+                factory_user,
+                date(2026, 7, 14),
+                'LOCKED-CONTAINER',
+            )
+
+        verification_approvals = submit_execution_for_verification(complaint, factory_user)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION)
+        self.assertEqual(
+            {approval.approver_role: approval.approver_user_id for approval in verification_approvals},
+            {role: approvers[role].id for role in roles},
+        )
+        self.assertTrue(all(
+            approval.review_stage == ApprovalStages.EXECUTION_VERIFICATION
+            for approval in verification_approvals
+        ))
+
+        verification_outcome = None
+        for approval in verification_approvals:
+            _, verification_outcome = record_approval_decision(
+                approval.pk,
+                approvers[approval.approver_role],
+                DecisionStatuses.APPROVED,
+                f'{approval.approver_role} verified execution.',
+            )
+        complaint.refresh_from_db()
+        self.assertEqual(verification_outcome, 'execution_verified')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.PENDING_FINAL_UPDATE)
+
+        close_complaint_after_execution(
+            complaint,
+            factory_user,
+            date(2026, 7, 14),
+            'FABRO-CONTAINER-2026-0714',
+        )
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.CLOSED)
+        self.assertEqual(complaint.status, 'Closed')
+        self.assertEqual(complaint.production_updates_container, 'FABRO-CONTAINER-2026-0714')
+        self.assertEqual(complaint.closed_by, factory_user)
+        self.assertTrue(Notification.objects.filter(
+            recipient=reporter,
+            complaint=complaint,
+            notification_type='closed',
+        ).exists())
+
+    def test_execution_verification_rejection_returns_case_for_correction(self):
+        factory_user = self.create_workflow_user('verify_rework_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        roles = [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD]
+        approvers = self.create_approval_accounts(roles, 'verify_rework')
+        complaint = Complaint.objects.create(
+            date=timezone.localdate(),
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.ACTION_IN_PROGRESS,
+            assigned_factory_executive=factory_user,
+            factory_priority=FactoryPriorities.LOW,
+            status='Open',
+            priority='Low',
+            complaint_description='Execution verification rejection path',
+            batch_order='VERIFY-REWORK',
+        )
+        for role in roles:
+            ComplaintApproval.objects.create(
+                complaint=complaint,
+                approval_round=1,
+                review_stage=ApprovalStages.INITIAL,
+                approver_role=role,
+                approver_user=approvers[role],
+                status=DecisionStatuses.APPROVED,
+            )
+
+        verification = submit_execution_for_verification(complaint, factory_user)
+        pm_verification = next(item for item in verification if item.approver_role == ApprovalRoles.PM)
+        _, outcome = record_approval_decision(
+            pm_verification.pk,
+            approvers[ApprovalRoles.PM],
+            DecisionStatuses.REJECTED,
+            'The corrective stitch was not applied to the full batch.',
+        )
+
+        complaint.refresh_from_db()
+        self.assertEqual(outcome, 'execution_rejected')
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.ACTION_IN_PROGRESS)
+        self.assertFalse(ComplaintApproval.objects.filter(
+            complaint=complaint,
+            approval_round=verification[0].approval_round,
+            status=DecisionStatuses.PENDING,
+        ).exists())
+        self.assertTrue(Notification.objects.filter(
+            recipient=factory_user,
+            complaint=complaint,
+            notification_type='execution_verification_rejected',
+        ).exists())
+
+    def test_line_complaint_closes_without_production_container(self):
+        factory_user = self.create_workflow_user('line_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.LINE,
+            workflow_status=WorkflowStatuses.PENDING_FINAL_UPDATE,
+            assigned_factory_executive=factory_user,
+            status='Open',
+            priority='Low',
+            complaint_description='Line complaint final update',
+            batch_order='LINE-FINAL',
+        )
+
+        close_complaint_after_execution(complaint, factory_user, date(2026, 7, 14), '')
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.CLOSED)
+        self.assertEqual(complaint.production_updates_container, '')
+
+    def test_production_closure_rejects_future_date_and_missing_container(self):
+        factory_user = self.create_workflow_user('final_guard_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        complaint = Complaint.objects.create(
+            date=timezone.localdate(),
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            workflow_status=WorkflowStatuses.PENDING_FINAL_UPDATE,
+            assigned_factory_executive=factory_user,
+            status='Open',
+            priority='Medium',
+            complaint_description='Final update guards',
+            batch_order='FINAL-GUARDS',
+        )
+
+        with self.assertRaisesMessage(ValueError, 'cannot be in the future'):
+            close_complaint_after_execution(
+                complaint,
+                factory_user,
+                timezone.localdate() + timedelta(days=1),
+                'FUTURE-CONTAINER',
+            )
+        with self.assertRaisesMessage(ValueError, 'Container Number is mandatory'):
+            close_complaint_after_execution(
+                complaint,
+                factory_user,
+                timezone.localdate(),
+                '',
+            )
+
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.PENDING_FINAL_UPDATE)
+        self.assertEqual(complaint.status, 'Open')
+
+    def test_approval_api_allows_blank_approval_comment_and_requires_rejection_comment(self):
+        factory_user = self.create_workflow_user('api_flow_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        approvers = self.create_approval_accounts(
+            [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD],
+            'api_flow',
+        )
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.FACTORY_REVIEW,
+            assigned_factory_executive=factory_user,
+            factory_priority=FactoryPriorities.LOW,
+            status='Open',
+            priority='Low',
+            complaint_description='API approval permission test',
+            batch_order='API-APPROVAL',
+        )
+        approval = next(
+            item for item in create_approval_round(complaint, factory_user)
+            if item.approver_role == ApprovalRoles.PM
+        )
+        om_approval = ComplaintApproval.objects.get(
+            complaint=complaint,
+            approver_role=ApprovalRoles.OM,
+        )
+
+        pm_token = Token.objects.create(user=approvers[ApprovalRoles.PM])
+        response = self.client.post(
+            reverse('api_approval_decision', args=[approval.pk]),
+            data=json.dumps({'decision': DecisionStatuses.REJECTED, 'comment': ''}),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {pm_token.key}',
+        )
+        self.assertEqual(response.status_code, 400)
+
+        om_token = Token.objects.create(user=approvers[ApprovalRoles.OM])
+        response = self.client.post(
+            reverse('api_approval_decision', args=[approval.pk]),
+            data=json.dumps({'decision': DecisionStatuses.APPROVED, 'comment': 'Wrong approver'}),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {om_token.key}',
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(
+            reverse('api_approval_decision', args=[approval.pk]),
+            data=json.dumps({'decision': DecisionStatuses.APPROVED, 'comment': ''}),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {pm_token.key}',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['outcome'], 'pending')
+
+        response = self.client.post(
+            reverse('api_approval_decision', args=[om_approval.pk]),
+            data=json.dumps({'decision': DecisionStatuses.REJECTED, 'comment': 'Correct the CAD allowance.'}),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {om_token.key}',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['outcome'], 'reconsideration')
+
+        cad_approval = ComplaintApproval.objects.get(
+            complaint=complaint,
+            approver_role=ApprovalRoles.CAD,
+            review_stage=ApprovalStages.RECONSIDERATION,
+        )
+        self.client.force_login(approvers[ApprovalRoles.CAD])
+        response = self.client.post(
+            reverse('approval_review', args=[cad_approval.pk]),
+            data={'decision': DecisionStatuses.APPROVED, 'comment': ''},
+        )
+        self.assertRedirects(response, reverse('approval_inbox'))
+        cad_approval.refresh_from_db()
+        self.assertEqual(cad_approval.status, DecisionStatuses.APPROVED)
+        self.assertEqual(cad_approval.comment, '')
+
+    def test_admin_panel_creates_and_updates_workflow_roles(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'configured_approver',
+            'email': 'configured.approver@example.com',
+            'password': 'ConfiguredApprover!234',
+            'role': WorkflowRoles.APPROVER,
+            'approval_role': ApprovalRoles.PM,
+            'department': 'Management',
+        })
+        self.assertEqual(response.status_code, 200)
+        configured = get_user_model().objects.get(username='configured_approver')
+        self.assertEqual(configured.workflow_profile.role, WorkflowRoles.APPROVER)
+        self.assertEqual(configured.workflow_profile.approval_role, ApprovalRoles.PM)
+
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': configured.pk,
+            'username': configured.username,
+            'email': configured.email,
+            'first_name': 'Updated',
+            'last_name': 'Operator',
+            'role': WorkflowRoles.COUNTRY_EXECUTIVE,
+            'country': self.country.pk,
+            'department': 'KSA Operations',
+            'phone_number': '+966500000000',
+            'approval_role': '',
+            'is_staff': 'on',
+        })
+        self.assertEqual(response.status_code, 302)
+        configured.refresh_from_db()
+        configured.workflow_profile.refresh_from_db()
+        self.assertEqual(configured.first_name, 'Updated')
+        self.assertEqual(configured.last_name, 'Operator')
+        self.assertTrue(configured.is_staff)
+        self.assertEqual(configured.workflow_profile.role, WorkflowRoles.COUNTRY_EXECUTIVE)
+        self.assertEqual(configured.workflow_profile.country, self.country)
+        self.assertEqual(configured.workflow_profile.phone_number, '+966500000000')
+        self.assertEqual(configured.workflow_profile.approval_role, '')
+
+        # Password reset is a separate action and needs no profile fields.
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': configured.pk,
+            'new_password': 'UpdatedPassword!999',
+            'reset_password': '1',
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Password reset successfully for configured_approver.')
+        self.assertContains(response, 'edit-user-feedback success')
+        self.assertContains(response, "const editUserToReopen = '%s'" % configured.pk)
+        configured.refresh_from_db()
+        configured.workflow_profile.refresh_from_db()
+        self.assertTrue(configured.check_password('UpdatedPassword!999'))
+        self.assertTrue(Client().login(
+            username=configured.username,
+            password='UpdatedPassword!999',
+        ))
+        self.assertEqual(configured.first_name, 'Updated')
+        self.assertEqual(configured.workflow_profile.role, WorkflowRoles.COUNTRY_EXECUTIVE)
+
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': configured.pk,
+            'reset_password': '1',
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enter a new password.')
+        self.assertContains(response, 'edit-user-feedback error')
+        configured.refresh_from_db()
+        self.assertTrue(configured.check_password('UpdatedPassword!999'))
+
+        # Test creating user via unified role choice 'approver_CAD'
+        response_cad = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'cad_approver_unified',
+            'email': 'cad.approver@example.com',
+            'password': 'CadApprover!234',
+            'role': 'approver_CAD',
+            'department': 'CAD Engineering',
+        })
+        self.assertEqual(response_cad.status_code, 200)
+        cad_user = get_user_model().objects.get(username='cad_approver_unified')
+        self.assertEqual(cad_user.workflow_profile.role, WorkflowRoles.APPROVER)
+        self.assertEqual(cad_user.workflow_profile.approval_role, ApprovalRoles.CAD)
+
+    def test_create_preparation_preserves_explicit_complaint_category(self):
+        production_case_type = MasterSetting.objects.create(
+            category='Production Complaint Type',
+            name='Production Stitching',
+        )
+        complaint = Complaint(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            case_sub_category=production_case_type,
+            status='Open',
+            priority='Low',
+            complaint_description='Explicit category must not be inferred from the defect type.',
+            batch_order='EXPLICIT-CATEGORY',
+        )
+
+        prepare_complaint_for_create(complaint, self.user)
+
+        self.assertEqual(complaint.complaint_type, ComplaintTypes.PRODUCTION)
+        self.assertEqual(complaint.workflow_status, WorkflowStatuses.SUBMITTED)
+
+    def test_complaint_list_handles_unconfigured_legacy_approver(self):
+        complaint = Complaint.objects.create(
+            date='2026-07-14',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.CLOSED,
+            status='Closed',
+            priority='Low',
+            complaint_description='Legacy approval without a linked user.',
+            batch_order='LEGACY-APPROVER',
+        )
+        ComplaintApproval.objects.create(
+            complaint=complaint,
+            approval_round=1,
+            approver_role=ApprovalRoles.PM,
+            approver_user=None,
+            status=DecisionStatuses.PENDING,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('complaint_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Not configured')
+        self.assertNotContains(
+            response,
+            reverse('factory_review_complaint', args=[complaint.complaint_id]),
+        )
+
+    def test_complaint_journey_tracker_maps_and_renders_workflow_progress(self):
+        complaint = Complaint.objects.create(
+            date='2026-07-16',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            workflow_status=WorkflowStatuses.PARTIALLY_APPROVED,
+            status='Open',
+            priority='Medium',
+            complaint_description='Journey tracker regression complaint.',
+            batch_order='JOURNEY-TRACKER',
+        )
+        ComplaintMedia.objects.create(
+            complaint=complaint,
+            file='https://media.example.com/journey-video.mp4',
+        )
+
+        steps = complaint_journey_steps(complaint)
+        self.assertEqual([step['state'] for step in steps], [
+            'completed', 'completed', 'current', 'pending', 'pending', 'pending', 'pending',
+        ])
+
+        complaint.workflow_status = WorkflowStatuses.REWORK_REQUIRED
+        self.assertEqual(complaint_journey_steps(complaint)[2]['state'], 'attention')
+
+        complaint.workflow_status = WorkflowStatuses.CLOSED
+        self.assertTrue(all(
+            step['state'] == 'completed'
+            for step in complaint_journey_steps(complaint)
+        ))
+
+        complaint.workflow_status = WorkflowStatuses.PARTIALLY_APPROVED
+        complaint.save(update_fields=['workflow_status'])
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('complaint_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Complaint Journey')
+        self.assertContains(response, 'Partially Approved')
+        self.assertContains(response, 'journey-step current')
+        self.assertContains(response, 'class="complaint-record-layout"')
+        self.assertContains(response, 'class="complaint-record-details"')
+        self.assertContains(response, 'class="complaint-media-pane"')
+        self.assertContains(response, 'Product and source')
+        self.assertContains(response, 'Factory response')
+        self.assertContains(response, 'class="media-thumbnail complaint-video" preload="none"')
+        self.assertContains(response, 'class="video-play-button"')
+        self.assertContains(response, 'data-src="https://media.example.com/journey-video.mp4"')
+        self.assertNotContains(response, '<source src="https://media.example.com/journey-video.mp4"')
+        rendered = response.content.decode()
+        self.assertLess(
+            rendered.index('class="modal-journey-panel"'),
+            rendered.index('class="complaint-record-layout"'),
+        )
+
+    def test_profile_admin_button_and_panel_follow_workflow_admin_permission(self):
+        workflow_admin = self.create_workflow_user('workflow_admin', WorkflowRoles.ADMIN)
+        self.client.force_login(workflow_admin)
+
+        profile_response = self.client.get(reverse('profile_settings'))
+        panel_response = self.client.get(reverse('admin_panel'))
+
+        self.assertEqual(profile_response.status_code, 200)
+        self.assertContains(profile_response, 'data-testid="open-admin-panel"')
+        self.assertContains(profile_response, reverse('admin_panel'))
+        self.assertEqual(panel_response.status_code, 200)
+        self.assertContains(panel_response, 'Factory Complaint Registrar')
+
+        create_response = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'workflow_created_user',
+            'email': 'workflow.created@example.com',
+            'password': 'WorkflowCreated!234',
+            'role': WorkflowRoles.FACTORY_VIEWER,
+            'is_staff': 'on',
+            'is_superuser': 'on',
+        })
+        self.assertEqual(create_response.status_code, 200)
+        created_user = get_user_model().objects.get(username='workflow_created_user')
+        self.assertFalse(created_user.is_staff)
+        self.assertFalse(created_user.is_superuser)
+
+        registrar_response = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'workflow_created_registrar',
+            'email': 'workflow.registrar@example.com',
+            'password': 'WorkflowRegistrar!234',
+            'role': WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+            'can_receive_factory_assignments': 'on',
+        })
+        self.assertEqual(registrar_response.status_code, 200)
+        registrar = get_user_model().objects.get(username='workflow_created_registrar')
+        self.assertEqual(
+            registrar.workflow_profile.role,
+            WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+        )
+        self.assertFalse(registrar.workflow_profile.can_receive_factory_assignments)
+
+        normal_user = self.create_workflow_user('factory_viewer', WorkflowRoles.FACTORY_VIEWER)
+        self.client.force_login(normal_user)
+
+        normal_profile_response = self.client.get(reverse('profile_settings'))
+        normal_panel_response = self.client.get(reverse('admin_panel'))
+
+        self.assertNotContains(normal_profile_response, 'data-testid="open-admin-panel"')
+        self.assertEqual(normal_panel_response.status_code, 302)
+
+    def test_profile_settings_save_and_pill_rendering(self):
+        self.login()
+        # GET profile page - should contain save icon button and not contain Back to Dashboard
+        response = self.client.get(reverse('profile_settings'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'btn-icon-save')
+        self.assertNotContains(response, 'Back to Dashboard')
+        self.assertNotContains(response, 'id="flash-messages"')
+
+        # POST profile update
+        post_response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': 'updated_admin@fabro.com',
+            'first_name': 'Hadi',
+            'last_name': 'Muhammed',
+            'phone_number': '+971 50 123 4567',
+        }, follow=True)
+        self.assertEqual(post_response.status_code, 200)
+        self.assertContains(post_response, 'save-status-pill')
+        self.assertContains(post_response, 'Your profile details have been updated successfully.')
+        self.assertNotContains(post_response, 'id="flash-messages"')
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.phone_number, '+971 50 123 4567')
+        self.assertContains(post_response, 'value="+971 50 123 4567"')
+
+        clear_response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': 'updated_admin@fabro.com',
+            'first_name': 'Hadi',
+            'last_name': 'Muhammed',
+            'phone_number': '',
+        }, follow=True)
+        self.assertEqual(clear_response.status_code, 200)
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.phone_number, '')
+
+    def test_profile_photo_upload_and_reflection(self):
+        self.login()
+        image_buffer = BytesIO()
+        Image.new('RGB', (2, 2), color='red').save(image_buffer, format='PNG')
+        photo = SimpleUploadedFile(
+            'avatar.png',
+            image_buffer.getvalue(),
+            content_type='image/png',
+        )
+
+        # Upload photo via profile update
+        response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': 'admin_photo@fabro.com',
+            'first_name': 'Hadi',
+            'last_name': 'Muhammed',
+            'photo': photo,
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        # Verify photo saved to profile
+        self.user.workflow_profile.refresh_from_db()
+        self.assertTrue(bool(self.user.workflow_profile.photo))
+        photo_url = self.user.workflow_profile.photo.url
+
+        # Verify photo and updated name reflected in base navbar and profile page
+        dashboard_response = self.client.get(reverse('index'))
+        self.assertContains(dashboard_response, photo_url)
+        self.assertContains(dashboard_response, 'Hadi Muhammed')
+
+        profile_response = self.client.get(reverse('profile_settings'))
+        self.assertContains(profile_response, photo_url)
+        self.assertContains(profile_response, 'Hadi Muhammed')
+
+        # Verify photo reflected in chat users api
+        chat_api_response = self.client.get(reverse('chat_users_api'))
+        self.assertEqual(chat_api_response.status_code, 200)
+
+    def test_profile_photo_rejects_non_image_content(self):
+        self.login()
+        fake_photo = SimpleUploadedFile(
+            'avatar.png',
+            b'<script>alert("not an image")</script>',
+            content_type='image/png',
+        )
+
+        response = self.client.post(reverse('profile_settings'), {
+            'update_profile': '1',
+            'email': self.user.email,
+            'photo': fake_photo,
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Upload a valid image')
+        self.user.workflow_profile.refresh_from_db()
+        self.assertFalse(bool(self.user.workflow_profile.photo))
+
+    def test_role_aware_navigation_and_creation_access(self):
+        country_user = self.create_workflow_user(
+            'role_country',
+            WorkflowRoles.COUNTRY_EXECUTIVE,
+        )
+        country_user.workflow_profile.country = self.country
+        country_user.workflow_profile.save(update_fields=['country'])
+        self.client.force_login(country_user)
+
+        country_dashboard = self.client.get(reverse('index'))
+        self.assertContains(country_dashboard, 'Country Executive')
+        self.assertContains(country_dashboard, reverse('add_complaint'))
+        self.assertNotIn(
+            f'href="{reverse("master_settings")}"',
+            country_dashboard.content.decode(),
+        )
+        self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 200)
+        country_add_response = self.client.get(reverse('add_complaint'))
+        self.assertNotIn(
+            ComplaintTypes.LINE,
+            country_add_response.context['allowed_complaint_types'],
+        )
+        self.assertNotContains(country_add_response, 'id="complaint-type-line"')
+
+        # Country Executive can view vehicle details read-only
+        car_details_response = self.client.get(reverse('car_details'))
+        self.assertEqual(car_details_response.status_code, 200)
+        self.assertFalse(car_details_response.context['can_manage_catalog'])
+
+        viewer = self.create_workflow_user('role_viewer', WorkflowRoles.FACTORY_VIEWER)
+        self.client.force_login(viewer)
+        viewer_dashboard = self.client.get(reverse('index'))
+        self.assertContains(viewer_dashboard, 'Factory Viewer')
+        self.assertNotContains(viewer_dashboard, reverse('add_complaint'))
+        self.assertNotIn(
+            f'href="{reverse("master_settings")}"',
+            viewer_dashboard.content.decode(),
+        )
+        self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
+
+        factory = self.create_workflow_user('role_factory', WorkflowRoles.FACTORY_EXECUTIVE)
+        self.client.force_login(factory)
+        self.assertContains(self.client.get(reverse('index')), reverse('add_complaint'))
+        self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 200)
+
+        approver = self.create_workflow_user(
+            'role_approver',
+            WorkflowRoles.APPROVER,
+            ApprovalRoles.PM,
+        )
+        self.client.force_login(approver)
+        approver_dashboard = self.client.get(reverse('index'))
+        self.assertContains(approver_dashboard, 'Approver')
+        self.assertContains(approver_dashboard, reverse('approvals_list'))
+        self.assertNotContains(approver_dashboard, reverse('add_complaint'))
+        self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
+
+    def test_factory_complaint_registrar_creation_permissions_are_enforced(self):
+        factory_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Registrar Factory Issue',
+        )
+        factory_executor = self.create_workflow_user(
+            'registrar_assignment_target',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        registrar = self.create_workflow_user(
+            'factory_complaint_registrar',
+            WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+        )
+
+        self.client.force_login(registrar)
+        add_page = self.client.get(reverse('add_complaint'))
+        self.assertEqual(add_page.status_code, 200)
+        self.assertEqual(
+            add_page.context['allowed_complaint_types'],
+            (ComplaintTypes.LINE,),
+        )
+        self.assertEqual(add_page.context['selected_complaint_type'], ComplaintTypes.LINE)
+        self.assertContains(add_page, 'id="complaint-type-line"')
+        self.assertNotContains(add_page, 'id="complaint-type-pattern"')
+        self.assertNotContains(add_page, 'id="complaint-type-production"')
+        self.assertNotContains(add_page, 'id="complaint-type-quality"')
+        self.assertContains(add_page, '--complaint-type-dock-width: 280px;')
+
+        forbidden_web = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.PATTERN,
+            'case_sub_category': self.case_type.id,
+            'priority': 'Medium',
+            'complaint_description': 'Registrar forged pattern complaint',
+            'batch_order': 'REGISTRAR-FORGED-WEB',
+        })
+        self.assertEqual(forbidden_web.status_code, 403)
+        self.assertFalse(
+            Complaint.objects.filter(batch_order='REGISTRAR-FORGED-WEB').exists()
+        )
+
+        valid_web = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.LINE,
+            'case_sub_category': factory_type.id,
+            'priority': 'Medium',
+            'complaint_description': 'Registrar factory complaint',
+            'batch_order': 'REGISTRAR-VALID-WEB',
+        })
+        self.assertEqual(valid_web.status_code, 302)
+        complaint = Complaint.objects.get(batch_order='REGISTRAR-VALID-WEB')
+        self.assertEqual(complaint.complaint_type, ComplaintTypes.LINE)
+        self.assertEqual(complaint.created_by, registrar)
+        self.assertEqual(complaint.country.name, 'India')
+        self.assertEqual(complaint.assigned_factory_executive, factory_executor)
+
+        token = Token.objects.create(user=registrar)
+        valid_api = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.LINE,
+                'case_sub_category': factory_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Registrar factory API complaint',
+                'batch_order': 'REGISTRAR-VALID-API',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(valid_api.status_code, 201)
+        self.assertEqual(valid_api.json()['complaint_type'], ComplaintTypes.LINE)
+
+        forbidden_api = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.QUALITY,
+                'priority': 'Medium',
+                'complaint_description': 'Registrar forged API complaint',
+                'batch_order': 'REGISTRAR-FORGED-API',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(forbidden_api.status_code, 403)
+        self.assertFalse(
+            Complaint.objects.filter(batch_order='REGISTRAR-FORGED-API').exists()
+        )
+
+    def test_factory_and_admin_complaint_type_docks_follow_role_policy(self):
+        factory = self.create_workflow_user(
+            'factory_creation_policy',
+            WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        self.client.force_login(factory)
+        factory_page = self.client.get(reverse('add_complaint'))
+        self.assertEqual(
+            factory_page.context['allowed_complaint_types'],
+            (
+                ComplaintTypes.PATTERN,
+                ComplaintTypes.PRODUCTION,
+                ComplaintTypes.QUALITY,
+            ),
+        )
+        self.assertNotContains(factory_page, 'id="complaint-type-line"')
+        self.assertContains(factory_page, '--complaint-type-dock-width: 760px;')
+
+        factory_type = MasterSetting.objects.create(
+            category='Factory Complaint Type',
+            name='Forbidden Factory Type',
+        )
+        forbidden = self.client.post(reverse('add_complaint'), {
+            'complaint_type': ComplaintTypes.LINE,
+            'case_sub_category': factory_type.id,
+            'priority': 'Medium',
+            'complaint_description': 'Factory executive forged factory complaint',
+            'batch_order': 'FACTORY-EXEC-FORGED-LINE',
+        })
+        self.assertEqual(forbidden.status_code, 403)
+
+        token = Token.objects.create(user=factory)
+        forbidden_api = self.client.post(
+            reverse('api_complaints_list_create'),
+            data=json.dumps({
+                'complaint_type': ComplaintTypes.LINE,
+                'case_sub_category': factory_type.id,
+                'priority': 'Medium',
+                'complaint_description': 'Factory executive forged API factory complaint',
+                'batch_order': 'FACTORY-EXEC-FORGED-API-LINE',
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(forbidden_api.status_code, 403)
+
+        self.client.force_login(self.user)
+        admin_page = self.client.get(reverse('add_complaint'))
+        self.assertEqual(len(admin_page.context['allowed_complaint_types']), 4)
+        self.assertContains(admin_page, 'id="complaint-type-line"')
+        self.assertContains(admin_page, '--complaint-type-dock-width: 980px;')
+
+    def test_factory_complaint_registrar_keeps_normal_complaint_visibility(self):
+        registrar = self.create_workflow_user(
+            'registrar_visibility',
+            WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+        )
+        pattern = Complaint.objects.create(
+            date='2026-09-01',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            complaint_description='Visible pattern to registrar',
+            batch_order='REGISTRAR-VISIBLE-PATTERN',
+        )
+        factory = Complaint.objects.create(
+            date='2026-09-01',
+            country=self.country,
+            complaint_type=ComplaintTypes.LINE,
+            complaint_description='Visible factory to registrar',
+            batch_order='REGISTRAR-VISIBLE-FACTORY',
+        )
+
+        visible_ids = set(
+            visible_complaints_for_user(registrar).values_list('complaint_id', flat=True)
+        )
+        self.assertEqual(visible_ids, {pattern.complaint_id, factory.complaint_id})
+
+    def test_workflow_admin_can_manage_catalog_and_master_without_superuser_flag(self):
+        workflow_admin = self.create_workflow_user('catalog_admin', WorkflowRoles.ADMIN)
+        self.assertFalse(workflow_admin.is_staff)
+        self.assertFalse(workflow_admin.is_superuser)
+        self.client.force_login(workflow_admin)
+
+        dashboard = self.client.get(reverse('index'))
+        self.assertContains(dashboard, reverse('master_settings'))
+        self.assertEqual(self.client.get(reverse('master_settings')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('car_details')).status_code, 200)
+
+        response = self.client.post(reverse('api_skus_list_create'), {
+            'code': 'ROLE-ADMIN-SKU',
+            'description': 'Created by workflow administrator',
+            'region': self.region.pk,
+        }, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(SKU.objects.filter(code='ROLE-ADMIN-SKU').exists())
+
+    def test_session_termination_requires_post_and_csrf_protected_forms(self):
+        self.client.force_login(self.user)
+        other_client = self.client_class()
+        other_client.force_login(self.user)
+        session = Session.objects.get(session_key=self.client.session.session_key)
+
+        single_get = self.client.get(reverse('terminate_session', args=[session.session_key]))
+        all_get = self.client.get(reverse('terminate_all_sessions'))
+        panel = self.client.get(reverse('admin_panel'))
+
+        self.assertEqual(single_get.status_code, 405)
+        self.assertEqual(all_get.status_code, 405)
+        self.assertContains(panel, 'method="post"')
+        self.assertContains(panel, reverse('terminate_all_sessions'))
+        self.assertContains(
+            panel,
+            reverse('terminate_session', args=[other_client.session.session_key]),
+        )
+
+
+class ChatSystemTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.sender = User.objects.create_user(username='chat_sender', password='password123')
+        self.recipient = User.objects.create_user(username='chat_recipient', password='password123')
+        self.complaint = Complaint.objects.create(
+            complaint_id='PAT-26089999',
+            date='2026-08-23',
+            complaint_type='pattern',
+            status='Open',
+            priority='High',
+            complaint_description='Chat test complaint'
+        )
+
+    def test_chat_page_and_send_message_api(self):
+        self.client.force_login(self.sender)
+        response = self.client.get(reverse('chat_view'))
+        self.assertEqual(response.status_code, 200)
+
+        # Send message via API
+        send_response = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.recipient.id,
+            'message': 'Hello there regarding PAT-26089999',
+            'complaint_id': self.complaint.complaint_id,
+        })
+        self.assertEqual(send_response.status_code, 200)
+        self.assertTrue(ChatMessage.objects.filter(sender=self.sender, recipient=self.recipient).exists())
+
+        # Check messages API
+        msg_response = self.client.get(reverse('chat_messages_api', args=[self.recipient.id]))
+        self.assertEqual(msg_response.status_code, 200)
+        json_data = msg_response.json()
+        self.assertEqual(json_data['status'], 'ok')
+        self.assertEqual(len(json_data['messages']), 1)
+        self.assertEqual(json_data['messages'][0]['complaint_id'], 'PAT-26089999')
+
+    def test_unread_messages_sorted_to_top_by_latest(self):
+        User = get_user_model()
+        user_a = User.objects.create_user(username='alpha_user', password='password123')
+        user_b = User.objects.create_user(username='beta_user', password='password123')
+        user_c = User.objects.create_user(username='gamma_user', password='password123')
+
+        # User B sends message to sender first
+        msg1 = ChatMessage.objects.create(
+            sender=user_b,
+            recipient=self.sender,
+            message='Older unread from Beta',
+            is_read=False,
+        )
+
+        # User A sends message to sender later (latest unread)
+        msg2 = ChatMessage.objects.create(
+            sender=user_a,
+            recipient=self.sender,
+            message='Latest unread from Alpha',
+            is_read=False,
+        )
+
+        # User C has read messages
+        msg3 = ChatMessage.objects.create(
+            sender=user_c,
+            recipient=self.sender,
+            message='Read message from Gamma',
+            is_read=True,
+        )
+
+        self.client.force_login(self.sender)
+        api_res = self.client.get(reverse('chat_users_api'))
+        self.assertEqual(api_res.status_code, 200)
+        users = api_res.json()['users']
+
+        # Alpha should be first (latest unread), then Beta (older unread), then Gamma (read), then recipient (no msg)
+        usernames = [u['username'] for u in users]
+        self.assertEqual(usernames[0], 'alpha_user')
+        self.assertEqual(usernames[1], 'beta_user')
+        self.assertEqual(usernames[2], 'gamma_user')
+        self.assertEqual(users[0]['unread_count'], 1)
+        self.assertEqual(users[1]['unread_count'], 1)
+        self.assertEqual(users[2]['unread_count'], 0)
+
+    def test_chat_user_sorting_uses_a_bounded_query_count(self):
+        User = get_user_model()
+        extra_user = User.objects.create_user(username='query_count_user', password='password123')
+        ChatMessage.objects.create(
+            sender=extra_user,
+            recipient=self.sender,
+            message='Unread query-count message',
+        )
+
+        with self.assertNumQueries(2):
+            users_data = get_sorted_chat_users(self.sender)
+
+        self.assertEqual(users_data[0]['user'], extra_user)
+        self.assertEqual(users_data[0]['unread_count'], 1)
+
+    def test_chat_rejects_unavailable_complaint_context_and_oversized_messages(self):
+        UserProfile.objects.filter(user=self.sender).update(
+            role=WorkflowRoles.FACTORY_EXECUTIVE,
+        )
+        other_factory = get_user_model().objects.create_user(
+            username='chat_other_factory',
+            password='password123',
+        )
+        self.complaint.assigned_factory_executive = other_factory
+        self.complaint.save(update_fields=['assigned_factory_executive'])
+        self.client.force_login(self.sender)
+
+        hidden_context = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.recipient.id,
+            'message': 'Attempt to link hidden complaint',
+            'complaint_id': self.complaint.complaint_id,
+        })
+        self.assertEqual(hidden_context.status_code, 404)
+        self.assertFalse(ChatMessage.objects.filter(message='Attempt to link hidden complaint').exists())
+
+        oversized = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.recipient.id,
+            'message': 'x' * 5001,
+        })
+        self.assertEqual(oversized.status_code, 400)
+
+
+class ApprovalsWorkspaceTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.country_ksa = MasterSetting.objects.create(category='Country', name='KSA')
+        self.country_uae = MasterSetting.objects.create(category='Country', name='UAE')
+
+        # Create Country Executive for KSA
+        self.country_exec = User.objects.create_user(username='ksa_exec', password='password123')
+        UserProfile.objects.filter(user=self.country_exec).update(role=WorkflowRoles.COUNTRY_EXECUTIVE, country=self.country_ksa)
+
+        # Create Factory Executive
+        self.factory_exec = User.objects.create_user(username='fac_exec', password='password123')
+        UserProfile.objects.filter(user=self.factory_exec).update(role=WorkflowRoles.FACTORY_EXECUTIVE, can_receive_factory_assignments=True)
+
+        # Create Approver (PM)
+        self.pm_approver = User.objects.create_user(username='pm_user', password='password123')
+        UserProfile.objects.filter(user=self.pm_approver).update(role=WorkflowRoles.APPROVER, approval_role=ApprovalRoles.PM)
+
+        # Create Approver (OM)
+        self.om_approver = User.objects.create_user(username='om_user', password='password123')
+        UserProfile.objects.filter(user=self.om_approver).update(role=WorkflowRoles.APPROVER, approval_role=ApprovalRoles.OM)
+
+        # Create Admin
+        self.admin_user = User.objects.create_user(username='wf_admin', password='password123', is_superuser=True)
+        UserProfile.objects.filter(user=self.admin_user).update(role=WorkflowRoles.ADMIN)
+
+        # Create Factory Viewer (restricted)
+        self.viewer_user = User.objects.create_user(username='fac_viewer', password='password123')
+        UserProfile.objects.filter(user=self.viewer_user).update(role=WorkflowRoles.FACTORY_VIEWER)
+
+        # Create Complaint in KSA awaiting approval
+        self.complaint_ksa = Complaint.objects.create(
+            complaint_id='PAT-26081001',
+            date='2026-08-23',
+            complaint_type=ComplaintTypes.PATTERN,
+            country=self.country_ksa,
+            workflow_status=WorkflowStatuses.AWAITING_APPROVAL,
+            factory_priority='top',
+            factory_reason='Dimension mismatch on cushion',
+            factory_action_plan='Recalibrate CNC cutter and update CAD',
+            assigned_factory_executive=self.factory_exec,
+        )
+
+        # Create Complaint in UAE awaiting approval
+        self.complaint_uae = Complaint.objects.create(
+            complaint_id='PRO-26081002',
+            date='2026-08-23',
+            complaint_type=ComplaintTypes.PRODUCTION,
+            country=self.country_uae,
+            workflow_status=WorkflowStatuses.AWAITING_APPROVAL,
+            factory_priority='medium',
+            factory_reason='Leather discoloration',
+            factory_action_plan='Replace hide batch',
+            assigned_factory_executive=self.factory_exec,
+        )
+
+        # Create approvals for KSA complaint (PM & OM)
+        self.approval_pm = ComplaintApproval.objects.create(
+            complaint=self.complaint_ksa,
+            approval_round=1,
+            approver_role=ApprovalRoles.PM,
+            approver_user=self.pm_approver,
+            status=DecisionStatuses.PENDING,
+            required=True,
+        )
+        self.approval_om = ComplaintApproval.objects.create(
+            complaint=self.complaint_ksa,
+            approval_round=1,
+            approver_role=ApprovalRoles.OM,
+            approver_user=self.om_approver,
+            status=DecisionStatuses.PENDING,
+            required=True,
+        )
+
+    def test_factory_viewer_is_forbidden_from_approvals_workspace(self):
+        self.client.force_login(self.viewer_user)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 403)
+
+        # Check navbar does not include Approvals for viewer
+        index_res = self.client.get(reverse('index'))
+        self.assertNotContains(index_res, reverse('approvals_list'))
+
+    def test_country_executive_sees_only_own_country_approvals(self):
+        self.client.force_login(self.country_exec)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'PAT-26081001')
+        self.assertNotContains(response, 'PRO-26081002')
+
+    def test_approver_and_admin_see_approvals_workspace(self):
+        self.client.force_login(self.pm_approver)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'PAT-26081001')
+        self.assertContains(response, 'Recalibrate CNC cutter')
+        self.assertContains(response, 'Live Approver Status Matrix')
+
+        self.client.force_login(self.admin_user)
+        admin_response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertContains(admin_response, 'PAT-26081001')
+        self.assertContains(admin_response, 'PRO-26081002')
+
+    def test_factory_executive_sees_approvals_workspace(self):
+        self.client.force_login(self.factory_exec)
+        response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'PAT-26081001')
+
+    def test_execution_verification_has_a_separate_approval_sub_workspace(self):
+        self.complaint_ksa.workflow_status = WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION
+        self.complaint_ksa.save(update_fields=['workflow_status'])
+        ComplaintApproval.objects.create(
+            complaint=self.complaint_ksa,
+            approval_round=2,
+            review_stage=ApprovalStages.EXECUTION_VERIFICATION,
+            approver_role=ApprovalRoles.PM,
+            approver_user=self.pm_approver,
+            status=DecisionStatuses.PENDING,
+            required=True,
+        )
+        self.client.force_login(self.pm_approver)
+
+        verification_response = self.client.get(
+            reverse('approvals_list'),
+            {'stage': 'verification', 'status': 'active'},
+        )
+        self.assertEqual(verification_response.status_code, 200)
+        self.assertContains(verification_response, 'PAT-26081001')
+        self.assertContains(verification_response, 'Execution Verification')
+        self.assertContains(verification_response, 'Verify Execution')
+        self.assertNotContains(verification_response, 'PRO-26081002')
+
+        plan_response = self.client.get(
+            reverse('approvals_list'),
+            {'stage': 'plan', 'status': 'active'},
+        )
+        self.assertNotContains(plan_response, 'PAT-26081001')
+
+    def test_quick_approval_decision_api(self):
+        self.client.force_login(self.pm_approver)
+        response = self.client.post(
+            reverse('quick_approval_decision_api', args=[self.approval_pm.id]),
+            data={'decision': DecisionStatuses.APPROVED, 'comment': 'Looks good to go'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+
+        self.approval_pm.refresh_from_db()
+        self.assertEqual(self.approval_pm.status, DecisionStatuses.APPROVED)
+        self.assertEqual(self.approval_pm.comment, 'Looks good to go')
+
+
+class HtmxNavigationTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username='htmx_admin',
+            email='htmx@example.com',
+            password='HtmxTest!234',
+        )
+        self.client.force_login(self.user)
+
+    def test_normal_navigation_keeps_complete_documents(self):
+        response = self.client.get(reverse('index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<!DOCTYPE html>', html=False)
+        self.assertContains(response, 'class="navbar"', html=False)
+        self.assertContains(response, 'id="app-content"', html=False)
+        self.assertContains(response, 'vendor/htmx/', html=False)
+        self.assertIn('HX-Request', response.headers.get('Vary', ''))
+
+    def test_complaint_search_has_clear_control(self):
+        response = self.client.get(reverse('complaint_list'), {'search': 'PAT-26070001'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="header-search-clear"', html=False)
+        self.assertContains(response, 'aria-label="Clear search"', html=False)
+        self.assertContains(response, 'class="fas fa-times"', html=False)
+
+    def test_vehicle_search_styles_are_included_for_htmx_navigation(self):
+        response = self.client.get(reverse('car_details'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            '<style data-fabro-page-asset>\n        /* Search Picker styles */',
+            html=False,
+        )
+        self.assertContains(response, 'id="vehicle-search-picker"', html=False)
+
+    def test_vehicle_csv_button_opens_direct_file_upload(self):
+        response = self.client.get(reverse('car_details'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'action="{reverse("upload_car_csv")}" enctype="multipart/form-data"',
+            html=False,
+        )
+        self.assertContains(response, 'id="vehicle-csv-file"', html=False)
+        self.assertContains(response, 'name="csv_file"', html=False)
+        self.assertContains(response, 'accept=".csv,text/csv"', html=False)
+        self.assertContains(response, 'class="btn btn-success icon-btn vehicle-csv-upload-button"', html=False)
+        self.assertNotContains(
+            response,
+            f'<a href="{reverse("upload_car_csv")}"',
+            html=False,
+        )
+
+    def test_sku_search_options_initialize_after_htmx_navigation(self):
+        response = self.client.get(reverse('add_sku'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="sku-search-picker"', html=False)
+        self.assertContains(response, 'id="sku-search-options"', html=False)
+        self.assertContains(response, 'data-search-by="code"', html=False)
+        self.assertContains(response, 'data-search-by="description"', html=False)
+        self.assertContains(response, 'data-search-by="region"', html=False)
+        self.assertContains(response, 'data-search-by="all"', html=False)
+        self.assertContains(response, 'window.fabroOnPageLoad(function() {', html=False)
+
+    def test_complaint_column_filters_work_after_htmx_navigation(self):
+        response = self.client.get(reverse('complaint_list'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'th[data-filter-col]', html=False)
+        self.assertContains(response, '.table tr[hidden]', html=False)
+        self.assertContains(response, 'function getComplaintFilterValue(infoRow, colIdx)', html=False)
+        self.assertContains(response, 'infoRow.hidden = !isVisible;', html=False)
+        self.assertContains(response, 'workflowRow.hidden = !isVisible;', html=False)
+        self.assertContains(response, 'window.__fabroComplaintPageController?.abort();', html=False)
+        self.assertContains(response, "trigger.setAttribute('aria-expanded', 'false');", html=False)
+        self.assertContains(response, 'window.fabroOnPageLoad(function () {', html=False)
+
+    def test_interactive_shell_pages_use_navigation_safe_initializers(self):
+        interactive_pages = (
+            'complaint_list',
+            'car_details',
+            'add_sku',
+            'approvals_list',
+        )
+
+        for url_name in interactive_pages:
+            with self.subTest(url_name=url_name):
+                response = self.client.get(reverse(url_name), HTTP_HX_REQUEST='true')
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'window.fabroOnPageLoad', html=False)
+                self.assertNotContains(response, 'DOMContentLoaded', html=False)
+
+    def test_htmx_navigation_returns_only_page_head_and_content(self):
+        shell_pages = [
+            'index',
+            'add_complaint',
+            'complaint_list',
+            'car_details',
+            'add_sku',
+            'master_settings',
+            'approvals_list',
+            'notification_list',
+            'profile_settings',
+        ]
+
+        for url_name in shell_pages:
+            with self.subTest(url_name=url_name):
+                response = self.client.get(
+                    reverse(url_name),
+                    HTTP_HX_REQUEST='true',
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'data-fabro-page-head', html=False)
+                self.assertContains(response, 'id="app-content"', html=False)
+                self.assertNotContains(response, '<!DOCTYPE html>', html=False)
+                self.assertNotContains(response, 'class="navbar"', html=False)
+                self.assertNotContains(response, 'vendor/htmx/htmx.min.js', html=False)
+                self.assertIn('HX-Request', response.headers.get('Vary', ''))
+
+    def test_chat_deliberately_remains_a_full_page(self):
+        response = self.client.get(reverse('chat_view'), HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<!DOCTYPE html>', html=False)
+        self.assertContains(response, 'class="navbar"', html=False)
+        self.assertNotContains(response, 'id="app-content"', html=False)
+
+
+class PortalLanguageTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username='language_user',
+            email='language@example.com',
+            password='LanguageTest!234',
+        )
+        self.client.force_login(self.user)
+
+    def test_profile_menu_contains_all_supported_languages(self):
+        response = self.client.get(reverse('index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="language-menu"', html=False)
+        self.assertContains(response, 'class="language-menu-trigger"', html=False)
+        self.assertContains(response, 'aria-controls="language-menu-options"', html=False)
+        self.assertNotContains(response, '<details class="language-menu">', html=False)
+        self.assertContains(
+            response,
+            'onsubmit="this.elements.next.value = window.location.pathname + window.location.search + window.location.hash"',
+            html=False,
+        )
+        self.assertContains(response, 'value="en" class="language-menu-option is-selected"', html=False)
+        self.assertContains(response, '<span>English</span>', html=False)
+        self.assertContains(response, '<span>العربية</span>', html=False)
+        self.assertContains(response, '<span>हिन्दी</span>', html=False)
+        self.assertContains(response, 'static/js/fabro-i18n.js', html=False)
+
+    def test_language_choice_is_saved_and_sets_cookie(self):
+        response = self.client.post(
+            reverse('set_portal_language'),
+            {'language': 'ar', 'next': reverse('complaint_list')},
+        )
+
+        self.assertRedirects(response, reverse('complaint_list'), fetch_redirect_response=False)
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.preferred_language, 'ar')
+        self.assertEqual(response.cookies['fabro_language'].value, 'ar')
+
+        page = self.client.get(reverse('index'))
+        self.assertContains(page, "window.FABRO_LANGUAGE = 'ar'", html=False)
+
+    def test_invalid_language_falls_back_to_english_and_rejects_external_redirect(self):
+        response = self.client.post(
+            reverse('set_portal_language'),
+            {'language': 'unsupported', 'next': 'https://example.com/redirect'},
+        )
+
+        self.assertRedirects(response, reverse('index'), fetch_redirect_response=False)
+        self.user.workflow_profile.refresh_from_db()
+        self.assertEqual(self.user.workflow_profile.preferred_language, 'en')
+        self.assertEqual(response.cookies['fabro_language'].value, 'en')
+
+    def test_saved_hindi_language_is_activated_on_a_new_request(self):
+        UserProfile.objects.filter(user=self.user).update(preferred_language='hi')
+
+        response = self.client.get(reverse('index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "window.FABRO_LANGUAGE = 'hi'", html=False)
+
+    def test_primary_pages_render_in_every_supported_language(self):
+        pages = [
+            'index', 'add_complaint', 'complaint_list', 'car_details',
+            'add_sku', 'master_settings', 'approvals_list',
+            'notification_list', 'profile_settings', 'admin_panel', 'chat_view',
+        ]
+
+        for language in ('en', 'ar', 'hi'):
+            UserProfile.objects.filter(user=self.user).update(preferred_language=language)
+            for url_name in pages:
+                with self.subTest(language=language, page=url_name):
+                    response = self.client.get(reverse(url_name))
+                    self.assertEqual(response.status_code, 200)
+                    self.assertContains(
+                        response,
+                        f"window.FABRO_LANGUAGE = '{language}'",
+                        html=False,
+                    )

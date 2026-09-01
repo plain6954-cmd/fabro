@@ -1,0 +1,20 @@
+{
+  "name": "fabro-leather-portal-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:backend && npm run test:e2e",
+    "test:backend": "python manage.py test management",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@fortawesome/fontawesome-free": "6.7.2",
+    "@playwright/test": "^1.45.0"
+  },
+  "dependencies": {
+    "htmx.org": "2.0.8"
+  }
+}

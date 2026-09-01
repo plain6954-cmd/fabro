@@ -1,0 +1,835 @@
+{% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Settings - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <style data-fabro-page-asset>
+        .profile-page-wrapper {
+            max-width: 1680px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0.75rem 1.5rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .profile-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.85rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .profile-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), #f43f5e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+
+        .profile-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 0.84rem;
+            margin: 0.2rem 0 0;
+        }
+
+        body.light-mode .profile-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .compact-admin-btn {
+            padding: 0.45rem 1rem;
+            font-size: 0.82rem;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-weight: 600;
+        }
+
+        /* 3-Column Grid matching sketch */
+        .profile-grid-compact {
+            display: grid;
+            grid-template-columns: 290px minmax(340px, 1fr) minmax(340px, 1fr);
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        /* Glassmorphism Card Style */
+        .profile-card {
+            background: var(--dark-surface);
+            border-radius: 12px;
+            padding: 1.15rem 1.25rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        body.light-mode .profile-card {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Avatar Container & Photo Upload */
+        .avatar-container {
+            text-align: center;
+            position: relative;
+            margin-bottom: 0.75rem;
+        }
+
+        .avatar-wrapper {
+            position: relative;
+            width: 6.2rem;
+            height: 6.2rem;
+            margin: 0 auto 0.65rem;
+            border-radius: 50%;
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.25);
+        }
+
+        .profile-avatar-display {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), #f43f5e);
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .profile-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .avatar-camera-btn {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid var(--dark-surface);
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
+        .avatar-camera-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-hover);
+        }
+
+        .avatar-delete-btn {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid var(--dark-surface);
+            font-size: 0.68rem;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .avatar-delete-btn:hover {
+            transform: scale(1.1);
+            background: #dc2626;
+        }
+
+        body.light-mode .avatar-camera-btn,
+        body.light-mode .avatar-delete-btn {
+            border-color: #ffffff;
+        }
+
+        .user-meta-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 0.2rem;
+            line-height: 1.2;
+        }
+
+        body.light-mode .user-meta-name {
+            color: var(--light-text);
+        }
+
+        .user-meta-role {
+            font-size: 0.76rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.65rem;
+        }
+
+        /* Detail List */
+        .profile-detail-list {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 0.65rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        body.light-mode .profile-detail-list {
+            border-top-color: #f1f5f9;
+        }
+
+        .profile-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.35rem 0.5rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.8rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        body.light-mode .profile-detail-item {
+            color: var(--light-text-secondary);
+            background: #f8fafc;
+        }
+
+        .profile-detail-item i {
+            color: var(--primary-color);
+            width: 1.1rem;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .profile-detail-item span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Forms Layout */
+        .section-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 0.55rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        body.light-mode .section-header {
+            border-bottom-color: #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        body.light-mode .section-title {
+            color: var(--light-text);
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .form-group-compact {
+            margin-bottom: 0.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.2rem;
+            font-size: 0.76rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+
+        body.light-mode .input-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.48rem 0.8rem 0.48rem 2.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.82rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .form-input {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #cbd5e1;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+
+        .form-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Buttons & status pill styling */
+        .btn-group {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.65rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .save-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34d399;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+            animation: fadeInPill 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .save-status-pill.fade-out {
+            opacity: 0;
+            transform: translateY(4px) scale(0.94);
+            pointer-events: none;
+        }
+
+        .save-status-pill i {
+            font-size: 0.85rem;
+            color: #10b981;
+        }
+
+        .save-status-pill.error {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+        }
+
+        .save-status-pill.error i {
+            color: #ef4444;
+        }
+
+        body.light-mode .save-status-pill {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #15803d;
+            box-shadow: none;
+        }
+
+        body.light-mode .save-status-pill i {
+            color: #16a34a;
+        }
+
+        body.light-mode .save-status-pill.error {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #b91c1c;
+            box-shadow: none;
+        }
+
+        body.light-mode .save-status-pill.error i {
+            color: #dc2626;
+        }
+
+        @keyframes fadeInPill {
+            from {
+                opacity: 0;
+                transform: translateY(4px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .btn-icon-save {
+            width: 42px;
+            height: 36px;
+            min-width: 42px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon-save:hover {
+            transform: translateY(-1px) scale(1.02);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+        }
+
+        .btn-update-pwd {
+            height: 36px;
+            padding: 0 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .btn-update-pwd:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+        }
+
+        .btn-forgot-pwd {
+            height: 36px;
+            padding: 0 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .btn-forgot-pwd {
+            background: var(--light-card);
+            border-color: #cbd5e1;
+            color: var(--light-text-secondary);
+        }
+
+        .btn-forgot-pwd:hover {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-bg);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        @media (max-width: 1100px) {
+            .profile-grid-compact {
+                grid-template-columns: 260px 1fr;
+            }
+            .profile-grid-compact > div:last-child {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .profile-grid-compact {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div class="profile-page-wrapper">
+        <div class="profile-header-row">
+            <div>
+                <h1 class="profile-title">
+                    <i class="fas fa-user-cog"></i> Profile Settings
+                </h1>
+                <p class="profile-subtitle">Configure your personal information and adjust account security credentials</p>
+            </div>
+            {% if can_manage_workflow %}
+            <a href="{% url 'admin_panel' %}" class="btn btn-secondary compact-admin-btn" data-testid="open-admin-panel">
+                <i class="fas fa-user-shield"></i> Admin Panel
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="profile-grid-compact">
+            <!-- 1. IDENTITY & AVATAR CARD -->
+            <div class="profile-card">
+                <div>
+                    <div class="avatar-container">
+                        <div class="avatar-wrapper">
+                            <div class="profile-avatar-display" id="avatar-preview-box">
+                                {% if workflow_profile.photo %}
+                                    <img src="{{ workflow_profile.photo.url }}" alt="{{ request.user.username }}" class="profile-avatar-img" id="avatar-preview-img">
+                                {% else %}
+                                    <span id="avatar-initial">{{ request.user.username|first|upper }}</span>
+                                {% endif %}
+                            </div>
+                            <label for="id_profile_photo" class="avatar-camera-btn" title="Upload profile photo">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                            {% if workflow_profile.photo %}
+                            <button type="button" class="avatar-delete-btn" onclick="triggerRemovePhoto()" title="Remove photo">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div class="user-meta-name">
+                            {% if request.user.first_name %}
+                                {{ request.user.first_name }} {{ request.user.last_name }}
+                            {% else %}
+                                {{ request.user.username }}
+                            {% endif %}
+                        </div>
+                        <div class="user-meta-role">
+                            {{ workflow_role_label }}
+                        </div>
+                    </div>
+
+                    <div class="profile-detail-list">
+                        <div class="profile-detail-item" title="Username">
+                            <i class="fas fa-user-circle"></i>
+                            <span>{{ request.user.username }}</span>
+                        </div>
+                        <div class="profile-detail-item" title="Email">
+                            <i class="fas fa-envelope"></i>
+                            <span>{{ request.user.email|default:"No email registered" }}</span>
+                        </div>
+                        <div class="profile-detail-item" title="Member Since">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Joined {{ request.user.date_joined|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="profile-detail-item" title="Last Active">
+                            <i class="fas fa-history"></i>
+                            <span>Last login {{ request.user.last_login|date:"M d, H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. ACCOUNT DETAILS CARD -->
+            <div class="profile-card">
+                <div class="section-header">
+                    <span class="section-title">
+                        <i class="fas fa-id-card"></i> Account Details
+                    </span>
+                </div>
+
+                <form method="post" action="{% url 'profile_settings' %}" enctype="multipart/form-data" id="profile-details-form" style="display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
+                    {% csrf_token %}
+                    <input type="hidden" name="update_profile" value="1">
+                    <input type="file" id="id_profile_photo" name="photo" accept="image/*" style="display: none;" onchange="handlePhotoUpload(event)">
+                    <input type="hidden" name="remove_photo" id="id_remove_photo" value="0">
+
+                    <div>
+                        <div class="form-group-compact">
+                            <label class="form-label" for="username">Username (Read-only)</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="username" class="form-input" value="{{ request.user.username }}" disabled>
+                                <i class="fas fa-lock input-icon"></i>
+                            </div>
+                        </div>
+                        <div class="form-group-compact">
+                            <label class="form-label" for="email">Email Address</label>
+                            <div class="input-wrapper">
+                                <input type="email" name="email" id="email" class="form-input" value="{{ request.user.email }}" placeholder="Enter email address" required>
+                                <i class="fas fa-envelope input-icon"></i>
+                            </div>
+                        </div>
+                        <div class="form-group-compact">
+                            <label class="form-label" for="first_name">First Name</label>
+                            <div class="input-wrapper">
+                                <input type="text" name="first_name" id="first_name" class="form-input" value="{{ request.user.first_name }}" placeholder="Enter first name">
+                                <i class="fas fa-user input-icon"></i>
+                            </div>
+                        </div>
+                        <div class="form-group-compact">
+                            <label class="form-label" for="last_name">Last Name</label>
+                            <div class="input-wrapper">
+                                <input type="text" name="last_name" id="last_name" class="form-input" value="{{ request.user.last_name }}" placeholder="Enter last name">
+                                <i class="fas fa-user input-icon"></i>
+                            </div>
+                        </div>
+                        <div class="form-group-compact">
+                            <label class="form-label" for="phone_number">Phone Number</label>
+                            <div class="input-wrapper">
+                                <input type="tel" name="phone_number" id="phone_number" class="form-input" value="{{ workflow_profile.phone_number|default:'' }}" placeholder="Enter phone number">
+                                <i class="fas fa-phone input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        {% for message in messages %}
+                            {% if "password" not in message|lower %}
+                                <div class="save-status-pill {{ message.tags }}">
+                                    <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <button type="submit" class="btn-icon-save" title="Save Details" aria-label="Save Details">
+                            <i class="fas fa-save"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 3. SECURITY & PASSWORD CARD -->
+            <div class="profile-card">
+                <div class="section-header">
+                    <span class="section-title">
+                        <i class="fas fa-key"></i> Security & Password
+                    </span>
+                </div>
+
+                <form method="post" action="{% url 'profile_settings' %}" style="display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
+                    {% csrf_token %}
+                    <input type="hidden" name="change_password" value="1">
+
+                    <div>
+                        <div class="form-group-compact">
+                            <label class="form-label" for="id_old_password">Current Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" name="old_password" id="id_old_password" class="form-input" placeholder="Enter current password" required style="padding-right: 2.2rem;">
+                                <i class="fas fa-shield-alt input-icon"></i>
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_old_password', this)" title="Show/Hide Password" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group-compact">
+                            <label class="form-label" for="id_new_password1">New Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" name="new_password1" id="id_new_password1" class="form-input" placeholder="Enter new password" required style="padding-right: 2.2rem;">
+                                <i class="fas fa-lock input-icon"></i>
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_new_password1', this)" title="Show/Hide Password" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group-compact">
+                            <label class="form-label" for="id_new_password2">Confirm New Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" name="new_password2" id="id_new_password2" class="form-input" placeholder="Confirm new password" required style="padding-right: 2.2rem;">
+                                <i class="fas fa-check-circle input-icon"></i>
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_new_password2', this)" title="Show/Hide Password" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        {% for message in messages %}
+                            {% if "password" in message|lower %}
+                                <div class="save-status-pill {{ message.tags }}">
+                                    <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <button type="button" class="btn-forgot-pwd" onclick="alert('To reset your password if forgotten, please contact your system administrator.')" title="Forgot Password?">
+                            <i class="fas fa-question-circle"></i> Forgot
+                        </button>
+                        <button type="submit" class="btn-update-pwd" title="Update Password">
+                            <i class="fas fa-sync-alt"></i> Update
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Profile photo must be under 5 MB.');
+                event.target.value = '';
+                return;
+            }
+
+            // Preview instantly
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const box = document.getElementById('avatar-preview-box');
+                if (box) {
+                    box.innerHTML = `<img src="${e.target.result}" alt="Preview" class="profile-avatar-img">`;
+                }
+            };
+            reader.readAsDataURL(file);
+
+            // Clear remove_photo flag
+            const removeFlag = document.getElementById('id_remove_photo');
+            if (removeFlag) removeFlag.value = '0';
+
+            // Auto-submit form to save photo immediately
+            const form = document.getElementById('profile-details-form');
+            if (form) form.submit();
+        }
+
+        function triggerRemovePhoto() {
+            if (confirm('Are you sure you want to remove your profile photo?')) {
+                const removeFlag = document.getElementById('id_remove_photo');
+                if (removeFlag) removeFlag.value = '1';
+                const fileInput = document.getElementById('id_profile_photo');
+                if (fileInput) fileInput.value = '';
+                const form = document.getElementById('profile-details-form');
+                if (form) form.submit();
+            }
+        }
+
+        // Auto-dismiss save status pill after 3 seconds
+        window.fabroOnPageLoad(() => {
+            const pills = document.querySelectorAll('.save-status-pill');
+            if (pills.length > 0) {
+                setTimeout(() => {
+                    pills.forEach(pill => {
+                        pill.classList.add('fade-out');
+                        setTimeout(() => {
+                            pill.remove();
+                        }, 400);
+                    });
+                }, 3000);
+            }
+        });
+    </script>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}

@@ -1,0 +1,305 @@
+:root {
+    --fabro-font-default: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --fabro-font-arabic: "Segoe UI", Tahoma, Arial, sans-serif;
+    --fabro-font-hindi: "Nirmala UI", Mangal, "Segoe UI", sans-serif;
+}
+
+html {
+    max-width: 100%;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+html[lang="ar"] body,
+html[lang="ar"] button,
+html[lang="ar"] input,
+html[lang="ar"] select,
+html[lang="ar"] textarea {
+    font-family: var(--fabro-font-arabic) !important;
+}
+
+html[lang="hi"] body,
+html[lang="hi"] button,
+html[lang="hi"] input,
+html[lang="hi"] select,
+html[lang="hi"] textarea {
+    font-family: var(--fabro-font-hindi) !important;
+}
+
+body {
+    max-width: 100%;
+    min-height: 100dvh;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    touch-action: manipulation;
+}
+
+.table-container,
+.table-wrapper,
+.erp-table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+}
+
+.language-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: inherit;
+}
+
+.language-menu {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
+
+.language-menu-trigger {
+    width: 100%;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    padding: 0.35rem 0.6rem;
+    color: #18181b;
+    background: #fafafa;
+    border: 2px solid #56ad64;
+    border-radius: 8px;
+    box-shadow: 0 0 0 3px rgba(86, 173, 100, 0.13), 0 5px 16px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    font: inherit;
+    text-align: start;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+    font-size: 0.88rem;
+}
+
+.language-menu-trigger i {
+    font-size: 0.7rem;
+    color: #5f6368;
+    opacity: 1;
+    transition: transform 180ms ease;
+}
+
+.language-menu-trigger:focus-visible {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.24);
+}
+
+.language-menu.is-pinned .language-menu-trigger i {
+    transform: rotate(180deg);
+}
+
+.language-menu-options {
+    position: absolute;
+    z-index: 1010;
+    right: 100%;
+    left: auto;
+    top: 0;
+    width: 180px;
+    padding: 0.35rem;
+    overflow: hidden;
+    background: linear-gradient(145deg, #393541 0%, #665079 54%, #544b5e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 9px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.58);
+    transform-origin: top center;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-5px) scale(0.985);
+    transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
+}
+
+.language-menu.is-pinned .language-menu-options {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    transition-delay: 0s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .language-menu:hover .language-menu-options {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+        transition-delay: 0s;
+    }
+
+    .language-menu:hover .language-menu-trigger i {
+        transform: rotate(180deg);
+    }
+}
+
+.language-menu-option {
+    width: 100%;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    padding: 0.42rem 0.6rem;
+    border: 0;
+    border-bottom: 1px solid rgba(20, 16, 24, 0.34);
+    border-radius: 4px;
+    color: #ffffff;
+    background: transparent;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 140ms ease, box-shadow 140ms ease;
+    font-size: 0.86rem;
+}
+
+.profile-dropdown-content:has(.language-menu.is-pinned),
+.profile-dropdown-content:has(.language-menu:hover) {
+    overflow: visible;
+}
+
+.language-menu-option:last-child {
+    border-bottom-color: transparent;
+}
+
+.language-menu-option:hover,
+.language-menu-option:focus-visible {
+    outline: none;
+    background: rgba(145, 83, 211, 0.58);
+    box-shadow: inset 0 0 0 1px rgba(210, 179, 255, 0.16);
+}
+
+.language-menu-option.is-selected {
+    background: linear-gradient(90deg, #8d4ad0, #9b5bd8);
+    color: #ffffff;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 4px 12px rgba(52, 20, 83, 0.3);
+}
+
+.language-menu-option .fa-check {
+    color: #ffffff;
+    font-size: 0.72rem;
+}
+
+.language-menu-option[value="ar"] {
+    font-family: var(--fabro-font-arabic);
+}
+
+.language-menu-option[value="hi"] {
+    font-family: var(--fabro-font-hindi);
+}
+
+body.light-mode .language-switcher {
+    border-top-color: #e2e8f0;
+}
+
+body.light-mode .language-menu-trigger {
+    background: #fafafa;
+    color: #18181b;
+    border-color: #56ad64;
+}
+
+body.light-mode .language-menu-options {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+[dir="rtl"] .profile-dropdown-content,
+[dir="rtl"] .dropdown-item,
+[dir="rtl"] label,
+[dir="rtl"] th,
+[dir="rtl"] td {
+    text-align: right;
+}
+
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="tel"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] .complaint-id,
+[dir="rtl"] .sku-code {
+    direction: ltr;
+    text-align: left;
+}
+
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+@media (max-width: 768px) {
+    body {
+        overflow-x: clip;
+    }
+
+    input,
+    select,
+    textarea {
+        font-size: max(16px, 1em);
+    }
+
+    .language-menu-trigger,
+    .language-menu-option {
+        min-height: 44px;
+    }
+
+    .language-menu-options {
+        top: calc(100% + 0.45rem);
+        right: 0;
+        left: auto;
+        width: min(180px, calc(100vw - 2rem));
+    }
+
+    .page-container,
+    .dashboard-container,
+    .container,
+    .main-content,
+    .profile-page-wrapper,
+    .master-container,
+    .complaints-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .erp-modal-box,
+    .modal-content {
+        width: min(100% - 1rem, 100%) !important;
+        max-height: calc(100dvh - 1rem) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto !important;
+    }
+
+    .language-menu-options {
+        transition: none;
+    }
+}

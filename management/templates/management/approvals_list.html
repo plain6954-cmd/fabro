@@ -1,0 +1,1768 @@
+{% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approvals Workspace - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <style data-fabro-page-asset>
+        /* Full Screen App-Window Layout */
+        html, body {
+            overflow: hidden !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-sizing: border-box !important;
+        }
+
+        .navbar {
+            flex-shrink: 0 !important;
+        }
+
+        .approvals-workspace-wrapper {
+            flex: 1 !important;
+            min-height: 0 !important;
+            width: min(1760px, calc(100% - 1.5rem));
+            margin: 0 auto;
+            padding: 0.35rem 0 0.65rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+            gap: 0.55rem;
+        }
+
+        /* TOP SUMMARY & CONTROLS CONTAINER */
+        .workspace-top-bar {
+            background: rgba(24, 24, 28, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 0.75rem 1.1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            flex-shrink: 0;
+        }
+
+        body.light-mode .workspace-top-bar {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+        }
+
+        .workspace-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .workspace-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .workspace-title-icon {
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 1.25rem;
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+            flex-shrink: 0;
+        }
+
+        .workspace-heading {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.light-mode .workspace-heading { color: #0f172a; }
+
+        .workspace-subtitle {
+            margin: 0.15rem 0 0;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        body.light-mode .workspace-subtitle { color: #64748b; }
+
+        /* KPI STATS ROW */
+        .kpi-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .kpi-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.38rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        body.light-mode .kpi-chip {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #334155;
+        }
+
+        .kpi-chip:hover {
+            transform: translateY(-1px);
+            border-color: rgba(220, 38, 38, 0.4);
+        }
+
+        .kpi-chip.urgent {
+            background: rgba(239, 68, 68, 0.16);
+            border-color: rgba(239, 68, 68, 0.38);
+            color: #fca5a5;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);
+        }
+
+        body.light-mode .kpi-chip.urgent {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #b91c1c;
+        }
+
+        .kpi-count {
+            background: rgba(255, 255, 255, 0.16);
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        body.light-mode .kpi-count { background: rgba(0, 0, 0, 0.08); }
+
+        .kpi-chip.urgent .kpi-count {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        /* FILTER CONTROLS ROW */
+        .filter-controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            padding-top: 0.2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        body.light-mode .filter-controls-row {
+            border-top-color: #f1f5f9;
+        }
+
+        .filter-tabs {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .tab-btn {
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            background: transparent;
+            border: 1px solid transparent;
+            text-decoration: none;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.15s ease;
+        }
+
+        body.light-mode .tab-btn { color: #64748b; }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        body.light-mode .tab-btn:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+
+        .tab-btn.active {
+            color: #ffffff;
+            background: var(--primary-color, #dc2626);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+        }
+
+        .search-and-filters {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+
+        .search-input-box {
+            position: relative;
+            min-width: 220px;
+        }
+
+        .search-input-box i {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85rem;
+            pointer-events: none;
+        }
+
+        body.light-mode .search-input-box i { color: #94a3b8; }
+
+        .search-input-box input {
+            width: 100%;
+            padding: 0.42rem 0.85rem 0.42rem 2.2rem;
+            border-radius: 999px;
+            background: rgba(18, 18, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-size: 0.82rem;
+            outline: none;
+            transition: all 0.15s ease;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .search-input-box input {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+
+        .search-input-box input:focus {
+            border-color: var(--primary-color, #dc2626);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+        }
+
+        .filter-select {
+            padding: 0.42rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(18, 18, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.8rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        body.light-mode .filter-select {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+
+        /* MAIN SCROLLABLE LIST CONTAINER */
+        .approvals-list-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        /* APPROVAL CARD */
+        .approval-card {
+            background: rgba(24, 24, 28, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(14px);
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .approval-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .approval-card:hover {
+            border-color: rgba(255, 255, 255, 0.22);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+        }
+
+        body.light-mode .approval-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .approval-card.needs-my-vote {
+            border-left: 4px solid #ef4444;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.07) 0%, rgba(24, 24, 28, 0.9) 30%);
+        }
+
+        body.light-mode .approval-card.needs-my-vote {
+            background: linear-gradient(90deg, #fef2f2 0%, #ffffff 30%);
+            border-left-color: #ef4444;
+        }
+
+        /* CARD HEADER */
+        .card-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding-bottom: 0.65rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        body.light-mode .card-header-row {
+            border-bottom-color: #f1f5f9;
+        }
+
+        .card-id-block {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .complaint-id-badge {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.01em;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.25rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: color 0.15s ease;
+        }
+
+        body.light-mode .complaint-id-badge {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .complaint-id-badge:hover {
+            color: var(--primary-color, #dc2626);
+            border-color: rgba(220, 38, 38, 0.4);
+        }
+
+        .type-pill {
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .type-pattern { background: rgba(59, 130, 246, 0.18); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .type-production { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .type-quality { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .type-line { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); }
+
+        body.light-mode .type-pattern { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+        body.light-mode .type-production { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
+        body.light-mode .type-quality { background: #d1fae5; color: #047857; border-color: #a7f3d0; }
+        body.light-mode .type-line { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+
+        .priority-badge {
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .priority-top { background: #ef4444; color: #ffffff; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
+        .priority-medium { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+        .priority-low { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); }
+
+        body.light-mode .priority-medium { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+        body.light-mode .priority-low { background: #d1fae5; color: #047857; border-color: #a7f3d0; }
+
+        .round-stage-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+        }
+
+        body.light-mode .round-stage-badge { background: #f1f5f9; color: #64748b; }
+
+        .round-stage-badge.reconsideration {
+            background: rgba(244, 63, 94, 0.2);
+            color: #fda4af;
+            border: 1px solid rgba(244, 63, 94, 0.35);
+        }
+
+        body.light-mode .round-stage-badge.reconsideration {
+            background: #ffe4e6;
+            color: #e11d48;
+            border-color: #fecdd3;
+        }
+
+        /* CARD MAIN CONTENT: 2-COLUMN GRID */
+        .card-body-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 1.15fr) minmax(380px, 1.85fr);
+            gap: 1.25rem;
+            align-items: start;
+        }
+
+        @media (max-width: 980px) {
+            .card-body-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* LEFT COLUMN: COMPLAINT & FACTORY PLAN */
+        .complaint-overview-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .meta-tags-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.3rem 0.65rem;
+            font-size: 0.8rem;
+        }
+
+        .meta-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
+        }
+
+        body.light-mode .meta-label { color: #64748b; }
+
+        .meta-value {
+            color: rgba(255, 255, 255, 0.92);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        body.light-mode .meta-value { color: #1e293b; }
+
+        .country-flag-icon {
+            width: 1.2rem;
+            height: 0.9rem;
+            object-fit: cover;
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .factory-plan-box {
+            background: rgba(18, 18, 20, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 0.65rem 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-top: 0.2rem;
+        }
+
+        body.light-mode .factory-plan-box {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .factory-plan-title {
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #f59e0b;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .factory-plan-text {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.35;
+            margin: 0;
+        }
+
+        body.light-mode .factory-plan-text { color: #334155; }
+
+        /* RIGHT COLUMN: APPROVAL MATRIX ("WHERE THE APPROVAL IS") */
+        .approval-matrix-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            background: rgba(18, 18, 20, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+        }
+
+        body.light-mode .approval-matrix-col {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .matrix-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.65rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        body.light-mode .matrix-header { color: #0f172a; }
+
+        .progress-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            width: 180px;
+        }
+
+        .progress-bar-track {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        body.light-mode .progress-bar-track { background: #e2e8f0; }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-bar-text {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #10b981;
+            white-space: nowrap;
+        }
+
+        /* APPROVER CARDS GRID IN MATRIX */
+        .approver-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.55rem;
+        }
+
+        .approver-cell {
+            background: rgba(28, 28, 32, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 0.6rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            position: relative;
+            transition: all 0.15s ease;
+        }
+
+        body.light-mode .approver-cell {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+
+        .approver-cell.status-approved {
+            border-color: rgba(16, 185, 129, 0.35);
+            background: rgba(16, 185, 129, 0.06);
+        }
+
+        body.light-mode .approver-cell.status-approved {
+            border-color: #a7f3d0;
+            background: #f0fdf4;
+        }
+
+        .approver-cell.status-rejected {
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.07);
+        }
+
+        body.light-mode .approver-cell.status-rejected {
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+
+        .approver-cell.status-pending {
+            border-color: rgba(245, 158, 11, 0.3);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        body.light-mode .approver-cell.status-pending {
+            border-color: #fde68a;
+            background: #fffbeb;
+        }
+
+        .approver-top-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.35rem;
+        }
+
+        .role-tag {
+            font-size: 0.74rem;
+            font-weight: 800;
+            padding: 0.12rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            letter-spacing: 0.03em;
+        }
+
+        body.light-mode .role-tag {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .decision-status-chip {
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .decision-status-chip.approved { color: #34d399; }
+        .decision-status-chip.rejected { color: #f87171; }
+        .decision-status-chip.pending { color: #fbbf24; }
+
+        body.light-mode .decision-status-chip.approved { color: #059669; }
+        body.light-mode .decision-status-chip.rejected { color: #dc2626; }
+        body.light-mode .decision-status-chip.pending { color: #d97706; }
+
+        .approver-user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .approver-avatar {
+            width: 1.45rem;
+            height: 1.45rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #64748b, #475569);
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .approver-username {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        body.light-mode .approver-username { color: #1e293b; }
+
+        .approver-comment-bubble {
+            font-size: 0.72rem;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.3rem 0.45rem;
+            border-radius: 6px;
+            border-left: 2px solid #ef4444;
+            margin-top: 0.15rem;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+
+        body.light-mode .approver-comment-bubble {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .decision-timestamp {
+            font-size: 0.68rem;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 0.1rem;
+        }
+
+        body.light-mode .decision-timestamp { color: #94a3b8; }
+
+        /* CARD ACTIONS FOOTER */
+        .card-actions-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding-top: 0.55rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        body.light-mode .card-actions-footer {
+            border-top-color: #f1f5f9;
+        }
+
+        .footer-left-info {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        body.light-mode .footer-left-info { color: #64748b; }
+
+        .footer-buttons {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-action-primary {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 0.42rem 0.95rem;
+            border-radius: 999px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+            transition: all 0.15s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-action-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.5);
+            color: #ffffff;
+        }
+
+        .btn-action-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.42rem 0.85rem;
+            border-radius: 999px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.15s ease;
+        }
+
+        body.light-mode .btn-action-secondary {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+
+        .btn-action-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+        }
+
+        body.light-mode .btn-action-secondary:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Search Picker styles */
+        .search-picker {
+            position: relative;
+            flex: 1 1 300px;
+            max-width: 440px;
+            min-width: 220px;
+        }
+
+        .header-search-input {
+            width: 100%;
+            height: 2.5rem;
+            padding: 0.5rem 10.5rem 0.5rem 2.4rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            background: rgba(18, 18, 20, 0.82);
+            color: var(--dark-text);
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .header-search-input {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .header-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15);
+        }
+
+        .search-leading-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+            font-size: 0.85rem;
+        }
+
+        body.light-mode .search-leading-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .search-field-label {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            max-width: 9.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.14);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.68rem;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        body.light-mode .search-field-label {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.16);
+        }
+
+        .search-options {
+            position: absolute;
+            z-index: 1200;
+            left: 0;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            display: none;
+            padding: 0.55rem;
+            border-radius: 8px;
+            background: rgba(24, 24, 27, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+        }
+
+        .search-picker.is-suggesting .search-options {
+            display: block;
+        }
+
+        body.light-mode .search-options {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.13);
+        }
+
+        .search-options-title {
+            margin: 0 0 0.45rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        body.light-mode .search-options-title {
+            color: var(--light-text-secondary);
+        }
+
+        .search-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem;
+        }
+
+        .search-option {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            min-height: 2.25rem;
+            padding: 0.48rem 0.58rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--dark-text);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .search-option:hover,
+        .search-option.is-active {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.88);
+            border-color: rgba(248, 113, 113, 0.55);
+        }
+
+        body.light-mode .search-option {
+            color: var(--light-text);
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .search-option:hover,
+        body.light-mode .search-option.is-active {
+            color: #ffffff;
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        /* EMPTY STATE */
+        .empty-approvals-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3.5rem 1.5rem;
+            text-align: center;
+            background: rgba(24, 24, 28, 0.7);
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            gap: 0.75rem;
+            margin: auto 0;
+        }
+
+        body.light-mode .empty-approvals-box {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            color: #64748b;
+        }
+
+        .empty-icon {
+            font-size: 2.5rem;
+            color: #10b981;
+        }
+
+        .empty-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        body.light-mode .empty-title { color: #0f172a; }
+
+        /* QUICK DECISION MODAL */
+        .decision-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .decision-modal-overlay.open {
+            display: flex;
+            animation: fadeInModal 0.2s ease forwards;
+        }
+
+        @keyframes fadeInModal {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .decision-modal-content {
+            background: #18181b;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            width: min(520px, 100%);
+            padding: 1.5rem;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        body.light-mode .decision-modal-content {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        body.light-mode .modal-title { color: #0f172a; }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        body.light-mode .modal-close-btn { color: #64748b; }
+
+        .decision-radio-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .decision-choice-card {
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        body.light-mode .decision-choice-card {
+            border-color: #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .decision-choice-card input[type="radio"] {
+            display: none;
+        }
+
+        .decision-choice-card.selected-approve {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+        }
+
+        .decision-choice-card.selected-reject {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+        }
+
+        .modal-textarea {
+            width: 100%;
+            min-height: 90px;
+            border-radius: 8px;
+            background: rgba(10, 10, 12, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.85rem;
+            outline: none;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        body.light-mode .modal-textarea {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.65rem;
+        }
+    </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div class="approvals-workspace-wrapper">
+        <!-- TOP SUMMARY & WORKSPACE CONTROL BAR -->
+        <div class="workspace-top-bar">
+            <div class="workspace-header-row">
+                <div class="workspace-title-group">
+                    <div class="workspace-title-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <h1 class="workspace-heading">
+                            Approvals Workspace
+                        </h1>
+                        <p class="workspace-subtitle">
+                            {% if workspace_stage == 'verification' %}Post-execution verification matrix{% else %}Pre-execution action plan approval matrix{% endif %} & reviewer tracker •
+                            <strong>{{ workflow_role_label }}</strong> 
+                            {% if workflow_profile.country %}({{ workflow_profile.country.name }}){% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- KPI METRICS SUMMARY -->
+                <div class="kpi-row">
+                    <a href="?stage={{ workspace_stage }}&status=active" class="kpi-chip {% if status_filter == 'active' %}urgent{% endif %}">
+                        <i class="fas fa-bolt"></i> Active In Review
+                        <span class="kpi-count">{{ total_active_count }}</span>
+                    </a>
+                    {% if my_pending_count > 0 %}
+                    <a href="?stage={{ workspace_stage }}&status=my_pending" class="kpi-chip urgent" style="animation: pulse 2s infinite;">
+                        <i class="fas fa-hourglass-half"></i> Waiting My Vote
+                        <span class="kpi-count">{{ my_pending_count }}</span>
+                    </a>
+                    {% endif %}
+                    <a href="?stage={{ workspace_stage }}&status=partially_approved" class="kpi-chip {% if status_filter == 'partially_approved' %}urgent{% endif %}">
+                        <i class="fas fa-tasks"></i> {% if workspace_stage == 'verification' %}Partially Verified{% else %}Partially Approved{% endif %}
+                        <span class="kpi-count">{{ partially_approved_count }}</span>
+                    </a>
+                    {% if reconsideration_count > 0 %}
+                    <a href="?stage={{ workspace_stage }}&status=reconsideration" class="kpi-chip {% if status_filter == 'reconsideration' %}urgent{% endif %}" style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
+                        <i class="fas fa-sync-alt"></i> Reconsiderations
+                        <span class="kpi-count" style="background: #f43f5e; color: #fff;">{{ reconsideration_count }}</span>
+                    </a>
+                    {% endif %}
+                    {% if top_priority_count > 0 %}
+                    <a href="?stage={{ workspace_stage }}&priority=top" class="kpi-chip" style="color: #fca5a5;">
+                        <i class="fas fa-exclamation-triangle"></i> Top Priority
+                        <span class="kpi-count" style="background: #ef4444; color: #fff;">{{ top_priority_count }}</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="filter-tabs" role="navigation" aria-label="Approval stage workspace">
+                <a href="?stage=plan&status=active" class="tab-btn {% if workspace_stage == 'plan' %}active{% endif %}">
+                    <i class="fas fa-clipboard-list"></i> Before Execution
+                </a>
+                <a href="?stage=verification&status=active" class="tab-btn {% if workspace_stage == 'verification' %}active{% endif %}">
+                    <i class="fas fa-clipboard-check"></i> Verify Execution
+                </a>
+            </div>
+
+            <!-- CONTROLS & FILTER TABS -->
+            <div class="filter-controls-row">
+                <div class="filter-tabs">
+                    <a href="?stage={{ workspace_stage }}&status=active{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
+                        <i class="fas fa-hourglass-half"></i> Active Pending
+                    </a>
+                    {% if is_workflow_approver %}
+                    <a href="?stage={{ workspace_stage }}&status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
+                        <i class="fas fa-user-clock"></i> My Pending Reviews {% if my_pending_count %}({{ my_pending_count }}){% endif %}
+                    </a>
+                    {% endif %}
+                    <a href="?stage={{ workspace_stage }}&status=partially_approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'partially_approved' %}active{% endif %}">
+                        <i class="fas fa-check-circle"></i> {% if workspace_stage == 'verification' %}Partially Verified{% else %}Partially Approved{% endif %}
+                    </a>
+                    {% if workspace_stage == 'plan' %}
+                    <a href="?status=reconsideration{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'reconsideration' %}active{% endif %}">
+                        <i class="fas fa-redo-alt"></i> Reconsideration Rounds
+                    </a>
+                    {% endif %}
+                    <a href="?stage={{ workspace_stage }}&status=approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'approved' %}active{% endif %}">
+                        <i class="fas fa-thumbs-up"></i> {% if workspace_stage == 'verification' %}Verified{% else %}Approved & Executing{% endif %}
+                    </a>
+                    <a href="?stage={{ workspace_stage }}&status=all{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'all' %}active{% endif %}">
+                        <i class="fas fa-list-alt"></i> All History
+                    </a>
+                </div>
+
+                <form method="get" class="search-and-filters" id="approvals-search-form">
+                    <input type="hidden" name="stage" value="{{ workspace_stage }}">
+                    <input type="hidden" name="status" value="{{ status_filter }}">
+                    <input type="hidden" name="search_by" id="approvals-search-by" value="{{ search_by|default:'all' }}">
+                    <div class="search-picker" id="approvals-search-picker">
+                        <i class="fas fa-search search-leading-icon"></i>
+                        <input type="text" name="search" id="approvals-search-input" placeholder="Search approvals..."
+                               value="{{ search_query }}" class="header-search-input" autocomplete="off"
+                               aria-label="Search approvals" aria-describedby="approvals-search-options-title"
+                               aria-haspopup="listbox" aria-expanded="false">
+                        <span class="search-field-label" id="approvals-search-field-label">All Fields</span>
+                        <div class="search-options" id="approvals-search-options">
+                            <p class="search-options-title" id="approvals-search-options-title">Search this keyword in</p>
+                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                                <button type="button" class="search-option" data-search-by="complaint_id" role="option">
+                                    <i class="fas fa-hashtag"></i>
+                                    Complaint ID
+                                </button>
+                                <button type="button" class="search-option" data-search-by="complaint_type" role="option">
+                                    <i class="fas fa-tag"></i>
+                                    Complaint Type
+                                </button>
+                                <button type="button" class="search-option" data-search-by="priority" role="option">
+                                    <i class="fas fa-flag"></i>
+                                    Priority
+                                </button>
+                                <button type="button" class="search-option" data-search-by="country" role="option">
+                                    <i class="fas fa-globe"></i>
+                                    Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="channel" role="option">
+                                    <i class="fas fa-code-branch"></i>
+                                    Channel
+                                </button>
+                                <button type="button" class="search-option" data-search-by="vehicle" role="option">
+                                    <i class="fas fa-car"></i>
+                                    Brand / Model
+                                </button>
+                                <button type="button" class="search-option" data-search-by="factory_reason" role="option">
+                                    <i class="fas fa-comment-dots"></i>
+                                    Factory Reason
+                                </button>
+                                <button type="button" class="search-option" data-search-by="factory_action_plan" role="option">
+                                    <i class="fas fa-tasks"></i>
+                                    Action Plan
+                                </button>
+                                <button type="button" class="search-option" data-search-by="all" role="option">
+                                    <i class="fas fa-layer-group"></i>
+                                    All Fields
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" title="Search" aria-label="Search approvals" style="width: 2.5rem; height: 2.5rem; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; cursor: pointer;">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+
+                    <select name="priority" class="filter-select" onchange="this.form.submit()">
+                        <option value="">All Priorities</option>
+                        <option value="top" {% if selected_priority == 'top' %}selected{% endif %}>Top Priority</option>
+                        <option value="medium" {% if selected_priority == 'medium' %}selected{% endif %}>Medium Priority</option>
+                        <option value="low" {% if selected_priority == 'low' %}selected{% endif %}>Low Priority</option>
+                    </select>
+
+                    <select name="type" class="filter-select" onchange="this.form.submit()">
+                        <option value="">All Types</option>
+                        <option value="pattern" {% if selected_type == 'pattern' %}selected{% endif %}>Pattern</option>
+                        <option value="production" {% if selected_type == 'production' %}selected{% endif %}>Production</option>
+                        <option value="quality" {% if selected_type == 'quality' %}selected{% endif %}>Quality</option>
+                        <option value="line" {% if selected_type == 'line' %}selected{% endif %}>Factory</option>
+                    </select>
+
+                    {% if countries %}
+                    <select name="country" class="filter-select" onchange="this.form.submit()">
+                        <option value="">All Countries</option>
+                        {% for c in countries %}
+                        <option value="{{ c.id }}" {% if selected_country == c.id|stringformat:"i" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+
+                    {% if search_query or selected_priority or selected_type or selected_country %}
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary" title="Clear Filters" style="padding: 0.35rem 0.6rem;">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- MAIN SCROLLABLE APPROVALS LIST -->
+        <div class="approvals-list-scroll">
+            {% if approval_items %}
+                {% for item in approval_items %}
+                <article class="approval-card {% if item.can_decide %}needs-my-vote{% endif %}" id="card-{{ item.complaint.complaint_id }}">
+                    <!-- CARD HEADER -->
+                    <div class="card-header-row">
+                        <div class="card-id-block">
+                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="complaint-id-badge" title="Inspect complaint in full complaint list">
+                                <i class="fas fa-file-alt"></i> {{ item.complaint.complaint_id }}
+                            </a>
+                            
+                            <span class="type-pill type-{{ item.complaint.complaint_type }}">
+                                {{ item.complaint.get_complaint_type_display }}
+                            </span>
+
+                            <span class="priority-badge priority-{{ item.complaint.factory_priority|default:item.complaint.priority|lower }}">
+                                Priority: {{ item.complaint.get_factory_priority_display|default:item.complaint.get_priority_display }}
+                            </span>
+
+                            <span class="round-stage-badge {% if item.progress.stage == 'reconsideration' %}reconsideration{% endif %}">
+                                <i class="fas {% if item.progress.stage == 'reconsideration' %}fa-sync-alt{% elif item.progress.stage == 'execution_verification' %}fa-clipboard-check{% else %}fa-layer-group{% endif %}"></i>
+                                Round {{ item.progress.round }}
+                                {% if item.progress.stage == 'reconsideration' %}• Reconsideration{% endif %}
+                                {% if item.progress.stage == 'execution_verification' %}• Execution Verification{% endif %}
+                            </span>
+
+                            {% if item.can_decide %}
+                            <span class="status-pill pending" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; font-weight: 800; animation: pulse 2s infinite;">
+                                <i class="fas fa-bell"></i> ACTION REQUIRED: Your Vote is Pending
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); display: flex; align-items: center; gap: 0.65rem;">
+                            <span><i class="fas fa-calendar-alt"></i> {{ item.complaint.date|date:"d M Y" }}</span>
+                            <span class="status-pill {{ item.complaint.workflow_status }}">
+                                {{ item.complaint.get_workflow_status_display }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- CARD BODY: 2 COLUMNS -->
+                    <div class="card-body-grid">
+                        <!-- LEFT: VEHICLE & FACTORY PLAN SUMMARY -->
+                        <div class="complaint-overview-col">
+                            <div class="meta-tags-grid">
+                                <span class="meta-label"><i class="fas fa-car"></i> Vehicle:</span>
+                                <span class="meta-value">
+                                    {{ item.complaint.brand.name|default:"-" }} {{ item.complaint.model.name|default:"" }}
+                                    {% if item.complaint.year %}({{ item.complaint.year.year_start }}-{{ item.complaint.year.year_end }}){% endif %}
+                                </span>
+
+                                <span class="meta-label"><i class="fas fa-barcode"></i> SKU:</span>
+                                <span class="meta-value">{{ item.complaint.sku.code|default:"Not specified" }}</span>
+
+                                <span class="meta-label"><i class="fas fa-globe"></i> Country:</span>
+                                <span class="meta-value">
+                                    {% if item.country_flag_url %}
+                                    <img src="{{ item.country_flag_url }}" class="country-flag-icon" alt="{{ item.complaint.country.name }}">
+                                    {% endif %}
+                                    {{ item.complaint.country.name|default:"-" }}
+                                </span>
+
+                                <span class="meta-label"><i class="fas fa-industry"></i> Factory:</span>
+                                <span class="meta-value">{{ item.assigned_exec_name }}</span>
+                            </div>
+
+                            {% if item.complaint.factory_action_plan or item.complaint.factory_reason %}
+                            <div class="factory-plan-box">
+                                <div class="factory-plan-title">
+                                    <i class="fas fa-clipboard-list"></i> Proposed Factory Action Plan
+                                </div>
+                                <p class="factory-plan-text">
+                                    <strong>Reason:</strong> {{ item.complaint.factory_reason|default:"No factory reason provided"|truncatechars:180 }}
+                                </p>
+                                <p class="factory-plan-text">
+                                    <strong>Action:</strong> {{ item.complaint.factory_action_plan|default:"No action plan specified"|truncatechars:220 }}
+                                </p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- RIGHT: LIVE APPROVAL MATRIX ("WHERE THE APPROVAL IS") -->
+                        <div class="approval-matrix-col">
+                            <div class="matrix-header">
+                                <span><i class="fas fa-sitemap"></i> Live Approver Status Matrix</span>
+                                <div class="progress-bar-container" title="{{ item.progress.decided }} of {{ item.progress.total }} approvers have submitted their vote">
+                                    <div class="progress-bar-track">
+                                        <div class="progress-bar-fill" style="width: {{ item.progress_percent }}%;"></div>
+                                    </div>
+                                    <span class="progress-bar-text">{{ item.progress.decided }}/{{ item.progress.total }} ({{ item.progress_percent }}%)</span>
+                                </div>
+                            </div>
+
+                            <div class="approver-grid">
+                                {% for app in item.approvals %}
+                                <div class="approver-cell status-{{ app.status }}">
+                                    <div class="approver-top-line">
+                                        <span class="role-tag">{{ app.role }}</span>
+                                        <span class="decision-status-chip {{ app.status }}">
+                                            {% if app.status == 'approved' %}
+                                                <i class="fas fa-check-circle"></i> Approved
+                                            {% elif app.status == 'rejected' %}
+                                                <i class="fas fa-times-circle"></i> Rejected
+                                            {% else %}
+                                                <i class="fas fa-clock"></i> Pending
+                                            {% endif %}
+                                        </span>
+                                    </div>
+
+                                    <div class="approver-user-info">
+                                        <div class="approver-avatar">
+                                            {{ app.role|slice:":2" }}
+                                        </div>
+                                        <span class="approver-username" title="{{ app.user_name }}">
+                                            {{ app.user_name }}
+                                        </span>
+                                    </div>
+
+                                    {% if app.decided_at %}
+                                    <div class="decision-timestamp">
+                                        <i class="fas fa-check"></i> {{ app.decided_at|date:"d M H:i" }}
+                                    </div>
+                                    {% endif %}
+
+                                    {% if app.comment %}
+                                    <div class="approver-comment-bubble" title="{{ app.comment }}">
+                                        "{{ app.comment|truncatechars:75 }}"
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD FOOTER ACTIONS -->
+                    <div class="card-actions-footer">
+                        <div class="footer-left-info">
+                            <span><i class="fas fa-paperclip"></i> {{ item.media_count }} media file{{ item.media_count|pluralize }}</span>
+                            <span>•</span>
+                            <span>Reported by {{ item.reporter_name }}</span>
+                        </div>
+
+                        <div class="footer-buttons">
+                            {% if item.can_decide and item.my_approval %}
+                            <button type="button" class="btn-action-primary" onclick="openDecisionModal('{{ item.my_approval.id }}', '{{ item.complaint.complaint_id }}', '{{ item.progress.stage }}')">
+                                <i class="fas fa-gavel"></i>
+                                {% if item.progress.stage == 'reconsideration' %}
+                                    Submit Reconsideration Vote
+                                {% elif item.progress.stage == 'execution_verification' %}
+                                    Verify Executed Action
+                                {% else %}
+                                    Review & Submit Decision
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'approval_review' item.my_approval.id %}" class="btn-action-secondary" title="Open full dedicated review screen">
+                                <i class="fas fa-external-link-alt"></i> Full Review Page
+                            </a>
+                            {% else %}
+                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="btn-action-secondary">
+                                <i class="fas fa-eye"></i> View Complaint Details
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-approvals-box">
+                    <i class="fas fa-check-circle empty-icon"></i>
+                    <h3 class="empty-title">No Approvals Found</h3>
+                    <p style="margin: 0; font-size: 0.88rem;">
+                        {% if search_query or selected_priority or selected_type or selected_country %}
+                            No approval requests matched your active search and filter criteria.
+                        {% elif status_filter == 'my_pending' %}
+                            Great job! You have no pending approval decisions waiting for your review.
+                        {% else %}
+                            There are currently no complaints in the approval pipeline matching this view.
+                        {% endif %}
+                    </p>
+                    {% if search_query or selected_priority or selected_type or selected_country %}
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
+                        <i class="fas fa-redo"></i> Reset Filters
+                    </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- QUICK DECISION MODAL -->
+    <div class="decision-modal-overlay" id="decisionModalOverlay" onclick="handleModalOverlayClick(event)">
+        <div class="decision-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Submit Approval Decision</h3>
+                <button type="button" class="modal-close-btn" onclick="closeDecisionModal()">&times;</button>
+            </div>
+
+            <form id="quickDecisionForm" onsubmit="submitQuickDecision(event)">
+                {% csrf_token %}
+                <input type="hidden" id="modalApprovalId" value="">
+                <input type="hidden" id="modalReviewStage" value="initial">
+
+                <div style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 0.75rem;" id="modalComplaintInfo">
+                    Complaint: <strong></strong>
+                </div>
+
+                <div class="decision-radio-group">
+                    <label class="decision-choice-card" id="approveCard" onclick="selectDecision('approved')">
+                        <input type="radio" name="decision" value="approved" required>
+                        <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #10b981;"></i>
+                        <span style="font-weight: 700;" id="approveLabel">Approve Plan</span>
+                        <span style="font-size: 0.72rem; opacity: 0.75;">Green light proposed action</span>
+                    </label>
+
+                    <label class="decision-choice-card" id="rejectCard" onclick="selectDecision('rejected')">
+                        <input type="radio" name="decision" value="rejected" required>
+                        <i class="fas fa-times-circle" style="font-size: 1.5rem; color: #ef4444;"></i>
+                        <span style="font-weight: 700;" id="rejectLabel">Reject / Rework</span>
+                        <span style="font-size: 0.72rem; opacity: 0.75;">Request revisions or reject</span>
+                    </label>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <label for="modalComment" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Review Comments <span id="commentRequiredHint" style="color: #ef4444; font-size: 0.75rem; display: none;">(Required for rejection)</span>:
+                    </label>
+                    <textarea id="modalComment" class="modal-textarea" placeholder="Enter reason, feedback, or stipulations for factory executive..."></textarea>
+                </div>
+
+                <div id="modalErrorMessage" style="color: #ef4444; font-size: 0.8rem; margin-top: 0.5rem; display: none;"></div>
+
+                <div class="modal-footer" style="margin-top: 1.25rem;">
+                    <button type="button" class="btn-action-secondary" onclick="closeDecisionModal()">Cancel</button>
+                    <button type="submit" class="btn-action-primary" id="modalSubmitBtn">
+                        <i class="fas fa-paper-plane"></i> Confirm Decision
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.currentSelectedDecision = null;
+
+        function openDecisionModal(approvalId, complaintId, reviewStage) {
+            document.getElementById('modalApprovalId').value = approvalId;
+            document.getElementById('modalReviewStage').value = reviewStage;
+            document.getElementById('modalComplaintInfo').innerHTML = `Complaint: <strong>${complaintId}</strong>`;
+            document.getElementById('modalComment').value = '';
+            document.getElementById('modalErrorMessage').style.display = 'none';
+
+            if (reviewStage === 'reconsideration') {
+                document.getElementById('modalTitle').textContent = 'Submit Reconsideration Vote';
+                document.getElementById('approveLabel').textContent = 'Proceed with Plan';
+                document.getElementById('rejectLabel').textContent = 'Return for Rework';
+            } else if (reviewStage === 'execution_verification') {
+                document.getElementById('modalTitle').textContent = 'Verify Executed Action Plan';
+                document.getElementById('approveLabel').textContent = 'Execution Is Correct';
+                document.getElementById('rejectLabel').textContent = 'Needs Correction';
+            } else {
+                document.getElementById('modalTitle').textContent = 'Submit Approval Decision';
+                document.getElementById('approveLabel').textContent = 'Approve Plan';
+                document.getElementById('rejectLabel').textContent = 'Reject Plan';
+            }
+
+            selectDecision('approved');
+            document.getElementById('decisionModalOverlay').classList.add('open');
+        }
+
+        function closeDecisionModal() {
+            document.getElementById('decisionModalOverlay').classList.remove('open');
+        }
+
+        function handleModalOverlayClick(e) {
+            if (e.target === document.getElementById('decisionModalOverlay')) {
+                closeDecisionModal();
+            }
+        }
+
+        function selectDecision(decision) {
+            currentSelectedDecision = decision;
+            const approveCard = document.getElementById('approveCard');
+            const rejectCard = document.getElementById('rejectCard');
+            const commentHint = document.getElementById('commentRequiredHint');
+
+            if (decision === 'approved') {
+                approveCard.classList.add('selected-approve');
+                rejectCard.classList.remove('selected-reject');
+                approveCard.querySelector('input').checked = true;
+                commentHint.style.display = 'none';
+            } else {
+                rejectCard.classList.add('selected-reject');
+                approveCard.classList.remove('selected-approve');
+                rejectCard.querySelector('input').checked = true;
+                commentHint.style.display = 'inline';
+            }
+        }
+
+        async function submitQuickDecision(e) {
+            e.preventDefault();
+            const approvalId = document.getElementById('modalApprovalId').value;
+            const decision = currentSelectedDecision;
+            const comment = document.getElementById('modalComment').value.trim();
+            const errorDiv = document.getElementById('modalErrorMessage');
+            const submitBtn = document.getElementById('modalSubmitBtn');
+
+            if (decision === 'rejected' && !comment) {
+                errorDiv.textContent = 'Please enter a review comment explaining the rejection or rework requirement.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+            try {
+                const formData = new FormData();
+                formData.append('decision', decision);
+                formData.append('comment', comment);
+
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const response = await fetch(`/api/approvals/quick-decide/${approvalId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    closeDecisionModal();
+                    // Reload page to reflect updated approvals state
+                    window.location.reload();
+                } else {
+                    errorDiv.textContent = data.error || 'An error occurred while submitting your decision.';
+                    errorDiv.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirm Decision';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Network error while contacting server: ' + err.message;
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirm Decision';
+            }
+        }
+
+        // Search Picker logic for Approvals Workspace
+        window.fabroOnPageLoad(function () {
+            const searchForm = document.getElementById('approvals-search-form');
+            const searchPicker = document.getElementById('approvals-search-picker');
+            const searchInput = document.getElementById('approvals-search-input');
+            const searchByInput = document.getElementById('approvals-search-by');
+            const searchLabel = document.getElementById('approvals-search-field-label');
+            const searchOptions = document.querySelectorAll('#approvals-search-options .search-option');
+            const searchLabels = {
+                complaint_id: 'Complaint ID',
+                complaint_type: 'Complaint Type',
+                priority: 'Priority',
+                country: 'Country',
+                channel: 'Channel',
+                vehicle: 'Brand / Model',
+                factory_reason: 'Factory Reason',
+                factory_action_plan: 'Action Plan',
+                all: 'All Fields'
+            };
+
+            function refreshSearchChoice() {
+                if (!searchByInput || !searchLabel) return;
+                const selected = searchByInput.value || 'all';
+                searchLabel.textContent = searchLabels[selected] || 'All Fields';
+                searchOptions.forEach((option) => {
+                    option.classList.toggle('is-active', option.dataset.searchBy === selected);
+                });
+            }
+
+            function setSuggestionsOpen(isOpen) {
+                if (!searchPicker || !searchInput) return;
+                const shouldOpen = isOpen && searchInput.value.trim().length > 0;
+                searchPicker.classList.toggle('is-suggesting', shouldOpen);
+                searchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            }
+
+            refreshSearchChoice();
+
+            if (searchInput && searchPicker) {
+                searchInput.addEventListener('input', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('focus', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        setSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            searchOptions.forEach((option) => {
+                option.addEventListener('click', function () {
+                    if (!searchByInput || !searchForm) return;
+                    searchByInput.value = option.dataset.searchBy;
+                    refreshSearchChoice();
+                    setSuggestionsOpen(false);
+                    if (searchInput && searchInput.value.trim()) {
+                        searchForm.submit();
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (searchPicker && !searchPicker.contains(event.target)) {
+                    setSuggestionsOpen(false);
+                }
+            });
+        });
+    </script>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}

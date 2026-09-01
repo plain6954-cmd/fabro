@@ -1,0 +1,676 @@
+{% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Settings - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <style data-fabro-page-asset>
+        .page-container {
+            max-width: 1680px;
+            margin: 0 auto;
+            padding: 0.75rem 1.25rem 1.25rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 0.85rem;
+        }
+
+        .page-title {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 0.15rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .page-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 0.85rem;
+        }
+
+        body.light-mode .page-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.25rem;
+            align-items: start;
+        }
+
+        .form-section {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+        }
+
+        body.light-mode .form-section {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.35rem;
+            font-size: 0.8rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.6rem 0.85rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.825rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .form-input,
+        body.light-mode .form-select {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.825rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .settings-section {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .settings-section {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .category-card {
+            background: var(--dark-card);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            height: 290px;
+        }
+
+        body.light-mode .category-card {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .category-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .category-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        body.light-mode .category-title {
+            color: var(--light-text);
+        }
+
+        .category-count {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.15rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .category-icon {
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: white;
+        }
+
+        .icon-channel { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .icon-country { background: linear-gradient(135deg, #10b981, #059669); }
+        .icon-person { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .icon-case { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .icon-series { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .icon-material { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+        .settings-list {
+            display: grid;
+            gap: 0.4rem;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 4px;
+        }
+
+        /* Styled Scrollbar for settings list */
+        .settings-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .settings-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .settings-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 4px;
+        }
+        body.light-mode .settings-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.12);
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: var(--dark-surface);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .setting-item {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .setting-item:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .setting-name {
+            color: var(--dark-text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        body.light-mode .setting-name {
+            color: var(--light-text-secondary);
+        }
+
+        .setting-actions {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .action-btn {
+            padding: 0.4rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            text-decoration: none;
+        }
+
+        .action-btn.edit {
+            background-color: var(--warning-color);
+        }
+
+        .action-btn.delete {
+            background-color: var(--error-color);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            color: var(--dark-text-secondary);
+            font-style: italic;
+            font-size: 0.8rem;
+        }
+
+        body.light-mode .empty-state {
+            color: var(--light-text-secondary);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--dark-surface);
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .modal-content {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .modal-header {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .modal-title {
+            color: var(--light-text);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .close-btn {
+            color: var(--light-text-secondary);
+        }
+
+        .close-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-surface);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .form-section,
+            .settings-section {
+                padding: 1.5rem;
+            }
+
+            .category-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+    
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-cogs"></i>
+                Master Settings
+            </h1>
+            <p class="page-subtitle">Configure master data including channels, countries, and case categories</p>
+        </div>
+
+        <div class="content-grid">
+            <!-- Add Setting Form -->
+            <div class="form-section">
+                <h2 class="section-title">
+                    <i class="fas fa-plus-circle"></i>
+                    Add New Setting
+                </h2>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        {{ form.category }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        {{ form.name }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Add Setting
+                    </button>
+                </form>
+            </div>
+
+            <!-- Settings List -->
+            <div class="settings-section">
+                <h2 class="section-title">
+                    <i class="fas fa-list"></i>
+                    Current Settings
+                </h2>
+
+                <div class="category-grid">
+                    {% for category, settings in master_settings.items %}
+                        <div class="category-card">
+                            <div class="category-header">
+                                <div class="category-title">
+                                    {% if category == "Channel" %}
+                                        <div class="category-icon icon-channel">
+                                            <i class="fas fa-broadcast-tower"></i>
+                                        </div>
+                                    {% elif category == "Country" %}
+                                        <div class="category-icon icon-country">
+                                            <i class="fas fa-globe"></i>
+                                        </div>
+                                    {% elif category == "Reported By" %}
+                                        <div class="category-icon icon-person">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    {% elif "Complaint Type" in category %}
+                                        <div class="category-icon icon-case">
+                                            <i class="fas fa-folder"></i>
+                                        </div>
+                                    {% elif category == "Series" %}
+                                        <div class="category-icon icon-series">
+                                            <i class="fas fa-layer-group"></i>
+                                        </div>
+                                    {% elif category == "Material" %}
+                                        <div class="category-icon icon-material">
+                                            <i class="fas fa-cube"></i>
+                                        </div>
+                                    {% else %}
+                                        <div class="category-icon" style="background: var(--secondary-color);">
+                                            <i class="fas fa-cog"></i>
+                                        </div>
+                                    {% endif %}
+                                    {{ category }}
+                                </div>
+                                <span class="category-count">{{ settings|length }}</span>
+                            </div>
+
+                            <div class="settings-list">
+                                {% for setting in settings %}
+                                    <div class="setting-item">
+                                        <span class="setting-name">{{ setting.name }}</span>
+                                        <div class="setting-actions">
+                                            <button class="action-btn edit" 
+                                                    onclick="openEditModal('{{ setting.id }}', '{{ setting.category|escapejs }}', '{{ setting.name|escapejs }}')"
+                                                    title="Edit {{ setting.name }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="action-btn delete"
+                                                        title="Delete {{ setting.name }}"
+                                                        onclick="return confirm('Are you sure you want to delete &quot;{{ setting.name|escapejs }}&quot;?');">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="empty-state">
+                                        No settings for this category
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Master Setting</h2>
+                <button class="close-btn" onclick="closeEditModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="POST" action="" id="editForm">
+                {% csrf_token %}
+                <input type="hidden" name="edit_setting" value="1">
+                
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" id="editCategory" class="form-select" required>
+                        {% for choice in form.category.field.choices %}
+                            <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" name="name" id="editName" class="form-input" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Update Setting
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Edit Modal Functions
+        function openEditModal(settingId, category, name) {
+            document.getElementById('editCategory').value = category;
+            document.getElementById('editName').value = name;
+            document.getElementById('editForm').action = `/edit-master-setting/${settingId}/`;
+            document.getElementById('editModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Initialize
+        window.fabroOnPageLoad(function() {
+            // Add active nav state
+            const settingsLink = document.querySelector('a[href="{% url 'master_settings' %}"]');
+            if (settingsLink) {
+                settingsLink.classList.add('active');
+            }
+
+            // Auto-focus name input when category is selected
+            const categorySelect = document.querySelector('select[name="category"]');
+            const nameInput = document.querySelector('input[name="name"]');
+            
+            if (categorySelect && nameInput) {
+                categorySelect.addEventListener('change', function() {
+                    if (this.value) {
+                        setTimeout(() => nameInput.focus(), 100);
+                    }
+                });
+            }
+        });
+
+        // Show success message if setting was added
+        {% if request.method == "POST" and not form.errors %}
+            showToast('Setting updated successfully!', 'success');
+        {% endif %}
+    </script>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}

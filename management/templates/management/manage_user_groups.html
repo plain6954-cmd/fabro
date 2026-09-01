@@ -1,0 +1,48 @@
+<h1>Manage User Groups & Privileges</h1>
+
+<h2>Create User Group</h2>
+<form method="POST">{% csrf_token %}
+    <input type="text" name="group_name" placeholder="Group Name" required>
+    <button type="submit" name="create_group">Create Group</button>
+</form>
+
+<h2>User Groups</h2>
+{% for group in groups %}
+    <div style="border:1px solid #ccc; padding:10px; margin:10px 0;">
+        <strong>{{ group.name }}</strong>
+        <form method="POST" style="display:inline;">{% csrf_token %}
+            <input type="hidden" name="group_id" value="{{ group.id }}">
+            <button type="submit" name="delete_group" onclick="return confirm('Delete group?')">Delete</button>
+        </form>
+        <form method="POST">{% csrf_token %}
+            <input type="hidden" name="group_id" value="{{ group.id }}">
+            <label>Privileges (select multiple):</label>
+            <select name="privileges" multiple size="5">
+                {% for p in privileges %}
+                <option value="{{ p.id }}" {% if p in group.privileges.all %}selected{% endif %}>{{ p.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" name="update_privileges">Update Privileges</button>
+        </form>
+    </div>
+{% endfor %}
+
+<h2>Create Privilege</h2>
+<form method="POST">{% csrf_token %}
+    <input type="text" name="priv_name" placeholder="Privilege Name" required>
+    <input type="text" name="pages" placeholder="Allowed Pages (comma-separated)">
+    <button type="submit" name="create_privilege">Create Privilege</button>
+</form>
+
+<h2>Privileges</h2>
+<ul>
+    {% for p in privileges %}
+        <li>
+            <strong>{{ p.name }}</strong> — Pages: {{ p.allowed_pages|join:", " }}
+            <form method="POST" style="display:inline;">{% csrf_token %}
+                <input type="hidden" name="priv_id" value="{{ p.id }}">
+                <button type="submit" name="delete_privilege" onclick="return confirm('Delete privilege?')">Delete</button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>

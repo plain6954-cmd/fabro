@@ -1,0 +1,1664 @@
+{% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Management - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <style data-fabro-page-asset>
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-surface);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 10fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-section {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+        }
+
+        body.light-mode .form-section {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.light-mode .section-title {
+            color: var(--light-text);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .form-input {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #fca5a5;
+        }
+
+        .error-message ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .table-section {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .table-section {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .search-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .search-input {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .table-container {
+            border-color: #e2e8f0;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        .table th {
+            background: var(--dark-card);
+            color: var(--dark-text);
+            font-weight: 600;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .table th {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-bottom-color: #e2e8f0;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .table td {
+            color: var(--light-text-secondary);
+            border-bottom-color: #f1f5f9;
+        }
+
+        .table tr:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .brand-logo-cell {
+            width: 60px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .brand-logo-cell {
+            border-color: #e2e8f0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 0.75rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .action-btn.edit {
+            background-color: var(--warning-color);
+        }
+
+        .action-btn.delete {
+            background-color: var(--error-color);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--dark-surface);
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .modal-content {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .modal-header {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--error-color);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .close-btn {
+            color: var(--light-text-secondary);
+        }
+
+        .close-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        .modal-body {
+            color: var(--dark-text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        body.light-mode .modal-body {
+            color: var(--light-text-secondary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--dark-text-secondary);
+        }
+
+        body.light-mode .empty-state {
+            color: var(--light-text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+}
+
+        .table th {
+            background: var(--dark-card);
+            color: var(--dark-text);
+            font-weight: 600;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .table th {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-bottom-color: #e2e8f0;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .table td {
+            color: var(--light-text-secondary);
+            border-bottom-color: #f1f5f9;
+        }
+
+        .table tr:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .brand-logo-cell {
+            width: 60px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .brand-logo-cell {
+            border-color: #e2e8f0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 0.75rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .action-btn.edit {
+            background-color: var(--warning-color);
+        }
+
+        .action-btn.delete {
+            background-color: var(--error-color);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--dark-surface);
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .modal-content {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .modal-header {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--error-color);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .close-btn {
+            color: var(--light-text-secondary);
+        }
+
+        .close-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        .modal-body {
+            color: var(--dark-text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        body.light-mode .modal-body {
+            color: var(--light-text-secondary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--dark-text-secondary);
+        }
+
+        body.light-mode .empty-state {
+            color: var(--light-text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .header-actions {
+                justify-content: center;
+            }
+
+            .form-section,
+            .table-section {
+                padding: 1.5rem;
+            }
+
+            .search-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+
+        /* Hover Tooltips Styles */
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-left: 5px;
+            vertical-align: middle;
+            cursor: help;
+        }
+
+        .info-icon {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
+
+        .tooltip-container:hover .info-icon {
+            opacity: 1;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            position: absolute;
+            top: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(20, 20, 22, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #f1f5f9;
+            text-align: center;
+            padding: 0.5rem 0.85rem;
+            border-radius: 8px;
+            white-space: normal;
+            min-width: 200px;
+            max-width: 280px;
+            z-index: 1100;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            font-size: 0.76rem;
+            line-height: 1.4;
+            font-weight: 500;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+
+        body.light-mode .tooltip-text {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-color: #cbd5e1;
+            color: #0f172a;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(4px);
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: transparent transparent rgba(20, 20, 22, 0.96) transparent;
+        }
+
+        body.light-mode .tooltip-text::after {
+            border-color: transparent transparent #cbd5e1 transparent;
+        }
+    </style>
+    <style data-fabro-page-asset>
+        /* Search Picker styles */
+        .vehicle-csv-upload-form {
+            display: inline-flex;
+            margin: 0;
+        }
+
+        .vehicle-csv-file-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .vehicle-csv-upload-button {
+            width: 2.85rem;
+            height: 2.85rem;
+            margin: 0;
+            border: 1px solid #10b981 !important;
+            border-radius: 8px;
+            background: #059669 !important;
+            color: #ffffff !important;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .vehicle-csv-upload-button:hover,
+        .vehicle-csv-upload-button:focus-visible {
+            border-color: #34d399 !important;
+            background: #047857 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        .header-search-form {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1 1 400px;
+            justify-content: flex-end;
+            min-width: 260px;
+        }
+
+        .search-picker {
+            position: relative;
+            flex: 1 1 320px;
+            max-width: 440px;
+            min-width: 220px;
+        }
+
+        .header-search-input {
+            width: 100%;
+            height: 2.85rem;
+            padding: 0.65rem 10.5rem 0.65rem 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            background: rgba(18, 18, 20, 0.82);
+            color: var(--dark-text);
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .header-search-input {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .header-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15);
+        }
+
+        .search-leading-icon {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+        }
+
+        body.light-mode .search-leading-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .search-field-label {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            max-width: 9.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.14);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.68rem;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        body.light-mode .search-field-label {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.16);
+        }
+
+        .search-options {
+            position: absolute;
+            z-index: 1200;
+            left: 0;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            display: none;
+            padding: 0.55rem;
+            border-radius: 8px;
+            background: rgba(24, 24, 27, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+        }
+
+        .search-picker.is-suggesting .search-options {
+            display: block;
+        }
+
+        body.light-mode .search-options {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.13);
+        }
+
+        .search-options-title {
+            margin: 0 0 0.45rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        body.light-mode .search-options-title {
+            color: var(--light-text-secondary);
+        }
+
+        .search-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem;
+        }
+
+        .search-option {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            min-height: 2.25rem;
+            padding: 0.48rem 0.58rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--dark-text);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .search-option:hover,
+        .search-option.is-active {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.88);
+            border-color: rgba(248, 113, 113, 0.55);
+        }
+
+        body.light-mode .search-option {
+            color: var(--light-text);
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .search-option:hover,
+        body.light-mode .search-option.is-active {
+            color: #ffffff;
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .icon-btn {
+            width: 2.85rem;
+            height: 2.85rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .page-container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0.75rem 1.5rem 1.5rem !important;
+        }
+        .table-container {
+            max-height: min(76vh, 900px) !important;
+            margin-top: 0.5rem !important;
+        }
+        body.light-mode #inline-add-row select {
+            background-color: var(--light-card) !important;
+            color: var(--light-text) !important;
+            border-color: #cbd5e1 !important;
+        }
+    </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div class="page-container" data-no-reveal>
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <h1 class="page-title" style="margin-bottom: 0.25rem; justify-content: flex-start;">
+                    <i class="fas fa-car"></i>
+                    Vehicle Management
+                </h1>
+            </div>
+            <div class="header-actions" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+                {% if can_manage_catalog %}
+                <a href="#" onclick="const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="btn btn-primary icon-btn" title="Add New Vehicle" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
+                    <i class="fas fa-plus"></i>
+                </a>
+                <form method="post" action="{% url 'upload_car_csv' %}" enctype="multipart/form-data" class="vehicle-csv-upload-form" id="vehicle-csv-upload-form">
+                    {% csrf_token %}
+                    <input type="file" name="csv_file" id="vehicle-csv-file" class="vehicle-csv-file-input"
+                           accept=".csv,text/csv" required
+                           onchange="if (this.files && this.files.length) { this.form.requestSubmit(); }">
+                    <label for="vehicle-csv-file" class="btn btn-success icon-btn vehicle-csv-upload-button"
+                           title="Upload Vehicle CSV" aria-label="Upload Vehicle CSV" role="button" tabindex="0"
+                           onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.getElementById('vehicle-csv-file').click(); }">
+                        <i class="fas fa-file-csv" aria-hidden="true"></i>
+                    </label>
+                </form>
+                {% endif %}
+                <form method="GET" class="header-search-form" id="vehicle-search-form">
+                    <input type="hidden" name="search_by" id="vehicle-search-by" value="{{ search_by|default:'all' }}">
+                    <div class="search-picker" id="vehicle-search-picker">
+                        <i class="fas fa-search search-leading-icon"></i>
+                        <input type="text" name="search" id="vehicle-search-input" placeholder="Search vehicles..."
+                               value="{{ search_query }}" class="header-search-input" autocomplete="off"
+                               aria-label="Search vehicles" aria-describedby="vehicle-search-options-title"
+                               aria-haspopup="listbox" aria-expanded="false">
+                        <span class="search-field-label" id="vehicle-search-field-label">All Fields</span>
+                        <div class="search-options" id="vehicle-search-options">
+                            <p class="search-options-title" id="vehicle-search-options-title">Search this keyword in</p>
+                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                                <button type="button" class="search-option" data-search-by="layout_code" role="option">
+                                    <i class="fas fa-hashtag"></i>
+                                    Layout Code
+                                </button>
+                                <button type="button" class="search-option" data-search-by="brand" role="option">
+                                    <i class="fas fa-car-side"></i>
+                                    Brand
+                                </button>
+                                <button type="button" class="search-option" data-search-by="model" role="option">
+                                    <i class="fas fa-car"></i>
+                                    Model
+                                </button>
+                                <button type="button" class="search-option" data-search-by="sub_model" role="option">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Sub-Model
+                                </button>
+                                <button type="button" class="search-option" data-search-by="vehicle_country" role="option">
+                                    <i class="fas fa-globe"></i>
+                                    Vehicle Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="measurement_country" role="option">
+                                    <i class="fas fa-ruler-combined"></i>
+                                    Measurement Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="all" role="option">
+                                    <i class="fas fa-layer-group"></i>
+                                    All Fields
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary icon-btn" title="Search" aria-label="Search vehicles">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    {% if search_query %}
+                    <a href="{% url 'car_details' %}" class="btn btn-danger icon-btn" title="Clear Search" aria-label="Clear Search">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Vehicle List -->
+        <div class="table-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; width: 100%;">
+                <h2 class="section-title" style="margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-list"></i>
+                    Existing Vehicles ({{ car_data|length }})
+                </h2>
+            </div>
+
+                {% if car_data %}
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Brand Logo</th>
+                                    {% if new_search_enabled %}
+                                    <th data-filter-col="2">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                            <span>Layout Code</span>
+                                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                                <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                                <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th data-filter-col="3">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                            <span>Brand</span>
+                                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                                <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                                <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th data-filter-col="4">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                            <span>Model</span>
+                                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                                <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                                <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th>Year Range</th>
+                                    <th data-filter-col="6">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                            <span>Sub-Model</span>
+                                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                                <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                                <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    {% else %}
+                                    <th>Layout Code</th>
+                                    <th>Brand</th>
+                                    <th>Model</th>
+                                    <th>Year Range</th>
+                                    <th>Sub-Model</th>
+                                    {% endif %}
+                                    <th>Seats</th>
+                                    <th>Doors</th>
+                                    {% if new_search_enabled %}
+                                    <th data-filter-col="9">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                            <span>Vehicle Country</span>
+                                            <span class="tooltip-container">
+                                                <i class="fas fa-info-circle info-icon"></i>
+                                                <span class="tooltip-text">Where the vehicle is manufactured.</span>
+                                            </span>
+                                            <div style="display: flex; align-items: center; gap: 0.25rem; margin-left: auto;">
+                                                <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                                <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th data-filter-col="10">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                            <span>Measurement Country</span>
+                                            <span class="tooltip-container">
+                                                <i class="fas fa-info-circle info-icon"></i>
+                                                <span class="tooltip-text">Where the measurement is taken for this vehicle</span>
+                                            </span>
+                                            <div style="display: flex; align-items: center; gap: 0.25rem; margin-left: auto;">
+                                                <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                                <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    {% else %}
+                                    <th>
+                                        Vehicle Country
+                                        <span class="tooltip-container">
+                                            <i class="fas fa-info-circle info-icon"></i>
+                                            <span class="tooltip-text">Where the vehicle is manufactured.</span>
+                                        </span>
+                                    </th>
+                                    <th>
+                                        Measurement Country
+                                        <span class="tooltip-container">
+                                            <i class="fas fa-info-circle info-icon"></i>
+                                            <span class="tooltip-text">Where the measurement is taken for this vehicle</span>
+                                        </span>
+                                    </th>
+                                    {% endif %}
+                                    {% if new_search_enabled %}
+                                    <th>Actions</th>
+                                    {% elif can_manage_catalog %}
+                                    <th>Actions</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if can_manage_catalog %}
+                                <form id="add-vehicle-form" method="POST" enctype="multipart/form-data" style="display: none;">
+                                    {% csrf_token %}
+                                </form>
+                                <tr id="inline-add-row" style="display: none; background-color: rgba(229, 57, 53, 0.05);">
+                                    <td></td>
+                                    <td>
+                                        <div style="position: relative;">
+                                            <input type="file" name="brand_logo" id="brandLogoInput" form="add-vehicle-form" style="display: none;" accept="image/*">
+                                            <label for="brandLogoInput" class="btn btn-secondary" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; min-height: unset; height: auto; width: auto; display: inline-flex; white-space: nowrap; margin: 0; border-color: rgba(255,255,255,0.15);">Upload</label>
+                                            <div id="logoPreviewName" style="font-size: 0.65rem; color: var(--dark-text-secondary); margin-top: 0.2rem; display: none; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 60px;"></div>
+                                        </div>
+                                    </td>
+                                    <td><input type="text" name="layout_code" class="form-input" placeholder="Layout" form="add-vehicle-form" required style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto;"></td>
+                                    <td><input type="text" name="brand_name" class="form-input" placeholder="Brand" form="add-vehicle-form" required style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto;"></td>
+                                    <td><input type="text" name="model_name" class="form-input" placeholder="Model" form="add-vehicle-form" required style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto;"></td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.25rem;">
+                                            <input type="number" name="year_start" class="form-input" placeholder="Start" min="1900" max="2100" form="add-vehicle-form" required style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto; width: 62px;">
+                                            <input type="number" name="year_end" class="form-input" placeholder="End" min="1900" max="2100" form="add-vehicle-form" required style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto; width: 62px;">
+                                        </div>
+                                    </td>
+                                    <td><input type="text" name="sub_model_name" class="form-input" placeholder="Sub-Model" form="add-vehicle-form" style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto;"></td>
+                                    <td><input type="number" name="number_of_seats" class="form-input" placeholder="Seats" min="1" form="add-vehicle-form" required style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto; width: 55px;"></td>
+                                    <td><input type="number" name="number_of_doors" class="form-input" placeholder="Doors" min="1" form="add-vehicle-form" required style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: auto; width: 55px;"></td>
+                                    <td>
+                                        <select name="vehicle_country" class="form-input" form="add-vehicle-form" style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 32px; background-color: var(--dark-card); color: var(--dark-text); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                                            <option value="">Select Country</option>
+                                            {% for country in countries %}
+                                                <option value="{{ country.id }}">{{ country.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="measurement_country" class="form-input" form="add-vehicle-form" style="padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 32px; background-color: var(--dark-card); color: var(--dark-text); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                                            <option value="">Select Country</option>
+                                            {% for country in countries %}
+                                                <option value="{{ country.id }}">{{ country.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="submit" form="add-vehicle-form" class="action-btn edit" title="Add Vehicle" style="background-color: var(--primary-color); width: 2.2rem; height: 2.2rem; box-shadow: 0 4px 10px rgba(229, 57, 53, 0.3);">
+                                            <i class="fas fa-save"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% for car in car_data %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>
+                                            {% if car.brand_logo %}
+                                                <img src="{{ car.brand_logo.url }}" class="brand-logo-cell" alt="{{ car.brand }} logo">
+                                            {% else %}
+                                                <div style="width: 60px; height: 40px; background: var(--dark-card); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--dark-text-secondary); font-size: 0.75rem;">
+                                                    No Logo
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td><strong>{{ car.layout_code }}</strong></td>
+                                        <td>{{ car.brand }}</td>
+                                        <td>{{ car.model }}</td>
+                                        <td>{{ car.year_start }} - {{ car.year_end }}</td>
+                                        <td>{{ car.sub_model|default:"-" }}</td>
+                                        <td>{{ car.seats }}</td>
+                                        <td>{{ car.doors }}</td>
+                                        <td>{{ car.vehicle_country }}</td>
+                                        <td>{{ car.measurement_country }}</td>
+                                        {% if new_search_enabled or can_manage_catalog %}
+                                        <td>
+                                            <div class="action-buttons">
+                                                {% if new_search_enabled %}
+                                                <a href="{% url 'add_complaint' %}?brand={{ car.brand_id|default:'' }}&amp;model={{ car.model_id|default:'' }}&amp;sub_model={{ car.sub_model_id|default:'' }}&amp;year={{ car.id }}" class="action-btn" title="Add Complaint" style="background: linear-gradient(135deg, var(--primary-color), #f43f5e); box-shadow: 0 4px 10px rgba(220, 38, 38, 0.28);">
+                                                    <i class="fas fa-plus"></i>
+                                                </a>
+                                                {% endif %}
+                                                {% if can_manage_catalog %}
+                                                <a href="{% url 'edit_car_detail' car.id %}" class="action-btn edit" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form method="post" action="{% url 'delete_car_detail' car.id %}" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="action-btn delete" title="Delete"
+                                                            onclick="return confirm('Are you sure you want to delete this vehicle?');">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-car"></i>
+                        </div>
+                        <h3>No vehicles added yet</h3>
+                        <p>Add your first vehicle using the form on the left or upload a CSV file.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Duplicate Modal -->
+    {% if show_duplicate_modal %}
+    <div id="duplicateModal" class="modal" style="display: block;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Duplicate Vehicle Entry
+                </h2>
+                <button class="close-btn" onclick="closeDuplicateModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>This vehicle configuration overlaps with an existing entry:</p>
+                <div style="background: var(--dark-card); padding: 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <p style="margin: 0.25rem 0;"><strong>Brand:</strong> {{ conflicting_car.brand }}</p>
+                    <p style="margin: 0.25rem 0;"><strong>Model:</strong> {{ conflicting_car.model }}</p>
+                    <p style="margin: 0.25rem 0;"><strong>Sub-Model:</strong> {{ conflicting_car.sub_model }}</p>
+                    <p style="margin: 0.25rem 0;"><strong>Year Range:</strong> {{ conflicting_car.year_start }} - {{ conflicting_car.year_end }}</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeDuplicateModal()">
+                    <i class="fas fa-check"></i>
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Layout Code Error Modal -->
+    {% if show_layout_code_error_modal %}
+    <div id="layoutCodeErrorModal" class="modal" style="display: block;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Duplicate Layout Code
+                </h2>
+                <button class="close-btn" onclick="closeLayoutCodeErrorModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>The layout code you entered already exists. Please use a unique layout code.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeLayoutCodeErrorModal()">
+                    <i class="fas fa-check"></i>
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+        function closeDuplicateModal() {
+            const modal = document.getElementById("duplicateModal");
+            if (modal) modal.style.display = "none";
+        }
+
+        function closeLayoutCodeErrorModal() {
+            const modal = document.getElementById("layoutCodeErrorModal");
+            if (modal) modal.style.display = "none";
+        }
+
+        // Initialize
+        window.fabroOnPageLoad(function() {
+            // Logo preview filename display
+            const brandLogoInput = document.getElementById('brandLogoInput');
+            const logoPreviewName = document.getElementById('logoPreviewName');
+            if (brandLogoInput && logoPreviewName) {
+                brandLogoInput.addEventListener('change', function() {
+                    if (this.files && this.files.length > 0) {
+                        logoPreviewName.textContent = this.files[0].name;
+                        logoPreviewName.style.display = 'block';
+                    } else {
+                        logoPreviewName.style.display = 'none';
+                    }
+                });
+            }
+
+            // Add active nav state
+            const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
+            if (vehicleLink) {
+                vehicleLink.classList.add('active');
+            }
+
+            // Build column filter dropdowns dynamically
+            const filterHeaders = document.querySelectorAll('th[data-filter-col]');
+            
+            function runFilters() {
+                const rows = document.querySelectorAll('.table tbody tr');
+                if (rows.length === 0) return;
+
+                // Collect active column filters: column index -> Set of checked values
+                const activeFilters = {};
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const checkedCheckboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]:checked');
+                    if (checkedCheckboxes.length > 0) {
+                        activeFilters[colIdx] = new Set(Array.from(checkedCheckboxes).map(cb => cb.value));
+                    }
+                });
+
+                // Filter each row
+                rows.forEach(row => {
+                    if (row.id === 'inline-add-row') return;
+                    
+                    let isVisible = true;
+                    // Check if row satisfies all active column filters
+                    for (const [colIdx, allowedValues] of Object.entries(activeFilters)) {
+                        const cell = row.cells[colIdx];
+                        const cellVal = cell ? cell.textContent.trim() : '';
+                        if (!allowedValues.has(cellVal)) {
+                            isVisible = false;
+                            break;
+                        }
+                    }
+
+                    row.style.display = isVisible ? '' : 'none';
+                });
+
+                // Update filter trigger icons and clear buttons
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const trigger = th.querySelector('.column-filter-trigger i');
+                    const clearBtn = th.querySelector('.column-filter-clear');
+                    const dropdownClearBtn = th.querySelector('.clear-col-filter');
+                    
+                    const hasActiveFilter = activeFilters[colIdx] !== undefined;
+                    
+                    if (clearBtn) {
+                        clearBtn.style.display = hasActiveFilter ? 'inline-block' : 'none';
+                    }
+                    if (dropdownClearBtn) {
+                        dropdownClearBtn.style.display = hasActiveFilter ? 'inline' : 'none';
+                    }
+
+                    if (trigger) {
+                        if (hasActiveFilter) {
+                            trigger.className = 'fas fa-filter'; // Solid filter icon if filtered
+                            trigger.parentElement.style.color = 'var(--primary-color)';
+                            trigger.parentElement.style.opacity = '1';
+                        } else {
+                            trigger.className = 'fas fa-chevron-down'; // Chevron if not filtered
+                            trigger.parentElement.style.color = '';
+                            trigger.parentElement.style.opacity = '0.6';
+                        }
+                    }
+                });
+            }
+
+            filterHeaders.forEach(th => {
+                const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                
+                // Create dropdown element
+                const dropdown = document.createElement('div');
+                dropdown.className = 'column-filter-dropdown';
+                dropdown.style.cssText = 'display: none; position: absolute; left: 0; top: 100%; min-width: 220px; background: #1e1e20; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 1000; padding: 0.75rem; text-align: left; font-weight: normal;';
+                
+                // If light mode is active:
+                if (document.body.classList.contains('light-mode')) {
+                    dropdown.style.background = '#ffffff';
+                    dropdown.style.borderColor = '#e2e8f0';
+                    dropdown.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+                }
+
+                // Add text input for search
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = 'Search values...';
+                searchInput.className = 'column-filter-input';
+                searchInput.style.cssText = 'width: 100%; padding: 0.4rem 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; margin-bottom: 0.6rem; outline: none; box-sizing: border-box;';
+                if (document.body.classList.contains('light-mode')) {
+                    searchInput.style.background = '#f1f5f9';
+                    searchInput.style.borderColor = '#cbd5e1';
+                    searchInput.style.color = '#0f172a';
+                }
+
+                // Add action bar
+                const actionBar = document.createElement('div');
+                actionBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem; font-size: 0.75rem; font-weight: 500;';
+                if (document.body.classList.contains('light-mode')) {
+                    actionBar.style.borderColor = 'rgba(0,0,0,0.1)';
+                }
+
+                const dropdownClearBtn = document.createElement('span');
+                dropdownClearBtn.className = 'clear-col-filter';
+                dropdownClearBtn.style.cssText = 'cursor: pointer; color: var(--primary-color); font-weight: 600; display: none;';
+                dropdownClearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+
+                const selectAllBtn = document.createElement('span');
+                selectAllBtn.className = 'select-all-col-filter';
+                selectAllBtn.style.cssText = 'cursor: pointer; color: var(--dark-text-secondary);';
+                if (document.body.classList.contains('light-mode')) {
+                    selectAllBtn.style.color = '#64748b';
+                }
+                selectAllBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+
+                actionBar.appendChild(dropdownClearBtn);
+                actionBar.appendChild(selectAllBtn);
+
+                // Add values container
+                const valuesContainer = document.createElement('div');
+                valuesContainer.className = 'column-filter-values';
+                valuesContainer.style.cssText = 'max-height: 160px; overflow-y: auto; font-size: 0.825rem; color: #e2e8f0; display: flex; flex-direction: column; gap: 0.4rem;';
+                if (document.body.classList.contains('light-mode')) {
+                    valuesContainer.style.color = '#334155';
+                }
+
+                dropdown.appendChild(searchInput);
+                dropdown.appendChild(actionBar);
+                dropdown.appendChild(valuesContainer);
+                th.appendChild(dropdown);
+
+                // Populate unique values
+                const rows = document.querySelectorAll('.table tbody tr');
+                const uniqueValues = new Set();
+                rows.forEach(row => {
+                    if (row.id === 'inline-add-row') return;
+                    const cell = row.cells[colIdx];
+                    if (cell) {
+                        const val = cell.textContent.trim();
+                        if (val) uniqueValues.add(val);
+                    }
+                });
+
+                // Render checkboxes
+                const sortedValues = Array.from(uniqueValues).sort();
+                
+                // Keep track of checkbox rendering list
+                function renderList(filterTerm = '') {
+                    valuesContainer.innerHTML = '';
+                    const term = filterTerm.toLowerCase();
+                    
+                    if (sortedValues.length === 0) {
+                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No values found</div>';
+                        return;
+                    }
+
+                    sortedValues.forEach(val => {
+                        if (term && !val.toLowerCase().includes(term)) return;
+
+                        const label = document.createElement('label');
+                        label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; margin: 0; font-weight: normal;';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = val;
+                        checkbox.style.cssText = 'cursor: pointer; width: 14px; height: 14px; margin: 0;';
+                        
+                        checkbox.addEventListener('change', runFilters);
+
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(val));
+                        valuesContainer.appendChild(label);
+                    });
+                }
+
+                renderList();
+
+                // Search input event
+                searchInput.addEventListener('input', function() {
+                    renderList(this.value);
+                });
+
+                // Dropdown clear action handler
+                dropdownClearBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    runFilters();
+                });
+
+                // Select all action handler
+                selectAllBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const checkboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]');
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    checkboxes.forEach(cb => {
+                        cb.checked = !allChecked;
+                    });
+                    runFilters();
+                });
+
+                // Header level clear trigger
+                const clearBtn = th.querySelector('.column-filter-clear');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                            cb.checked = false;
+                        });
+                        runFilters();
+                    });
+                }
+
+                // Toggle dropdown on trigger click
+                const trigger = th.querySelector('.column-filter-trigger');
+                if (trigger) {
+                    trigger.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        // Close other dropdowns
+                        document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                            if (d !== dropdown) d.style.display = 'none';
+                        });
+                        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                        
+                        // Focus on search input when opening
+                        if (dropdown.style.display === 'block') {
+                            setTimeout(() => searchInput.focus(), 50);
+                        }
+                    });
+                }
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.column-filter-dropdown') && !e.target.closest('.column-filter-trigger')) {
+                    document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                        d.style.display = 'none';
+                    });
+                }
+            });
+
+            // Search Picker logic
+            const searchForm = document.getElementById('vehicle-search-form');
+            const searchPicker = document.getElementById('vehicle-search-picker');
+            const searchInput = document.getElementById('vehicle-search-input');
+            const searchByInput = document.getElementById('vehicle-search-by');
+            const searchLabel = document.getElementById('vehicle-search-field-label');
+            const searchOptions = document.querySelectorAll('#vehicle-search-options .search-option');
+            const searchLabels = {
+                layout_code: 'Layout Code',
+                brand: 'Brand',
+                model: 'Model',
+                sub_model: 'Sub-Model',
+                vehicle_country: 'Vehicle Country',
+                measurement_country: 'Measurement Country',
+                all: 'All Fields'
+            };
+
+            function refreshSearchChoice() {
+                if (!searchByInput || !searchLabel) return;
+                const selected = searchByInput.value || 'all';
+                searchLabel.textContent = searchLabels[selected] || 'All Fields';
+                searchOptions.forEach((option) => {
+                    option.classList.toggle('is-active', option.dataset.searchBy === selected);
+                });
+            }
+
+            function setSuggestionsOpen(isOpen) {
+                if (!searchPicker || !searchInput) return;
+                const shouldOpen = isOpen && searchInput.value.trim().length > 0;
+                searchPicker.classList.toggle('is-suggesting', shouldOpen);
+                searchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            }
+
+            refreshSearchChoice();
+
+            if (searchInput && searchPicker) {
+                searchInput.addEventListener('input', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('focus', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        setSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            searchOptions.forEach((option) => {
+                option.addEventListener('click', function () {
+                    if (!searchByInput || !searchForm) return;
+                    searchByInput.value = option.dataset.searchBy;
+                    refreshSearchChoice();
+                    setSuggestionsOpen(false);
+                    if (searchInput && searchInput.value.trim()) {
+                        searchForm.submit();
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (searchPicker && !searchPicker.contains(event.target)) {
+                    setSuggestionsOpen(false);
+                }
+            });
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+    </script>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}

@@ -1,0 +1,512 @@
+{% load static %}
+{% if is_htmx_request %}<template data-fabro-page-head>{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Vehicle - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <style data-fabro-page-asset>
+        .page-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .page-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 1rem;
+        }
+
+        body.light-mode .page-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .form-container {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .form-container {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .form-input {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.light-mode .file-upload-area {
+            border-color: #cbd5e1;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-text {
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .file-upload-text {
+            color: var(--light-text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .brand-logo-preview {
+            max-width: 100px;
+            max-height: 100px;
+            margin-top: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .brand-logo-preview {
+            border-color: #e2e8f0;
+        }
+
+        .current-logo {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .current-logo img {
+            max-width: 120px;
+            max-height: 80px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .current-logo img {
+            border-color: #e2e8f0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-group {
+            border-top-color: #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-surface);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .form-container {
+                padding: 1.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+        /* Hover Tooltips Styles */
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-left: 5px;
+            vertical-align: middle;
+            cursor: help;
+        }
+
+        .info-icon {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
+
+        .tooltip-container:hover .info-icon {
+            opacity: 1;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(20, 20, 22, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #f1f5f9;
+            text-align: center;
+            padding: 0.5rem 0.85rem;
+            border-radius: 8px;
+            white-space: normal;
+            min-width: 200px;
+            max-width: 280px;
+            z-index: 1100;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            font-size: 0.76rem;
+            line-height: 1.4;
+            font-weight: 500;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+
+        body.light-mode .tooltip-text {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-color: #cbd5e1;
+            color: #0f172a;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(-4px);
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: rgba(20, 20, 22, 0.96) transparent transparent transparent;
+        }
+
+        body.light-mode .tooltip-text::after {
+            border-color: #cbd5e1 transparent transparent transparent;
+        }
+    </style>
+{% if is_htmx_request %}</template>{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+    
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-edit" style="color: var(--primary-color);"></i>
+                Edit Vehicle
+            </h1>
+            <p class="page-subtitle">Update vehicle configuration and specifications</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="form-container">
+            {% csrf_token %}
+            
+            <div class="form-group full-width">
+                <label class="form-label">Layout Code</label>
+                <input type="text" name="layout_code" class="form-input" 
+                       placeholder="Enter unique layout code" 
+                       value="{{ form.layout_code.value|default:'' }}" required>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Brand Name</label>
+                    <input type="text" name="brand_name" class="form-input" 
+                           placeholder="e.g., BMW, Mercedes" 
+                           value="{{ form.brand_name.value|default:'' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Model Name</label>
+                    <input type="text" name="model_name" class="form-input" 
+                           placeholder="e.g., X5, C-Class" 
+                           value="{{ form.model_name.value|default:'' }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Brand Logo</label>
+                {% if existing_logo %}
+                    <div class="current-logo">
+                        <p style="color: var(--dark-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Current Logo:</p>
+                        <img src="{{ existing_logo.url }}" alt="Current brand logo">
+                    </div>
+                {% endif %}
+                <div class="file-upload-area">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="file-upload-text">
+                        <strong>Click to upload</strong> {% if existing_logo %}new{% endif %} brand logo<br>
+                        PNG, JPG (Max 5MB)
+                    </div>
+                    <input type="file" name="brand_logo" class="file-input" accept="image/*" id="brandLogoInput">
+                </div>
+                <img id="logoPreview" class="brand-logo-preview" style="display: none;">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sub-Model Name (Optional)</label>
+                <input type="text" name="sub_model_name" class="form-input" 
+                       placeholder="e.g., Sport, Luxury" 
+                       value="{{ form.sub_model_name.value|default:'' }}">
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Year Start</label>
+                    <input type="number" name="year_start" class="form-input" 
+                           placeholder="2020" min="1900" max="2100"
+                           value="{{ form.year_start.value|default:'' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Year End</label>
+                    <input type="number" name="year_end" class="form-input" 
+                           placeholder="2025" min="1900" max="2100"
+                           value="{{ form.year_end.value|default:'' }}" required>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Number of Seats</label>
+                    <input type="number" name="number_of_seats" class="form-input" 
+                           placeholder="5" min="1"
+                           value="{{ form.number_of_seats.value|default:'' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Number of Doors</label>
+                    <input type="number" name="number_of_doors" class="form-input" 
+                           placeholder="4" min="1"
+                           value="{{ form.number_of_doors.value|default:'' }}" required>
+                </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">
+                        Vehicle Country
+                        <span class="tooltip-container">
+                            <i class="fas fa-info-circle info-icon"></i>
+                            <span class="tooltip-text">Where the vehicle is manufactured.</span>
+                        </span>
+                    </label>
+                    <select name="vehicle_country" class="form-input" style="height: 48px;">
+                        <option value="">Select Country</option>
+                        {% for country in countries %}
+                            <option value="{{ country.id }}" {% if form.vehicle_country.value == country.id or form.vehicle_country.value|stringformat:"s" == country.id|stringformat:"s" or form.vehicle_country.value.id == country.id %}selected{% endif %}>{{ country.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Measurement Country
+                        <span class="tooltip-container">
+                            <i class="fas fa-info-circle info-icon"></i>
+                            <span class="tooltip-text">Where the measurement is taken for this vehicle</span>
+                        </span>
+                    </label>
+                    <select name="measurement_country" class="form-input" style="height: 48px;">
+                        <option value="">Select Country</option>
+                        {% for country in countries %}
+                            <option value="{{ country.id }}" {% if form.measurement_country.value == country.id or form.measurement_country.value|stringformat:"s" == country.id|stringformat:"s" or form.measurement_country.value.id == country.id %}selected{% endif %}>{{ country.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <a href="{% url 'car_details' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Logo preview functionality
+        document.getElementById('brandLogoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('logoPreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        // Add active nav state
+        window.fabroOnPageLoad(function() {
+            const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
+            if (vehicleLink) {
+                vehicleLink.classList.add('active');
+            }
+        });
+    </script>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}

@@ -1,0 +1,3714 @@
+{% load static %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaint List - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
+    <style data-fabro-page-asset>
+        .page-container {
+            max-width: 1550px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .header-search-form {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex: 1 1 460px;
+            justify-content: flex-end;
+            min-width: 280px;
+        }
+
+        .search-picker {
+            position: relative;
+            flex: 1 1 340px;
+            max-width: 430px;
+            min-width: 240px;
+        }
+
+        .header-search-input {
+            width: 100%;
+            height: 2.9rem;
+            padding: 0.75rem 12.25rem 0.75rem 2.65rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            background: rgba(18, 18, 20, 0.82);
+            color: var(--dark-text);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .header-search-input {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .header-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+        }
+
+        .search-leading-icon {
+            position: absolute;
+            left: 0.95rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+        }
+
+        body.light-mode .search-leading-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .search-clear-button {
+            position: absolute;
+            z-index: 2;
+            right: 10.25rem;
+            top: 50%;
+            width: 1.6rem;
+            height: 1.6rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transform: translateY(-50%);
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: var(--dark-text-secondary);
+            cursor: pointer;
+            transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+        }
+
+        .search-clear-button:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-clear-button:active {
+            transform: translateY(-50%) scale(0.92);
+        }
+
+        .search-clear-button:focus-visible {
+            outline: 2px solid rgba(248, 113, 113, 0.75);
+            outline-offset: 1px;
+        }
+
+        .search-clear-button[hidden] {
+            display: none;
+        }
+
+        body.light-mode .search-clear-button {
+            color: var(--light-text-secondary);
+        }
+
+        body.light-mode .search-clear-button:hover {
+            color: var(--light-text);
+            background: rgba(24, 24, 27, 0.08);
+        }
+
+        .search-field-label {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            max-width: 9.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.34rem 0.5rem;
+            border-radius: 6px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.14);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.68rem;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        body.light-mode .search-field-label {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.16);
+        }
+
+        .search-options {
+            position: absolute;
+            z-index: 30;
+            left: 0;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            display: none;
+            padding: 0.55rem;
+            border-radius: 8px;
+            background: rgba(24, 24, 27, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
+        }
+
+        .search-picker.is-suggesting .search-options {
+            display: block;
+        }
+
+        body.light-mode .search-options {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.13);
+        }
+
+        .search-options-title {
+            margin: 0 0 0.45rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        body.light-mode .search-options-title {
+            color: var(--light-text-secondary);
+        }
+
+        .search-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem;
+        }
+
+        .search-option {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            min-height: 2.25rem;
+            padding: 0.48rem 0.58rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--dark-text);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .search-option:hover,
+        .search-option.is-active {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.88);
+            border-color: rgba(248, 113, 113, 0.55);
+        }
+
+        body.light-mode .search-option {
+            color: var(--light-text);
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .search-option:hover,
+        body.light-mode .search-option.is-active {
+            color: #ffffff;
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .icon-btn {
+            width: 2.9rem;
+            height: 2.9rem;
+            padding: 0;
+            justify-content: center;
+        }
+
+        /* Column filter trigger styles */
+        .column-filter-trigger {
+            padding: 0.2rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .table th[data-filter-col] {
+            position: relative;
+            overflow: visible;
+            z-index: 31;
+        }
+
+        .table thead {
+            position: relative;
+            z-index: 30;
+        }
+
+        .table tr[hidden] {
+            display: none !important;
+        }
+
+        .column-filter-dropdown {
+            width: max-content;
+            max-width: min(20rem, calc(100vw - 2rem));
+        }
+
+        .table th[data-filter-col="5"] .column-filter-dropdown,
+        .table th[data-filter-col="6"] .column-filter-dropdown {
+            right: 0;
+            left: auto !important;
+        }
+        .column-filter-trigger:hover {
+            background: rgba(255, 255, 255, 0.1);
+            opacity: 1 !important;
+            color: var(--primary-color);
+        }
+        body.light-mode .column-filter-trigger:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .filter-section {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 46%),
+                rgba(30, 30, 34, 0.72);
+            backdrop-filter: blur(18px) saturate(130%);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            display: none;
+        }
+
+        body.light-mode .filter-section {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .filter-section.is-open {
+            display: block;
+        }
+
+        .filter-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.light-mode .filter-title {
+            color: var(--light-text);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-input,
+        .filter-select {
+            padding: 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .filter-input,
+        body.light-mode .filter-select {
+            background-color: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btn {
+            padding: 0.4rem 0.8rem;
+            background: var(--dark-card);
+            color: var(--dark-text);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .pagination-btn {
+            background: var(--light-card);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .pagination-copy {
+            margin: 0 0.5rem;
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        body.light-mode .pagination-copy {
+            color: var(--light-text);
+        }
+
+        .table-container {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 40%),
+                rgba(30, 30, 34, 0.74);
+            backdrop-filter: blur(18px) saturate(130%);
+            border-radius: var(--border-radius);
+            overflow: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            position: relative;
+        }
+
+        body.light-mode .table-container {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(244, 244, 245, 0.26)),
+                rgba(255, 255, 255, 0.2);
+            border-color: rgba(24, 24, 27, 0.16);
+        }
+
+        .table {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table th {
+            background: rgba(18, 18, 20, 0.84);
+            color: var(--dark-text);
+            font-weight: 600;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.875rem;
+            word-break: break-word;
+        }
+
+        body.light-mode .table th {
+            background: rgba(255, 255, 255, 0.58);
+            color: #111113;
+            border-bottom-color: rgba(24, 24, 27, 0.14);
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--dark-text-secondary);
+            font-size: 0.82rem;
+            word-break: break-word;
+        }
+
+        .actions-column {
+            width: 14.5rem;
+            min-width: 14.5rem;
+            text-align: center;
+            background:
+                rgba(18, 18, 20, 0.92);
+            box-shadow: -8px 0 18px rgba(0, 0, 0, 0.14);
+        }
+
+        th.actions-column {
+            color: var(--dark-text);
+        }
+
+        body.light-mode .actions-column {
+            background:
+                rgba(255, 255, 255, 0.96);
+            box-shadow: -14px 0 24px rgba(24, 24, 27, 0.08);
+        }
+
+        body.light-mode .table td {
+            color: #4b4b55;
+            border-bottom-color: rgba(24, 24, 27, 0.12);
+            font-weight: 500;
+        }
+
+        body.light-mode .table tr:hover {
+            background-color: rgba(220, 38, 38, 0.085);
+        }
+
+        .table tr:hover {
+            background-color: rgba(220, 38, 38, 0.075);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+
+        .status-open {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .status-closed {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        .status-on-hold,
+        .status-onhold {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        /* Workflow Status Badges - Dark Mode */
+        .status-submitted {
+            background-color: rgba(161, 161, 170, 0.15);
+            color: #e4e4e7;
+        }
+        .status-assigned_to_factory {
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+        }
+        .status-factory_review {
+            background-color: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+        .status-awaiting_approval {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+        .status-partially_approved {
+            background-color: rgba(249, 115, 22, 0.15);
+            color: #fdba74;
+        }
+        .status-rework_required {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+        }
+        .status-approved {
+            background-color: rgba(132, 204, 22, 0.15);
+            color: #bef264;
+        }
+        .status-action_in_progress {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+        }
+        .status-awaiting_execution_verification {
+            background-color: rgba(6, 182, 212, 0.15);
+            color: #67e8f9;
+        }
+        .status-execution_partially_verified {
+            background-color: rgba(20, 184, 166, 0.15);
+            color: #5eead4;
+        }
+        .status-pending_final_update {
+            background-color: rgba(236, 72, 153, 0.15);
+            color: #f9a8d4;
+        }
+        .status-on_hold {
+            background-color: rgba(234, 179, 8, 0.15);
+            color: #fde047;
+        }
+
+        body.light-mode .status-badge {
+            font-weight: 800;
+            box-shadow: 0 8px 18px rgba(24, 24, 27, 0.08);
+        }
+
+        body.light-mode .status-open {
+            background-color: rgba(239, 68, 68, 0.3);
+            color: #b91c1c;
+        }
+
+        body.light-mode .status-closed {
+            background-color: rgba(16, 185, 129, 0.34);
+            color: #047857;
+        }
+
+        body.light-mode .status-on-hold,
+        body.light-mode .status-onhold {
+            background-color: rgba(245, 158, 11, 0.36);
+            color: #b45309;
+        }
+
+        /* Workflow Status Badges - Light Mode */
+        body.light-mode .status-submitted {
+            background-color: rgba(161, 161, 170, 0.25);
+            color: #27272a;
+        }
+        body.light-mode .status-assigned_to_factory {
+            background-color: rgba(139, 92, 246, 0.25);
+            color: #5b21b6;
+        }
+        body.light-mode .status-factory_review {
+            background-color: rgba(99, 102, 241, 0.25);
+            color: #3730a3;
+        }
+        body.light-mode .status-awaiting_approval {
+            background-color: rgba(245, 158, 11, 0.25);
+            color: #92400e;
+        }
+        body.light-mode .status-partially_approved {
+            background-color: rgba(249, 115, 22, 0.25);
+            color: #9a3412;
+        }
+        body.light-mode .status-rework_required {
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #b91c1c;
+        }
+        body.light-mode .status-approved {
+            background-color: rgba(132, 204, 22, 0.25);
+            color: #3f6212;
+        }
+        body.light-mode .status-action_in_progress {
+            background-color: rgba(59, 130, 246, 0.25);
+            color: #1e40af;
+        }
+        body.light-mode .status-awaiting_execution_verification {
+            background-color: rgba(6, 182, 212, 0.25);
+            color: #155e75;
+        }
+        body.light-mode .status-execution_partially_verified {
+            background-color: rgba(20, 184, 166, 0.25);
+            color: #115e59;
+        }
+        body.light-mode .status-pending_final_update {
+            background-color: rgba(236, 72, 153, 0.25);
+            color: #9d174d;
+        }
+        body.light-mode .status-on_hold {
+            background-color: rgba(234, 179, 8, 0.28);
+            color: #854d0e;
+        }
+
+        body.light-mode .status-high {
+            background-color: rgba(220, 38, 38, 0.18);
+            color: #991b1b;
+        }
+
+        body.light-mode .status-medium {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #92400e;
+        }
+
+        body.light-mode .status-low {
+            background-color: rgba(59, 130, 246, 0.16);
+            color: #1d4ed8;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.35rem;
+            justify-content: center;
+            align-items: center;
+            min-width: max-content;
+            flex-wrap: nowrap;
+        }
+
+        .delete-complaint-form {
+            margin: 0;
+        }
+
+        .action-btn {
+            padding: 0.46rem 0.52rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 0.75rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.32rem;
+            min-width: 3.55rem;
+            width: auto;
+            height: 2rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .action-btn .action-label {
+            font-size: 0.64rem;
+            line-height: 1;
+        }
+
+        .action-btn.view {
+            background: linear-gradient(135deg, var(--primary-color), #f43f5e);
+            box-shadow: 0 10px 24px rgba(220, 38, 38, 0.28);
+        }
+
+        .action-btn.edit {
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            box-shadow: 0 10px 24px rgba(245, 158, 11, 0.22);
+        }
+
+        .action-btn.review {
+            background: linear-gradient(135deg, #7c3aed, #ef4444);
+            box-shadow: 0 10px 24px rgba(124, 58, 237, 0.22);
+        }
+
+        .action-btn.chat {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            box-shadow: 0 10px 24px rgba(2, 132, 199, 0.22);
+            min-width: 2rem;
+            width: 2rem;
+        }
+
+        .action-btn.approve {
+            background: linear-gradient(135deg, #2563eb, #0ea5e9);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+        }
+
+        .action-btn.execute {
+            background: linear-gradient(135deg, #15803d, #22c55e);
+            box-shadow: 0 10px 24px rgba(34, 197, 94, 0.24);
+        }
+
+        .action-btn.delete {
+            background: linear-gradient(135deg, var(--error-color), #b91c1c);
+            box-shadow: 0 10px 24px rgba(239, 68, 68, 0.25);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.32);
+        }
+
+        .journey-column {
+            grid-column: 1 / 4;
+            display: block !important;
+            min-height: 0 !important;
+            padding: 0.6rem 0.75rem 0.7rem !important;
+            overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(239, 68, 68, 0.08), transparent 46%),
+                rgba(18, 18, 20, 0.55);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .journey-column::before {
+            display: none;
+        }
+
+        .journey-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .journey-title {
+            color: var(--dark-text);
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .journey-current {
+            color: #fca5a5;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        .journey-track {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            align-items: start;
+            padding: 0.2rem 0.15rem 0;
+        }
+
+        .journey-step {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.28rem;
+            min-width: 0;
+            color: rgba(161, 161, 170, 0.7);
+            text-align: center;
+        }
+
+        .journey-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            z-index: 0;
+            top: 0.48rem;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background:
+                linear-gradient(90deg, rgba(161, 161, 170, 0.28), rgba(161, 161, 170, 0.1));
+        }
+
+        .journey-step.completed:not(:last-child)::after {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.95), rgba(248, 113, 113, 0.55));
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.22);
+        }
+
+        .journey-dot {
+            position: relative;
+            z-index: 1;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(161, 161, 170, 0.44);
+            border-radius: 50%;
+            background: #222225;
+        }
+
+        .journey-step.completed .journey-dot {
+            border-color: #ef4444;
+            background: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.13);
+        }
+
+        .journey-step.current,
+        .journey-step.completed {
+            color: var(--dark-text);
+        }
+
+        .journey-step.current .journey-dot {
+            border-color: #fb7185;
+            background: #111113;
+            box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18), 0 0 14px rgba(244, 63, 94, 0.48);
+            animation: journeyPulse 1.8s ease-in-out infinite;
+        }
+
+        .journey-step.attention {
+            color: #fcd34d;
+        }
+
+        .journey-step.attention .journey-dot {
+            border-color: #f59e0b;
+            background: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.16);
+        }
+
+        .journey-label {
+            max-width: 100%;
+            font-size: 0.6rem;
+            font-weight: 700;
+            line-height: 1.15;
+            white-space: normal;
+        }
+
+        body.light-mode .journey-title,
+        body.light-mode .journey-step.current,
+        body.light-mode .journey-step.completed {
+            color: #18181b;
+        }
+
+        body.light-mode .journey-current {
+            color: #b91c1c;
+        }
+
+        body.light-mode .journey-dot {
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        body.light-mode .journey-column {
+            background:
+                linear-gradient(135deg, rgba(220, 38, 38, 0.07), transparent 48%),
+                rgba(255, 255, 255, 0.86);
+            border-color: rgba(24, 24, 27, 0.12);
+        }
+
+        .modal-journey-panel {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1.35rem;
+            padding: 1.25rem;
+            border-radius: 10px;
+            background:
+                radial-gradient(circle at 12% 20%, rgba(239, 68, 68, 0.16), transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.065), transparent 42%),
+                rgba(15, 15, 17, 0.88);
+            border: 1px solid rgba(248, 113, 113, 0.18);
+            box-shadow:
+                0 20px 48px rgba(0, 0, 0, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        }
+
+        .modal-journey-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.34;
+            background-image:
+                linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+                linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+        }
+
+        .modal-journey-header {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .modal-journey-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.45rem;
+            color: #fca5a5;
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .modal-journey-heading {
+            margin: 0;
+            color: var(--dark-text);
+            font-size: 1.05rem;
+            font-weight: 900;
+        }
+
+        .modal-journey-status {
+            flex: 0 0 auto;
+            max-width: 16rem;
+            padding: 0.55rem 0.7rem;
+            border-radius: 8px;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.13);
+            border: 1px solid rgba(248, 113, 113, 0.24);
+            font-size: 0.78rem;
+            font-weight: 850;
+            text-align: right;
+        }
+
+        .modal-journey-rail {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0;
+            padding: 0.25rem 0.1rem 0;
+        }
+
+        .modal-journey-step {
+            position: relative;
+            min-width: 0;
+            text-align: center;
+            color: rgba(212, 212, 216, 0.68);
+        }
+
+        .modal-journey-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 1.05rem;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: rgba(113, 113, 122, 0.28);
+        }
+
+        .modal-journey-step.completed:not(:last-child)::after {
+            background: linear-gradient(90deg, #dc2626, rgba(248, 113, 113, 0.68));
+            box-shadow: 0 0 18px rgba(220, 38, 38, 0.38);
+        }
+
+        .modal-journey-node {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.15rem;
+            height: 2.15rem;
+            border-radius: 999px;
+            color: rgba(212, 212, 216, 0.82);
+            background: rgba(31, 31, 35, 0.96);
+            border: 1px solid rgba(161, 161, 170, 0.42);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        }
+
+        .modal-journey-step.completed .modal-journey-node {
+            color: #fff;
+            background: linear-gradient(135deg, #dc2626, #f43f5e);
+            border-color: rgba(254, 202, 202, 0.75);
+            box-shadow: 0 0 0 5px rgba(220, 38, 38, 0.12), 0 0 26px rgba(220, 38, 38, 0.34);
+        }
+
+        .modal-journey-step.current .modal-journey-node {
+            color: #fff;
+            background: #101011;
+            border-color: #fb7185;
+            box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.16), 0 0 30px rgba(244, 63, 94, 0.44);
+            animation: journeyPulse 1.8s ease-in-out infinite;
+        }
+
+        .modal-journey-step.attention .modal-journey-node {
+            color: #111113;
+            background: #f59e0b;
+            border-color: #fcd34d;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16), 0 0 24px rgba(245, 158, 11, 0.34);
+        }
+
+        .modal-journey-copy {
+            display: block;
+            margin-top: 0.6rem;
+            color: inherit;
+            font-size: 0.73rem;
+            font-weight: 850;
+            line-height: 1.2;
+        }
+
+        .modal-journey-step.completed,
+        .modal-journey-step.current {
+            color: var(--dark-text);
+        }
+
+        body.light-mode .modal-journey-panel {
+            background:
+                radial-gradient(circle at 12% 20%, rgba(220, 38, 38, 0.1), transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.66));
+            border-color: rgba(220, 38, 38, 0.18);
+        }
+
+        body.light-mode .modal-journey-heading,
+        body.light-mode .modal-journey-step.completed,
+        body.light-mode .modal-journey-step.current {
+            color: var(--light-text);
+        }
+
+        body.light-mode .modal-journey-status {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.18);
+        }
+
+        @keyframes journeyPulse {
+            50% { transform: scale(1.12); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .journey-step.current .journey-dot,
+            .modal-journey-step.current .modal-journey-node { animation: none; }
+        }
+
+        @media (max-width: 1320px) {
+            .table th:nth-child(6),
+            .table td:nth-child(6),
+            .table th:nth-child(10),
+            .table td:nth-child(10),
+            .table th:nth-child(13),
+            .table td:nth-child(13),
+            .table th:nth-child(14),
+            .table td:nth-child(14) {
+                display: none;
+            }
+
+            .actions-column {
+                width: 13.5rem;
+                min-width: 13.5rem;
+            }
+        }
+
+        /* Compact Table Layout Custom Styling */
+        .table-container {
+            overflow: auto;
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(30, 30, 34, 0.74);
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        body.light-mode .table-container {
+            background: var(--light-surface);
+            border-color: rgba(24, 24, 27, 0.16);
+        }
+
+        .table {
+            width: 100%;
+            min-width: 1000px;
+            table-layout: auto;
+            border-collapse: collapse;
+        }
+
+        .table thead {
+            display: table-header-group !important;
+        }
+
+        .table tbody {
+            display: table-row-group !important;
+        }
+
+        .table tr {
+            display: table-row !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            transition: background-color 0.2s ease;
+        }
+
+        .table tr.complaint-info-row:hover {
+            background-color: rgba(255, 255, 255, 0.02) !important;
+        }
+
+        body.light-mode .table tr.complaint-info-row:hover {
+            background-color: rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .table th, .table td {
+            display: table-cell !important;
+            padding: 0.6rem 0.85rem !important;
+            vertical-align: middle !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+            font-size: 0.82rem !important;
+            min-height: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        body.light-mode .table th, body.light-mode .table td {
+            border-bottom-color: rgba(24, 24, 27, 0.08) !important;
+        }
+
+        .table th {
+            background: rgba(18, 18, 20, 0.9) !important;
+            color: var(--dark-text) !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.78rem !important;
+        }
+
+        body.light-mode .table th {
+            background: rgba(241, 245, 249, 0.85) !important;
+            color: var(--light-text) !important;
+        }
+
+        .table td {
+            color: var(--dark-text-secondary) !important;
+        }
+
+        body.light-mode .table td {
+            color: var(--light-text-secondary) !important;
+        }
+
+        /* Stacked text styling */
+        .complaint-id-badge {
+            font-family: monospace;
+            font-weight: 800;
+            color: #ef4444;
+            font-size: 0.85rem;
+            display: block;
+        }
+
+        .complaint-date-sub {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--dark-text-secondary);
+            opacity: 0.7;
+            margin-top: 0.15rem;
+        }
+
+        .vehicle-primary {
+            display: block;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.82rem;
+        }
+
+        body.light-mode .vehicle-primary {
+            color: var(--light-text);
+        }
+
+        .vehicle-secondary, .type-secondary, .material-secondary, .reporter-secondary, .source-secondary {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--dark-text-secondary);
+            opacity: 0.75;
+            margin-top: 0.15rem;
+        }
+
+        .type-primary, .reporter-primary {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .type-primary, body.light-mode .reporter-primary {
+            color: var(--light-text);
+        }
+
+        /* Status Dot Indicator */
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+            display: inline-block;
+            background-color: currentColor;
+        }
+
+        /* Inline Media Indicator */
+        .media-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.7rem;
+            color: var(--dark-text-secondary);
+            opacity: 0.85;
+        }
+
+        /* Compact Action Column */
+        .actions-column {
+            width: 13rem !important;
+            min-width: 13rem !important;
+            text-align: center !important;
+        }
+
+        .action-buttons {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 0.35rem !important;
+            justify-content: center !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .action-btn {
+            min-width: 0 !important;
+            width: auto !important;
+            padding: 0.4rem 0.55rem !important;
+            height: 1.85rem !important;
+            font-size: 0.72rem !important;
+        }
+
+        .action-btn .action-label {
+            font-size: 0.65rem;
+            line-height: 1;
+        }
+
+        /* Journey Inline styling */
+        .complaint-workflow-row td {
+            padding: 0.25rem 0.85rem 0.55rem !important;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
+        body.light-mode .complaint-workflow-row td {
+            border-bottom-color: rgba(24, 24, 27, 0.12) !important;
+        }
+
+        .journey-column-inline {
+            display: grid;
+            grid-template-columns: max-content minmax(0, 1fr);
+            align-items: center;
+            gap: 1rem;
+            padding: 0.55rem 0.85rem;
+            background: rgba(18, 18, 20, 0.4);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            overscroll-behavior-inline: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(239, 68, 68, 0.45) transparent;
+        }
+
+        body.light-mode .journey-column-inline {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .journey-summary-inline {
+            display: block;
+            align-items: center;
+            margin: 0;
+        }
+
+        .journey-title-inline {
+            color: var(--dark-text-secondary);
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        body.light-mode .journey-title-inline {
+            color: var(--light-text-secondary);
+        }
+
+        .journey-track-inline {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(5.6rem, 1fr);
+            align-items: start;
+            min-width: 0;
+        }
+
+        .journey-step-inline {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            color: rgba(161, 161, 170, 0.6);
+            text-align: center;
+        }
+
+        .journey-step-inline:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            z-index: 0;
+            top: 0.38rem;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: rgba(161, 161, 170, 0.2);
+        }
+
+        .journey-step-inline.completed:not(:last-child)::after {
+            background: #ef4444;
+        }
+
+        .journey-step-inline .journey-dot {
+            position: relative;
+            z-index: 1;
+            width: 0.75rem;
+            height: 0.75rem;
+            border: 2px solid rgba(161, 161, 170, 0.44);
+            border-radius: 50%;
+            background: #222225;
+        }
+
+        .journey-step-inline.completed .journey-dot {
+            border-color: #ef4444;
+            background: #ef4444;
+        }
+
+        .journey-step-inline.current .journey-dot {
+            border-color: #fb7185;
+            background: #111113;
+            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18);
+        }
+
+        .journey-step-inline.attention .journey-dot {
+            border-color: #f59e0b;
+            background: #f59e0b;
+        }
+
+        .journey-label-inline {
+            max-width: 100%;
+            font-size: clamp(0.56rem, 0.7vw, 0.64rem);
+            font-weight: 700;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .journey-step-inline.current, .journey-step-inline.completed {
+            color: var(--dark-text);
+        }
+
+        body.light-mode .journey-step-inline.current, body.light-mode .journey-step-inline.completed {
+            color: var(--light-text);
+        }
+
+        /* Mobile Responsive Fallback for Very Small Screens */
+        @media (max-width: 768px) {
+            .table-container {
+                overflow: visible;
+                background: transparent;
+                border: 0;
+                box-shadow: none;
+            }
+
+            .table {
+                display: block !important;
+                min-width: 0 !important;
+            }
+
+            .table thead {
+                display: none !important;
+            }
+
+            .table tbody {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 1rem;
+            }
+
+            .table tr.complaint-info-row {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 0.5rem;
+                padding: 1rem;
+                border-radius: var(--border-radius);
+                background: rgba(30, 30, 34, 0.74) !important;
+                border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            }
+
+            body.light-mode .table tr.complaint-info-row {
+                background: var(--light-surface) !important;
+                border-color: rgba(24, 24, 27, 0.12) !important;
+            }
+
+            .table tr.complaint-info-row td {
+                display: flex !important;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.35rem 0 !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            }
+
+            body.light-mode .table tr.complaint-info-row td {
+                border-bottom-color: rgba(24, 24, 27, 0.06) !important;
+            }
+
+            .table tr.complaint-info-row td::before {
+                font-weight: 800;
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                color: var(--dark-text-secondary);
+                opacity: 0.65;
+            }
+
+            body.light-mode .table tr.complaint-info-row td::before {
+                color: var(--light-text-secondary);
+            }
+
+            .table tr.complaint-info-row td:nth-child(1)::before { content: '#'; }
+            .table tr.complaint-info-row td:nth-child(2)::before { content: 'Date / ID'; }
+            .table tr.complaint-info-row td:nth-child(3)::before { content: 'Vehicle'; }
+            .table tr.complaint-info-row td:nth-child(4)::before { content: 'Type & Material'; }
+            .table tr.complaint-info-row td:nth-child(5)::before { content: 'Reported / Source'; }
+            .table tr.complaint-info-row td:nth-child(6)::before { content: 'Priority'; }
+            .table tr.complaint-info-row td:nth-child(7)::before { content: 'Status'; }
+            .table tr.complaint-info-row td:nth-child(8)::before { content: 'Actions'; }
+
+            .table tr.complaint-workflow-row td {
+                display: block !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+
+            .actions-column {
+                width: auto !important;
+                min-width: 0 !important;
+            }
+
+            .journey-column-inline {
+                grid-template-columns: max-content minmax(39rem, 1fr);
+                gap: 0.75rem;
+                padding: 0.55rem 0.7rem;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1300;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100dvh;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.is-open {
+            display: block;
+        }
+
+        .complaint-modal {
+            background:
+                radial-gradient(circle at 18% 20%, rgba(220, 38, 38, 0.18), transparent 34%),
+                rgba(10, 10, 12, 0.96);
+            backdrop-filter: blur(18px);
+            padding: 1.25rem;
+            animation: modalBackdropIn 0.28s ease both;
+        }
+
+        .complaint-modal.is-open {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--dark-surface);
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .complaint-modal .modal-content {
+            width: min(1560px, 100%);
+            max-width: none;
+            max-height: none;
+            height: calc(100vh - 2.5rem);
+            height: calc(100dvh - 2.5rem);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, rgba(30, 30, 32, 0.98), rgba(18, 18, 20, 0.98));
+            border: 1px solid rgba(220, 38, 38, 0.22);
+            border-radius: 18px;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            transform-origin: center;
+            animation: complaintPanelIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        body.light-mode .modal-content {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .complaint-modal .modal-header {
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            margin: 0;
+            padding: 0.8rem 1rem;
+            background: rgba(18, 18, 20, 0.94);
+            backdrop-filter: blur(14px);
+            border-bottom-color: rgba(220, 38, 38, 0.22);
+        }
+
+        body.light-mode .modal-header {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .modal-title {
+            color: var(--light-text);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .close-btn {
+            color: var(--light-text-secondary);
+        }
+
+        .close-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        .modal-body {
+            color: var(--dark-text-secondary);
+            line-height: 1.6;
+        }
+
+        .complaint-modal .modal-body {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            padding: 0.75rem;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 0.7rem;
+        }
+
+        .complaint-modal .modal-journey-panel {
+            margin: 0;
+            padding: 0.62rem 0.8rem 0.68rem;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+
+        .complaint-modal .modal-journey-header {
+            align-items: center;
+            margin-bottom: 0.52rem;
+        }
+
+        .complaint-modal .modal-journey-kicker {
+            margin-bottom: 0.12rem;
+            font-size: 0.62rem;
+        }
+
+        .complaint-modal .modal-journey-heading {
+            font-size: 0.84rem;
+        }
+
+        .complaint-modal .modal-journey-status {
+            padding: 0.35rem 0.5rem;
+            font-size: 0.66rem;
+        }
+
+        .complaint-modal .modal-journey-rail {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            padding-top: 0;
+        }
+
+        .complaint-modal .modal-journey-node {
+            width: 1.65rem;
+            height: 1.65rem;
+            font-size: 0.7rem;
+        }
+
+        .complaint-modal .modal-journey-step:not(:last-child)::after {
+            top: 0.78rem;
+            height: 2px;
+        }
+
+        .complaint-modal .modal-journey-copy {
+            margin-top: 0.35rem;
+            font-size: 0.62rem;
+        }
+
+        .modal-record-heading {
+            min-width: 0;
+        }
+
+        .modal-record-kicker {
+            display: block;
+            margin-bottom: 0.18rem;
+            color: #f87171;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .modal-record-title-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+        }
+
+        .modal-record-title-row h2 {
+            margin: 0;
+            color: var(--dark-text);
+            font-size: clamp(1rem, 1.5vw, 1.3rem);
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        .modal-record-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem 0.85rem;
+            margin-top: 0.32rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+        }
+
+        .modal-record-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .complaint-record-layout {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.85fr);
+            gap: 0.75rem;
+        }
+
+        .complaint-record-details,
+        .complaint-media-pane {
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(220, 38, 38, 0.55) transparent;
+        }
+
+        .complaint-record-details {
+            padding: 0.05rem 0.7rem 1rem 0.05rem;
+        }
+
+        .record-section {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .record-section:first-child {
+            padding-top: 0.1rem;
+        }
+
+        .record-section:last-child {
+            border-bottom: 0;
+        }
+
+        .record-section-title {
+            margin: 0 0 0.58rem;
+            color: #f87171;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .record-description {
+            margin: 0;
+            max-width: 70ch;
+            color: var(--dark-text);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            text-wrap: pretty;
+        }
+
+        .record-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.18rem 1.4rem;
+            margin: 0;
+        }
+
+        .record-field {
+            min-width: 0;
+            display: grid;
+            grid-template-columns: minmax(6.6rem, 0.42fr) minmax(0, 1fr);
+            gap: 0.65rem;
+            align-items: baseline;
+            padding: 0.38rem 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+
+        .record-field dt,
+        .record-field dd {
+            margin: 0;
+        }
+
+        .record-field dt {
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .record-field dd {
+            min-width: 0;
+            color: var(--dark-text);
+            font-size: 0.78rem;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .record-field.is-wide {
+            grid-column: 1 / -1;
+        }
+
+        .complaint-media-pane {
+            padding: 0.8rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(8, 8, 10, 0.42);
+        }
+
+        .media-pane-header {
+            position: sticky;
+            top: -0.8rem;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin: -0.8rem -0.8rem 0.75rem;
+            padding: 0.78rem 0.85rem;
+            background: rgba(15, 15, 17, 0.94);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+        }
+
+        .media-pane-header h3 {
+            margin: 0;
+            color: var(--dark-text);
+            font-size: 0.86rem;
+        }
+
+        .media-count {
+            color: var(--dark-text-secondary);
+            font-size: 0.7rem;
+        }
+
+        .complaint-media-pane .media-grid {
+            grid-template-columns: 1fr;
+            gap: 0.65rem;
+            margin: 0;
+        }
+
+        .complaint-media-pane .media-item {
+            position: relative;
+            min-height: 10rem;
+            display: grid;
+            place-items: center;
+            background: #0b0b0d;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .complaint-media-pane .media-item:hover {
+            transform: none;
+            border-color: rgba(248, 113, 113, 0.42);
+        }
+
+        .complaint-media-pane .media-thumbnail {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            min-height: 10rem;
+            object-fit: contain;
+            background: #09090b;
+        }
+
+        .video-play-button {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            align-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            border: 0;
+            color: #fff;
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.2), rgba(9, 9, 11, 0.9) 62%);
+            cursor: pointer;
+            transition: background-color 180ms ease, opacity 180ms ease;
+        }
+
+        .video-play-button:hover {
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.32), rgba(9, 9, 11, 0.86) 66%);
+        }
+
+        .video-play-button i {
+            display: grid;
+            place-items: center;
+            width: 2.8rem;
+            height: 2.8rem;
+            padding-left: 0.14rem;
+            border-radius: 50%;
+            background: #dc2626;
+            box-shadow: 0 12px 30px rgba(220, 38, 38, 0.35);
+        }
+
+        .video-play-button span {
+            font-size: 0.72rem;
+            font-weight: 750;
+        }
+
+        .video-play-button[hidden] {
+            display: none;
+        }
+
+        .media-empty {
+            min-height: 14rem;
+            display: grid;
+            place-items: center;
+            align-content: center;
+            gap: 0.45rem;
+            color: var(--dark-text-secondary);
+            text-align: center;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+        }
+
+        .media-empty i {
+            font-size: 1.4rem;
+            color: #f87171;
+        }
+
+        .record-section .progress-row {
+            margin-bottom: 0.55rem;
+        }
+
+        .approval-round-group {
+            margin-top: 0.6rem;
+        }
+
+        .approval-round-title {
+            margin: 0 0 0.4rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.72rem;
+        }
+
+        .approval-rail,
+        .timeline-list {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .approval-step,
+        .timeline-entry {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.48rem 0.55rem;
+            background: rgba(255, 255, 255, 0.035);
+            border-radius: 6px;
+        }
+
+        .approval-role {
+            color: #fca5a5;
+            font-size: 0.68rem;
+            font-weight: 850;
+        }
+
+        .approval-person,
+        .timeline-entry > div {
+            min-width: 0;
+            display: grid;
+            gap: 0.08rem;
+        }
+
+        .approval-person strong,
+        .timeline-entry strong {
+            color: var(--dark-text);
+            font-size: 0.74rem;
+        }
+
+        .approval-person span,
+        .timeline-entry span {
+            color: var(--dark-text-secondary);
+            font-size: 0.68rem;
+        }
+
+        .timeline-entry {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .timeline-marker {
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        body.light-mode .modal-record-title-row h2,
+        body.light-mode .record-description,
+        body.light-mode .record-field dd,
+        body.light-mode .media-pane-header h3,
+        body.light-mode .approval-person strong,
+        body.light-mode .timeline-entry strong {
+            color: var(--light-text);
+        }
+
+        body.light-mode .record-section,
+        body.light-mode .record-field,
+        body.light-mode .complaint-media-pane,
+        body.light-mode .media-pane-header {
+            border-color: rgba(24, 24, 27, 0.1);
+        }
+
+        body.light-mode .complaint-media-pane,
+        body.light-mode .media-pane-header {
+            background: rgba(250, 250, 250, 0.9);
+        }
+
+        body.light-mode .modal-body {
+            color: var(--light-text-secondary);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .complaint-modal .section-title {
+            color: var(--dark-text);
+            margin: 1.25rem 0 0.85rem;
+        }
+
+        .detail-item {
+            background: var(--dark-card);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .complaint-modal .detail-item {
+            background: rgba(45, 45, 48, 0.72);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        body.light-mode .detail-item {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        body.light-mode .detail-label {
+            color: var(--light-text);
+        }
+
+        .detail-value {
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .detail-value {
+            color: var(--light-text-secondary);
+        }
+
+        .workflow-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 0.55rem;
+        }
+
+        .workflow-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border-radius: 999px;
+            padding: 0.35rem 0.58rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #fecaca;
+            background: rgba(220, 38, 38, 0.16);
+            border: 1px solid rgba(248, 113, 113, 0.28);
+        }
+
+        body.light-mode .workflow-chip {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.11);
+            border-color: rgba(220, 38, 38, 0.22);
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .media-item {
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .media-item:hover {
+            transform: scale(1.05);
+        }
+
+        .media-thumbnail {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        @keyframes modalBackdropIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes complaintPanelIn {
+            from {
+                opacity: 0;
+                transform: translate3d(0, 26px, 0) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--dark-text-secondary);
+        }
+
+        body.light-mode .empty-state {
+            color: var(--light-text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .header-actions {
+                justify-content: stretch;
+            }
+
+            .header-search-form,
+            .search-picker {
+                max-width: none;
+                min-width: 0;
+                width: 100%;
+            }
+
+            .search-option-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-search-input {
+                padding-right: 10.1rem;
+            }
+
+            .search-clear-button {
+                right: 7.95rem;
+            }
+
+            .search-field-label {
+                max-width: 7.25rem;
+            }
+
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions {
+                justify-content: stretch;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+
+            .table-container {
+                overflow: visible;
+            }
+
+            .table {
+                min-width: 0;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                width: calc(100% - 2rem);
+            }
+
+            .complaint-modal {
+                padding: 0.75rem;
+            }
+
+            .complaint-modal .modal-content {
+                height: calc(100vh - 1.5rem);
+                height: calc(100dvh - 1.5rem);
+                border-radius: 14px;
+            }
+
+            .complaint-modal .modal-header {
+                margin: 0;
+                padding: 1rem 1.25rem;
+            }
+        }
+
+        @media (max-width: 1050px) {
+            .complaint-modal .modal-body {
+                overflow-y: auto;
+                grid-template-rows: auto auto;
+            }
+
+            .complaint-record-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .complaint-record-details,
+            .complaint-media-pane {
+                overflow: visible;
+            }
+
+            .complaint-media-pane {
+                border-left: 0;
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .media-pane-header {
+                position: static;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .record-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .record-field.is-wide {
+                grid-column: auto;
+            }
+
+            .modal-record-meta {
+                display: none;
+            }
+
+            .modal-journey-heading {
+                display: none;
+            }
+        }
+    </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-list-alt"></i>
+                Complaint Management
+            </h1>
+            <div class="header-actions">
+                {% if can_create_complaint %}
+                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="Add Complaint" aria-label="Add Complaint">
+                    <i class="fas fa-plus"></i>
+                </a>
+                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="Export CSV" aria-label="Export CSV">
+                    <i class="fas fa-download"></i>
+                </a>
+                {% endif %}
+                <form method="GET" class="header-search-form" id="header-search-form">
+                    <input type="hidden" name="search_by" id="header-search-by" value="{{ search_by|default:'complaint_id' }}">
+                    <input type="hidden" name="complaint_type" value="{{ selected_complaint_type }}">
+                    <input type="hidden" name="channel" value="{{ selected_channel }}">
+                    <input type="hidden" name="person" value="{{ selected_person }}">
+                    <input type="hidden" name="country" value="{{ selected_country }}">
+                    <input type="hidden" name="status" value="{{ selected_status }}">
+                    <input type="hidden" name="priority" value="{{ selected_priority }}">
+                    <input type="hidden" name="from_date" value="{{ from_date }}">
+                    <input type="hidden" name="to_date" value="{{ to_date }}">
+                    <div class="search-picker" id="search-picker">
+                        <i class="fas fa-search search-leading-icon"></i>
+                        <input type="text" name="search" id="header-search-input" placeholder="Search complaints..."
+                               value="{{ search_query }}" class="header-search-input" autocomplete="off"
+                               aria-label="Search complaints" aria-describedby="search-options-title"
+                               aria-haspopup="listbox" aria-expanded="false">
+                        <button type="button" class="search-clear-button" id="header-search-clear" aria-label="Clear search" title="Clear search" hidden>
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                        <span class="search-field-label" id="search-field-label">Complaint ID</span>
+                        <div class="search-options" id="search-options">
+                            <p class="search-options-title" id="search-options-title">Search this keyword in</p>
+                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                                <button type="button" class="search-option" data-search-by="complaint_id" role="option">
+                                    <i class="fas fa-hashtag"></i>
+                                    Complaint ID
+                                </button>
+                                <button type="button" class="search-option" data-search-by="complaint_type" role="option">
+                                    <i class="fas fa-layer-group"></i>
+                                    Complaint Type
+                                </button>
+                                <button type="button" class="search-option" data-search-by="channel" role="option">
+                                    <i class="fas fa-bullhorn"></i>
+                                    Channel
+                                </button>
+                                <button type="button" class="search-option" data-search-by="country" role="option">
+                                    <i class="fas fa-globe"></i>
+                                    Country
+                                </button>
+                                <button type="button" class="search-option" data-search-by="reported_by" role="option">
+                                    <i class="fas fa-user"></i>
+                                    Reported By
+                                </button>
+                                <button type="button" class="search-option" data-search-by="case_sub_category" role="option">
+                                    <i class="fas fa-tag"></i>
+                                    Category
+                                </button>
+                                <button type="button" class="search-option" data-search-by="description" role="option">
+                                    <i class="fas fa-align-left"></i>
+                                    Description
+                                </button>
+                                <button type="button" class="search-option" data-search-by="brand" role="option">
+                                    <i class="fas fa-car-side"></i>
+                                    Brand
+                                </button>
+                                <button type="button" class="search-option" data-search-by="model" role="option">
+                                    <i class="fas fa-car"></i>
+                                    Model
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary icon-btn" title="Search" aria-label="Search complaints">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-danger icon-btn" id="filter-toggle"
+                            title="Filters" aria-label="Toggle filters" aria-expanded="false" aria-controls="advanced-filter-section">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="filter-section{% if selected_complaint_type or selected_channel or selected_person or selected_country or selected_status or selected_priority or from_date or to_date %} is-open{% endif %}" id="advanced-filter-section">
+            <h3 class="filter-title">
+                <i class="fas fa-filter"></i>
+                Filters
+            </h3>
+            
+            <form method="GET" id="filter-form">
+                <input type="hidden" name="search" value="{{ search_query }}">
+                <input type="hidden" name="search_by" value="{{ search_by|default:'complaint_id' }}">
+                <div class="filter-grid">
+                    <select name="complaint_type" class="filter-select">
+                        <option value="">All Complaint Types</option>
+                        {% for value, label in complaint_type_choices %}
+                            <option value="{{ value }}" {% if selected_complaint_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="channel" class="filter-select">
+                        <option value="">All Channels</option>
+                        {% for channel in channels %}
+                            <option value="{{ channel.id }}" {% if selected_channel == channel.id|stringformat:"s" %}selected{% endif %}>
+                                {{ channel.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="person" class="filter-select">
+                        <option value="">All Reporters</option>
+                        {% for person in persons %}
+                            <option value="{{ person.id }}" {% if selected_person == person.id|stringformat:"s" %}selected{% endif %}>
+                                {{ person.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="country" class="filter-select">
+                        <option value="">All Countries</option>
+                        {% for country in countries %}
+                            <option value="{{ country.id }}" {% if selected_country == country.id|stringformat:"s" %}selected{% endif %}>
+                                {{ country.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="status" class="filter-select">
+                        <option value="">All Statuses</option>
+                        {% for status in statuses %}
+                            <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="priority" class="filter-select">
+                        <option value="">All Priorities</option>
+                        {% for priority in priorities %}
+                            <option value="{{ priority }}" {% if selected_priority == priority %}selected{% endif %}>{{ priority }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <input type="date" name="from_date" value="{{ from_date }}" class="filter-input">
+                    <input type="date" name="to_date" value="{{ to_date }}" class="filter-input">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Apply Filters
+                    </button>
+                    <a href="{% url 'complaint_list' %}" class="btn btn-danger">
+                        <i class="fas fa-times"></i>
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            {% if complaints %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th data-filter-col="1">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Date / ID</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="2">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Vehicle</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="3">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Type &amp; Material</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="4">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Reported &amp; Source</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="5">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Priority</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th data-filter-col="6">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
+                                    <span>Status</span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in complaints %}
+                        <tr class="complaint-info-row">
+                            <td style="vertical-align: middle;">{{ forloop.counter }}</td>
+                            <td class="id-date-cell" style="vertical-align: middle;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span class="complaint-id-badge">{{ complaint.complaint_id }}</span>
+                                    {% if complaint.media_files.count > 0 %}
+                                    <span class="media-indicator" title="{{ complaint.media_files.count }} media files">
+                                        <i class="fas fa-paperclip"></i>
+                                        {{ complaint.media_files.count }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="complaint-date-sub">{{ complaint.date|date:"d-M-y" }}</span>
+                            </td>
+                            <td class="vehicle-cell" style="vertical-align: middle;">
+                                <span class="vehicle-primary">{{ complaint.brand }} {{ complaint.model }}</span>
+                                <span class="vehicle-secondary">
+                                    Year: {% if complaint.year %}{{ complaint.year.year_start|stringformat:"s"|slice:"-2:" }}-{{ complaint.year.year_end|stringformat:"s"|slice:"-2:" }}{% else %}-{% endif %}
+                                    | Series: {{ complaint.series|default:"-" }}
+                                </span>
+                            </td>
+                            <td class="type-material-cell" style="vertical-align: middle;">
+                                <span class="type-primary">{{ complaint.case_sub_category|default:"-" }}</span>
+                                <span class="material-secondary">Material: {{ complaint.material|default:"-" }}</span>
+                            </td>
+                            <td class="reporter-source-cell" style="vertical-align: middle;">
+                                <span class="reporter-primary">{% if complaint.created_by %}{{ complaint.created_by.username }}{% else %}{{ complaint.person.name|default:"-" }}{% endif %}</span>
+                                <span class="source-secondary">{{ complaint.country|default:"-" }} | {{ complaint.channel|default:"-" }}</span>
+                            </td>
+                            <td class="priority-cell" style="vertical-align: middle;">
+                                <span class="status-badge status-{{ complaint.priority|lower|cut:' ' }}">
+                                    {{ complaint.priority }}
+                                </span>
+                            </td>
+                            <td class="status-cell" style="vertical-align: middle;">
+                                <span class="status-badge status-{{ complaint.workflow_status|lower }}">
+                                    <span class="status-dot"></span>
+                                    {{ complaint.get_workflow_status_display }}
+                                </span>
+                            </td>
+                            <td class="actions-column" style="vertical-align: middle;">
+                                <div class="action-buttons">
+                                    <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="View Details" aria-label="View complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-eye"></i>
+                                        <span class="action-label">View</span>
+                                    </button>
+                                    <button type="button" class="action-btn chat" onclick="toggleChatUserPopover(event, '{{ complaint.complaint_id }}')" title="Text about Complaint {{ complaint.complaint_id }}" aria-label="Text about complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-comment-dots"></i>
+                                    </button>
+                                    {% if complaint.can_edit %}
+                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="Edit" aria-label="Edit complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if complaint.can_factory_review %}
+                                    <a href="{% url 'factory_review_complaint' complaint.complaint_id %}" class="action-btn review" title="Factory Review" aria-label="Factory review complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-industry"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if complaint.can_approve %}
+                                    <a href="{% url 'approval_review' complaint.current_approval.id %}" class="action-btn approve" title="Submit Approval" aria-label="Approve complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-clipboard-check"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if complaint.can_execute %}
+                                    <a href="{% url 'execute_complaint' complaint.complaint_id %}" class="action-btn execute" title="Execute Approved Action" aria-label="Execute complaint {{ complaint.complaint_id }}">
+                                        <i class="fas fa-circle-check"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if complaint.can_delete %}
+                                    <form method="post" action="{% url 'delete_complaint' complaint.complaint_id %}" class="delete-complaint-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn delete" title="Delete" aria-label="Delete complaint {{ complaint.complaint_id }}"
+                                                onclick="return confirm('Are you sure you want to delete this complaint?');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="complaint-workflow-row">
+                            <td colspan="8">
+                                <div class="journey-column-inline">
+                                    <div class="journey-summary-inline">
+                                        <span class="journey-title-inline">Complaint Journey</span>
+                                    </div>
+                                    <div class="journey-track-inline" aria-label="Complaint journey: {{ complaint.get_workflow_status_display }}">
+                                        {% for step in complaint.journey_steps %}
+                                            <div class="journey-step-inline {{ step.state }}" title="{{ step.label }}">
+                                                <span class="journey-dot" aria-hidden="true"></span>
+                                                <span class="journey-label-inline">{{ step.label }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Modal for each complaint -->
+                        <div id="modal-{{ complaint.complaint_id }}" class="modal complaint-modal">
+                            <article class="modal-content" aria-labelledby="modal-title-{{ complaint.complaint_id }}">
+                                <div class="modal-header">
+                                    <div class="modal-record-heading">
+                                        <span class="modal-record-kicker">{{ complaint.complaint_id }}</span>
+                                        <div class="modal-record-title-row">
+                                            <h2 id="modal-title-{{ complaint.complaint_id }}">{{ complaint.get_complaint_type_display }}</h2>
+                                            <span class="status-badge status-{{ complaint.status|lower|cut:' ' }}">{{ complaint.status }}</span>
+                                        </div>
+                                        <div class="modal-record-meta">
+                                            <span><i class="fas fa-calendar-alt"></i>{{ complaint.date|date:"d M Y" }}</span>
+                                            <span><i class="fas fa-flag"></i>{{ complaint.priority }} priority</span>
+                                            <span><i class="fas fa-user"></i>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}Unknown reporter{% endif %}</span>
+                                            {% if complaint.assigned_factory_executive %}
+                                                <span><i class="fas fa-industry"></i>{{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <button type="button" class="close-btn" onclick="closeModal('{{ complaint.complaint_id }}')" aria-label="Close complaint details">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <section class="modal-journey-panel" aria-label="Complaint workflow journey">
+                                        <div class="modal-journey-header">
+                                            <div>
+                                                <span class="modal-journey-kicker">
+                                                    <i class="fas fa-route"></i>
+                                                    Workflow status
+                                                </span>
+                                                <h3 class="modal-journey-heading">{{ complaint.get_workflow_status_display }}</h3>
+                                            </div>
+                                            <span class="modal-journey-status">{{ complaint.approval_summary.decided }}/{{ complaint.approval_summary.total }} reviews</span>
+                                        </div>
+                                        <div class="modal-journey-rail">
+                                            {% for step in complaint.journey_steps %}
+                                                <div class="modal-journey-step {{ step.state }}" title="{{ step.label }}">
+                                                    <span class="modal-journey-node" aria-hidden="true">
+                                                        {% if step.key == 'reported' %}
+                                                            <i class="fas fa-file-alt"></i>
+                                                        {% elif step.key == 'factory' %}
+                                                            <i class="fas fa-industry"></i>
+                                                        {% elif step.key == 'approval' %}
+                                                            <i class="fas fa-clipboard-check"></i>
+                                                        {% elif step.key == 'action' %}
+                                                            <i class="fas fa-tools"></i>
+                                                        {% elif step.key == 'verification' %}
+                                                            <i class="fas fa-user-check"></i>
+                                                        {% elif step.key == 'final' %}
+                                                            <i class="fas fa-box"></i>
+                                                        {% elif step.key == 'closed' %}
+                                                            <i class="fas fa-circle-check"></i>
+                                                        {% endif %}
+                                                    </span>
+                                                    <span class="modal-journey-copy">{{ step.label }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </section>
+
+                                    <div class="complaint-record-layout">
+                                        <div class="complaint-record-details">
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Description</h3>
+                                                <p class="record-description">{{ complaint.complaint_description|default:"No description provided." }}</p>
+                                            </section>
+
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Complaint details</h3>
+                                                <dl class="record-fields">
+                                                    <div class="record-field"><dt>Complaint ID</dt><dd>{{ complaint.complaint_id }}</dd></div>
+                                                    <div class="record-field"><dt>Complaint type</dt><dd>{{ complaint.get_complaint_type_display }}</dd></div>
+                                                    <div class="record-field"><dt>Report status</dt><dd>{{ complaint.status }}</dd></div>
+                                                    <div class="record-field"><dt>Priority</dt><dd>{{ complaint.priority|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Report date</dt><dd>{{ complaint.date|date:"d M Y" }}</dd></div>
+                                                    <div class="record-field"><dt>Batch / Order #</dt><dd>{{ complaint.batch_order|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Updated Order #</dt><dd>{{ complaint.updated_order_no|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Created by</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}-{% endif %}</dd></div>
+                                                </dl>
+                                            </section>
+
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Product and source</h3>
+                                                <dl class="record-fields">
+                                                    <div class="record-field"><dt>Country</dt><dd>{{ complaint.country|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Channel</dt><dd>{{ complaint.channel|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Reported by</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.username }}{% else %}{{ complaint.person|default:"-" }}{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Defect type</dt><dd>{{ complaint.case_sub_category|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Brand</dt><dd>{{ complaint.brand|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Model</dt><dd>{{ complaint.model|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Submodel</dt><dd>{{ complaint.sub_model|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Year</dt><dd>{% if complaint.year %}{{ complaint.year.year_start }}–{{ complaint.year.year_end }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Series</dt><dd>{{ complaint.series|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Material</dt><dd>{{ complaint.material|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>SKU</dt><dd>{% if complaint.sku %}{{ complaint.sku.code }}{% if complaint.sku.description %} — {{ complaint.sku.description }}{% endif %}{% else %}-{% endif %}</dd></div>
+                                                </dl>
+                                            </section>
+
+                                            <section class="record-section">
+                                                <h3 class="record-section-title">Factory response</h3>
+                                                <dl class="record-fields">
+                                                    <div class="record-field"><dt>Factory executive</dt><dd>{% if complaint.assigned_factory_executive %}{{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Factory priority</dt><dd>{{ complaint.get_factory_priority_display|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>Root cause</dt><dd>{{ complaint.factory_reason|default:complaint.justification_from_factory|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>Action plan</dt><dd>{{ complaint.factory_action_plan|default:complaint.action_from_factory|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>Execution notes</dt><dd>{{ complaint.execution_notes|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>CAD updated date</dt><dd>{% if complaint.cad_date %}{{ complaint.cad_date|date:"d M Y" }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Container number</dt><dd>{{ complaint.production_updates_container|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>Closed by</dt><dd>{% if complaint.closed_by %}{{ complaint.closed_by.get_full_name|default:complaint.closed_by.username }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>Closed at</dt><dd>{% if complaint.closed_at %}{{ complaint.closed_at|date:"d M Y, H:i" }}{% else %}-{% endif %}</dd></div>
+                                                </dl>
+                                            </section>
+
+                                    {% if complaint.approval_summary.total %}
+                                        <section class="record-section">
+                                        <h3 class="record-section-title">Approval history</h3>
+                                        <div class="progress-row">
+                                            <div class="progress-track">
+                                                <div class="progress-fill" style="width: {% widthratio complaint.approval_summary.decided complaint.approval_summary.total 100 %}%;"></div>
+                                            </div>
+                                            <span class="progress-copy">Current round: {{ complaint.approval_summary.decided }}/{{ complaint.approval_summary.total }} reviewed</span>
+                                        </div>
+                                        {% regroup complaint.approvals.all by approval_round as approval_rounds %}
+                                        {% for round in approval_rounds %}
+                                            <div class="approval-round-group">
+                                                <h4 class="approval-round-title">Round {{ round.grouper }}</h4>
+                                                <div class="approval-rail">
+                                                    {% for approval in round.list %}
+                                                        <div class="approval-step {{ approval.status }}">
+                                                            <span class="approval-role">{{ approval.approver_role }}</span>
+                                                            <div class="approval-person">
+                                                                <strong>
+                                                                    {% if approval.approver_user %}
+                                                                        {{ approval.approver_user.get_full_name|default:approval.approver_user.username }}
+                                                                    {% else %}
+                                                                        Not configured
+                                                                    {% endif %}
+                                                                </strong>
+                                                                <span>
+                                                                    {% if approval.comment %}{{ approval.comment }}{% else %}Waiting for review.{% endif %}
+                                                                </span>
+                                                            </div>
+                                                            <span class="status-pill {{ approval.status }}">{{ approval.get_status_display }}</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        </section>
+                                    {% endif %}
+
+                                    {% if complaint.timeline_events.all %}
+                                        <section class="record-section">
+                                        <h3 class="record-section-title">Activity</h3>
+                                        <div class="timeline-list">
+                                            {% for event in complaint.timeline_events.all %}
+                                                <div class="timeline-entry">
+                                                    <span class="timeline-marker"></span>
+                                                    <div>
+                                                        <strong>{{ event.title }}</strong>
+                                                        <span>
+                                                            {{ event.created_at|date:"d M Y, H:i" }}
+                                                            {% if event.user %} - {{ event.user.get_full_name|default:event.user.username }}{% endif %}
+                                                        </span>
+                                                        {% if event.description %}<span>{{ event.description }}</span>{% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        </section>
+                                    {% endif %}
+                                        </div>
+
+                                        <aside class="complaint-media-pane" aria-label="Complaint media">
+                                            <div class="media-pane-header">
+                                                <h3>Images and videos</h3>
+                                                <span class="media-count">{{ complaint.media_files.count }} file{{ complaint.media_files.count|pluralize }}</span>
+                                            </div>
+                                            {% if complaint.media_files.count > 0 %}
+                                        <div class="media-grid">
+                                            {% for media in complaint.media_files.all %}
+                                                {% if not media.is_available %}
+                                                    <div class="media-item"><span>Unavailable</span></div>
+                                                {% elif ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower or ".webp" in media.file|lower or ".gif" in media.file|lower %}
+                                                    <div class="media-item" onclick="enlargeImage('{{ media.url|escapejs }}')">
+                                                        <img src="{{ media.url }}" class="media-thumbnail" alt="Media attached to complaint {{ complaint.complaint_id }}" loading="lazy">
+                                                    </div>
+                                                {% elif ".mp4" in media.file|lower or ".webm" in media.file|lower or ".mov" in media.file|lower %}
+                                                    <div class="media-item">
+                                                        <video class="media-thumbnail complaint-video" preload="none" playsinline
+                                                               data-src="{{ media.url }}" aria-label="Video attached to complaint {{ complaint.complaint_id }}"></video>
+                                                        <button type="button" class="video-play-button" onclick="playComplaintVideo(this)" aria-label="Play attached video">
+                                                            <i class="fas fa-play" aria-hidden="true"></i>
+                                                            <span>Play video</span>
+                                                        </button>
+                                                    </div>
+                                                {% else %}
+                                                    <a class="media-item" href="{{ media.url }}" target="_blank" rel="noopener">Open attached file</a>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                            {% else %}
+                                                <div class="media-empty">
+                                                    <i class="fas fa-photo-film"></i>
+                                                    <span>No media attached</span>
+                                                </div>
+                                            {% endif %}
+                                        </aside>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if page_obj and page_obj.has_other_pages %}
+                <div class="pagination-container">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">&laquo; First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Prev</a>
+                    {% endif %}
+
+                    <span class="pagination-copy">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Last &raquo;</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <h3>No complaints found</h3>
+                    <p>Try adjusting your filters or add a new complaint to get started.</p>
+                    <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-plus"></i>
+                        Add First Complaint
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content" style="max-width: 90%; text-align: center;">
+            <div class="modal-header">
+                <h2 class="modal-title">Image Preview</h2>
+                <button class="close-btn" onclick="closeImageModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <img id="modalImage" style="max-width: 100%; max-height: 70vh; border-radius: 8px;">
+        </div>
+    </div>
+
+    <script>
+        // Modal functions
+        function resetComplaintVideo(video) {
+            if (!video) return;
+            video.pause();
+            video.removeAttribute('src');
+            video.removeAttribute('controls');
+            video.load();
+            const playButton = video.parentElement?.querySelector('.video-play-button');
+            if (playButton) playButton.hidden = false;
+        }
+
+        function releaseComplaintVideos(scope) {
+            scope?.querySelectorAll('.complaint-video').forEach(resetComplaintVideo);
+        }
+
+        async function playComplaintVideo(playButton) {
+            const video = playButton.parentElement?.querySelector('.complaint-video');
+            if (!video?.dataset.src) return;
+
+            document.querySelectorAll('.complaint-video').forEach((otherVideo) => {
+                if (otherVideo !== video) resetComplaintVideo(otherVideo);
+            });
+
+            if (!video.getAttribute('src')) {
+                video.src = video.dataset.src;
+                video.setAttribute('controls', '');
+                video.load();
+            }
+            playButton.hidden = true;
+            try {
+                await video.play();
+            } catch (error) {
+                playButton.hidden = false;
+                console.error('Unable to play complaint video:', error);
+            }
+        }
+
+        function openModal(id) {
+            const modal = document.getElementById('modal-' + id);
+            if (modal && modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-modal', 'true');
+            document.body.style.overflow = 'hidden';
+            const closeButton = modal.querySelector('.close-btn');
+            if (closeButton) {
+                closeButton.focus({ preventScroll: true });
+            }
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById('modal-' + id);
+            releaseComplaintVideos(modal);
+            modal.classList.remove('is-open');
+            modal.removeAttribute('aria-modal');
+            document.body.style.overflow = 'auto';
+        }
+
+        function enlargeImage(src) {
+            const modal = document.getElementById("imageModal");
+            const img = document.getElementById("modalImage");
+            img.src = src;
+            modal.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            document.getElementById("imageModal").classList.remove('is-open');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                releaseComplaintVideos(event.target);
+                event.target.classList.remove('is-open');
+                event.target.removeAttribute('aria-modal');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        window.fabroOnPageLoad(function () {
+            window.__fabroComplaintPageController?.abort();
+            const complaintPageController = new AbortController();
+            const complaintPageSignal = complaintPageController.signal;
+            window.__fabroComplaintPageController = complaintPageController;
+
+            document.addEventListener('fabro:before-page-swap', function () {
+                complaintPageController.abort();
+            }, { once: true, signal: complaintPageSignal });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    document.querySelectorAll('.modal.is-open').forEach((modal) => {
+                        releaseComplaintVideos(modal);
+                        modal.classList.remove('is-open');
+                        modal.removeAttribute('aria-modal');
+                    });
+                    document.querySelectorAll('.column-filter-dropdown').forEach((dropdown) => {
+                        dropdown.style.display = 'none';
+                    });
+                    document.querySelectorAll('.column-filter-trigger').forEach((trigger) => {
+                        trigger.setAttribute('aria-expanded', 'false');
+                    });
+                    document.body.style.overflow = 'auto';
+                }
+            }, { signal: complaintPageSignal });
+
+            // Add active nav state
+            const complaintListLink = document.querySelector('a[href="{% url 'complaint_list' %}"]');
+            if (complaintListLink) {
+                complaintListLink.classList.add('active');
+            }
+
+            const filterToggle = document.getElementById('filter-toggle');
+            const filterSection = document.getElementById('advanced-filter-section');
+            if (filterToggle && filterSection) {
+                filterToggle.setAttribute('aria-expanded', filterSection.classList.contains('is-open') ? 'true' : 'false');
+                filterToggle.addEventListener('click', function () {
+                    const isOpen = filterSection.classList.toggle('is-open');
+                    filterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
+
+            const searchForm = document.getElementById('header-search-form');
+            const searchPicker = document.getElementById('search-picker');
+            const searchInput = document.getElementById('header-search-input');
+            const searchClear = document.getElementById('header-search-clear');
+            const searchByInput = document.getElementById('header-search-by');
+            const searchLabel = document.getElementById('search-field-label');
+            const searchOptions = document.querySelectorAll('.search-option');
+            const searchLabels = {
+                complaint_id: 'Complaint ID',
+                complaint_type: 'Complaint Type',
+                channel: 'Channel',
+                country: 'Country',
+                reported_by: 'Reported By',
+                case_sub_category: 'Category',
+                description: 'Description',
+                brand: 'Brand',
+                model: 'Model'
+            };
+
+            function refreshSearchChoice() {
+                if (!searchByInput || !searchLabel) return;
+                const selected = searchByInput.value || 'complaint_id';
+                searchLabel.textContent = searchLabels[selected] || 'Complaint ID';
+                searchOptions.forEach((option) => {
+                    option.classList.toggle('is-active', option.dataset.searchBy === selected);
+                });
+            }
+
+            function setSuggestionsOpen(isOpen) {
+                if (!searchPicker || !searchInput) return;
+                const shouldOpen = isOpen && searchInput.value.trim().length > 0;
+                searchPicker.classList.toggle('is-suggesting', shouldOpen);
+                searchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            }
+
+            function refreshSearchClear() {
+                if (!searchInput || !searchClear) return;
+                searchClear.hidden = searchInput.value.length === 0;
+            }
+
+            refreshSearchChoice();
+            refreshSearchClear();
+
+            if (searchInput && searchPicker) {
+                searchInput.addEventListener('input', function () {
+                    refreshSearchClear();
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('focus', function () {
+                    setSuggestionsOpen(true);
+                });
+                searchInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        setSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            if (searchClear && searchInput && searchForm) {
+                searchClear.addEventListener('click', function () {
+                    const hadSubmittedSearch = searchInput.defaultValue.trim().length > 0;
+                    searchInput.value = '';
+                    refreshSearchClear();
+                    setSuggestionsOpen(false);
+                    if (hadSubmittedSearch) {
+                        searchForm.requestSubmit();
+                    } else {
+                        searchInput.focus();
+                    }
+                });
+            }
+
+            searchOptions.forEach((option) => {
+                option.addEventListener('click', function () {
+                    if (!searchByInput || !searchForm) return;
+                    searchByInput.value = option.dataset.searchBy;
+                    refreshSearchChoice();
+                    setSuggestionsOpen(false);
+                    if (searchInput && searchInput.value.trim()) {
+                        searchForm.submit();
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (searchPicker && !searchPicker.contains(event.target)) {
+                    setSuggestionsOpen(false);
+                }
+            }, { signal: complaintPageSignal });
+
+            // Column filter dropdowns logic for Complaints Table
+            const filterHeaders = document.querySelectorAll('th[data-filter-col]');
+
+            function getComplaintFilterValue(infoRow, colIdx) {
+                const cell = infoRow.cells[colIdx];
+                if (!cell) return '';
+                if (colIdx === 1) {
+                    return cell.querySelector('.complaint-id-badge')?.textContent.trim() || '';
+                }
+                if (colIdx === 2) {
+                    return cell.querySelector('.vehicle-primary')?.textContent.trim() || '';
+                }
+                if (colIdx === 3) {
+                    return cell.querySelector('.type-primary')?.textContent.trim() || '';
+                }
+                if (colIdx === 4) {
+                    return cell.querySelector('.reporter-primary')?.textContent.trim() || '';
+                }
+                if (colIdx === 5 || colIdx === 6) {
+                    return cell.querySelector('.status-badge')?.textContent.trim() || '';
+                }
+                return cell.textContent.trim();
+            }
+            
+            function runFilters() {
+                const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
+                if (infoRows.length === 0) return;
+
+                // Collect active column filters: column index -> Set of checked values
+                const activeFilters = {};
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const checkedCheckboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]:checked');
+                    if (checkedCheckboxes.length > 0) {
+                        activeFilters[colIdx] = new Set(Array.from(checkedCheckboxes).map(cb => cb.value.toLowerCase()));
+                    }
+                });
+
+                // Filter each complaint info row & its workflow companion row
+                infoRows.forEach(infoRow => {
+                    let isVisible = true;
+                    
+                    for (const [colIdx, allowedValues] of Object.entries(activeFilters)) {
+                        const rowValue = getComplaintFilterValue(infoRow, Number(colIdx)).toLowerCase();
+                        if (!allowedValues.has(rowValue)) {
+                            isVisible = false;
+                            break;
+                        }
+                    }
+
+                    infoRow.hidden = !isVisible;
+                    const workflowRow = infoRow.nextElementSibling;
+                    if (workflowRow && workflowRow.classList.contains('complaint-workflow-row')) {
+                        workflowRow.hidden = !isVisible;
+                    }
+                });
+
+                // Update filter trigger icons and clear buttons
+                filterHeaders.forEach(th => {
+                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                    const trigger = th.querySelector('.column-filter-trigger i');
+                    const clearBtn = th.querySelector('.column-filter-clear');
+                    const dropdownClearBtn = th.querySelector('.clear-col-filter');
+                    
+                    const hasActiveFilter = activeFilters[colIdx] !== undefined;
+                    
+                    if (clearBtn) {
+                        clearBtn.style.display = hasActiveFilter ? 'inline-block' : 'none';
+                    }
+                    if (dropdownClearBtn) {
+                        dropdownClearBtn.style.display = hasActiveFilter ? 'inline' : 'none';
+                    }
+
+                    if (trigger) {
+                        if (hasActiveFilter) {
+                            trigger.className = 'fas fa-filter';
+                            trigger.parentElement.style.color = 'var(--primary-color)';
+                            trigger.parentElement.style.opacity = '1';
+                        } else {
+                            trigger.className = 'fas fa-chevron-down';
+                            trigger.parentElement.style.color = '';
+                            trigger.parentElement.style.opacity = '0.6';
+                        }
+                    }
+                });
+            }
+
+            filterHeaders.forEach(th => {
+                const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                th.querySelector('.column-filter-dropdown')?.remove();
+                
+                // Create dropdown element
+                const dropdown = document.createElement('div');
+                dropdown.className = 'column-filter-dropdown';
+                dropdown.style.cssText = 'display: none; position: absolute; left: 0; top: 100%; min-width: 220px; background: #1e1e20; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 1000; padding: 0.75rem; text-align: left; font-weight: normal;';
+                
+                if (document.body.classList.contains('light-mode')) {
+                    dropdown.style.background = '#ffffff';
+                    dropdown.style.borderColor = '#e2e8f0';
+                    dropdown.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+                }
+
+                // Add text input for search
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = 'Search values...';
+                searchInput.className = 'column-filter-input';
+                searchInput.style.cssText = 'width: 100%; padding: 0.4rem 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; margin-bottom: 0.6rem; outline: none; box-sizing: border-box;';
+                if (document.body.classList.contains('light-mode')) {
+                    searchInput.style.background = '#f1f5f9';
+                    searchInput.style.borderColor = '#cbd5e1';
+                    searchInput.style.color = '#0f172a';
+                }
+
+                // Add action bar
+                const actionBar = document.createElement('div');
+                actionBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem; font-size: 0.75rem; font-weight: 500;';
+                if (document.body.classList.contains('light-mode')) {
+                    actionBar.style.borderColor = 'rgba(0,0,0,0.1)';
+                }
+
+                const dropdownClearBtn = document.createElement('span');
+                dropdownClearBtn.className = 'clear-col-filter';
+                dropdownClearBtn.style.cssText = 'cursor: pointer; color: var(--primary-color); font-weight: 600; display: none;';
+                dropdownClearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+
+                const selectAllBtn = document.createElement('span');
+                selectAllBtn.className = 'select-all-col-filter';
+                selectAllBtn.style.cssText = 'cursor: pointer; color: var(--dark-text-secondary);';
+                if (document.body.classList.contains('light-mode')) {
+                    selectAllBtn.style.color = '#64748b';
+                }
+                selectAllBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+
+                actionBar.appendChild(dropdownClearBtn);
+                actionBar.appendChild(selectAllBtn);
+
+                // Add values container
+                const valuesContainer = document.createElement('div');
+                valuesContainer.className = 'column-filter-values';
+                valuesContainer.style.cssText = 'max-height: 160px; overflow-y: auto; font-size: 0.825rem; color: #e2e8f0; display: flex; flex-direction: column; gap: 0.4rem;';
+                if (document.body.classList.contains('light-mode')) {
+                    valuesContainer.style.color = '#334155';
+                }
+
+                dropdown.appendChild(searchInput);
+                dropdown.appendChild(actionBar);
+                dropdown.appendChild(valuesContainer);
+                th.appendChild(dropdown);
+
+                // Populate unique values
+                const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
+                const uniqueValues = new Set();
+                infoRows.forEach(row => {
+                    const val = getComplaintFilterValue(row, colIdx);
+                    if (val) uniqueValues.add(val);
+                });
+
+                // Render checkboxes
+                const sortedValues = Array.from(uniqueValues).sort();
+                
+                function renderList(filterTerm = '') {
+                    valuesContainer.innerHTML = '';
+                    const term = filterTerm.toLowerCase();
+                    
+                    if (sortedValues.length === 0) {
+                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No values found</div>';
+                        return;
+                    }
+
+                    let visibleMatches = 0;
+                    sortedValues.forEach(val => {
+                        if (term && !val.toLowerCase().includes(term)) return;
+
+                        visibleMatches += 1;
+
+                        const label = document.createElement('label');
+                        label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; margin: 0; font-weight: normal;';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = val;
+                        checkbox.style.cssText = 'cursor: pointer; width: 14px; height: 14px; margin: 0;';
+                        
+                        checkbox.addEventListener('change', runFilters);
+
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(val));
+                        valuesContainer.appendChild(label);
+                    });
+
+                    if (visibleMatches === 0) {
+                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No matching values</div>';
+                    }
+                }
+
+                renderList();
+
+                // Search input event
+                searchInput.addEventListener('input', function() {
+                    renderList(this.value);
+                });
+
+                // Dropdown clear action handler
+                dropdownClearBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    runFilters();
+                });
+
+                // Select all action handler
+                selectAllBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const checkboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]');
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    checkboxes.forEach(cb => {
+                        cb.checked = !allChecked;
+                    });
+                    runFilters();
+                });
+
+                // Header level clear trigger
+                const clearBtn = th.querySelector('.column-filter-clear');
+                if (clearBtn) {
+                    clearBtn.setAttribute('role', 'button');
+                    clearBtn.setAttribute('tabindex', '0');
+                    clearBtn.setAttribute('aria-label', 'Clear this column filter');
+                    clearBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
+                            cb.checked = false;
+                        });
+                        runFilters();
+                    });
+                    clearBtn.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            clearBtn.click();
+                        }
+                    });
+                }
+
+                // Toggle dropdown on trigger click
+                const trigger = th.querySelector('.column-filter-trigger');
+                if (trigger) {
+                    trigger.setAttribute('role', 'button');
+                    trigger.setAttribute('tabindex', '0');
+                    trigger.setAttribute('aria-haspopup', 'menu');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    trigger.setAttribute('aria-label', 'Filter this column');
+
+                    const toggleDropdown = function(e) {
+                        e.stopPropagation();
+                        // Close other dropdowns
+                        document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                            if (d !== dropdown) {
+                                d.style.display = 'none';
+                                d.parentElement?.querySelector('.column-filter-trigger')?.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                        const isOpening = dropdown.style.display === 'none';
+                        dropdown.style.display = isOpening ? 'block' : 'none';
+                        trigger.setAttribute('aria-expanded', isOpening ? 'true' : 'false');
+                        
+                        // Focus on search input when opening
+                        if (isOpening) {
+                            setTimeout(() => searchInput.focus(), 50);
+                        }
+                    };
+
+                    trigger.addEventListener('click', toggleDropdown);
+                    trigger.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleDropdown(e);
+                        }
+                    });
+                }
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.column-filter-dropdown') && !e.target.closest('.column-filter-trigger')) {
+                    document.querySelectorAll('.column-filter-dropdown').forEach(d => {
+                        d.style.display = 'none';
+                        d.parentElement?.querySelector('.column-filter-trigger')?.setAttribute('aria-expanded', 'false');
+                    });
+                }
+            }, { signal: complaintPageSignal });
+        });
+    </script>
+
+    <!-- Interactive Popover Window for Selecting Chat Recipient -->
+    <style>
+        .chat-popover-window {
+            position: absolute;
+            width: 320px;
+            background: rgba(24, 24, 27, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 14px;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            z-index: 10000;
+            overflow: hidden;
+            animation: popoverFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes popoverFadeIn {
+            from { opacity: 0; transform: scale(0.94) translateY(-6px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        body.light-mode .chat-popover-window {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+        }
+
+        .chat-popover-header {
+            padding: 0.85rem 1rem 0.65rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(18, 18, 20, 0.5);
+        }
+
+        body.light-mode .chat-popover-header {
+            border-bottom-color: #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .popover-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .popover-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        body.light-mode .popover-title { color: #0f172a; }
+
+        .popover-close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.2rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 0.2rem;
+        }
+
+        .popover-close-btn:hover { color: #ffffff; }
+
+        .popover-context-tag {
+            font-size: 0.75rem;
+            color: #fca5a5;
+            margin-bottom: 0.5rem;
+        }
+
+        body.light-mode .popover-context-tag { color: #991b1b; }
+
+        .popover-search-box {
+            position: relative;
+        }
+
+        .popover-search-input {
+            width: 100%;
+            padding: 0.48rem 0.75rem 0.48rem 2.1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        body.light-mode .popover-search-input {
+            background: #ffffff;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+
+        .popover-search-icon {
+            position: absolute;
+            left: 0.7rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .chat-popover-body {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 0.4rem;
+        }
+
+        .popover-user-card {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 0.7rem;
+            border-radius: 10px;
+            color: inherit;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            margin-bottom: 0.2rem;
+            cursor: pointer;
+        }
+
+        .popover-user-card:hover {
+            background: rgba(239, 68, 68, 0.14);
+        }
+
+        body.light-mode .popover-user-card:hover {
+            background: #fee2e2;
+        }
+
+        .popover-user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .popover-user-name {
+            font-size: 0.84rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .popover-send-arrow {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            opacity: 0;
+            transition: all 0.15s ease;
+        }
+
+        .popover-user-card:hover .popover-send-arrow {
+            opacity: 1;
+            color: var(--primary-color);
+            transform: translateX(2px);
+        }
+    </style>
+
+    <div id="chat-popover-window" class="chat-popover-window" style="display: none;">
+        <div class="chat-popover-header">
+            <div class="popover-title-row">
+                <h4 class="popover-title">
+                    <i class="fas fa-comments" style="color: var(--primary-color);"></i> Message Team Member
+                </h4>
+                <button type="button" class="popover-close-btn" onclick="closeChatPopover()">&times;</button>
+            </div>
+            <div class="popover-context-tag">
+                Complaint Context: <strong id="popover-complaint-id-text">PAT-26070001</strong>
+            </div>
+            <div class="popover-search-box">
+                <i class="fas fa-search popover-search-icon"></i>
+                <input type="text" id="popover-search-input" class="popover-search-input" placeholder="Search team member..." autocomplete="off">
+            </div>
+        </div>
+        <div class="chat-popover-body" id="popover-user-list">
+            {% for tm in team_members_data %}
+                <div onclick="navigateToUserChat(event, '{{ tm.id }}')"
+                     class="popover-user-card"
+                     data-user-id="{{ tm.id }}"
+                     data-username="{{ tm.username|lower }}"
+                     data-role="{{ tm.role_label|lower }}">
+                    <div class="user-avatar-container">
+                        <div class="user-avatar avatar-{{ tm.role_code|default:'default' }}" style="width: 2.2rem; height: 2.2rem; font-size: 0.85rem;">
+                            {{ tm.username|first|upper }}
+                        </div>
+                    </div>
+                    <div class="popover-user-details">
+                        <div class="popover-user-name">
+                            {{ tm.username }}
+                            {% if tm.country_flag_url %}
+                                <img src="{{ tm.country_flag_url }}" style="width: 15px; height: 11px; border-radius: 2px;" alt="Flag">
+                            {% endif %}
+                        </div>
+                        <span class="user-role-pill" style="font-size: 0.65rem; padding: 0.08rem 0.38rem;">{{ tm.role_label }}</span>
+                    </div>
+                    <i class="fas fa-paper-plane popover-send-arrow"></i>
+                </div>
+            {% empty %}
+                <div style="padding: 1.5rem 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                    No active team members available.
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        var activePopoverComplaintId = '';
+
+        function toggleChatUserPopover(e, complaintId) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            const popover = document.getElementById('chat-popover-window');
+            if (!popover) return;
+
+            if (popover.style.display === 'block' && activePopoverComplaintId === complaintId) {
+                closeChatPopover();
+                return;
+            }
+
+            activePopoverComplaintId = complaintId;
+            const contextText = document.getElementById('popover-complaint-id-text');
+            if (contextText) contextText.textContent = complaintId;
+
+            popover.style.display = 'block';
+
+            // Calculate popover positioning relative to button
+            const btn = e ? e.currentTarget : null;
+            if (btn) {
+                const rect = btn.getBoundingClientRect();
+                const popoverWidth = 320;
+                const popoverHeight = popover.offsetHeight || 300;
+
+                let top = rect.bottom + window.scrollY + 6;
+                let left = rect.left + window.scrollX - (popoverWidth - rect.width);
+
+                if (left < 10) left = 10;
+                if (left + popoverWidth > window.innerWidth - 10) {
+                    left = window.innerWidth - popoverWidth - 10;
+                }
+
+                if (rect.bottom + popoverHeight > window.innerHeight && rect.top > popoverHeight) {
+                    top = rect.top + window.scrollY - popoverHeight - 6;
+                }
+
+                popover.style.top = top + 'px';
+                popover.style.left = left + 'px';
+            }
+
+            const searchInput = document.getElementById('popover-search-input');
+            if (searchInput) {
+                searchInput.value = '';
+                filterPopoverUsers();
+                setTimeout(() => searchInput.focus(), 50);
+            }
+        }
+
+        function closeChatPopover() {
+            const popover = document.getElementById('chat-popover-window');
+            if (popover) popover.style.display = 'none';
+            activePopoverComplaintId = '';
+        }
+
+        function navigateToUserChat(e, userId) {
+            if (e) e.preventDefault();
+            if (!userId || !activePopoverComplaintId) return;
+            window.location.href = `/chat/?user=${userId}&complaint=${activePopoverComplaintId}`;
+        }
+
+        function filterPopoverUsers() {
+            const q = (document.getElementById('popover-search-input')?.value || '').toLowerCase().trim();
+            document.querySelectorAll('.popover-user-card').forEach(card => {
+                const username = card.getAttribute('data-username') || '';
+                const role = card.getAttribute('data-role') || '';
+                if (username.includes(q) || role.includes(q)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        window.fabroOnPageLoad(() => {
+            const complaintPageSignal = window.__fabroComplaintPageController?.signal;
+            const popoverSearch = document.getElementById('popover-search-input');
+            if (popoverSearch) {
+                popoverSearch.addEventListener('input', filterPopoverUsers);
+            }
+
+            document.addEventListener('click', (e) => {
+                const popover = document.getElementById('chat-popover-window');
+                if (popover && popover.style.display === 'block' && !popover.contains(e.target) && !e.target.closest('.action-btn.chat')) {
+                    closeChatPopover();
+                }
+            }, complaintPageSignal ? { signal: complaintPageSignal } : undefined);
+        });
+    </script>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}

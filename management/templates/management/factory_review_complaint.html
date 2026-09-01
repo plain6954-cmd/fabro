@@ -1,0 +1,405 @@
+{% load static %}
+{% if is_htmx_request %}<template data-fabro-page-head>{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Review - Fabro Leather</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <style data-fabro-page-asset>
+        .review-page {
+            max-width: 1480px;
+            margin: 0 auto;
+            padding: 1.4rem 2rem 2rem;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .review-title {
+            color: var(--dark-text);
+            font-size: 2rem;
+            line-height: 1.1;
+            margin: 0 0 0.25rem;
+        }
+
+        body.light-mode .review-title { color: var(--light-text); }
+
+        .review-subtitle {
+            color: var(--dark-text-secondary);
+            margin: 0;
+        }
+
+        body.light-mode .review-subtitle { color: var(--light-text-secondary); }
+
+        .workflow-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.55rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(220, 38, 38, 0.16);
+            border: 1px solid rgba(248, 113, 113, 0.28);
+            color: #fecaca;
+            font-weight: 700;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        body.light-mode .workflow-pill {
+            color: #991b1b;
+            background: rgba(220, 38, 38, 0.12);
+            border-color: rgba(220, 38, 38, 0.24);
+        }
+
+        .review-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(420px, 0.92fr);
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .glass-panel {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 42%),
+                rgba(25, 25, 29, 0.78);
+            backdrop-filter: blur(18px) saturate(132%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            box-shadow: 0 24px 72px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            padding: 1rem;
+        }
+
+        body.light-mode .glass-panel {
+            background: rgba(255, 255, 255, 0.44);
+            border-color: rgba(24, 24, 27, 0.14);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary-color);
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin: 0 0 0.9rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.65rem;
+        }
+
+        .summary-item {
+            min-height: 4.2rem;
+            padding: 0.75rem;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.light-mode .summary-item {
+            background: rgba(255, 255, 255, 0.42);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .summary-label {
+            color: var(--dark-text);
+            font-size: 0.76rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+        }
+
+        body.light-mode .summary-label { color: var(--light-text); }
+
+        .summary-value {
+            color: var(--dark-text-secondary);
+            font-size: 0.82rem;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        body.light-mode .summary-value { color: var(--light-text-secondary); }
+
+        .wide {
+            grid-column: 1 / -1;
+        }
+
+        .media-strip {
+            display: flex;
+            gap: 0.55rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .media-thumb {
+            flex: 0 0 5.4rem;
+            width: 5.4rem;
+            height: 4.2rem;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.18);
+        }
+
+        .review-form {
+            display: grid;
+            gap: 0.8rem;
+        }
+
+        .form-group {
+            display: grid;
+            gap: 0.4rem;
+        }
+
+        .form-group label {
+            color: var(--dark-text);
+            font-weight: 800;
+            font-size: 0.83rem;
+        }
+
+        body.light-mode .form-group label { color: var(--light-text); }
+
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            border-radius: 9px;
+            background: rgba(12, 12, 14, 0.76);
+            color: var(--dark-text);
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .form-textarea {
+            min-height: 8.6rem;
+            resize: vertical;
+        }
+
+        body.light-mode .form-textarea,
+        body.light-mode .form-select {
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--light-text);
+            border-color: rgba(24, 24, 27, 0.16);
+        }
+
+        .form-textarea:focus,
+        .form-select:focus {
+            border-color: rgba(239, 68, 68, 0.72);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.16);
+        }
+
+        .errorlist {
+            margin: 0;
+            padding-left: 1rem;
+            color: #fca5a5;
+            font-size: 0.78rem;
+        }
+
+        .review-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.09);
+        }
+
+        body.light-mode .review-actions { border-top-color: rgba(0, 0, 0, 0.1); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            border: 0;
+            border-radius: 8px;
+            padding: 0.78rem 1.1rem;
+            color: #fff;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            color: var(--dark-text-secondary);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+        }
+
+        body.light-mode .btn-secondary {
+            color: var(--light-text-secondary);
+            background: rgba(255, 255, 255, 0.58);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #ef4444);
+            box-shadow: 0 14px 32px rgba(220, 38, 38, 0.28);
+        }
+
+        @media (max-width: 980px) {
+            .review-page { padding: 1rem; }
+            .review-header { align-items: flex-start; flex-direction: column; }
+            .review-shell { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+{% if is_htmx_request %}</template>{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <main class="review-page">
+        <header class="review-header">
+            <div>
+                <h1 class="review-title">Factory Review</h1>
+                <p class="review-subtitle">{{ complaint.complaint_id }} - {{ complaint.get_complaint_type_display }}</p>
+            </div>
+            <span class="workflow-pill">
+                <i class="fas fa-route"></i>
+                {{ complaint.get_workflow_status_display }}
+            </span>
+        </header>
+
+        <section class="review-shell">
+            <article class="glass-panel">
+                <h2 class="panel-title"><i class="fas fa-clipboard-list"></i> Complaint Snapshot</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-label">Country</div>
+                        <div class="summary-value">{{ complaint.country|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Reported By</div>
+                        <div class="summary-value">{{ complaint.person|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Vehicle</div>
+                        <div class="summary-value">
+                            {{ complaint.brand|default:"-" }} {{ complaint.model|default:"" }}
+                            {% if complaint.year %}
+                                {{ complaint.year.year_start|stringformat:"s"|slice:"-2:" }}-{{ complaint.year.year_end|stringformat:"s"|slice:"-2:" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">SKU / Material</div>
+                        <div class="summary-value">{{ complaint.sku|default:"-" }} / {{ complaint.material|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item wide">
+                        <div class="summary-label">Complaint Description</div>
+                        <div class="summary-value">{{ complaint.complaint_description|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Batch / Order</div>
+                        <div class="summary-value">{{ complaint.batch_order|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Submitted By</div>
+                        <div class="summary-value">{{ complaint.created_by|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item wide">
+                        <div class="summary-label">Media Files</div>
+                        {% if media_files %}
+                            <div class="media-strip">
+                                {% for media in media_files %}
+                                    {% if not media.is_available %}
+                                        <span class="summary-value">Media unavailable</span>
+                                    {% elif ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower %}
+                                        <a href="{{ media.url }}" target="_blank" rel="noopener">
+                                            <img src="{{ media.url }}" class="media-thumb" alt="Complaint media">
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ media.url }}" target="_blank" rel="noopener" class="summary-value">
+                                            <i class="fas fa-play-circle"></i> Media {{ forloop.counter }}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="summary-value">No media uploaded</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+
+            <article class="glass-panel">
+                {% if complaint.workflow_status == 'rework_required' and approval_summary.total %}
+                    <div class="rework-feedback">
+                        <h2 class="panel-title"><i class="fas fa-rotate-left"></i> Approval Feedback</h2>
+                        <p class="summary-value">Every required review is complete. Update the factory findings using all comments below, then submit a new approval round.</p>
+                        <div class="approval-rail" style="margin: 0.9rem 0 1rem;">
+                            {% for approval in approval_summary.approvals %}
+                                <div class="approval-step {{ approval.status }}">
+                                    <span class="approval-role">{{ approval.approver_role }}</span>
+                                    <div class="approval-person">
+                                        <strong>
+                                            {% if approval.approver_user %}
+                                                {{ approval.approver_user.get_full_name|default:approval.approver_user.username }}
+                                            {% else %}
+                                                Not configured
+                                            {% endif %}
+                                        </strong>
+                                        <span>{% if approval.comment %}{{ approval.comment }}{% else %}No comment submitted.{% endif %}</span>
+                                    </div>
+                                    <span class="status-pill {{ approval.status }}">{{ approval.get_status_display }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                <h2 class="panel-title"><i class="fas fa-industry"></i> Factory Findings</h2>
+                <form method="post" class="review-form">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        {{ form.factory_reason.label_tag }}
+                        {{ form.factory_reason }}
+                        {{ form.factory_reason.errors }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.factory_action_plan.label_tag }}
+                        {{ form.factory_action_plan }}
+                        {{ form.factory_action_plan.errors }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.factory_priority.label_tag }}
+                        {{ form.factory_priority }}
+                        {{ form.factory_priority.errors }}
+                    </div>
+                    <div class="review-actions">
+                        <a href="{% url 'complaint_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                            Submit for Approval
+                        </button>
+                    </div>
+                </form>
+            </article>
+        </section>
+    </main>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}

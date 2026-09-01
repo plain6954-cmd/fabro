@@ -1,0 +1,42 @@
+node_modules/
+.pnpm-store/
+.env
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local runtime output
+server.out.log
+server.err.log
+server.pid
+server-*.out.log
+server-*.err.log
+server-*.pid
+staticfiles/
+test-results/
+playwright-report/
+media/complaint_media/
+media/profile_photos/
+.e2e.sqlite3
+.e2e-media/
+"db.sqlite3" 
+
+db.sqlite3
+.env
+env/
+__pycache__/
+
+# Flutter generated output
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Logs
+debug.log
+
+# Local test documentation
+SCREENSHOTS.txt
+FABRO_SCREENSHOTS_REPORT.pdf

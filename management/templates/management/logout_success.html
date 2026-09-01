@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <title>Logged Out</title>
+    {% load static %}
+    <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+    <script>window.FABRO_LANGUAGE = '{{ LANGUAGE_CODE|default:"en"|escapejs }}';</script>
+    <script src="{% static 'js/fabro-i18n.js' %}?v=20260831-search-clear" defer></script>
+    <style>
+        body {
+            background-color: #121214;
+            background-image:
+                radial-gradient(circle, rgba(220, 38, 38, 0.2) 0 1px, transparent 1.7px),
+                linear-gradient(115deg, transparent 0%, rgba(220, 38, 38, 0.055) 42%, rgba(255, 255, 255, 0.035) 50%, transparent 58%),
+                linear-gradient(rgba(18, 18, 20, 0.82), rgba(18, 18, 20, 0.9)),
+                url("{% static 'seat-background.webp' %}");
+            background-position: 0 0, center, center, center;
+            background-size: 28px 28px, 100% 100%, 100% 100%, cover;
+            background-attachment: fixed, fixed, fixed, fixed;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        @media (max-width: 768px), (pointer: coarse) {
+            body {
+                background-position: 0 0, center, center, 18% center;
+                background-attachment: scroll, scroll, scroll, scroll;
+            }
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+            background-color: rgba(30, 30, 32, 0.86);
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>You have been logged out</h1>
+        <p>Click the button below to log back in.</p>
+        <a href="{% url 'login' %}" class="btn">Log Back In</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,431 @@
+{% load static %}
+{% if is_htmx_request %}<template data-fabro-page-head>{% else %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit SKU - Fabro Leather</title>
+    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <style data-fabro-page-asset>
+        .page-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+        }
+
+        body.light-mode .page-title {
+            color: var(--light-text);
+        }
+
+        .page-subtitle {
+            color: var(--dark-text-secondary);
+            font-size: 1rem;
+        }
+
+        body.light-mode .page-subtitle {
+            color: var(--light-text-secondary);
+        }
+
+        .form-container {
+            background: var(--dark-surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .form-container {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-section {
+            background: var(--dark-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        body.light-mode .form-section {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .form-label {
+            color: var(--light-text);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .form-input,
+        body.light-mode .form-select,
+        body.light-mode .form-textarea {
+            background-color: var(--light-surface);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        .date-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        body.light-mode .date-input {
+            background-color: var(--light-surface);
+            color: var(--light-text);
+            border-color: #e2e8f0;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .date-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-text-secondary);
+            pointer-events: none;
+        }
+
+        body.light-mode .date-icon {
+            color: var(--light-text-secondary);
+        }
+
+        .media-section {
+            background: var(--dark-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        body.light-mode .media-section {
+            background: var(--light-card);
+            border-color: #f1f5f9;
+        }
+
+        .media-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .media-item {
+            background: var(--dark-surface);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        body.light-mode .media-item {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .media-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .media-preview {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .media-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-input {
+            width: 1rem;
+            height: 1rem;
+            accent-color: var(--error-color);
+        }
+
+        .checkbox-label {
+            font-size: 0.75rem;
+            color: var(--error-color);
+            font-weight: 500;
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.light-mode .file-upload-area {
+            border-color: #cbd5e1;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-text {
+            color: var(--dark-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        body.light-mode .file-upload-text {
+            color: var(--light-text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-group {
+            border-top-color: #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--dark-card);
+            color: var(--dark-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .btn-secondary {
+            background: var(--light-card);
+            color: var(--light-text-secondary);
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: var(--dark-surface);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: var(--light-surface);
+            color: var(--light-text);
+        }
+
+        .empty-media {
+            text-align: center;
+            padding: 2rem;
+            color: var(--dark-text-secondary);
+            font-style: italic;
+        }
+
+        body.light-mode .empty-media {
+            color: var(--light-text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+
+            .form-container {
+                padding: 1.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .media-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+{% if is_htmx_request %}</template>{% else %}
+</head>
+<body>
+    {% include 'management/base.html'%}
+{% endif %}
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-edit" style="color: var(--primary-color);"></i>
+                Edit SKU: {{ sku.code }}
+            </h1>
+            <p class="page-subtitle">Update SKU information and manage media files</p>
+        </div>
+
+        <form method="post" class="form-container" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-grid">
+                {{ form.as_p }}
+            </div>
+                <div class="btn-group">
+                <a href="{% url 'add_sku' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Update SKU
+                </button>
+            </div>
+        </form>
+    </div>
+    </div>
+{% if not is_htmx_request %}
+</body>
+{% endif %}
