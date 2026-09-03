@@ -81,6 +81,7 @@ urlpatterns = [
     path('edit-sku/<int:sku_id>/', views.edit_sku, name='edit_sku'),
     path('admin_panel/', views.admin_panel_view, name='admin_panel'),
     path('admin-panel/edit-user/', views.edit_user, name='edit_user'),
+    path('admin-panel/users/<int:user_id>/photo/', views.delete_user_photo, name='delete_user_photo'),
     path('admin-panel/delete-user/', views.delete_user, name='delete_user'),
     path('admin-panel/terminate-session/<str:session_key>/', views.terminate_session_view, name='terminate_session'),
     path('admin-panel/terminate-all-sessions/', views.terminate_all_sessions_view, name='terminate_all_sessions'),

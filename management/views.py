@@ -13,6 +13,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.sessions.models import Session
+from rest_framework.authtoken.models import Token
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
@@ -333,16 +334,57 @@ def index(request):
         is_read=False,
     ).select_related('complaint'))
     current_profile = get_user_profile(request.user)
-    pending_approval_count = 0
-    if current_profile and current_profile.role == WorkflowRoles.APPROVER:
-        pending_approval_count = ComplaintApproval.objects.filter(
+    is_approver = bool(current_profile and current_profile.role == WorkflowRoles.APPROVER)
+    is_admin = bool(request.user.is_superuser or (current_profile and current_profile.role == WorkflowRoles.ADMIN))
+    is_approver_or_admin = is_approver or is_admin
+
+    active_approval_workflow_statuses = [
+        WorkflowStatuses.AWAITING_APPROVAL,
+        WorkflowStatuses.PARTIALLY_APPROVED,
+        WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+        WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
+    ]
+
+    pending_approvals_list = []
+    pending_approvals_total = 0
+
+    if is_approver:
+        approvals_qs = ComplaintApproval.objects.filter(
             approver_user=request.user,
             status=DecisionStatuses.PENDING,
-            complaint__workflow_status__in=[
-                WorkflowStatuses.AWAITING_APPROVAL,
-                WorkflowStatuses.PARTIALLY_APPROVED,
-            ],
-        ).count()
+            complaint__workflow_status__in=active_approval_workflow_statuses,
+        ).select_related(
+            'complaint__brand',
+            'complaint__model',
+            'complaint__sub_model',
+            'complaint__year',
+            'complaint__person',
+            'complaint__sku',
+            'approver_user',
+        ).order_by('-pk')
+        pending_approvals_total = approvals_qs.count()
+        pending_approval_count = pending_approvals_total
+        pending_approvals_list = list(approvals_qs[:10])
+    elif is_admin:
+        approvals_qs = ComplaintApproval.objects.filter(
+            status=DecisionStatuses.PENDING,
+            complaint__workflow_status__in=active_approval_workflow_statuses,
+        ).select_related(
+            'complaint__brand',
+            'complaint__model',
+            'complaint__sub_model',
+            'complaint__year',
+            'complaint__person',
+            'complaint__sku',
+            'approver_user',
+        ).order_by('-pk')
+        pending_approvals_total = approvals_qs.count()
+        pending_approval_count = pending_approvals_total
+        pending_approvals_list = list(approvals_qs[:10])
+    else:
+        pending_approval_count = 0
+
+    complaints_limit = 10 if is_approver_or_admin else 15
 
     context = {
         'total_complaints': sum(complaint_status_counts.values()),
@@ -361,6 +403,9 @@ def index(request):
         'dashboard_notifications': unread_notifications[:4],
         'unread_notification_count': len(unread_notifications),
         'pending_approval_count': pending_approval_count,
+        'is_approver_or_admin': is_approver_or_admin,
+        'pending_approvals_list': pending_approvals_list,
+        'pending_approvals_total': pending_approvals_total,
         'recent_complaints': visible_complaints.select_related(
             'brand', 'model', 'sub_model', 'year', 'person', 'sku'
         ).annotate(
@@ -370,7 +415,7 @@ def index(request):
                 default=Value(0),
                 output_field=IntegerField(),
             )
-        ).order_by('sort_weight', '-date')[:15],
+        ).order_by('sort_weight', '-date')[:complaints_limit],
     }
     return render(request, 'management/index.html', context)
 
@@ -406,8 +451,8 @@ def car_details(request):
                 brand.logo = brand_logo
                 brand.save()
             
-            model, _ = Model.objects.get_or_create(brand=brand, name=model_name)
-            sub_model, _ = SubModel.objects.get_or_create(model=model, name=sub_model_name)
+            model, model_created = Model.objects.get_or_create(brand=brand, name=model_name)
+            sub_model, sub_model_created = SubModel.objects.get_or_create(model=model, name=sub_model_name)
 
             # ✅ Check for layout code duplication
             if YearRange.objects.filter(layout_code=layout_code).exists():
@@ -583,18 +628,18 @@ def edit_car_detail(request, car_id):
                     'countries': countries,
                 })
 
-            brand, _ = Brand.objects.get_or_create(name=brand_name)
+            brand, brand_created = Brand.objects.get_or_create(name=brand_name)
             
             # Update brand logo if provided
             if brand_logo:
                 brand.logo = brand_logo
                 brand.save()
             
-            model, _ = Model.objects.get_or_create(brand=brand, name=model_name)
+            model, model_created = Model.objects.get_or_create(brand=brand, name=model_name)
 
             sub_model = None
             if sub_model_name:
-                sub_model, _ = SubModel.objects.get_or_create(model=model, name=sub_model_name)
+                sub_model, sub_model_created = SubModel.objects.get_or_create(model=model, name=sub_model_name)
 
             # Update the existing YearRange
             year_range.sub_model = sub_model
@@ -648,7 +693,7 @@ def master_settings(request):
 
     # Fetch existing master settings, grouped by category
     master_settings = {}
-    for category, _ in MasterSetting.CATEGORY_CHOICES:
+    for category, category_label in MasterSetting.CATEGORY_CHOICES:
         if category in {'Country', 'Reported By'}:
             continue
         master_settings[category] = MasterSetting.objects.filter(category=category)
@@ -981,7 +1026,7 @@ def complaint_list(request):
     selected_priority = request.GET.get('priority', '')
     selected_priority = selected_priority if selected_priority in {'High', 'Medium', 'Low'} else ''
     selected_complaint_type = request.GET.get('complaint_type', '')
-    complaint_type_values = {value for value, _ in ComplaintTypes.CHOICES}
+    complaint_type_values = {value for value, label in ComplaintTypes.CHOICES}
     selected_complaint_type = selected_complaint_type if selected_complaint_type in complaint_type_values else ''
 
     from_date = request.GET.get('from_date', '')
@@ -1178,7 +1223,7 @@ def complaint_list(request):
         pagination_query.appendlist(key, value)
     pagination_querystring = pagination_query.urlencode()
     clear_all_query = pagination_query.copy()
-    for param, _, _ in column_definitions:
+    for param, field_name, relation_path in column_definitions:
         clear_all_query.pop(param, None)
     clear_all_column_filters_querystring = clear_all_query.urlencode()
 
@@ -1753,7 +1798,7 @@ def quick_approval_decision_api(request, approval_id):
         return JsonResponse({'success': False, 'error': 'A comment is required when rejecting or requesting rework.'}, status=400)
 
     try:
-        _, outcome = record_approval_decision(
+        approval_record, outcome = record_approval_decision(
             approval.pk,
             request.user,
             decision,
@@ -1812,7 +1857,7 @@ def approval_review(request, approval_id):
         form = ApprovalDecisionForm(request.POST, approval_stage=approval.review_stage)
         if form.is_valid():
             try:
-                _, outcome = record_approval_decision(
+                approval_record, outcome = record_approval_decision(
                     approval.pk,
                     request.user,
                     form.cleaned_data['decision'],
@@ -2132,9 +2177,9 @@ def upload_car_csv(request):
                             continue
                         seen_layout_codes.add(layout_code)
 
-                        brand, _ = Brand.objects.get_or_create(name=brand_name)
-                        model, _ = Model.objects.get_or_create(brand=brand, name=model_name)
-                        sub_model, _ = SubModel.objects.get_or_create(model=model, name=sub_model_name)
+                        brand, brand_created = Brand.objects.get_or_create(name=brand_name)
+                        model, model_created = Model.objects.get_or_create(brand=brand, name=model_name)
+                        sub_model, sub_model_created = SubModel.objects.get_or_create(model=model, name=sub_model_name)
                         has_overlap = YearRange.objects.filter(
                             sub_model=sub_model,
                             year_start__lte=year_end,
@@ -2423,7 +2468,7 @@ def admin_panel_view(request):
             WorkflowRoles.FACTORY_EXECUTIVE,
             WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
             WorkflowRoles.ADMIN,
-            *[role for role, _ in ApprovalRoles.CHOICES],
+            *[role for role, label in ApprovalRoles.CHOICES],
         )
     }
     for listed_user in users:
@@ -2456,7 +2501,9 @@ def admin_panel_view(request):
         'complaints_in_progress_count': Complaint.objects.exclude(resolved_filter).count(),
         'role_counts': role_counts,
         'skus': SKU.objects.select_related('region').order_by('code'),
-        'brands': Brand.objects.prefetch_related('models').order_by('name'),
+        'brands': Brand.objects.prefetch_related(
+            'models__submodels__year_ranges'
+        ).order_by('name'),
         'master_settings': MasterSetting.objects.order_by('category', 'name'),
         'workflow_role_choices': WorkflowRoles.CHOICES,
         'approval_role_choices': ApprovalRoles.CHOICES,
@@ -2525,6 +2572,7 @@ def edit_user(request):
 
         if 'reset_password' in request.POST:
             new_password = request.POST.get('new_password') or ''
+            confirm_password = request.POST.get('confirm_password') or ''
             is_ajax_password_reset = (
                 request.headers.get('x-requested-with') == 'XMLHttpRequest'
             )
@@ -2555,6 +2603,12 @@ def edit_user(request):
                         [_('Enter a new password.')],
                         status=400,
                     )
+                if new_password != confirm_password:
+                    return password_reset_response(
+                        False,
+                        [_('The two password fields did not match.')],
+                        status=400,
+                    )
                 try:
                     validate_password(new_password, user=user)
                 except ValidationError as exc:
@@ -2566,14 +2620,13 @@ def edit_user(request):
 
                 user.set_password(new_password)
                 user.save(update_fields=['password'])
+                _invalidate_user_authentication(user.id)
                 ActivityLog.objects.create(
                     user=request.user,
                     action='reset password',
                     object_type='User',
                     object_name=user.username,
                 )
-                if user.pk == request.user.pk:
-                    update_session_auth_hash(request, user)
                 return password_reset_response(
                     True,
                     [_('Password reset successfully for %(username)s.') % {'username': user.username}],
@@ -2613,7 +2666,7 @@ def edit_user(request):
             if user.is_superuser and not request.user.is_superuser:
                 add_edit_feedback(messages.ERROR, _('Only a Django superuser can edit another superuser account.'))
                 return redirect(edit_redirect)
-            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile, profile_created = UserProfile.objects.get_or_create(user=user)
             profile_form = UserWorkflowProfileForm(request.POST, request.FILES, instance=profile)
             if not profile_form.is_valid():
                 for errors in profile_form.errors.values():
@@ -2641,13 +2694,9 @@ def edit_user(request):
             user.last_name = last_name
             user.is_staff = new_is_staff
             user.is_superuser = new_is_superuser
-            old_photo_name = profile.photo.name if profile.photo else ''
-            remove_photo = request.POST.get('remove_photo') == '1'
             with transaction.atomic():
                 user.save()
                 updated_profile = profile_form.save(commit=False)
-                if remove_photo:
-                    updated_profile.photo = None
                 updated_profile.save()
                 ActivityLog.objects.create(
                     user=request.user,
@@ -2656,8 +2705,6 @@ def edit_user(request):
                     object_name=username
                 )
 
-            if remove_photo and old_photo_name:
-                transaction.on_commit(lambda: default_storage.delete(old_photo_name))
             add_edit_feedback(
                 messages.SUCCESS,
                 _('User %(username)s and workflow access were updated.') % {'username': username},
@@ -2666,6 +2713,45 @@ def edit_user(request):
             add_edit_feedback(messages.ERROR, _('User not found.'))
 
     return redirect(edit_redirect)
+
+
+def _invalidate_user_authentication(user_id):
+    """Remove only the reset account's server sessions and DRF token."""
+    session_keys = []
+    for session in Session.objects.filter(expire_date__gte=now()).iterator():
+        try:
+            if str(session.get_decoded().get('_auth_user_id')) == str(user_id):
+                session_keys.append(session.session_key)
+        except Exception:
+            logger.warning('Unable to inspect a session while resetting user %s.', user_id)
+    if session_keys:
+        Session.objects.filter(session_key__in=session_keys).delete()
+    Token.objects.filter(user_id=user_id).delete()
+
+
+@user_passes_test(is_workflow_admin)
+@require_POST
+def delete_user_photo(request, user_id):
+    """Remove a selected user's photo without submitting the profile editor."""
+    user = get_object_or_404(User.objects.select_related('workflow_profile'), pk=user_id)
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'messages': [_('Only a Django superuser can edit another superuser account.')]}, status=403)
+    try:
+        profile = user.workflow_profile
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'success': False, 'messages': [_('User profile not found.')]}, status=404)
+
+    old_name = profile.photo.name if profile.photo else ''
+    if not old_name:
+        return JsonResponse({'success': True, 'messages': [_('This user has no profile photo to remove.')]})
+    profile.photo = None
+    profile.save(update_fields=['photo'])
+    try:
+        default_storage.delete(old_name)
+    except Exception:
+        logger.warning('Profile photo record removed but storage cleanup failed for user %s.', user.pk, exc_info=True)
+    ActivityLog.objects.create(user=request.user, action='removed photo', object_type='User', object_name=user.username)
+    return JsonResponse({'success': True, 'messages': [_('Profile photo removed successfully.')]})
 
 
 @user_passes_test(is_workflow_admin)
@@ -2768,7 +2854,7 @@ def profile_settings(request):
                 user.email = email
                 user.save(update_fields=['first_name', 'last_name', 'email'])
 
-                profile, _ = UserProfile.objects.get_or_create(user=user)
+                profile, profile_created = UserProfile.objects.get_or_create(user=user)
                 profile.phone_number = phone_number
                 profile_fields = ['phone_number']
                 if request.POST.get('remove_photo') == '1':
@@ -2819,7 +2905,7 @@ def profile_settings(request):
 @require_POST
 def terminate_session_view(request, session_key):
     try:
-        deleted_count, _ = Session.objects.filter(session_key=session_key).delete()
+        deleted_count, deleted_details = Session.objects.filter(session_key=session_key).delete()
         if deleted_count > 0:
             messages.success(request, _("Session terminated successfully."))
         else:
@@ -2834,7 +2920,7 @@ def terminate_session_view(request, session_key):
 def terminate_all_sessions_view(request):
     try:
         current_key = request.session.session_key
-        deleted_count, _ = Session.objects.exclude(session_key=current_key).delete()
+        deleted_count, deleted_details = Session.objects.exclude(session_key=current_key).delete()
         messages.success(request, ngettext(
             'Terminated %(count)s active session. Only your current session remains active.',
             'Terminated %(count)s active sessions. Only your current session remains active.',

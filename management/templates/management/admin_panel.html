@@ -1,16 +1,16 @@
 {% load static i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "ERP Admin Suite - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+    <link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
     <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
     <script src="{% url 'javascript-catalog' %}"></script>
-    <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-django-i18n"></script>
+    <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
     <style>
     :root {
         --erp-bg: #0b0c10;
@@ -1045,7 +1045,7 @@
                     <i class="fas fa-sliders-h"></i> {% translate "Master Settings" %}
                 </div>
                 <div class="erp-nav-tab" onclick="switchErpTab('sessions')">
-                    <i class="fas fa-network-wired"></i> Active Sessions ({{ active_sessions_count }})
+                    <i class="fas fa-network-wired"></i> {% blocktranslate with count=active_sessions_count %}Active Sessions ({{ count }}){% endblocktranslate %}
                 </div>
                 <div class="erp-nav-tab" onclick="switchErpTab('logs')">
                     <i class="fas fa-history"></i> {% translate "Activity Logs" %}
@@ -1181,7 +1181,7 @@
                         <div class="erp-dash-card">
                             <div class="erp-dash-card-header">
                                 <span class="erp-dash-card-title">
-                                    <i class="fas fa-wifi" style="color: #2ea043;"></i> Live Active Sessions ({{ active_sessions_count }})
+                                    <i class="fas fa-wifi" style="color: #2ea043;"></i> {% blocktranslate with count=active_sessions_count %}Live Active Sessions ({{ count }}){% endblocktranslate %}
                                 </span>
                                 {% if active_sessions|length > 1 %}
                                 <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
@@ -1303,6 +1303,10 @@
                                 <div class="erp-filter-item" data-filter-type="role" data-filter-val="factory_executive" onclick="applyFacetedFilter('role', 'factory_executive', this)">
                                     <span>{% translate "Factory Executive" %}</span>
                                     <span class="erp-filter-count">{{ role_counts.factory_executive }}</span>
+                                </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="factory_viewer" onclick="applyFacetedFilter('role', 'factory_viewer', this)">
+                                    <span>{% translate "Factory Viewer" %}</span>
+                                    <span class="erp-filter-count">{{ role_counts.factory_viewer }}</span>
                                 </div>
                                 <div class="erp-filter-item" data-filter-type="role" data-filter-val="factory_complaint_registrar" onclick="applyFacetedFilter('role', 'factory_complaint_registrar', this)">
                                     <span>{% translate "Factory Complaint Registrar" %}</span>
@@ -1438,6 +1442,7 @@
                             <p style="color: var(--erp-text-dim); text-align: center; grid-column: 1/-1; padding: 40px;">{% translate "No users found." %}</p>
                             {% endfor %}
                         </div>
+                        <p id="userFilterEmptyState" hidden style="color: var(--erp-text-dim); text-align: center; padding: 40px;">{% translate "No users match the current filters." %}</p>
 
                         <!-- 2. Table List View -->
                         <div id="users-list-view" class="erp-table-pane" style="display: none;">
@@ -1544,21 +1549,38 @@
                     <a href="{% url 'car_details' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-car-side"></i> {% translate "Manage Catalog" %}</a>
                 </div>
                 <div style="flex:1; overflow-y:auto; padding:1rem;">
-                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;" aria-live="polite">
                         {% for brand in brands %}
-                        <div class="erp-dash-card">
-                            <div style="display:flex; align-items:center; gap:0.75rem;">
-                                {% if brand.brand_logo %}
-                                    <img src="{{ brand.brand_logo.url }}" style="height:32px; width:auto; object-fit:contain;" alt="{{ brand.name }}">
+                        <details class="erp-dash-card" data-vehicle-brand="{{ brand.id }}">
+                            <summary style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; list-style:none;">
+                                {% if brand.logo %}
+                                    <img src="{{ brand.logo.url }}" style="height:32px; width:auto; object-fit:contain;" alt="{{ brand.name }}">
                                 {% else %}
                                     <div class="erp-avatar-xs"><i class="fas fa-car"></i></div>
                                 {% endif %}
                                 <strong>{{ brand.name }}</strong>
-                            </div>
+                                <span style="margin-left:auto; font-size:.75rem; color:var(--erp-text-muted);">{{ brand.models.all|length }} {% translate "models" %}</span>
+                            </summary>
                             <div style="font-size:0.75rem; color:var(--erp-text-muted);">
-                                {{ brand.models.count }} models registered
+                                {% for model in brand.models.all %}
+                                <details style="margin: .75rem 0 0 1rem;">
+                                    <summary style="cursor:pointer;"><strong>{{ model.name }}</strong> · {{ model.submodels.all|length }} {% translate "submodels" %}</summary>
+                                    <div style="padding:.5rem 0 .2rem 1rem;">
+                                        {% for submodel in model.submodels.all %}
+                                        <details style="margin:.35rem 0;">
+                                            <summary style="cursor:pointer;">{{ submodel.name }}</summary>
+                                            <ul style="margin:.35rem 0; padding-left:1.25rem;">
+                                                {% for year_range in submodel.year_ranges.all %}
+                                                <li>{{ year_range.year_start }}–{{ year_range.year_end }} · {{ year_range.layout_code }}{% if year_range.number_of_seats %} · {{ year_range.number_of_seats }} {% translate "seats" %}{% endif %}{% if year_range.number_of_doors %} · {{ year_range.number_of_doors }} {% translate "doors" %}{% endif %}</li>
+                                                {% empty %}<li>{% translate "No year ranges found." %}</li>{% endfor %}
+                                            </ul>
+                                        </details>
+                                        {% empty %}<p>{% translate "No submodels found." %}</p>{% endfor %}
+                                    </div>
+                                </details>
+                                {% empty %}<p>{% translate "No models found." %}</p>{% endfor %}
                             </div>
-                        </div>
+                        </details>
                         {% empty %}
                         <p style="color:var(--erp-text-dim); text-align:center; padding:20px;">{% translate "No brands found." %}</p>
                         {% endfor %}
@@ -1609,7 +1631,7 @@
                  ======================================================== -->
             <div id="tab-sessions" class="erp-tab-pane">
                 <div class="erp-action-subheader">
-                    <span class="erp-module-title"><i class="fas fa-network-wired" style="color: #f778ba;"></i> Live Active User Sessions ({{ active_sessions_count }})</span>
+                    <span class="erp-module-title"><i class="fas fa-network-wired" style="color: #f778ba;"></i> {% blocktranslate with count=active_sessions_count %}Live Active User Sessions ({{ count }}){% endblocktranslate %}</span>
                     {% if active_sessions|length > 1 %}
                     <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
                         {% csrf_token %}
@@ -1697,7 +1719,7 @@
         <div class="erp-modal-box">
             <div class="erp-modal-header">
                 <span class="erp-modal-title"><i class="fas fa-user-plus" style="color: #e63946;"></i> {% translate "Create New User" %}</span>
-                <button type="button" class="erp-modal-close" onclick="closeCreateUserModal()">{% translate "&times;" %}</button>
+                <button type="button" class="erp-modal-close" onclick="closeCreateUserModal()">×</button>
             </div>
             <form method="post" enctype="multipart/form-data" action="{% url 'admin_panel' %}">
                 {% csrf_token %}
@@ -1794,7 +1816,7 @@
         <div class="erp-modal-box">
             <div class="erp-modal-header">
                 <span class="erp-modal-title"><i class="fas fa-user-edit" style="color: #e63946;"></i> {% translate "Edit User Profile & Workflow Role" %}</span>
-                <button type="button" class="erp-modal-close" onclick="closeEditUserModal()">{% translate "&times;" %}</button>
+                <button type="button" class="erp-modal-close" onclick="closeEditUserModal()">×</button>
             </div>
             <form method="post" enctype="multipart/form-data" action="{% url 'edit_user' %}">
                 {% csrf_token %}
@@ -1829,6 +1851,7 @@
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
+                            <input type="password" name="confirm_password" id="editUserPasswordConfirm" class="erp-form-input" placeholder="{% translate "Confirm new password" %}" autocomplete="new-password" style="margin-top:0.4rem;">
                             <button type="button" id="resetUserPasswordButton" onclick="resetUserPassword()" class="btn-secondary" style="margin-top: 0.4rem; align-self: flex-start;">
                                 <i class="fas fa-key"></i> {% translate "Reset Password" %}
                             </button>
@@ -1864,9 +1887,7 @@
                         <div class="erp-form-group full-width">
                             <label class="erp-form-label">{% translate "Update Profile Photo" %}</label>
                             <input type="file" name="photo" class="erp-form-input" accept="image/*">
-                            <label style="font-size: 0.72rem; color: #ff6b77; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                                <input type="checkbox" name="remove_photo" value="1"> {% translate "Remove current photo" %}
-                            </label>
+                            <button type="button" id="removeUserPhotoButton" data-url-template="{% url 'delete_user_photo' 0 %}" class="btn-danger" style="margin-top:.4rem; align-self:flex-start;" onclick="removeUserPhoto()">{% translate "Remove current photo" %}</button>
                         </div>
                         <div class="erp-form-group full-width" style="display: flex; flex-direction: row; gap: 1rem; align-items: center;">
                             <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
@@ -1924,7 +1945,7 @@
         <div class="erp-toast {{ message.tags }}">
             <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}" style="color: {% if 'error' in message.tags %}#ff6b77{% else %}#3fb950{% endif %}; font-size: 0.95rem;"></i>
             <span class="erp-toast-message">{{ message }}</span>
-            <button type="button" class="erp-toast-close" onclick="dismissErpToast(this)" aria-label="{% translate "Dismiss message" %}" title="{% translate "Dismiss message" %}">{% translate "&times;" %}</button>
+            <button type="button" class="erp-toast-close" onclick="dismissErpToast(this)" aria-label="{% translate "Dismiss message" %}" title="{% translate "Dismiss message" %}">×</button>
         </div>
         {% endif %}
         {% endfor %}
@@ -1956,6 +1977,7 @@
         if (userSearchInput && userSearchInput.value) {
             filterUserCards();
         }
+        restoreUserFilters();
 
     });
 
@@ -2051,6 +2073,7 @@
         document.getElementById('editLastName').value = cardEl.dataset.lastName || '';
         document.getElementById('editPhone').value = cardEl.dataset.phone || '';
         document.getElementById('editUserPassword').value = '';
+        document.getElementById('editUserPasswordConfirm').value = '';
         document.getElementById('editRole').value = cardEl.dataset.role || 'factory_viewer';
         document.getElementById('editCountry').value = cardEl.dataset.countryId || '';
         document.getElementById('editDepartment').value = cardEl.dataset.department || '';
@@ -2132,6 +2155,34 @@
         }
     }
 
+    async function removeUserPhoto() {
+        const userId = document.getElementById('editUserId').value;
+        const button = document.getElementById('removeUserPhotoButton');
+        if (!userId || !button || !confirm(window.FabroI18n.gettext('Remove this user profile photo?'))) return;
+        const csrf = document.querySelector('#editUserModal input[name="csrfmiddlewaretoken"]');
+        button.disabled = true;
+        try {
+            const response = await fetch(button.dataset.urlTemplate.replace('/0/', `/${encodeURIComponent(userId)}/`), {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrf ? csrf.value : '', 'Accept': 'application/json'},
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            showEditUserFeedback(data.messages || ['Unable to remove the profile photo.'], Boolean(data.success));
+            if (data.success) {
+                const card = document.querySelector(`.erp-user-card[data-user-id="${userId}"]`);
+                const image = card && card.querySelector('.erp-card-avatar img');
+                if (image) image.remove();
+                button.disabled = true;
+            }
+        } catch (error) {
+            showEditUserFeedback(['Unable to remove the profile photo. Please try again.'], false);
+        } finally {
+            if (!button.disabled || !document.querySelector(`.erp-user-card[data-user-id="${userId}"] .erp-card-avatar img`)) button.disabled = true;
+            else button.disabled = false;
+        }
+    }
+
     function triggerDeleteFromEdit() {
         const userId = document.getElementById('editUserId').value;
         const username = document.getElementById('editUsername').value;
@@ -2155,7 +2206,20 @@
         const group = itemEl.parentElement;
         group.querySelectorAll('.erp-filter-item').forEach(el => el.classList.remove('active'));
         itemEl.classList.add('active');
+        sessionStorage.setItem('fabroAdminUserFilters', JSON.stringify(window.erpActiveFilters));
         filterUserCards();
+    }
+
+    function restoreUserFilters() {
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('fabroAdminUserFilters') || '{}');
+            Object.entries(saved).forEach(([type, value]) => {
+                const item = document.querySelector(`.erp-filter-item[data-filter-type="${type}"][data-filter-val="${value}"]`);
+                if (item) applyFacetedFilter(type, value, item);
+            });
+        } catch (error) {
+            sessionStorage.removeItem('fabroAdminUserFilters');
+        }
     }
 
     function filterUserCards() {
@@ -2207,19 +2271,24 @@
                 ? `1-${visibleCount} / ${cards.length}`
                 : `0 / ${cards.length}`;
         }
+        const emptyState = document.getElementById('userFilterEmptyState');
+        if (emptyState) emptyState.hidden = visibleCount !== 0;
     }
 
     // The user editor remains open until one of its explicit X buttons is used.
-    window.addEventListener('click', function(e) {
-        const createModal = document.getElementById('createUserModal');
-        if (e.target === createModal) closeCreateUserModal();
-    });
+    if (!window.__fabroAdminPanelEventsBound) {
+        window.__fabroAdminPanelEventsBound = true;
+        window.addEventListener('click', function(e) {
+            const createModal = document.getElementById('createUserModal');
+            if (e.target === createModal) closeCreateUserModal();
+        });
 
-    window.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeCreateUserModal();
-        }
-    });
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeCreateUserModal();
+            }
+        });
+    }
     </script>
 </body>
 </html>

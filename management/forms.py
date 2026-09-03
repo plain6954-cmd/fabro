@@ -470,7 +470,7 @@ class UserCreationForm(forms.ModelForm):
         return validate_profile_photo(self.cleaned_data.get('photo'))
 
     def save_profile(self, user):
-        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile, profile_created = UserProfile.objects.get_or_create(user=user)
         profile.role = self.cleaned_data.get('mapped_role', WorkflowRoles.FACTORY_VIEWER)
         profile.approval_role = self.cleaned_data.get('mapped_approval_role', '')
         profile.country = self.cleaned_data.get('country')
@@ -539,6 +539,12 @@ class UserWorkflowProfileForm(forms.ModelForm):
         instance = super().save(commit=False)
         instance.role = self.cleaned_data.get('mapped_role', instance.role)
         instance.approval_role = self.cleaned_data.get('mapped_approval_role', '')
+        # Only country executives may retain a selected country.  The model
+        # enforces India as a final guard for all other roles.
+        if instance.role != WorkflowRoles.COUNTRY_EXECUTIVE:
+            instance.country, _ = MasterSetting.objects.get_or_create(
+                category='Country', name='India'
+            )
         if commit:
             instance.save()
         return instance

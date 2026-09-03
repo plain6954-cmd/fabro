@@ -319,6 +319,18 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.get_role_display()}"
 
+    def save(self, *args, **kwargs):
+        """Keep the profile country authoritative, even for non-form callers."""
+        if self.role != WorkflowRoles.COUNTRY_EXECUTIVE:
+            india, _ = MasterSetting.objects.get_or_create(
+                category='Country', name='India'
+            )
+            self.country = india
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None:
+                kwargs['update_fields'] = set(update_fields) | {'country'}
+        super().save(*args, **kwargs)
+
 
 class Complaint(models.Model):
     complaint_id = models.CharField(primary_key=True, max_length=20, unique=True, editable=False)
@@ -436,7 +448,7 @@ class Complaint(models.Model):
 
         # Concurrent submissions can calculate the same daily sequence. Retry
         # only when that generated primary key was the conflicting value.
-        for _ in range(5):
+        for attempt in range(5):
             candidate = self._build_next_complaint_id()
             self.complaint_id = candidate
             try:

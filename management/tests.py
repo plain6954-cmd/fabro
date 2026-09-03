@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from io import BytesIO, StringIO
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.cache import cache
@@ -480,13 +481,13 @@ class FabroBackendTests(TestCase):
 
         response = self.client.get(reverse("add_sku"), {"search": "Ford", "column": "description"})
         self.assertTrue(response.context["scoped_search_enabled"])
-        self.assertContains(response, 'id="skuSearchDropdown"')
+        self.assertContains(response, 'id="sku-search-options"')
         self.assertContains(response, "FRD-456")
         self.assertNotContains(response, "TOY-123")
 
         response = self.client.get(reverse("car_details"), {"search": "Toyota", "column": "brand"})
         self.assertTrue(response.context["scoped_search_enabled"])
-        self.assertContains(response, 'id="vehicleSearchDropdown"')
+        self.assertContains(response, 'id="vehicle-search-options"')
         self.assertContains(response, "CAMRY-HYBRID")
         self.assertNotContains(response, "MUSTANG-GT")
 
@@ -1878,6 +1879,7 @@ class FabroBackendTests(TestCase):
         response = self.client.post(reverse('edit_user'), {
             'user_id': configured.pk,
             'new_password': 'UpdatedPassword!999',
+            'confirm_password': 'UpdatedPassword!999',
             'reset_password': '1',
         }, follow=True)
         self.assertEqual(response.status_code, 200)
@@ -1907,6 +1909,7 @@ class FabroBackendTests(TestCase):
         response = self.client.post(reverse('edit_user'), {
             'user_id': configured.pk,
             'new_password': 'password',
+            'confirm_password': 'password',
             'reset_password': '1',
         }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 400)
@@ -1916,6 +1919,7 @@ class FabroBackendTests(TestCase):
         response = self.client.post(reverse('edit_user'), {
             'user_id': configured.pk,
             'new_password': 'AnotherUpdatedPassword!998',
+            'confirm_password': 'AnotherUpdatedPassword!998',
             'reset_password': '1',
         }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
@@ -1940,6 +1944,62 @@ class FabroBackendTests(TestCase):
         cad_user = get_user_model().objects.get(username='cad_approver_unified')
         self.assertEqual(cad_user.workflow_profile.role, WorkflowRoles.APPROVER)
         self.assertEqual(cad_user.workflow_profile.approval_role, ApprovalRoles.CAD)
+
+    def test_admin_password_reset_requires_confirmation_and_revokes_target_authentication(self):
+        self.client.force_login(self.user)
+        target = get_user_model().objects.create_user(
+            username='reset_target', password='BeforeReset!234'
+        )
+        token = Token.objects.create(user=target)
+        target_client = Client()
+        self.assertTrue(target_client.login(username=target.username, password='BeforeReset!234'))
+        target_session_key = target_client.session.session_key
+
+        mismatch = self.client.post(reverse('edit_user'), {
+            'user_id': target.pk,
+            'new_password': 'AfterReset!234',
+            'confirm_password': 'different',
+            'reset_password': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(mismatch.status_code, 400)
+        target.refresh_from_db()
+        self.assertTrue(target.check_password('BeforeReset!234'))
+
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': target.pk,
+            'new_password': 'AfterReset!234',
+            'confirm_password': 'AfterReset!234',
+            'reset_password': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        target.refresh_from_db()
+        self.assertTrue(target.check_password('AfterReset!234'))
+        self.assertFalse(Session.objects.filter(session_key=target_session_key).exists())
+        self.assertFalse(Token.objects.filter(pk=token.pk).exists())
+
+    def test_admin_photo_deletion_is_post_csrf_protected_and_does_not_edit_profile_fields(self):
+        self.client.force_login(self.user)
+        target = get_user_model().objects.create_user(username='photo_target', password='PhotoTarget!234')
+        profile = target.workflow_profile
+        profile.department = 'Keep this value'
+        # Avoid external storage in this authorization test; the view must
+        # safely tolerate a missing storage object during its cleanup step.
+        profile.photo.name = 'profile_photos/target.png'
+        profile.save(update_fields=['photo', 'department'])
+        url = reverse('delete_user_photo', args=[target.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.user)
+        self.assertEqual(csrf_client.post(url).status_code, 403)
+        csrf_client.get(reverse('admin_panel'))
+        with patch('management.views.default_storage.delete'):
+            response = csrf_client.post(url, HTTP_X_CSRFTOKEN=csrf_client.cookies['csrftoken'].value)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        profile.refresh_from_db()
+        self.assertFalse(profile.photo)
+        self.assertEqual(profile.department, 'Keep this value')
 
     def test_create_preparation_preserves_explicit_complaint_category(self):
         production_case_type = MasterSetting.objects.create(
@@ -2453,6 +2513,69 @@ class FabroBackendTests(TestCase):
         self.assertContains(response, 'Only your current session remains active.')
         self.assertContains(response, 'class="erp-toast-close"')
         self.assertContains(response, 'onclick="dismissErpToast(this)"')
+
+    def test_dashboard_split_layout_for_approvers_and_admins(self):
+        # 1. Non-approver/non-admin user (e.g. country executive) sees only single card
+        country_user = self.create_workflow_user("country_user_dash", WorkflowRoles.COUNTRY_EXECUTIVE)
+        UserProfile.objects.filter(user=country_user).update(country=self.country)
+        self.client.force_login(country_user)
+        res_country = self.client.get(reverse('index'))
+        self.assertEqual(res_country.status_code, 200)
+        self.assertFalse(res_country.context['is_approver_or_admin'])
+        self.assertNotContains(res_country, '<div class="dashboard-split-column">')
+        self.assertNotContains(res_country, 'Pending Approvals')
+
+        # 2. Approver user with pending ticket sees split column with pending approvals table
+        approver_user = self.create_workflow_user(
+            "cad_approver_dash",
+            WorkflowRoles.APPROVER,
+            approval_role=ApprovalRoles.CAD,
+        )
+        complaint = Complaint.objects.create(
+            complaint_type=ComplaintTypes.PATTERN,
+            channel=self.channel,
+            country=self.country,
+            person=self.person,
+            brand=self.brand,
+            model=self.model,
+            sub_model=self.sub_model,
+            year=self.year,
+            sku=self.sku,
+            series=self.series,
+            material=self.material,
+            case_sub_category=self.case_type,
+            status="Open",
+            workflow_status=WorkflowStatuses.AWAITING_APPROVAL,
+            priority="Medium",
+            factory_priority="medium",
+        )
+        approval = ComplaintApproval.objects.create(
+            complaint=complaint,
+            approval_round=1,
+            review_stage=ApprovalStages.INITIAL,
+            approver_role=ApprovalRoles.CAD,
+            approver_user=approver_user,
+            status=DecisionStatuses.PENDING,
+        )
+
+        self.client.force_login(approver_user)
+        res_approver = self.client.get(reverse('index'))
+        self.assertEqual(res_approver.status_code, 200)
+        self.assertTrue(res_approver.context['is_approver_or_admin'])
+        self.assertContains(res_approver, '<div class="dashboard-split-column">')
+        self.assertContains(res_approver, 'Pending Approvals')
+        self.assertContains(res_approver, complaint.complaint_id)
+        self.assertContains(res_approver, reverse('approval_review', args=[approval.id]))
+
+        # 3. Admin user sees split column with all pending tickets
+        admin_user = self.create_workflow_user("admin_user_dash", WorkflowRoles.ADMIN)
+        self.client.force_login(admin_user)
+        res_admin = self.client.get(reverse('index'))
+        self.assertEqual(res_admin.status_code, 200)
+        self.assertTrue(res_admin.context['is_approver_or_admin'])
+        self.assertContains(res_admin, '<div class="dashboard-split-column">')
+        self.assertContains(res_admin, 'Pending Approvals')
+        self.assertContains(res_admin, complaint.complaint_id)
 
 
 @override_settings(USE_SUPABASE_STORAGE=True)
@@ -3437,6 +3560,73 @@ class PortalLanguageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "window.FABRO_LANGUAGE = 'hi'", html=False)
+
+    def test_all_languages_render_ltr_layout(self):
+        UserProfile.objects.filter(user=self.user).update(preferred_language='ar')
+        arabic = self.client.get(reverse('index'))
+        self.assertContains(arabic, '<html lang="ar" dir="ltr">', html=False)
+        self.assertContains(arabic, 'لوحة التحكم', html=False)
+
+        UserProfile.objects.filter(user=self.user).update(preferred_language='hi')
+        hindi = self.client.get(reverse('index'))
+        self.assertContains(hindi, '<html lang="hi" dir="ltr">', html=False)
+        self.assertContains(hindi, 'डैशबोर्ड', html=False)
+
+    def test_normal_and_htmx_navigation_are_server_translated(self):
+        UserProfile.objects.filter(user=self.user).update(preferred_language='ar')
+        normal = self.client.get(reverse('complaint_list'))
+        fragment = self.client.get(reverse('complaint_list'), HTTP_HX_REQUEST='true')
+
+        self.assertContains(normal, '<html lang="ar" dir="ltr">', html=False)
+        self.assertContains(normal, 'الشكاوى', html=False)
+        self.assertContains(fragment, 'الشكاوى', html=False)
+        self.assertContains(fragment, 'data-fabro-page-head', html=False)
+        self.assertNotContains(fragment, '<!DOCTYPE html>', html=False)
+
+    def test_server_validation_message_uses_saved_language(self):
+        UserProfile.objects.filter(user=self.user).update(preferred_language='ar')
+        response = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'country_without_country',
+            'email': 'country@example.com',
+            'password': 'CountryExecutive!234',
+            'role': WorkflowRoles.COUNTRY_EXECUTIVE,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'يجب تعيين المسؤولين التنفيذيين للبلد إلى بلد.',
+            html=False,
+        )
+
+    def test_javascript_catalog_and_lifecycle_use_structured_translation(self):
+        UserProfile.objects.filter(user=self.user).update(preferred_language='ar')
+        catalog = self.client.get(reverse('javascript-catalog'))
+        helper_path = settings.BASE_DIR / 'static' / 'js' / 'fabro-i18n.js'
+        helper = helper_path.read_text(encoding='utf-8')
+
+        self.assertEqual(catalog.status_code, 200)
+        self.assertIn('"Read": "\\u0645\\u0642\\u0631\\u0648\\u0621"', catalog.content.decode())
+        self.assertIn("querySelectorAll('[data-i18n]')", helper)
+        self.assertIn('window.__fabroI18nLifecycleBound', helper)
+        self.assertIn("document.addEventListener('htmx:afterSwap'", helper)
+        self.assertNotIn('TreeWalker', helper)
+        self.assertNotIn('MutationObserver', helper)
+
+    def test_missing_translation_falls_back_to_english_and_data_is_unchanged(self):
+        UserProfile.objects.filter(user=self.user).update(preferred_language='ar')
+        MasterSetting.objects.create(category='Channel', name='Dashboard')
+
+        dashboard = self.client.get(reverse('index'))
+        settings_page = self.client.get(reverse('master_settings'))
+
+        # This catalog entry intentionally has no Arabic msgstr and therefore
+        # exercises Django's safe source-language fallback.
+        self.assertContains(dashboard, 'System Dashboard', html=False)
+        # Database content is never passed through gettext, even if its value
+        # happens to match a translated interface label.
+        self.assertContains(settings_page, '>Dashboard<', html=False)
 
     def test_primary_pages_render_in_every_supported_language(self):
         pages = [
