@@ -1,12 +1,12 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit SKU - Fabro Leather</title>
+    <title>{% translate "Edit SKU - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -405,7 +405,7 @@
                 <i class="fas fa-edit" style="color: var(--primary-color);"></i>
                 Edit SKU: {{ sku.code }}
             </h1>
-            <p class="page-subtitle">Update SKU information and manage media files</p>
+            <p class="page-subtitle">{% translate "Update SKU information and manage media files" %}</p>
         </div>
 
         <form method="post" class="form-container" enctype="multipart/form-data">
@@ -416,11 +416,11 @@
                 <div class="btn-group">
                 <a href="{% url 'add_sku' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i>
-                    Cancel
+                    {% translate "Cancel" %}
                 </a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i>
-                    Update SKU
+                    {% translate "Update SKU" %}
                 </button>
             </div>
         </form>

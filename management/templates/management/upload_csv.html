@@ -1,12 +1,12 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Vehicle CSV - Fabro Leather</title>
+    <title>{% translate "Upload Vehicle CSV - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -279,9 +279,9 @@
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-upload" style="color: var(--primary-color);"></i>
-                Upload Vehicle CSV
+                {% translate "Upload Vehicle CSV" %}
             </h1>
-            <p class="page-subtitle">Bulk import vehicle configurations from CSV file</p>
+            <p class="page-subtitle">{% translate "Bulk import vehicle configurations from CSV file" %}</p>
         </div>
 
         {% if messages %}
@@ -304,7 +304,7 @@
         <div class="upload-container">
             <h2 class="section-title">
                 <i class="fas fa-file-csv"></i>
-                Upload CSV File
+                {% translate "Upload CSV File" %}
             </h2>
 
             <form method="POST" enctype="multipart/form-data" id="uploadForm">
@@ -321,22 +321,22 @@
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
                     <div class="file-upload-text">
-                        <strong>Click to upload</strong> or drag and drop
+                        <strong>{% translate "Click to upload" %}</strong> {% translate "or drag and drop" %}
                     </div>
                     <div class="file-upload-subtext">
-                        CSV files only (Max 5MB)
+                        {% translate "CSV files only (Max 5MB)" %}
                     </div>
                     <input type="file" name="csv_file" id="csvFile" class="file-input" accept=".csv" required>
                 </div>
 
                 <a href="{% url 'car_details' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i>
-                    Back to Vehicle Management
+                    {% translate "Back to Vehicle Management" %}
                 </a>
 
                 <button type="submit" class="btn btn-primary" id="uploadBtn">
                     <i class="fas fa-upload"></i>
-                    Upload CSV File
+                    {% translate "Upload CSV File" %}
                 </button>
             </form>
         </div>
@@ -344,19 +344,16 @@
         <div class="csv-format">
             <h3 class="format-title">
                 <i class="fas fa-info-circle"></i>
-                Required CSV Format
+                {% translate "Required CSV Format" %}
             </h3>
             <p style="color: var(--dark-text-secondary); margin-bottom: 1rem;">
-                Your CSV file must include the following columns in this exact order:
+                {% translate "Your CSV file must include the following columns in this exact order:" %}
             </p>
             <div class="format-example">
-brand,model,sub_model,year_start,year_end,number_of_seats,number_of_doors,layout_code
-BMW,X5,Sport,2020,2025,5,4,BMW_X5_SPORT_20_25
-Mercedes,C-Class,Luxury,2019,2024,5,4,MERC_C_LUX_19_24
-Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
+{% translate "brand,model,sub_model,year_start,year_end,number_of_seats,number_of_doors,layout_code BMW,X5,Sport,2020,2025,5,4,BMW_X5_SPORT_20_25 Mercedes,C-Class,Luxury,2019,2024,5,4,MERC_C_LUX_19_24 Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26" %}
             </div>
             <p style="color: var(--dark-text-secondary); margin-top: 1rem; font-size: 0.875rem;">
-                <strong>Note:</strong> Use "-" for empty sub_model values. Layout codes must be unique.
+                <strong>{% translate "Note:" %}</strong> {% translate "Use \"-\" for empty sub_model values. Layout codes must be unique." %}
             </p>
         </div>
     </div>
@@ -401,7 +398,10 @@ Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
             const uploadSubtext = dropZone.querySelector('.file-upload-subtext');
             
             uploadText.innerHTML = `<strong>${file.name}</strong>`;
-            uploadSubtext.textContent = `File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            uploadSubtext.textContent = window.FabroI18n.interpolate(
+                window.FabroI18n.gettext('File size: %(size)s MB'),
+                { size: (file.size / 1024 / 1024).toFixed(2) }
+            );
             
             dropZone.style.borderColor = 'var(--success-color)';
             dropZone.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
@@ -409,7 +409,7 @@ Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26
 
         // Form submission
         document.getElementById('uploadForm').addEventListener('submit', function() {
-            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            uploadBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${window.FabroI18n.gettext('Uploading...')}`;
             uploadBtn.disabled = true;
         });
 

@@ -1,7 +1,7 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -23,41 +23,41 @@
                 <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }} | Approval round {{ approval.approval_round }}</p>
             </div>
             <a href="{% url 'approvals_list' %}?stage={% if approval.review_stage == 'execution_verification' %}verification{% else %}plan{% endif %}" class="workflow-btn secondary">
-                <i class="fas fa-arrow-left"></i> Approval Inbox
+                <i class="fas fa-arrow-left"></i> {% translate "Approval Inbox" %}
             </a>
         </header>
 
         <div class="workflow-grid">
             <div class="workflow-stack">
                 <section class="workflow-panel">
-                    <h2 class="workflow-section-title"><i class="fas fa-file-alt"></i> Complaint And Factory Review</h2>
+                    <h2 class="workflow-section-title"><i class="fas fa-file-alt"></i> {% translate "Complaint And Factory Review" %}</h2>
                     <div class="detail-grid">
                         <div class="detail-block">
-                            <span class="detail-label">Country</span>
+                            <span class="detail-label">{% translate "Country" %}</span>
                             <span class="detail-value">{{ complaint.country|default:"-" }}</span>
                         </div>
                         <div class="detail-block">
-                            <span class="detail-label">Reported By</span>
+                            <span class="detail-label">{% translate "Reported By" %}</span>
                             <span class="detail-value">{{ complaint.person|default:"-" }}</span>
                         </div>
                         <div class="detail-block">
-                            <span class="detail-label">Vehicle</span>
+                            <span class="detail-label">{% translate "Vehicle" %}</span>
                             <span class="detail-value">{{ complaint.brand|default:"-" }} {{ complaint.model|default:"" }}</span>
                         </div>
                         <div class="detail-block">
-                            <span class="detail-label">Factory Priority</span>
+                            <span class="detail-label">{% translate "Factory Priority" %}</span>
                             <span class="detail-value">{{ complaint.get_factory_priority_display|default:"-" }}</span>
                         </div>
                         <div class="detail-block wide">
-                            <span class="detail-label">Complaint Description</span>
+                            <span class="detail-label">{% translate "Complaint Description" %}</span>
                             <span class="detail-value">{{ complaint.complaint_description|default:"-" }}</span>
                         </div>
                         <div class="detail-block wide">
-                            <span class="detail-label">Factory Reason</span>
+                            <span class="detail-label">{% translate "Factory Reason" %}</span>
                             <span class="detail-value">{{ complaint.factory_reason|default:"-" }}</span>
                         </div>
                         <div class="detail-block wide">
-                            <span class="detail-label">Proposed Factory Action Plan</span>
+                            <span class="detail-label">{% translate "Proposed Factory Action Plan" %}</span>
                             <span class="detail-value">{{ complaint.factory_action_plan|default:"-" }}</span>
                         </div>
                     </div>
@@ -65,7 +65,7 @@
 
                 {% if media_files %}
                     <section class="workflow-panel">
-                        <h2 class="workflow-section-title"><i class="fas fa-photo-video"></i> Complaint Media</h2>
+                        <h2 class="workflow-section-title"><i class="fas fa-photo-video"></i> {% translate "Complaint Media" %}</h2>
                         <div class="media-strip">
                             {% for media in media_files %}
                                 {% if media.is_available %}
@@ -85,7 +85,7 @@
                 {% endif %}
 
                 <section class="workflow-panel">
-                    <h2 class="workflow-section-title"><i class="fas fa-route"></i> Complaint Journey</h2>
+                    <h2 class="workflow-section-title"><i class="fas fa-route"></i> {% translate "Complaint Journey" %}</h2>
                     <div class="timeline-list">
                         {% for event in complaint.timeline_events.all %}
                             <div class="timeline-entry">
@@ -96,7 +96,7 @@
                                 </div>
                             </div>
                         {% empty %}
-                            <div class="empty-workflow">No timeline events recorded yet.</div>
+                            <div class="empty-workflow">{% translate "No timeline events recorded yet." %}</div>
                         {% endfor %}
                     </div>
                 </section>
@@ -105,18 +105,18 @@
             <aside class="workflow-stack">
                 {% if approval.review_stage == 'reconsideration' and approval.trigger_approval %}
                     <section class="workflow-panel" style="border-color: rgba(239, 68, 68, 0.55);">
-                        <h2 class="workflow-section-title"><i class="fas fa-triangle-exclamation"></i> Rejection To Reconsider</h2>
+                        <h2 class="workflow-section-title"><i class="fas fa-triangle-exclamation"></i> {% translate "Rejection To Reconsider" %}</h2>
                         <div class="detail-block wide">
                             <span class="detail-label">Rejected by {{ approval.trigger_approval.approver_role }}</span>
                             <span class="detail-value">{{ approval.trigger_approval.comment }}</span>
                         </div>
                         <p class="workflow-subtitle" style="margin-top: 0.85rem;">
-                            Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed.
+                            {% translate "Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed." %}
                         </p>
                     </section>
                 {% endif %}
                 <section class="workflow-panel">
-                    <h2 class="workflow-section-title"><i class="fas fa-users"></i> Parallel Review Progress</h2>
+                    <h2 class="workflow-section-title"><i class="fas fa-users"></i> {% translate "Parallel Review Progress" %}</h2>
                     <div class="approval-rail">
                         {% for item in approval_summary.approvals %}
                             <div class="approval-step {{ item.status }}">
@@ -132,7 +132,7 @@
                 </section>
 
                 <section class="workflow-panel">
-                    <h2 class="workflow-section-title"><i class="fas fa-gavel"></i> Submit Your Opinion</h2>
+                    <h2 class="workflow-section-title"><i class="fas fa-gavel"></i> {% translate "Submit Your Opinion" %}</h2>
                     {% if can_decide %}
                     <form method="post">
                         {% csrf_token %}
@@ -163,7 +163,7 @@
                     {% else %}
                         <div class="empty-workflow">
                             <i class="fas fa-lock"></i>
-                            <strong>This approval round is complete</strong>
+                            <strong>{% translate "This approval round is complete" %}</strong>
                             <p>Your recorded decision is {{ approval.get_status_display }}. Completed rounds are read-only.</p>
                         </div>
                     {% endif %}

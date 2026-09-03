@@ -1,7 +1,8 @@
-{% load static %}
+{% load static i18n %}
 <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
 <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
-<script src="{% static 'js/fabro-i18n.js' %}?v=20260901-master-settings" defer></script>
+<script src="{% url 'javascript-catalog' %}"></script>
+<script src="{% static 'js/fabro-i18n.js' %}?v=20260903-django-i18n"></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
 <style>
         * {
@@ -1787,7 +1788,7 @@
 
         // Logout Function
         const logout = () => {
-            if (confirm("Are you sure you want to log out?")) {
+            if (confirm(window.FabroI18n.gettext("Are you sure you want to log out?"))) {
                 document.getElementById('logout-form').submit();
             }
         };
@@ -1962,7 +1963,7 @@
                 ? activeLink.textContent.trim()
                 : fallbackTitle
                     ? fallbackTitle.textContent.trim()
-                    : 'Dashboard';
+                    : window.FabroI18n.gettext('Dashboard');
 
             navbar.setAttribute('data-active-window', label);
         };
@@ -2170,17 +2171,17 @@
         <div class="nav-links">
             <a href="{% url 'index' %}" class="nav-link">
                 <i class="fas fa-home"></i>
-                <span>Dashboard</span>
+                <span>{% translate "Dashboard" %}</span>
             </a>
             {% if can_create_complaint %}
             <a href="{% url 'add_complaint' %}" class="nav-link">
                 <i class="fas fa-plus-circle"></i>
-                <span>Add Complaint</span>
+                <span>{% translate "Add Complaint" %}</span>
             </a>
             {% endif %}
             <a href="{% url 'complaint_list' %}" class="nav-link">
                 <i class="fas fa-list"></i>
-                <span>Complaints</span>
+                <span>{% translate "Complaints" %}</span>
             </a>
             {% if can_manage_catalog %}
             <a href="{% url 'car_details' %}" class="nav-link">
@@ -2188,16 +2189,16 @@
             <a href="{% url 'car_details' %}" class="nav-link">
             {% endif %}
                 <i class="fas fa-car"></i>
-                <span>Vehicles</span>
+                <span>{% translate "Vehicles" %}</span>
             </a>
             <a href="{% url 'add_sku' %}" class="nav-link">
                 <i class="fas fa-barcode"></i>
-                <span>SKU</span>
+                <span>{% translate "SKU" %}</span>
             </a>
             {% if can_view_approvals %}
             <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' %}active{% endif %}" data-shell-badge-host="approvals">
                 <i class="fas fa-clipboard-check"></i>
-                <span>Approvals</span>
+                <span>{% translate "Approvals" %}</span>
                 {% if pending_approvals_count %}
                 <span class="nav-chat-badge" data-shell-badge="approvals" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);">{{ pending_approvals_count }}</span>
                 {% endif %}
@@ -2205,7 +2206,7 @@
             {% endif %}
             <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
                 <i class="fas fa-comments"></i>
-                <span>CHAT</span>
+                <span>{% translate "CHAT" %}</span>
                 {% if unread_chat_count %}
                 <span class="nav-chat-badge" data-shell-badge="chat">{{ unread_chat_count }}</span>
                 {% endif %}
@@ -2213,7 +2214,7 @@
             {% if can_manage_workflow %}
             <a href="{% url 'master_settings' %}" class="nav-link">
                 <i class="fas fa-cog"></i>
-                <span>Master</span>
+                <span>{% translate "Master" %}</span>
             </a>
             {% endif %}
         </div>
@@ -2257,18 +2258,18 @@
 
                 <a href="{% url 'profile_settings' %}" class="dropdown-item">
                     <i class="fas fa-user"></i>
-                    <span>Profile</span>
+                    <span>{% translate "Profile" %}</span>
                 </a>
 
                 <a href="{% url 'notification_list' %}" class="dropdown-item">
                     <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
+                    <span>{% translate "Notifications" %}</span>
                 </a>
 
                 {% if can_view_approvals %}
                 <a href="{% url 'approvals_list' %}" class="dropdown-item">
                     <i class="fas fa-clipboard-check"></i>
-                    <span>Approvals Workspace</span>
+                    <span>{% translate "Approvals Workspace" %}</span>
                 </a>
                 {% endif %}
 
@@ -2276,15 +2277,15 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <i class="fas fa-language" aria-hidden="true"></i>
-                    <span class="sr-only">Language</span>
+                    <span class="sr-only">{% translate "Language" %}</span>
                     <div class="language-menu">
-                        <button type="button" class="language-menu-trigger" aria-label="Language" aria-haspopup="listbox" aria-expanded="false" aria-controls="language-menu-options">
+                        <button type="button" class="language-menu-trigger" aria-label="{% translate "Language" %}" aria-haspopup="listbox" aria-expanded="false" aria-controls="language-menu-options">
                             {% for code, label in portal_languages %}
                                 {% if current_language == code %}<span data-i18n-skip>{{ label }}</span>{% endif %}
                             {% endfor %}
                             <i class="fas fa-chevron-down" aria-hidden="true"></i>
                         </button>
-                        <div class="language-menu-options" id="language-menu-options" role="listbox" aria-label="Language">
+                        <div class="language-menu-options" id="language-menu-options" role="listbox" aria-label="{% translate "Language" %}">
                         {% for code, label in portal_languages %}
                             <button type="submit" name="language" value="{{ code }}" class="language-menu-option{% if current_language == code %} is-selected{% endif %}" role="option" aria-selected="{% if current_language == code %}true{% else %}false{% endif %}" data-i18n-skip>
                                 <span>{{ label }}</span>
@@ -2300,7 +2301,7 @@
                 </form>
                 <a href="#" class="dropdown-item" onclick="logout(); return false;">
                     <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
+                    <span>{% translate "Logout" %}</span>
                 </a>
             </div>
             <div class="toast-stack" id="global-toast-stack" aria-live="polite" aria-atomic="false"></div>

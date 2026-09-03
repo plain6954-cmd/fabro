@@ -1,14 +1,14 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Fabro Leather</title>
+    <title>{% translate "Dashboard - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -1212,8 +1212,8 @@
     <div class="dashboard-wrapper">
         <div class="dashboard-container">
             <div class="dashboard-header">
-                <h1 class="dashboard-title">System Dashboard</h1>
-                <p class="dashboard-subtitle">Car Seat Management Portal</p>
+                <h1 class="dashboard-title">{% translate "System Dashboard" %}</h1>
+                <p class="dashboard-subtitle">{% translate "Car Seat Management Portal" %}</p>
             </div>
 
             <div class="dashboard-layout">
@@ -1222,11 +1222,11 @@
                     <div class="section-header" style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.75rem;">
                         <span style="font-size: 1.1rem; font-weight: 600; color: var(--dark-text); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-list" style="color: var(--primary-color);"></i>
-                            Existing Complaints
+                            {% translate "Existing Complaints" %}
                         </span>
                         {% if can_create_complaint %}
                         <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; text-decoration: none; color: white;">
-                            <i class="fas fa-plus"></i> Add Complaint
+                            <i class="fas fa-plus"></i> {% translate "Add Complaint" %}
                         </a>
                         {% endif %}
                     </div>
@@ -1237,13 +1237,13 @@
                             <thead>
                                 <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
                                     <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 40px; text-align: center;">#</th>
-                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 90px;">Date</th>
-                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 130px;">ID</th>
-                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 100px;">By</th>
-                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 140px;">Vehicle</th>
-                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 90px;">Type</th>
-                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 90px;">Status</th>
-                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 80px; text-align: center;">Actions</th>
+                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 90px;">{% translate "Date" %}</th>
+                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 130px;">{% translate "ID" %}</th>
+                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 100px;">{% translate "By" %}</th>
+                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 140px;">{% translate "Vehicle" %}</th>
+                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 90px;">{% translate "Type" %}</th>
+                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 90px;">{% translate "Status" %}</th>
+                                    <th style="padding: 0.75rem; font-size: 0.8rem; color: var(--dark-text-secondary); width: 80px; text-align: center;">{% translate "Actions" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1262,7 +1262,7 @@
                                     </td>
                                     <td style="padding: 0.75rem; font-size: 0.8rem; text-align: center;" onclick="event.stopPropagation();">
                                         <button type="button" class="btn-view dashboard-view-button" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" aria-label="View complaint {{ complaint.complaint_id }}">
-                                            <i class="fas fa-eye"></i> View
+                                            <i class="fas fa-eye"></i> {% translate "View" %}
                                         </button>
                                     </td>
                                 </tr>
@@ -1273,35 +1273,35 @@
                                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
                                             <!-- General Info Column -->
                                             <div>
-                                                <h4 style="color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">General Info</h4>
+                                                <h4 style="color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">{% translate "General Info" %}</h4>
                                                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--dark-text-secondary);">
-                                                    <div><strong style="color: var(--dark-text);">Complaint ID:</strong> {{ complaint.complaint_id }}</div>
-                                                    <div><strong style="color: var(--dark-text);">Type:</strong> {{ complaint.get_complaint_type_display }}</div>
-                                                    <div><strong style="color: var(--dark-text);">Channel:</strong> {{ complaint.channel.name|default:"N/A" }}</div>
-                                                    <div><strong style="color: var(--dark-text);">Priority:</strong> <span style="font-weight: bold; color: {% if complaint.priority == 'top' %}#ef4444{% elif complaint.priority == 'medium' %}#f59e0b{% else %}#3b82f6{% endif %};">{{ complaint.priority|upper }}</span></div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Complaint ID:" %}</strong> {{ complaint.complaint_id }}</div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Type:" %}</strong> {{ complaint.get_complaint_type_display }}</div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Channel:" %}</strong> {{ complaint.channel.name|default:"N/A" }}</div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Priority:" %}</strong> <span style="font-weight: bold; color: {% if complaint.priority == 'top' %}#ef4444{% elif complaint.priority == 'medium' %}#f59e0b{% else %}#3b82f6{% endif %};">{{ complaint.priority|upper }}</span></div>
                                                 </div>
                                             </div>
                                             <!-- Vehicle & SKU Column -->
                                             <div>
-                                                <h4 style="color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Vehicle & SKU</h4>
+                                                <h4 style="color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">{% translate "Vehicle & SKU" %}</h4>
                                                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--dark-text-secondary);">
-                                                    <div><strong style="color: var(--dark-text);">Vehicle:</strong> {{ complaint.brand.name }} {{ complaint.model.name }} {{ complaint.sub_model.name|default:"" }} ({{ complaint.year.year_start }}-{{ complaint.year.year_end }})</div>
-                                                    <div><strong style="color: var(--dark-text);">Layout Code:</strong> <code style="background: rgba(255,255,255,0.08); padding: 0.1rem 0.3rem; border-radius: 4px; color: var(--dark-text);">{{ complaint.year.layout_code }}</code></div>
-                                                    <div><strong style="color: var(--dark-text);">SKU:</strong> {{ complaint.sku.code }} - {{ complaint.sku.description }}</div>
-                                                    <div><strong style="color: var(--dark-text);">Material / Series:</strong> {{ complaint.material.name|default:"N/A" }} / {{ complaint.series.name|default:"N/A" }}</div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Vehicle:" %}</strong> {{ complaint.brand.name }} {{ complaint.model.name }} {{ complaint.sub_model.name|default:"" }} ({{ complaint.year.year_start }}-{{ complaint.year.year_end }})</div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Layout Code:" %}</strong> <code style="background: rgba(255,255,255,0.08); padding: 0.1rem 0.3rem; border-radius: 4px; color: var(--dark-text);">{{ complaint.year.layout_code }}</code></div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "SKU:" %}</strong> {{ complaint.sku.code }} - {{ complaint.sku.description }}</div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Material / Series:" %}</strong> {{ complaint.material.name|default:"N/A" }} / {{ complaint.series.name|default:"N/A" }}</div>
                                                 </div>
                                             </div>
                                             <!-- Status & Actions Column -->
                                             <div>
-                                                <h4 style="color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Workflow Status</h4>
+                                                <h4 style="color: var(--primary-color); margin: 0 0 0.5rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">{% translate "Workflow Status" %}</h4>
                                                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--dark-text-secondary);">
-                                                    <div><strong style="color: var(--dark-text);">Workflow Status:</strong> <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}">{{ complaint.get_workflow_status_display }}</span></div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Workflow Status:" %}</strong> <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}">{{ complaint.get_workflow_status_display }}</span></div>
                                                     {% if complaint.assigned_factory_executive %}
-                                                    <div><strong style="color: var(--dark-text);">Factory Executive:</strong> {{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}</div>
+                                                    <div><strong style="color: var(--dark-text);">{% translate "Factory Executive:" %}</strong> {{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}</div>
                                                     {% endif %}
                                                     <div style="margin-top: 0.6rem;">
                                                         <a href="{% url 'complaint_list' %}?search={{ complaint.complaint_id }}" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.35rem 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem; text-decoration: none; border-radius: 4px; background: var(--primary-color); color: white; border: none; cursor: pointer;">
-                                                            <i class="fas fa-external-link-alt"></i> Go to workflow page
+                                                            <i class="fas fa-external-link-alt"></i> {% translate "Go to workflow page" %}
                                                         </a>
                                                     </div>
                                                 </div>
@@ -1309,7 +1309,7 @@
                                         </div>
                                         {% if complaint.description %}
                                         <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem;">
-                                            <h4 style="color: var(--primary-color); margin: 0 0 0.4rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Description</h4>
+                                            <h4 style="color: var(--primary-color); margin: 0 0 0.4rem 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">{% translate "Description" %}</h4>
                                             <p style="font-size: 0.8rem; margin: 0; color: var(--dark-text-secondary); line-height: 1.45;">{{ complaint.description }}</p>
                                         </div>
                                         {% endif %}
@@ -1321,7 +1321,7 @@
                     </div>
                     {% else %}
                     <div style="text-align: center; padding: 2rem; color: var(--dark-text-secondary); font-size: 0.9rem;">
-                        No complaints available yet.
+                        {% translate "No complaints available yet." %}
                     </div>
                     {% endif %}
                 </div>
@@ -1330,26 +1330,26 @@
                 <div class="stats-sidebar-section">
                     <div class="section-header">
                         <i class="fas fa-chart-bar"></i>
-                        <span>System Statistics</span>
+                        <span>{% translate "System Statistics" %}</span>
                     </div>
                     <div class="stats-sidebar-list">
                         <a href="{% url 'complaint_list' %}" class="stat-card-compact complaint-summary">
                             <div class="stat-header-row">
                                 <div class="stat-icon-compact complaints"><i class="fas fa-exclamation-triangle"></i></div>
-                                <div class="stat-title-compact">Total Complaints: <strong style="color: var(--dark-text);">{{ total_complaints|default:"0" }}</strong></div>
+                                <div class="stat-title-compact">{% translate "Total Complaints:" %} <strong style="color: var(--dark-text);">{{ total_complaints|default:"0" }}</strong></div>
                             </div>
                             <div class="complaint-status-grid">
                                 <div class="complaint-status-box open">
                                     <span class="complaint-status-value">{{ open_complaints|default:"0" }}</span>
-                                    <span class="complaint-status-label">Open</span>
+                                    <span class="complaint-status-label">{% translate "Open" %}</span>
                                 </div>
                                 <div class="complaint-status-box closed">
                                     <span class="complaint-status-value">{{ closed_complaints|default:"0" }}</span>
-                                    <span class="complaint-status-label">Closed</span>
+                                    <span class="complaint-status-label">{% translate "Closed" %}</span>
                                 </div>
                                 <div class="complaint-status-box on-hold">
                                     <span class="complaint-status-value">{{ on_hold_complaints|default:"0" }}</span>
-                                    <span class="complaint-status-label">On Hold</span>
+                                    <span class="complaint-status-label">{% translate "On Hold" %}</span>
                                 </div>
                             </div>
                         </a>
@@ -1357,50 +1357,50 @@
                         <div class="stat-card-compact complaint-type-summary-card">
                             <div class="stat-header-row">
                                 <div class="stat-icon-compact types"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
-                                <div class="stat-title-compact">Complaint Types</div>
+                                <div class="stat-title-compact">{% translate "Complaint Types" %}</div>
                             </div>
                             <div class="complaint-type-grid">
                                 <a href="{% url 'complaint_list' %}?complaint_type=line" class="complaint-type-box line">
                                     <span class="complaint-type-value">{{ line_complaints|default:"0" }}</span>
-                                    <span class="complaint-type-label">Factory</span>
+                                    <span class="complaint-type-label">{% translate "Factory" %}</span>
                                 </a>
                                 <a href="{% url 'complaint_list' %}?complaint_type=pattern" class="complaint-type-box pattern">
                                     <span class="complaint-type-value">{{ pattern_complaints|default:"0" }}</span>
-                                    <span class="complaint-type-label">Pattern</span>
+                                    <span class="complaint-type-label">{% translate "Pattern" %}</span>
                                 </a>
                                 <a href="{% url 'complaint_list' %}?complaint_type=production" class="complaint-type-box production">
                                     <span class="complaint-type-value">{{ production_complaints|default:"0" }}</span>
-                                    <span class="complaint-type-label">Production</span>
+                                    <span class="complaint-type-label">{% translate "Production" %}</span>
                                 </a>
                                 <a href="{% url 'complaint_list' %}?complaint_type=quality" class="complaint-type-box quality">
                                     <span class="complaint-type-value">{{ quality_complaints|default:"0" }}</span>
-                                    <span class="complaint-type-label">Quality</span>
+                                    <span class="complaint-type-label">{% translate "Quality" %}</span>
                                 </a>
                             </div>
                         </div>
 
                         {% if not can_manage_workflow %}
                         <div class="stat-card-compact monthly-stats-card">
-                            <a href="{% url 'complaint_list' %}" class="view-complaints-orb" title="View all complaints" aria-label="View all complaints">
+                            <a href="{% url 'complaint_list' %}" class="view-complaints-orb" title="{% translate "View all complaints" %}" aria-label="{% translate "View all complaints" %}">
                                 <i class="fas fa-list-alt" aria-hidden="true"></i>
                             </a>
                             <div class="monthly-stats-header">
                                 <i class="fas fa-calendar-alt"></i>
-                                <span>This Month</span>
+                                <span>{% translate "This Month" %}</span>
                             </div>
                             <div class="monthly-stats-grid">
                                 <div class="monthly-stat-box reported">
                                     <span class="monthly-stat-icon"><i class="fas fa-file-circle-plus"></i></span>
                                     <span class="monthly-stat-copy">
                                         <strong class="monthly-stat-value">{{ complaints_this_month|default:"0" }}</strong>
-                                        <span class="monthly-stat-label">Complaints</span>
+                                        <span class="monthly-stat-label">{% translate "Complaints" %}</span>
                                     </span>
                                 </div>
                                 <div class="monthly-stat-box resolved">
                                     <span class="monthly-stat-icon"><i class="fas fa-circle-check"></i></span>
                                     <span class="monthly-stat-copy">
                                         <strong class="monthly-stat-value">{{ resolved_this_month|default:"0" }}</strong>
-                                        <span class="monthly-stat-label">Resolved</span>
+                                        <span class="monthly-stat-label">{% translate "Resolved" %}</span>
                                     </span>
                                 </div>
                             </div>
@@ -1411,7 +1411,7 @@
                             <div class="stat-icon-compact vehicles"><i class="fas fa-car"></i></div>
                             <div class="stat-info-compact">
                                 <div class="stat-value-compact">{{ total_vehicles|default:"0" }}</div>
-                                <div class="stat-label-compact">Vehicle Models</div>
+                                <div class="stat-label-compact">{% translate "Vehicle Models" %}</div>
                             </div>
                         </a>
 
@@ -1419,7 +1419,7 @@
                             <div class="stat-icon-compact skus"><i class="fas fa-barcode"></i></div>
                             <div class="stat-info-compact">
                                 <div class="stat-value-compact">{{ total_skus|default:"0" }}</div>
-                                <div class="stat-label-compact">SKU Items</div>
+                                <div class="stat-label-compact">{% translate "SKU Items" %}</div>
                             </div>
                         </a>
 
@@ -1428,7 +1428,7 @@
                             <div class="stat-icon-compact settings"><i class="fas fa-cog"></i></div>
                             <div class="stat-info-compact">
                                 <div class="stat-value-compact">{{ total_settings|default:"0" }}</div>
-                                <div class="stat-label-compact">Master Settings</div>
+                                <div class="stat-label-compact">{% translate "Master Settings" %}</div>
                             </div>
                         </a>
                         {% endif %}

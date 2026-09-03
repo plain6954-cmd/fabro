@@ -1,12 +1,12 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Complaint - Fabro Leather</title>
+    <title>{% translate "Edit Complaint - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -404,13 +404,19 @@
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-edit" style="color: var(--primary-color);"></i>
-                Edit Complaint
+                {% translate "Edit Complaint" %}
             </h1>
-            <p class="page-subtitle">Update complaint information and manage media files</p>
+            <p class="page-subtitle">{% translate "Update complaint information and manage media files" %}</p>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="form-container">
+        <form method="POST" enctype="multipart/form-data" class="form-container" id="complaint-form"
+              data-direct-media-uploads="{{ direct_media_uploads|yesno:'true,false' }}"
+              data-sign-upload-url="{% url 'complaint_media_signed_upload' %}"
+              data-discard-upload-url="{% url 'complaint_media_discard_uploads' %}">
             {% csrf_token %}
+            {% if media_upload_batch %}
+                <input type="hidden" name="media_upload_batch" value="{{ media_upload_batch.id }}">
+            {% endif %}
 
             <div class="form-grid">
                 <!-- Basic Information -->
@@ -420,7 +426,7 @@
             <div class="media-section">
                 <h3 class="media-title">
                     <i class="fas fa-images"></i>
-                    Existing Media Files
+                    {% translate "Existing Media Files" %}
                 </h3>
                 
                 {% if media_files %}
@@ -436,13 +442,13 @@
                                         </video>
                                     {% endif %}
                                 {% else %}
-                                    <div class="media-preview">File unavailable</div>
+                                    <div class="media-preview">{% translate "File unavailable" %}</div>
                                 {% endif %}
                                 <div class="media-checkbox">
                                     <input type="checkbox" name="delete_media" value="{{ media.id }}" 
                                            id="delete_{{ media.id }}" class="checkbox-input">
                                     <label for="delete_{{ media.id }}" class="checkbox-label">
-                                        <i class="fas fa-trash"></i> Delete
+                                        <i class="fas fa-trash"></i> {% translate "Delete" %}
                                     </label>
                                 </div>
                             </div>
@@ -451,7 +457,7 @@
                 {% else %}
                     <div class="empty-media">
                         <i class="fas fa-images" style="font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i>
-                        No media files attached to this complaint
+                        {% translate "No media files attached to this complaint" %}
                     </div>
                 {% endif %}
             </div>
@@ -460,7 +466,7 @@
             <div class="media-section">
                 <h3 class="media-title">
                     <i class="fas fa-plus-circle"></i>
-                    Add New Media Files
+                    {% translate "Add New Media Files" %}
                 </h3>
                 
                 <div class="file-upload-area">
@@ -468,21 +474,21 @@
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
                     <div class="file-upload-text">
-                        <strong>Click to upload</strong> or drag and drop<br>
-                        Images and videos (Max 10MB each)
+                        <strong>{% translate "Click to upload" %}</strong> {% translate "or drag and drop" %}<br>
+                        {% translate "Images and videos (Max 100MB each)" %}
                     </div>
-                    <input type="file" name="media_files" multiple class="file-input" accept="image/*,video/*">
+                    <input type="file" name="media_files" id="media_files" multiple class="file-input" accept="image/*,video/*">
                 </div>
             </div>
 
             <div class="btn-group">
                 <a href="{% url 'complaint_list' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i>
-                    Cancel
+                    {% translate "Cancel" %}
                 </a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i>
-                    Update Complaint
+                    {% translate "Update Complaint" %}
                 </button>
             </div>
         </form>
@@ -588,6 +594,7 @@
 
 
     </script>
+    <script src="{% static 'management/js/direct_media_upload.js' %}"></script>
     </div>
 {% if not is_htmx_request %}
 </body>

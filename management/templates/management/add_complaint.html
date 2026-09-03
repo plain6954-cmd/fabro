@@ -1,14 +1,14 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Complaint - Fabro Leather</title>
+    <title>{% translate "Add Complaint - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -715,18 +715,18 @@
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
-                Add New Complaint
+                {% translate "Add New Complaint" %}
             </h1>
-            <p class="page-subtitle">Register a new customer complaint with detailed information</p>
+            <p class="page-subtitle">{% translate "Register a new customer complaint with detailed information" %}</p>
         </div>
 
-        <div class="complaint-type-dock" aria-label="Complaint window type" style="--complaint-type-dock-width: {{ complaint_type_dock_width }}px;">
+        <div class="complaint-type-dock" aria-label="{% translate "Complaint window type" %}" style="--complaint-type-dock-width: {{ complaint_type_dock_width }}px;">
             {% if 'pattern' in allowed_complaint_types %}
             <button type="button" class="complaint-type-tab{% if selected_complaint_type == 'pattern' %} is-active{% endif %}"
                     id="complaint-type-pattern" data-complaint-type="pattern"
                     aria-pressed="{% if selected_complaint_type == 'pattern' %}true{% else %}false{% endif %}">
                 <i class="fas fa-draw-polygon"></i>
-                <span>PATTERN COMPLAINT</span>
+                <span>{% translate "PATTERN COMPLAINT" %}</span>
             </button>
             {% endif %}
             {% if 'production' in allowed_complaint_types %}
@@ -734,7 +734,7 @@
                     id="complaint-type-production" data-complaint-type="production"
                     aria-pressed="{% if selected_complaint_type == 'production' %}true{% else %}false{% endif %}">
                 <i class="fas fa-industry"></i>
-                <span>PRODUCTION COMPLAINT</span>
+                <span>{% translate "PRODUCTION COMPLAINT" %}</span>
             </button>
             {% endif %}
             {% if 'quality' in allowed_complaint_types %}
@@ -742,7 +742,7 @@
                     id="complaint-type-quality" data-complaint-type="quality"
                     aria-pressed="{% if selected_complaint_type == 'quality' %}true{% else %}false{% endif %}">
                 <i class="fas fa-award"></i>
-                <span>QUALITY COMPLAINT</span>
+                <span>{% translate "QUALITY COMPLAINT" %}</span>
             </button>
             {% endif %}
             {% if 'line' in allowed_complaint_types %}
@@ -750,13 +750,19 @@
                     id="complaint-type-line" data-complaint-type="line"
                     aria-pressed="{% if selected_complaint_type == 'line' %}true{% else %}false{% endif %}">
                 <i class="fas fa-layer-group"></i>
-                <span>FACTORY COMPLAINT</span>
+                <span>{% translate "FACTORY COMPLAINT" %}</span>
             </button>
             {% endif %}
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="form-container" id="complaint-form">
+        <form method="POST" enctype="multipart/form-data" class="form-container" id="complaint-form"
+              data-direct-media-uploads="{{ direct_media_uploads|yesno:'true,false' }}"
+              data-sign-upload-url="{% url 'complaint_media_signed_upload' %}"
+              data-discard-upload-url="{% url 'complaint_media_discard_uploads' %}">
             {% csrf_token %}
+            {% if media_upload_batch %}
+                <input type="hidden" name="media_upload_batch" value="{{ media_upload_batch.id }}">
+            {% endif %}
             <input type="hidden" name="complaint_type" id="id_complaint_type" value="{{ selected_complaint_type }}">
 
             <section class="complaint-type-indicator type-{{ selected_complaint_type }}"
@@ -766,7 +772,7 @@
                        class="fas {% if selected_complaint_type == 'production' %}fa-industry{% elif selected_complaint_type == 'quality' %}fa-award{% elif selected_complaint_type == 'line' %}fa-layer-group{% else %}fa-draw-polygon{% endif %}"></i>
                 </span>
                 <span class="complaint-type-indicator-copy">
-                    <span class="complaint-type-indicator-kicker">Creating</span>
+                    <span class="complaint-type-indicator-kicker">{% translate "Creating" %}</span>
                     <strong class="complaint-type-indicator-title" id="complaint-type-indicator-title">
                         {% if selected_complaint_type == 'production' %}Production Complaint{% elif selected_complaint_type == 'quality' %}Quality Complaint{% elif selected_complaint_type == 'line' %}Factory Complaint{% else %}Pattern Complaint{% endif %}
                     </strong>
@@ -781,7 +787,7 @@
                 <div class="form-section basic-info-card">
                     <h3 class="section-title">
                         <i class="fas fa-info-circle"></i>
-                        Basic Information
+                        {% translate "Basic Information" %}
                     </h3>
                     
                     {% comment %} <div class="form-group">
@@ -790,7 +796,7 @@
                     </div> {% endcomment %}
                     
                     <div class="form-group">
-                        <label class="form-label">Date</label>
+                        <label class="form-label">{% translate "Date" %}</label>
                         <div class="date-input-wrapper">
                             <div class="date-input" id="dateInput">
                                 {{ form.date }}
@@ -814,7 +820,7 @@
                 <div class="form-section contact-info-card">
                     <h3 class="section-title">
                         <i class="fas fa-user"></i>
-                        Contact Information
+                        {% translate "Contact Information" %}
                     </h3>
                     
                     <div class="form-group">
@@ -828,7 +834,7 @@
                 <div class="form-section vehicle-info-card">
                     <h3 class="section-title">
                         <i class="fas fa-car"></i>
-                        Vehicle Information
+                        {% translate "Vehicle Information" %}
                     </h3>
                     
                     <div class="form-group">
@@ -852,18 +858,18 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">SKU</label>
+                        <label class="form-label">{% translate "SKU" %}</label>
                         {{ form.sku }}
                     </div>
                 </div>
                 <div class="form-section case-details-card">
                     <h3 class="section-title">
                         <i class="fas fa-clipboard-list"></i>
-                        Case Details
+                        {% translate "Case Details" %}
                     </h3>
 
                     <div class="form-group">
-                        <label class="form-label">Type</label>
+                        <label class="form-label">{% translate "Type" %}</label>
                         {{form.case_sub_category}}
                     </div>
 
@@ -891,7 +897,7 @@
             <div class="form-section complaint-details-card">
                 <h3 class="section-title">
                     <i class="fas fa-file-alt"></i>
-                    Complaint Details
+                    {% translate "Complaint Details" %}
                 </h3>
 
                 <div class="complaint-details-grid">
@@ -901,7 +907,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Update Order #</label>
+                        <label class="form-label">{% translate "Update Order #" %}</label>
                         {{ form.updated_order_no }}
                     </div>
                 </div>
@@ -911,7 +917,7 @@
             <div class="form-section media-files-card">
                 <h3 class="section-title">
                     <i class="fas fa-images"></i>
-                    Media Files
+                    {% translate "Media Files" %}
                 </h3>
                 
                 <div class="file-upload-area">
@@ -919,8 +925,8 @@
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
                     <div class="file-upload-text">
-                        <strong>Click to upload</strong> or drag and drop<br>
-                        Images and videos (Max 100MB each)
+                        <strong>{% translate "Click to upload" %}</strong> {% translate "or drag and drop" %}<br>
+                        {% translate "Images and videos (Max 100MB each)" %}
                     </div>
                     <input type="file" name="media_files" id="media_files" multiple class="file-input" accept="image/*,video/*">
                 </div>
@@ -928,13 +934,13 @@
             </div>
 
             <div class="btn-group">
-                <button type="reset" class="btn btn-secondary" id="clearComplaintForm" aria-label="Clear complaint form" title="Clear form">
+                <button type="reset" class="btn btn-secondary" id="clearComplaintForm" aria-label="{% translate "Clear complaint form" %}" title="{% translate "Clear form" %}">
                     <i class="fas fa-eraser"></i>
-                    <span class="btn-label">Clear</span>
+                    <span class="btn-label">{% translate "Clear" %}</span>
                 </button>
-                <a href="{% url 'complaint_list' %}" class="btn btn-secondary" aria-label="Cancel complaint" title="Cancel">
+                <a href="{% url 'complaint_list' %}" class="btn btn-secondary" aria-label="{% translate "Cancel complaint" %}" title="{% translate "Cancel" %}">
                     <i class="fas fa-times"></i>
-                    <span class="btn-label">Cancel</span>
+                    <span class="btn-label">{% translate "Cancel" %}</span>
                 </a>
                 <button type="submit" class="btn btn-primary" id="save-complaint-button"
                         aria-label="Save {{ selected_complaint_type }} complaint" title="Save {{ selected_complaint_type }} complaint">
@@ -1024,23 +1030,23 @@
 
         const complaintTypeDefinitions = {
             pattern: {
-                label: 'Pattern Complaint',
-                description: 'Template, dimension, or cutting issue.',
+                label: window.FabroI18n.gettext('Pattern Complaint'),
+                description: window.FabroI18n.gettext('Template, dimension, or cutting issue.'),
                 icon: 'fas fa-draw-polygon',
             },
             production: {
-                label: 'Production Complaint',
-                description: 'Manufacturing, material, or stitching defect.',
+                label: window.FabroI18n.gettext('Production Complaint'),
+                description: window.FabroI18n.gettext('Manufacturing, material, or stitching defect.'),
                 icon: 'fas fa-industry',
             },
             quality: {
-                label: 'Quality Complaint',
-                description: 'Quality-related complaint using the standard report fields.',
+                label: window.FabroI18n.gettext('Quality Complaint'),
+                description: window.FabroI18n.gettext('Quality-related complaint using the standard report fields.'),
                 icon: 'fas fa-award',
             },
             line: {
-                label: 'Factory Complaint',
-                description: 'Urgent assembly-line fitment issue.',
+                label: window.FabroI18n.gettext('Factory Complaint'),
+                description: window.FabroI18n.gettext('Urgent assembly-line fitment issue.'),
                 icon: 'fas fa-layer-group',
             },
         };
@@ -1052,7 +1058,7 @@
             if (!typeSelect) return;
 
             const previousValue = typeSelect.value;
-            typeSelect.innerHTML = '<option value="">Loading types...</option>';
+            typeSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Loading types...')}</option>`;
             typeSelect.disabled = true;
             complaintTypeRequestController?.abort();
             complaintTypeRequestController = new AbortController();
@@ -1067,7 +1073,7 @@
                     return response.json();
                 })
                 .then((items) => {
-                    typeSelect.innerHTML = '<option value="">Select Type</option>';
+                    typeSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Type')}</option>`;
                     items.forEach((item) => {
                         const option = document.createElement('option');
                         option.value = item.id;
@@ -1082,9 +1088,9 @@
                 .catch((error) => {
                     if (error.name === 'AbortError') return;
                     console.error('Error loading complaint types:', error);
-                    typeSelect.innerHTML = '<option value="">Unable to load types</option>';
+                    typeSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Unable to load types')}</option>`;
                     typeSelect.disabled = false;
-                    showToast('Error loading complaint types', 'error');
+                    showToast(window.FabroI18n.gettext('Error loading complaint types'), 'error');
                 });
         }
 
@@ -1112,7 +1118,10 @@
             const saveButton = document.getElementById('save-complaint-button');
             const saveLabel = document.getElementById('save-complaint-label');
             const savingMessage = document.getElementById('complaint-saving-message');
-            const actionLabel = `Save ${definition.label}`;
+            const actionLabel = window.FabroI18n.interpolate(
+                window.FabroI18n.gettext('Save %(type)s'),
+                { type: definition.label }
+            );
 
             if (indicator) {
                 indicator.classList.remove('type-pattern', 'type-production', 'type-quality', 'type-line');
@@ -1126,7 +1135,10 @@
                 saveButton.setAttribute('aria-label', actionLabel);
                 saveButton.title = actionLabel;
             }
-            if (savingMessage) savingMessage.textContent = `Saving ${definition.label.toLowerCase()}...`;
+            if (savingMessage) savingMessage.textContent = window.FabroI18n.interpolate(
+                window.FabroI18n.gettext('Saving %(type)s...'),
+                { type: definition.label }
+            );
             refreshComplaintTypeOptions(complaintType);
         }
 
@@ -1205,7 +1217,7 @@
                         return;
                     }
                     console.error('Error loading data:', error);
-                    showToast('Error loading data', 'error');
+                    showToast(window.FabroI18n.gettext('Error loading data'), 'error');
                 })
                 .finally(() => {
                     if (dependentDataRequests.get(targetId) === requestController) {
@@ -1214,7 +1226,7 @@
                 });
         }
 
-        function resetSkuOptions(message = 'Select SKU') {
+        function resetSkuOptions(message = window.FabroI18n.gettext('Select SKU')) {
             const skuSelect = document.getElementById('id_sku');
             if (!skuSelect) {
                 return;
@@ -1240,7 +1252,7 @@
                 year: document.getElementById('id_year')?.value || '',
             });
 
-            resetSkuOptions('Loading SKUs...');
+            resetSkuOptions(window.FabroI18n.gettext('Loading SKUs...'));
             skuSelect.disabled = true;
             skuRequestController?.abort();
             skuRequestController = new AbortController();
@@ -1261,7 +1273,9 @@
                     return response.json();
                 })
                 .then(data => {
-                    resetSkuOptions(data.length ? 'Select SKU' : 'No matching SKUs');
+                    resetSkuOptions(data.length
+                        ? window.FabroI18n.gettext('Select SKU')
+                        : window.FabroI18n.gettext('No matching SKUs'));
                     data.forEach(item => {
                         const option = document.createElement('option');
                         option.value = item.id;
@@ -1275,9 +1289,9 @@
                         return;
                     }
                     console.error('Error loading SKUs:', error);
-                    resetSkuOptions('Select SKU');
+                    resetSkuOptions(window.FabroI18n.gettext('Select SKU'));
                     skuSelect.disabled = false;
-                    showToast('Error loading SKUs', 'error');
+                    showToast(window.FabroI18n.gettext('Error loading SKUs'), 'error');
                 });
         }
 
@@ -1287,14 +1301,14 @@
             const subModelSelect = document.getElementById('id_sub_model');
             const yearSelect = document.getElementById('id_year');
             if (brandId) {
-                loadDependentData(`/api/models/${brandId}/`, 'id_model', 'Select Model');
+                loadDependentData(`/api/models/${brandId}/`, 'id_model', window.FabroI18n.gettext('Select Model'));
             } else {
-                modelSelect.innerHTML = '<option value="">Select Model</option>';
+                modelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Model')}</option>`;
                 modelSelect.disabled = true;
             }
-            subModelSelect.innerHTML = '<option value="">Select Sub-Model (Optional)</option>';
+            subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Sub-Model (Optional)')}</option>`;
             subModelSelect.disabled = true;
-            yearSelect.innerHTML = '<option value="">Select Year</option>';
+            yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
             yearSelect.disabled = true;
             refreshSkuOptions();
         });
@@ -1304,12 +1318,12 @@
             const subModelSelect = document.getElementById('id_sub_model');
             const yearSelect = document.getElementById('id_year');
             if (modelId) {
-                loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
+                loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', window.FabroI18n.gettext('Select Sub-Model (Optional)'));
             } else {
-                subModelSelect.innerHTML = '<option value="">Select Sub-Model (Optional)</option>';
+                subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Sub-Model (Optional)')}</option>`;
                 subModelSelect.disabled = true;
             }
-            yearSelect.innerHTML = '<option value="">Select Year</option>';
+            yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
             yearSelect.disabled = true;
             refreshSkuOptions();
         });
@@ -1317,10 +1331,10 @@
         document.getElementById('id_sub_model').addEventListener('change', function () {
             const subModelId = this.value;
             if (subModelId) {
-                loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', 'Select Year');
+                loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', window.FabroI18n.gettext('Select Year'));
             } else {
                 const yearSelect = document.getElementById('id_year');
-                yearSelect.innerHTML = '<option value="">Select Year</option>';
+                yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
                 yearSelect.disabled = true;
             }
             refreshSkuOptions();
@@ -1440,10 +1454,13 @@
             });
 
             if (rejectedForSize) {
-                showToast('Each media file must be 100 MB or smaller.', 'error');
+                showToast(window.FabroI18n.gettext('Each media file must be 100 MB or smaller.'), 'error');
             }
             if (selectedMediaFiles.length >= maxMediaFiles && newFiles.some(file => !existingKeys.has(mediaFileKey(file)))) {
-                showToast(`A complaint can contain at most ${maxMediaFiles} media files.`, 'error');
+                showToast(window.FabroI18n.interpolate(
+                    window.FabroI18n.gettext('A complaint can contain at most %(count)s media files.'),
+                    { count: maxMediaFiles }
+                ), 'error');
             }
             syncSelectedMediaFiles();
         });
@@ -1510,6 +1527,7 @@
             }
         });
     </script>
+    <script src="{% static 'management/js/direct_media_upload.js' %}"></script>
     </div>
 {% if not is_htmx_request %}
 </body>

@@ -1,14 +1,14 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Approvals Workspace - Fabro Leather</title>
+    <title>{% translate "Approvals Workspace - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
     <style data-fabro-page-asset>
@@ -1171,7 +1171,7 @@
                     </div>
                     <div>
                         <h1 class="workspace-heading">
-                            Approvals Workspace
+                            {% translate "Approvals Workspace" %}
                         </h1>
                         <p class="workspace-subtitle">
                             {% if workspace_stage == 'verification' %}Post-execution verification matrix{% else %}Pre-execution action plan approval matrix{% endif %} & reviewer tracker •
@@ -1184,12 +1184,12 @@
                 <!-- KPI METRICS SUMMARY -->
                 <div class="kpi-row">
                     <a href="?stage={{ workspace_stage }}&status=active" class="kpi-chip {% if status_filter == 'active' %}urgent{% endif %}">
-                        <i class="fas fa-bolt"></i> Active In Review
+                        <i class="fas fa-bolt"></i> {% translate "Active In Review" %}
                         <span class="kpi-count">{{ total_active_count }}</span>
                     </a>
                     {% if my_pending_count > 0 %}
                     <a href="?stage={{ workspace_stage }}&status=my_pending" class="kpi-chip urgent" style="animation: pulse 2s infinite;">
-                        <i class="fas fa-hourglass-half"></i> Waiting My Vote
+                        <i class="fas fa-hourglass-half"></i> {% translate "Waiting My Vote" %}
                         <span class="kpi-count">{{ my_pending_count }}</span>
                     </a>
                     {% endif %}
@@ -1199,25 +1199,25 @@
                     </a>
                     {% if reconsideration_count > 0 %}
                     <a href="?stage={{ workspace_stage }}&status=reconsideration" class="kpi-chip {% if status_filter == 'reconsideration' %}urgent{% endif %}" style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
-                        <i class="fas fa-sync-alt"></i> Reconsiderations
+                        <i class="fas fa-sync-alt"></i> {% translate "Reconsiderations" %}
                         <span class="kpi-count" style="background: #f43f5e; color: #fff;">{{ reconsideration_count }}</span>
                     </a>
                     {% endif %}
                     {% if top_priority_count > 0 %}
                     <a href="?stage={{ workspace_stage }}&priority=top" class="kpi-chip" style="color: #fca5a5;">
-                        <i class="fas fa-exclamation-triangle"></i> Top Priority
+                        <i class="fas fa-exclamation-triangle"></i> {% translate "Top Priority" %}
                         <span class="kpi-count" style="background: #ef4444; color: #fff;">{{ top_priority_count }}</span>
                     </a>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="filter-tabs" role="navigation" aria-label="Approval stage workspace">
+            <div class="filter-tabs" role="navigation" aria-label="{% translate "Approval stage workspace" %}">
                 <a href="?stage=plan&status=active" class="tab-btn {% if workspace_stage == 'plan' %}active{% endif %}">
-                    <i class="fas fa-clipboard-list"></i> Before Execution
+                    <i class="fas fa-clipboard-list"></i> {% translate "Before Execution" %}
                 </a>
                 <a href="?stage=verification&status=active" class="tab-btn {% if workspace_stage == 'verification' %}active{% endif %}">
-                    <i class="fas fa-clipboard-check"></i> Verify Execution
+                    <i class="fas fa-clipboard-check"></i> {% translate "Verify Execution" %}
                 </a>
             </div>
 
@@ -1225,7 +1225,7 @@
             <div class="filter-controls-row">
                 <div class="filter-tabs">
                     <a href="?stage={{ workspace_stage }}&status=active{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
-                        <i class="fas fa-hourglass-half"></i> Active Pending
+                        <i class="fas fa-hourglass-half"></i> {% translate "Active Pending" %}
                     </a>
                     {% if is_workflow_approver %}
                     <a href="?stage={{ workspace_stage }}&status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
@@ -1237,14 +1237,14 @@
                     </a>
                     {% if workspace_stage == 'plan' %}
                     <a href="?status=reconsideration{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'reconsideration' %}active{% endif %}">
-                        <i class="fas fa-redo-alt"></i> Reconsideration Rounds
+                        <i class="fas fa-redo-alt"></i> {% translate "Reconsideration Rounds" %}
                     </a>
                     {% endif %}
                     <a href="?stage={{ workspace_stage }}&status=approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'approved' %}active{% endif %}">
                         <i class="fas fa-thumbs-up"></i> {% if workspace_stage == 'verification' %}Verified{% else %}Approved & Executing{% endif %}
                     </a>
                     <a href="?stage={{ workspace_stage }}&status=all{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'all' %}active{% endif %}">
-                        <i class="fas fa-list-alt"></i> All History
+                        <i class="fas fa-list-alt"></i> {% translate "All History" %}
                     </a>
                 </div>
 
@@ -1254,75 +1254,75 @@
                     <input type="hidden" name="search_by" id="approvals-search-by" value="{{ search_by|default:'all' }}">
                     <div class="search-picker" id="approvals-search-picker">
                         <i class="fas fa-search search-leading-icon"></i>
-                        <input type="text" name="search" id="approvals-search-input" placeholder="Search approvals..."
+                        <input type="text" name="search" id="approvals-search-input" placeholder="{% translate "Search approvals..." %}"
                                value="{{ search_query }}" class="header-search-input" autocomplete="off"
-                               aria-label="Search approvals" aria-describedby="approvals-search-options-title"
+                               aria-label="{% translate "Search approvals" %}" aria-describedby="approvals-search-options-title"
                                aria-haspopup="listbox" aria-expanded="false">
-                        <span class="search-field-label" id="approvals-search-field-label">All Fields</span>
+                        <span class="search-field-label" id="approvals-search-field-label">{% translate "All Fields" %}</span>
                         <div class="search-options" id="approvals-search-options">
-                            <p class="search-options-title" id="approvals-search-options-title">Search this keyword in</p>
-                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                            <p class="search-options-title" id="approvals-search-options-title">{% translate "Search this keyword in" %}</p>
+                            <div class="search-option-grid" role="listbox" aria-label="{% translate "Search field choices" %}">
                                 <button type="button" class="search-option" data-search-by="complaint_id" role="option">
                                     <i class="fas fa-hashtag"></i>
-                                    Complaint ID
+                                    {% translate "Complaint ID" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="complaint_type" role="option">
                                     <i class="fas fa-tag"></i>
-                                    Complaint Type
+                                    {% translate "Complaint Type" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="priority" role="option">
                                     <i class="fas fa-flag"></i>
-                                    Priority
+                                    {% translate "Priority" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="country" role="option">
                                     <i class="fas fa-globe"></i>
-                                    Country
+                                    {% translate "Country" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="channel" role="option">
                                     <i class="fas fa-code-branch"></i>
-                                    Channel
+                                    {% translate "Channel" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="vehicle" role="option">
                                     <i class="fas fa-car"></i>
-                                    Brand / Model
+                                    {% translate "Brand / Model" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="factory_reason" role="option">
                                     <i class="fas fa-comment-dots"></i>
-                                    Factory Reason
+                                    {% translate "Factory Reason" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="factory_action_plan" role="option">
                                     <i class="fas fa-tasks"></i>
-                                    Action Plan
+                                    {% translate "Action Plan" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="all" role="option">
                                     <i class="fas fa-layer-group"></i>
-                                    All Fields
+                                    {% translate "All Fields" %}
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" title="Search" aria-label="Search approvals" style="width: 2.5rem; height: 2.5rem; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; cursor: pointer;">
+                    <button type="submit" class="btn btn-primary" title="{% translate "Search" %}" aria-label="{% translate "Search approvals" %}" style="width: 2.5rem; height: 2.5rem; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; cursor: pointer;">
                         <i class="fas fa-arrow-right"></i>
                     </button>
 
                     <select name="priority" class="filter-select" onchange="this.form.submit()">
-                        <option value="">All Priorities</option>
-                        <option value="top" {% if selected_priority == 'top' %}selected{% endif %}>Top Priority</option>
-                        <option value="medium" {% if selected_priority == 'medium' %}selected{% endif %}>Medium Priority</option>
-                        <option value="low" {% if selected_priority == 'low' %}selected{% endif %}>Low Priority</option>
+                        <option value="">{% translate "All Priorities" %}</option>
+                        <option value="top" {% if selected_priority == 'top' %}selected{% endif %}>{% translate "Top Priority" %}</option>
+                        <option value="medium" {% if selected_priority == 'medium' %}selected{% endif %}>{% translate "Medium Priority" %}</option>
+                        <option value="low" {% if selected_priority == 'low' %}selected{% endif %}>{% translate "Low Priority" %}</option>
                     </select>
 
                     <select name="type" class="filter-select" onchange="this.form.submit()">
-                        <option value="">All Types</option>
-                        <option value="pattern" {% if selected_type == 'pattern' %}selected{% endif %}>Pattern</option>
-                        <option value="production" {% if selected_type == 'production' %}selected{% endif %}>Production</option>
-                        <option value="quality" {% if selected_type == 'quality' %}selected{% endif %}>Quality</option>
-                        <option value="line" {% if selected_type == 'line' %}selected{% endif %}>Factory</option>
+                        <option value="">{% translate "All Types" %}</option>
+                        <option value="pattern" {% if selected_type == 'pattern' %}selected{% endif %}>{% translate "Pattern" %}</option>
+                        <option value="production" {% if selected_type == 'production' %}selected{% endif %}>{% translate "Production" %}</option>
+                        <option value="quality" {% if selected_type == 'quality' %}selected{% endif %}>{% translate "Quality" %}</option>
+                        <option value="line" {% if selected_type == 'line' %}selected{% endif %}>{% translate "Factory" %}</option>
                     </select>
 
                     {% if countries %}
                     <select name="country" class="filter-select" onchange="this.form.submit()">
-                        <option value="">All Countries</option>
+                        <option value="">{% translate "All Countries" %}</option>
                         {% for c in countries %}
                         <option value="{{ c.id }}" {% if selected_country == c.id|stringformat:"i" %}selected{% endif %}>{{ c.name }}</option>
                         {% endfor %}
@@ -1330,7 +1330,7 @@
                     {% endif %}
 
                     {% if search_query or selected_priority or selected_type or selected_country %}
-                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary" title="Clear Filters" style="padding: 0.35rem 0.6rem;">
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary" title="{% translate "Clear Filters" %}" style="padding: 0.35rem 0.6rem;">
                         <i class="fas fa-times"></i>
                     </a>
                     {% endif %}
@@ -1346,7 +1346,7 @@
                     <!-- CARD HEADER -->
                     <div class="card-header-row">
                         <div class="card-id-block">
-                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="complaint-id-badge" title="Inspect complaint in full complaint list">
+                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="complaint-id-badge" title="{% translate "Inspect complaint in full complaint list" %}">
                                 <i class="fas fa-file-alt"></i> {{ item.complaint.complaint_id }}
                             </a>
                             
@@ -1367,7 +1367,7 @@
 
                             {% if item.can_decide %}
                             <span class="status-pill pending" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; font-weight: 800; animation: pulse 2s infinite;">
-                                <i class="fas fa-bell"></i> ACTION REQUIRED: Your Vote is Pending
+                                <i class="fas fa-bell"></i> {% translate "ACTION REQUIRED: Your Vote is Pending" %}
                             </span>
                             {% endif %}
                         </div>
@@ -1385,16 +1385,16 @@
                         <!-- LEFT: VEHICLE & FACTORY PLAN SUMMARY -->
                         <div class="complaint-overview-col">
                             <div class="meta-tags-grid">
-                                <span class="meta-label"><i class="fas fa-car"></i> Vehicle:</span>
+                                <span class="meta-label"><i class="fas fa-car"></i> {% translate "Vehicle:" %}</span>
                                 <span class="meta-value">
                                     {{ item.complaint.brand.name|default:"-" }} {{ item.complaint.model.name|default:"" }}
                                     {% if item.complaint.year %}({{ item.complaint.year.year_start }}-{{ item.complaint.year.year_end }}){% endif %}
                                 </span>
 
-                                <span class="meta-label"><i class="fas fa-barcode"></i> SKU:</span>
+                                <span class="meta-label"><i class="fas fa-barcode"></i> {% translate "SKU:" %}</span>
                                 <span class="meta-value">{{ item.complaint.sku.code|default:"Not specified" }}</span>
 
-                                <span class="meta-label"><i class="fas fa-globe"></i> Country:</span>
+                                <span class="meta-label"><i class="fas fa-globe"></i> {% translate "Country:" %}</span>
                                 <span class="meta-value">
                                     {% if item.country_flag_url %}
                                     <img src="{{ item.country_flag_url }}" class="country-flag-icon" alt="{{ item.complaint.country.name }}">
@@ -1402,20 +1402,20 @@
                                     {{ item.complaint.country.name|default:"-" }}
                                 </span>
 
-                                <span class="meta-label"><i class="fas fa-industry"></i> Factory:</span>
+                                <span class="meta-label"><i class="fas fa-industry"></i> {% translate "Factory:" %}</span>
                                 <span class="meta-value">{{ item.assigned_exec_name }}</span>
                             </div>
 
                             {% if item.complaint.factory_action_plan or item.complaint.factory_reason %}
                             <div class="factory-plan-box">
                                 <div class="factory-plan-title">
-                                    <i class="fas fa-clipboard-list"></i> Proposed Factory Action Plan
+                                    <i class="fas fa-clipboard-list"></i> {% translate "Proposed Factory Action Plan" %}
                                 </div>
                                 <p class="factory-plan-text">
-                                    <strong>Reason:</strong> {{ item.complaint.factory_reason|default:"No factory reason provided"|truncatechars:180 }}
+                                    <strong>{% translate "Reason:" %}</strong> {{ item.complaint.factory_reason|default:"No factory reason provided"|truncatechars:180 }}
                                 </p>
                                 <p class="factory-plan-text">
-                                    <strong>Action:</strong> {{ item.complaint.factory_action_plan|default:"No action plan specified"|truncatechars:220 }}
+                                    <strong>{% translate "Action:" %}</strong> {{ item.complaint.factory_action_plan|default:"No action plan specified"|truncatechars:220 }}
                                 </p>
                             </div>
                             {% endif %}
@@ -1424,7 +1424,7 @@
                         <!-- RIGHT: LIVE APPROVAL MATRIX ("WHERE THE APPROVAL IS") -->
                         <div class="approval-matrix-col">
                             <div class="matrix-header">
-                                <span><i class="fas fa-sitemap"></i> Live Approver Status Matrix</span>
+                                <span><i class="fas fa-sitemap"></i> {% translate "Live Approver Status Matrix" %}</span>
                                 <div class="progress-bar-container" title="{{ item.progress.decided }} of {{ item.progress.total }} approvers have submitted their vote">
                                     <div class="progress-bar-track">
                                         <div class="progress-bar-fill" style="width: {{ item.progress_percent }}%;"></div>
@@ -1495,12 +1495,12 @@
                                     Review & Submit Decision
                                 {% endif %}
                             </button>
-                            <a href="{% url 'approval_review' item.my_approval.id %}" class="btn-action-secondary" title="Open full dedicated review screen">
-                                <i class="fas fa-external-link-alt"></i> Full Review Page
+                            <a href="{% url 'approval_review' item.my_approval.id %}" class="btn-action-secondary" title="{% translate "Open full dedicated review screen" %}">
+                                <i class="fas fa-external-link-alt"></i> {% translate "Full Review Page" %}
                             </a>
                             {% else %}
                             <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="btn-action-secondary">
-                                <i class="fas fa-eye"></i> View Complaint Details
+                                <i class="fas fa-eye"></i> {% translate "View Complaint Details" %}
                             </a>
                             {% endif %}
                         </div>
@@ -1510,7 +1510,7 @@
             {% else %}
                 <div class="empty-approvals-box">
                     <i class="fas fa-check-circle empty-icon"></i>
-                    <h3 class="empty-title">No Approvals Found</h3>
+                    <h3 class="empty-title">{% translate "No Approvals Found" %}</h3>
                     <p style="margin: 0; font-size: 0.88rem;">
                         {% if search_query or selected_priority or selected_type or selected_country %}
                             No approval requests matched your active search and filter criteria.
@@ -1522,7 +1522,7 @@
                     </p>
                     {% if search_query or selected_priority or selected_type or selected_country %}
                     <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
-                        <i class="fas fa-redo"></i> Reset Filters
+                        <i class="fas fa-redo"></i> {% translate "Reset Filters" %}
                     </a>
                     {% endif %}
                 </div>
@@ -1534,8 +1534,8 @@
     <div class="decision-modal-overlay" id="decisionModalOverlay" onclick="handleModalOverlayClick(event)">
         <div class="decision-modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">Submit Approval Decision</h3>
-                <button type="button" class="modal-close-btn" onclick="closeDecisionModal()">&times;</button>
+                <h3 class="modal-title" id="modalTitle">{% translate "Submit Approval Decision" %}</h3>
+                <button type="button" class="modal-close-btn" onclick="closeDecisionModal()">{% translate "&times;" %}</button>
             </div>
 
             <form id="quickDecisionForm" onsubmit="submitQuickDecision(event)">
@@ -1544,38 +1544,38 @@
                 <input type="hidden" id="modalReviewStage" value="initial">
 
                 <div style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 0.75rem;" id="modalComplaintInfo">
-                    Complaint: <strong></strong>
+                    {% translate "Complaint:" %} <strong></strong>
                 </div>
 
                 <div class="decision-radio-group">
                     <label class="decision-choice-card" id="approveCard" onclick="selectDecision('approved')">
                         <input type="radio" name="decision" value="approved" required>
                         <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #10b981;"></i>
-                        <span style="font-weight: 700;" id="approveLabel">Approve Plan</span>
-                        <span style="font-size: 0.72rem; opacity: 0.75;">Green light proposed action</span>
+                        <span style="font-weight: 700;" id="approveLabel">{% translate "Approve Plan" %}</span>
+                        <span style="font-size: 0.72rem; opacity: 0.75;">{% translate "Green light proposed action" %}</span>
                     </label>
 
                     <label class="decision-choice-card" id="rejectCard" onclick="selectDecision('rejected')">
                         <input type="radio" name="decision" value="rejected" required>
                         <i class="fas fa-times-circle" style="font-size: 1.5rem; color: #ef4444;"></i>
-                        <span style="font-weight: 700;" id="rejectLabel">Reject / Rework</span>
-                        <span style="font-size: 0.72rem; opacity: 0.75;">Request revisions or reject</span>
+                        <span style="font-weight: 700;" id="rejectLabel">{% translate "Reject / Rework" %}</span>
+                        <span style="font-size: 0.72rem; opacity: 0.75;">{% translate "Request revisions or reject" %}</span>
                     </label>
                 </div>
 
                 <div style="margin-top: 1rem;">
                     <label for="modalComment" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">
-                        Review Comments <span id="commentRequiredHint" style="color: #ef4444; font-size: 0.75rem; display: none;">(Required for rejection)</span>:
+                        {% translate "Review Comments" %} <span id="commentRequiredHint" style="color: #ef4444; font-size: 0.75rem; display: none;">{% translate "(Required for rejection)" %}</span>:
                     </label>
-                    <textarea id="modalComment" class="modal-textarea" placeholder="Enter reason, feedback, or stipulations for factory executive..."></textarea>
+                    <textarea id="modalComment" class="modal-textarea" placeholder="{% translate "Enter reason, feedback, or stipulations for factory executive..." %}"></textarea>
                 </div>
 
                 <div id="modalErrorMessage" style="color: #ef4444; font-size: 0.8rem; margin-top: 0.5rem; display: none;"></div>
 
                 <div class="modal-footer" style="margin-top: 1.25rem;">
-                    <button type="button" class="btn-action-secondary" onclick="closeDecisionModal()">Cancel</button>
+                    <button type="button" class="btn-action-secondary" onclick="closeDecisionModal()">{% translate "Cancel" %}</button>
                     <button type="submit" class="btn-action-primary" id="modalSubmitBtn">
-                        <i class="fas fa-paper-plane"></i> Confirm Decision
+                        <i class="fas fa-paper-plane"></i> {% translate "Confirm Decision" %}
                     </button>
                 </div>
             </form>
@@ -1588,22 +1588,28 @@
         function openDecisionModal(approvalId, complaintId, reviewStage) {
             document.getElementById('modalApprovalId').value = approvalId;
             document.getElementById('modalReviewStage').value = reviewStage;
-            document.getElementById('modalComplaintInfo').innerHTML = `Complaint: <strong>${complaintId}</strong>`;
+            const modalComplaintInfo = document.getElementById('modalComplaintInfo');
+            const complaintStrong = document.createElement('strong');
+            complaintStrong.textContent = complaintId;
+            modalComplaintInfo.replaceChildren(
+                document.createTextNode(`${window.FabroI18n.gettext('Complaint')}: `),
+                complaintStrong
+            );
             document.getElementById('modalComment').value = '';
             document.getElementById('modalErrorMessage').style.display = 'none';
 
             if (reviewStage === 'reconsideration') {
-                document.getElementById('modalTitle').textContent = 'Submit Reconsideration Vote';
-                document.getElementById('approveLabel').textContent = 'Proceed with Plan';
-                document.getElementById('rejectLabel').textContent = 'Return for Rework';
+                document.getElementById('modalTitle').textContent = window.FabroI18n.gettext('Submit Reconsideration Vote');
+                document.getElementById('approveLabel').textContent = window.FabroI18n.gettext('Proceed with Plan');
+                document.getElementById('rejectLabel').textContent = window.FabroI18n.gettext('Return for Rework');
             } else if (reviewStage === 'execution_verification') {
-                document.getElementById('modalTitle').textContent = 'Verify Executed Action Plan';
-                document.getElementById('approveLabel').textContent = 'Execution Is Correct';
-                document.getElementById('rejectLabel').textContent = 'Needs Correction';
+                document.getElementById('modalTitle').textContent = window.FabroI18n.gettext('Verify Executed Action Plan');
+                document.getElementById('approveLabel').textContent = window.FabroI18n.gettext('Execution Is Correct');
+                document.getElementById('rejectLabel').textContent = window.FabroI18n.gettext('Needs Correction');
             } else {
-                document.getElementById('modalTitle').textContent = 'Submit Approval Decision';
-                document.getElementById('approveLabel').textContent = 'Approve Plan';
-                document.getElementById('rejectLabel').textContent = 'Reject Plan';
+                document.getElementById('modalTitle').textContent = window.FabroI18n.gettext('Submit Approval Decision');
+                document.getElementById('approveLabel').textContent = window.FabroI18n.gettext('Approve Plan');
+                document.getElementById('rejectLabel').textContent = window.FabroI18n.gettext('Reject Plan');
             }
 
             selectDecision('approved');
@@ -1648,14 +1654,14 @@
             const submitBtn = document.getElementById('modalSubmitBtn');
 
             if (decision === 'rejected' && !comment) {
-                errorDiv.textContent = 'Please enter a review comment explaining the rejection or rework requirement.';
+                errorDiv.textContent = window.FabroI18n.gettext('Please enter a review comment explaining the rejection or rework requirement.');
                 errorDiv.style.display = 'block';
                 return;
             }
 
             errorDiv.style.display = 'none';
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${window.FabroI18n.gettext('Submitting...')}`;
 
             try {
                 const formData = new FormData();
@@ -1677,16 +1683,19 @@
                     // Reload page to reflect updated approvals state
                     window.location.reload();
                 } else {
-                    errorDiv.textContent = data.error || 'An error occurred while submitting your decision.';
+                    errorDiv.textContent = data.error || window.FabroI18n.gettext('An error occurred while submitting your decision.');
                     errorDiv.style.display = 'block';
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirm Decision';
+                    submitBtn.innerHTML = `<i class="fas fa-paper-plane"></i> ${window.FabroI18n.gettext('Confirm Decision')}`;
                 }
             } catch (err) {
-                errorDiv.textContent = 'Network error while contacting server: ' + err.message;
+                errorDiv.textContent = window.FabroI18n.interpolate(
+                    window.FabroI18n.gettext('Network error while contacting server: %(error)s'),
+                    { error: err.message }
+                );
                 errorDiv.style.display = 'block';
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirm Decision';
+                submitBtn.innerHTML = `<i class="fas fa-paper-plane"></i> ${window.FabroI18n.gettext('Confirm Decision')}`;
             }
         }
 

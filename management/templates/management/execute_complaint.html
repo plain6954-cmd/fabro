@@ -1,7 +1,7 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -19,11 +19,11 @@
     <main class="workflow-page">
         <header class="workflow-header">
             <div>
-                <h1 class="workflow-title"><i class="fas fa-flag-checkered"></i> Approved Action Plan</h1>
+                <h1 class="workflow-title"><i class="fas fa-flag-checkered"></i> {% translate "Approved Action Plan" %}</h1>
                 <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }}</p>
             </div>
             <a href="{% url 'complaint_list' %}" class="workflow-btn secondary">
-                <i class="fas fa-arrow-left"></i> All Complaints
+                <i class="fas fa-arrow-left"></i> {% translate "All Complaints" %}
             </a>
         </header>
 
@@ -38,7 +38,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="start">
                     <button type="submit" class="workflow-btn success">
-                        <i class="fas fa-play"></i> Proceed With Action Plan
+                        <i class="fas fa-play"></i> {% translate "Proceed With Action Plan" %}
                     </button>
                 </form>
             {% endif %}
@@ -47,33 +47,33 @@
         <div class="workflow-grid">
             <div class="workflow-stack">
                 <section class="workflow-panel">
-                    <h2 class="workflow-section-title"><i class="fas fa-industry"></i> Approved Factory Plan</h2>
+                    <h2 class="workflow-section-title"><i class="fas fa-industry"></i> {% translate "Approved Factory Plan" %}</h2>
                     <div class="detail-grid">
                         <div class="detail-block">
-                            <span class="detail-label">Country</span>
+                            <span class="detail-label">{% translate "Country" %}</span>
                             <span class="detail-value">{{ complaint.country|default:"-" }}</span>
                         </div>
                         <div class="detail-block">
-                            <span class="detail-label">Assigned Executive</span>
+                            <span class="detail-label">{% translate "Assigned Executive" %}</span>
                             <span class="detail-value">{{ complaint.assigned_factory_executive.username|default:"-" }}</span>
                         </div>
                         <div class="detail-block wide">
-                            <span class="detail-label">Complaint</span>
+                            <span class="detail-label">{% translate "Complaint" %}</span>
                             <span class="detail-value">{{ complaint.complaint_description|default:"-" }}</span>
                         </div>
                         <div class="detail-block wide">
-                            <span class="detail-label">Confirmed Reason</span>
+                            <span class="detail-label">{% translate "Confirmed Reason" %}</span>
                             <span class="detail-value">{{ complaint.factory_reason|default:"-" }}</span>
                         </div>
                         <div class="detail-block wide">
-                            <span class="detail-label">Approved Action Plan</span>
+                            <span class="detail-label">{% translate "Approved Action Plan" %}</span>
                             <span class="detail-value">{{ complaint.factory_action_plan|default:"-" }}</span>
                         </div>
                     </div>
                 </section>
 
                 <section class="workflow-panel">
-                    <h2 class="workflow-section-title"><i class="fas fa-route"></i> Complaint Journey</h2>
+                    <h2 class="workflow-section-title"><i class="fas fa-route"></i> {% translate "Complaint Journey" %}</h2>
                     <div class="timeline-list">
                         {% for event in complaint.timeline_events.all %}
                             <div class="timeline-entry">
@@ -90,7 +90,7 @@
 
             <aside class="workflow-stack">
                 <section class="workflow-panel">
-                    <h2 class="workflow-section-title"><i class="fas fa-users"></i> Completed Approvals</h2>
+                    <h2 class="workflow-section-title"><i class="fas fa-users"></i> {% translate "Completed Approvals" %}</h2>
                     <div class="approval-rail">
                         {% for approval in approval_summary.approvals %}
                             <div class="approval-step {{ approval.status }}">
@@ -107,7 +107,7 @@
 
                 {% if complaint.workflow_status == 'pending_final_update' %}
                     <section class="workflow-panel">
-                        <h2 class="workflow-section-title"><i class="fas fa-box-check"></i> Final Production Update</h2>
+                        <h2 class="workflow-section-title"><i class="fas fa-box-check"></i> {% translate "Final Production Update" %}</h2>
                         <form method="post">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="close">
@@ -126,12 +126,12 @@
                             {% else %}
                                 {{ form.production_updates_container }}
                                 <p class="workflow-subtitle" style="font-size: 0.78rem; margin-bottom: 1rem;">
-                                    A production container number is not required for Factory Complaints.
+                                    {% translate "A production container number is not required for Factory Complaints." %}
                                 </p>
                             {% endif %}
                             <div class="workflow-actions">
                                 <button type="submit" class="workflow-btn success">
-                                    <i class="fas fa-check-circle"></i> Save Updates And Close Case
+                                    <i class="fas fa-check-circle"></i> {% translate "Save Updates And Close Case" %}
                                 </button>
                             </div>
                         </form>
@@ -140,13 +140,13 @@
                     <section class="workflow-panel">
                         <div class="empty-workflow">
                             <i class="fas fa-clipboard-check"></i>
-                            <strong>Submit completed execution for verification</strong>
-                            <p>The CAD and container fields unlock only after every original approver verifies the execution.</p>
+                            <strong>{% translate "Submit completed execution for verification" %}</strong>
+                            <p>{% translate "The CAD and container fields unlock only after every original approver verifies the execution." %}</p>
                             <form method="post" style="margin-top: 1rem;">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="submit_verification">
                                 <button type="submit" class="workflow-btn success">
-                                    <i class="fas fa-paper-plane"></i> Submit Execution For Verification
+                                    <i class="fas fa-paper-plane"></i> {% translate "Submit Execution For Verification" %}
                                 </button>
                             </form>
                         </div>
@@ -155,7 +155,7 @@
                     <section class="workflow-panel">
                         <div class="empty-workflow">
                             <i class="fas fa-user-check"></i>
-                            <strong>Waiting for execution verification</strong>
+                            <strong>{% translate "Waiting for execution verification" %}</strong>
                             <p>{{ approval_summary.approved }} of {{ approval_summary.total }} required approvers have verified the execution.</p>
                         </div>
                     </section>
@@ -163,8 +163,8 @@
                     <section class="workflow-panel">
                         <div class="empty-workflow">
                             <i class="fas fa-play-circle"></i>
-                            <strong>Ready for execution</strong>
-                            <p>Proceed with the approved action plan to unlock the final update fields.</p>
+                            <strong>{% translate "Ready for execution" %}</strong>
+                            <p>{% translate "Proceed with the approved action plan to unlock the final update fields." %}</p>
                         </div>
                     </section>
                 {% endif %}

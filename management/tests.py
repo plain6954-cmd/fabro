@@ -1,6 +1,6 @@
 import json
 from datetime import date, timedelta
-from io import BytesIO
+from io import BytesIO, StringIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -8,6 +8,7 @@ from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -21,6 +22,8 @@ from .models import (
     ComplaintApproval,
     ComplaintEditLog,
     ComplaintMedia,
+    ComplaintMediaUpload,
+    ComplaintMediaUploadBatch,
     ComplaintTypes,
     ApprovalRoles,
     ApprovalStages,
@@ -49,6 +52,8 @@ from .services.workflow import (
     visible_complaints_for_user,
 )
 from .views import _validate_complaint_media_files, get_sorted_chat_users
+from .services.media_uploads import create_upload_batch
+from .services.supabase_storage import SupabaseStorageError
 
 
 class FabroBackendTests(TestCase):
@@ -349,10 +354,11 @@ class FabroBackendTests(TestCase):
         )
 
         with self.assertLogs('management.signals', level='WARNING'):
-            response = self.client.post(
-                reverse('delete_complaint', args=[complaint.complaint_id]),
-                follow=True,
-            )
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    reverse('delete_complaint', args=[complaint.complaint_id]),
+                    follow=True,
+                )
 
         self.assertEqual(response.status_code, 200)
         self.assertRedirects(response, reverse('complaint_list'))
@@ -1825,6 +1831,11 @@ class FabroBackendTests(TestCase):
 
     def test_admin_panel_creates_and_updates_workflow_roles(self):
         self.client.force_login(self.user)
+        panel = self.client.get(reverse('admin_panel'))
+        self.assertContains(panel, 'id="userSearchInput"')
+        self.assertContains(panel, 'oninput="filterUserCards()"')
+        self.assertContains(panel, 'window.erpActiveFilters = {')
+
         response = self.client.post(reverse('admin_panel'), {
             'add_user': '1',
             'username': 'configured_approver',
@@ -1892,6 +1903,29 @@ class FabroBackendTests(TestCase):
         self.assertContains(response, 'edit-user-feedback error')
         configured.refresh_from_db()
         self.assertTrue(configured.check_password('UpdatedPassword!999'))
+
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': configured.pk,
+            'new_password': 'password',
+            'reset_password': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+        self.assertIn('This password is too common.', response.json()['messages'])
+
+        response = self.client.post(reverse('edit_user'), {
+            'user_id': configured.pk,
+            'new_password': 'AnotherUpdatedPassword!998',
+            'reset_password': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        self.assertEqual(
+            response.json()['messages'],
+            ['Password reset successfully for configured_approver.'],
+        )
+        configured.refresh_from_db()
+        self.assertTrue(configured.check_password('AnotherUpdatedPassword!998'))
 
         # Test creating user via unified role choice 'approver_CAD'
         response_cad = self.client.post(reverse('admin_panel'), {
@@ -2414,6 +2448,330 @@ class FabroBackendTests(TestCase):
             reverse('terminate_session', args=[other_client.session.session_key]),
         )
 
+        response = self.client.post(reverse('terminate_all_sessions'), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Only your current session remains active.')
+        self.assertContains(response, 'class="erp-toast-close"')
+        self.assertContains(response, 'onclick="dismissErpToast(this)"')
+
+
+@override_settings(USE_SUPABASE_STORAGE=True)
+class DirectComplaintMediaUploadTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser(
+            username='direct_upload_admin',
+            email='direct@example.com',
+            password='DirectUpload!234',
+        )
+        self.other_user = User.objects.create_superuser(
+            username='other_direct_upload_admin',
+            email='other-direct@example.com',
+            password='DirectUpload!234',
+        )
+        self.viewer = User.objects.create_user(
+            username='direct_upload_viewer',
+            password='DirectUpload!234',
+        )
+        UserProfile.objects.filter(user=self.viewer).update(role=WorkflowRoles.FACTORY_VIEWER)
+        self.case_type = MasterSetting.objects.create(
+            category='Pattern Complaint Type',
+            name='Direct upload type',
+        )
+        self.production_type = MasterSetting.objects.create(
+            category='Production Complaint Type',
+            name='Production direct upload type',
+        )
+
+    def complaint_payload(self, **overrides):
+        payload = {
+            'complaint_type': ComplaintTypes.PATTERN,
+            'status': 'Open',
+            'priority': 'Medium',
+            'case_sub_category': self.case_type.id,
+            'complaint_description': 'Direct upload complaint',
+            'batch_order': 'DIRECT-UPLOAD',
+        }
+        payload.update(overrides)
+        return payload
+
+    def create_complaint(self, description='Editable direct complaint'):
+        return Complaint.objects.create(
+            complaint_type=ComplaintTypes.PATTERN,
+            status='Open',
+            priority='Medium',
+            complaint_description=description,
+            batch_order='DIRECT-EDIT',
+            case_sub_category=self.case_type,
+            created_by=self.user,
+        )
+
+    def create_pending_upload(self, user=None, complaint=None, *, size=12, content_type='image/png'):
+        user = user or self.user
+        batch = create_upload_batch(user, complaint=complaint)
+        upload = ComplaintMediaUpload.objects.create(
+            batch=batch,
+            storage_path=(
+                f'complaint_media/uploads/user_{user.pk}/{batch.id}/'
+                f'00000000-0000-0000-0000-000000000001/test.png'
+            ),
+            original_name='test.png',
+            expected_size=size,
+            expected_content_type=content_type,
+        )
+        # The verifier requires the upload UUID to be embedded in the path.
+        upload.storage_path = upload.storage_path.replace(
+            '00000000-0000-0000-0000-000000000001',
+            str(upload.id),
+        )
+        upload.save(update_fields=['storage_path'])
+        return batch, upload
+
+    def object_info(self, size=12, content_type='image/png'):
+        return {'size': size, 'contentType': content_type}
+
+    def test_signed_upload_endpoint_requires_authentication(self):
+        response = self.client.post(
+            reverse('complaint_media_signed_upload'),
+            data=json.dumps({}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response['Location'])
+
+    @override_settings(SUPABASE_SERVICE_ROLE_KEY='server-only-secret-value')
+    def test_service_role_key_is_never_rendered_in_complaint_form(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('add_complaint'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'server-only-secret-value')
+        self.assertContains(response, 'data-direct-media-uploads="true"')
+
+    def test_viewer_cannot_request_signed_upload(self):
+        batch = create_upload_batch(self.viewer)
+        self.client.force_login(self.viewer)
+        response = self.client.post(
+            reverse('complaint_media_signed_upload'),
+            data=json.dumps({
+                'batch_id': str(batch.id),
+                'filename': 'photo.png',
+                'size': 10,
+                'content_type': 'image/png',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(batch.uploads.exists())
+
+    @patch('management.services.media_uploads.create_signed_upload_url')
+    def test_valid_signed_upload_is_verified_and_attached(self, create_url):
+        create_url.return_value = 'https://example.supabase.co/storage/v1/object/upload/sign/path?token=test'
+        batch = create_upload_batch(self.user)
+        self.client.force_login(self.user)
+        sign_response = self.client.post(
+            reverse('complaint_media_signed_upload'),
+            data=json.dumps({
+                'batch_id': str(batch.id),
+                'filename': 'photo.png',
+                'size': 12,
+                'content_type': 'image/png',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(sign_response.status_code, 200)
+        upload = ComplaintMediaUpload.objects.get(id=sign_response.json()['upload_id'])
+        self.assertTrue(upload.storage_path.startswith(f'complaint_media/uploads/user_{self.user.pk}/'))
+
+        with patch('management.services.media_uploads.get_object_info', return_value=self.object_info()):
+            response = self.client.post(reverse('add_complaint'), {
+                **self.complaint_payload(),
+                'media_upload_batch': str(batch.id),
+                'media_upload_ids': [str(upload.id)],
+            })
+        self.assertEqual(response.status_code, 302)
+        complaint = Complaint.objects.get(batch_order='DIRECT-UPLOAD')
+        self.assertEqual(complaint.media_files.count(), 1)
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, ComplaintMediaUpload.Status.ATTACHED)
+        self.assertEqual(upload.complaint, complaint)
+
+    @patch('management.services.media_uploads.create_signed_upload_url')
+    def test_oversized_and_unsupported_files_are_rejected_before_signing(self, create_url):
+        batch = create_upload_batch(self.user)
+        self.client.force_login(self.user)
+        requests = [
+            {'filename': 'large.mp4', 'size': (100 * 1024 * 1024) + 1, 'content_type': 'video/mp4'},
+            {'filename': 'document.pdf', 'size': 100, 'content_type': 'application/pdf'},
+            {'filename': 'fake.png', 'size': 100, 'content_type': 'video/mp4'},
+        ]
+        for item in requests:
+            response = self.client.post(
+                reverse('complaint_media_signed_upload'),
+                data=json.dumps({'batch_id': str(batch.id), **item}),
+                content_type='application/json',
+            )
+            self.assertEqual(response.status_code, 400)
+        create_url.assert_not_called()
+        self.assertFalse(batch.uploads.exists())
+
+    @patch('management.services.media_uploads.delete_objects')
+    @patch('management.services.media_uploads.get_object_info')
+    def test_tampered_storage_path_is_rejected_and_cleaned(self, object_info, delete_objects_mock):
+        batch, upload = self.create_pending_upload()
+        upload.storage_path = f'complaint_media/uploads/user_{self.other_user.pk}/stolen.png'
+        upload.save(update_fields=['storage_path'])
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('add_complaint'), {
+            **self.complaint_payload(),
+            'media_upload_batch': str(batch.id),
+            'media_upload_ids': [str(upload.id)],
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Complaint.objects.filter(batch_order='DIRECT-UPLOAD').exists())
+        object_info.assert_not_called()
+        delete_objects_mock.assert_called_once()
+
+    @patch('management.services.media_uploads.delete_objects')
+    def test_foreign_upload_id_cannot_be_attached(self, delete_objects_mock):
+        own_batch = create_upload_batch(self.other_user)
+        _, foreign_upload = self.create_pending_upload(user=self.user)
+        self.client.force_login(self.other_user)
+        response = self.client.post(reverse('add_complaint'), {
+            **self.complaint_payload(),
+            'media_upload_batch': str(own_batch.id),
+            'media_upload_ids': [str(foreign_upload.id)],
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Complaint.objects.filter(batch_order='DIRECT-UPLOAD').exists())
+        # Cleanup is ownership-scoped, so it must not delete the other user's object.
+        delete_objects_mock.assert_not_called()
+
+    @patch('management.services.media_uploads.delete_objects')
+    @patch('management.services.media_uploads.get_object_info')
+    def test_missing_object_and_mime_mismatch_are_rejected(self, object_info, delete_objects_mock):
+        self.client.force_login(self.user)
+        for side_effect in (
+            SupabaseStorageError('missing'),
+            self.object_info(content_type='video/mp4'),
+        ):
+            batch, upload = self.create_pending_upload()
+            object_info.side_effect = side_effect if isinstance(side_effect, Exception) else None
+            object_info.return_value = side_effect if isinstance(side_effect, dict) else None
+            response = self.client.post(reverse('add_complaint'), {
+                **self.complaint_payload(batch_order=f'DIRECT-{upload.id}'),
+                'media_upload_batch': str(batch.id),
+                'media_upload_ids': [str(upload.id)],
+            })
+            self.assertEqual(response.status_code, 200)
+            upload.refresh_from_db()
+            self.assertEqual(upload.status, ComplaintMediaUpload.Status.REJECTED)
+        self.assertEqual(delete_objects_mock.call_count, 2)
+
+    @patch('management.services.media_uploads.create_signed_upload_url')
+    def test_ten_file_limit_counts_existing_media_and_planned_removals(self, create_url):
+        create_url.return_value = 'https://example.supabase.co/signed'
+        complaint = self.create_complaint()
+        for index in range(10):
+            ComplaintMedia.objects.create(complaint=complaint, file=f'complaint_media/{index}.png')
+        batch = create_upload_batch(self.user, complaint=complaint)
+        self.client.force_login(self.user)
+        payload = {
+            'batch_id': str(batch.id),
+            'filename': 'new.png',
+            'size': 12,
+            'content_type': 'image/png',
+        }
+        blocked = self.client.post(
+            reverse('complaint_media_signed_upload'),
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        self.assertEqual(blocked.status_code, 400)
+
+        removable_id = complaint.media_files.first().id
+        allowed = self.client.post(
+            reverse('complaint_media_signed_upload'),
+            data=json.dumps({**payload, 'delete_media_ids': [removable_id]}),
+            content_type='application/json',
+        )
+        self.assertEqual(allowed.status_code, 200)
+
+    @patch('management.signals.default_storage.delete')
+    @patch('management.services.media_uploads.get_object_info')
+    def test_edit_preserves_unselected_media_and_removes_only_selected(
+        self,
+        object_info,
+        storage_delete,
+    ):
+        object_info.return_value = self.object_info()
+        complaint = self.create_complaint()
+        kept = ComplaintMedia.objects.create(complaint=complaint, file='complaint_media/kept.png')
+        removed = ComplaintMedia.objects.create(complaint=complaint, file='complaint_media/removed.png')
+        batch, upload = self.create_pending_upload(complaint=complaint)
+        self.client.force_login(self.user)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(reverse('edit_complaint', args=[complaint.pk]), {
+                'status': 'Open',
+                'priority': 'High',
+                'complaint_description': 'Edited direct complaint',
+                'batch_order': 'DIRECT-EDIT',
+                'delete_media': [removed.id],
+                'media_upload_batch': str(batch.id),
+                'media_upload_ids': [str(upload.id)],
+            })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(ComplaintMedia.objects.filter(pk=kept.pk).exists())
+        self.assertFalse(ComplaintMedia.objects.filter(pk=removed.pk).exists())
+        self.assertEqual(complaint.media_files.count(), 2)
+        storage_delete.assert_called_once_with('complaint_media/removed.png')
+
+    @patch('management.services.media_uploads.delete_objects')
+    @patch('management.services.media_uploads.get_object_info')
+    @patch('management.views.initialize_created_complaint')
+    def test_uploaded_object_is_deleted_when_complaint_save_fails(
+        self,
+        initialize_complaint,
+        object_info,
+        delete_objects_mock,
+    ):
+        initialize_complaint.side_effect = RuntimeError('forced save failure')
+        object_info.return_value = self.object_info()
+        batch, upload = self.create_pending_upload()
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('add_complaint'), {
+            **self.complaint_payload(),
+            'media_upload_batch': str(batch.id),
+            'media_upload_ids': [str(upload.id)],
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Complaint.objects.filter(batch_order='DIRECT-UPLOAD').exists())
+        delete_objects_mock.assert_called_once_with([upload.storage_path])
+
+    @patch('management.services.media_uploads.delete_objects')
+    def test_cleanup_command_deletes_expired_unattached_objects(self, delete_objects_mock):
+        batch, upload = self.create_pending_upload()
+        batch.expires_at = timezone.now() - timedelta(minutes=1)
+        batch.save(update_fields=['expires_at'])
+        output = StringIO()
+        call_command('cleanup_abandoned_media_uploads', stdout=output)
+        upload.refresh_from_db()
+        self.assertEqual(upload.status, ComplaintMediaUpload.Status.REJECTED)
+        delete_objects_mock.assert_called_once_with([upload.storage_path])
+        self.assertIn('Cleaned 1 abandoned media upload', output.getvalue())
+
+    @override_settings(USE_SUPABASE_STORAGE=False)
+    def test_local_fallback_keeps_multipart_upload_path(self):
+        self.client.force_login(self.user)
+        upload = SimpleUploadedFile('local.png', b'local-image', content_type='image/png')
+        response = self.client.post(reverse('add_complaint'), {
+            **self.complaint_payload(batch_order='LOCAL-FALLBACK'),
+            'media_files': [upload],
+        })
+        self.assertEqual(response.status_code, 302)
+        complaint = Complaint.objects.get(batch_order='LOCAL-FALLBACK')
+        self.assertEqual(complaint.media_files.count(), 1)
+        self.assertTrue(complaint.media_files.first().file.startswith('complaint_media/'))
+
 
 class ChatSystemTests(TestCase):
     def setUp(self):
@@ -2691,6 +3049,201 @@ class ApprovalsWorkspaceTests(TestCase):
         self.assertEqual(self.approval_pm.comment, 'Looks good to go')
 
 
+class ComplaintServerSideFilterTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(
+            username='filter_admin', email='filters@example.com', password='Filters!234'
+        )
+        self.reporter = User.objects.create_user(username='filter_reporter', password='Filters!234')
+        self.country = MasterSetting.objects.create(category='Country', name='FILTER-KSA')
+        self.other_country = MasterSetting.objects.create(category='Country', name='FILTER-UAE')
+        self.channel = MasterSetting.objects.create(category='Channel', name='FILTER-WEB')
+        self.category = MasterSetting.objects.create(
+            category='Pattern Complaint Type', name='FILTER-STITCHING'
+        )
+        self.brand = Brand.objects.create(name='FILTER BRAND')
+        self.model = Model.objects.create(brand=self.brand, name='FILTER MODEL')
+        self.client.force_login(self.admin)
+
+    def create_complaint(self, index, **overrides):
+        values = {
+            'complaint_id': f'PAT-FLT{index:04d}',
+            'date': '2026-09-03',
+            'country': self.country,
+            'channel': self.channel,
+            'case_sub_category': self.category,
+            'brand': self.brand,
+            'model': self.model,
+            'created_by': self.reporter,
+            'complaint_type': ComplaintTypes.PATTERN,
+            'workflow_status': WorkflowStatuses.SUBMITTED,
+            'status': 'Open',
+            'priority': 'Medium',
+            'complaint_description': f'Filter complaint {index}',
+            'batch_order': f'FILTER-{index}',
+        }
+        values.update(overrides)
+        return Complaint.objects.create(**values)
+
+    def test_filter_matches_complaint_beyond_first_unfiltered_page(self):
+        for index in range(1, 31):
+            self.create_complaint(index, priority='High' if index == 1 else 'Medium')
+
+        unfiltered = self.client.get(reverse('complaint_list'))
+        self.assertEqual(len(unfiltered.context['complaints']), 25)
+        self.assertNotIn(
+            'PAT-FLT0001',
+            {complaint.complaint_id for complaint in unfiltered.context['complaints']},
+        )
+
+        filtered = self.client.get(reverse('complaint_list'), {'cf_priority': 'High'})
+        self.assertEqual(filtered.context['page_obj'].paginator.count, 1)
+        self.assertContains(filtered, 'PAT-FLT0001')
+
+    def test_multiple_column_filters_use_and_with_or_inside_a_column(self):
+        self.create_complaint(1, priority='High', workflow_status=WorkflowStatuses.APPROVED)
+        self.create_complaint(2, priority='Low', workflow_status=WorkflowStatuses.APPROVED)
+        self.create_complaint(3, priority='Medium', workflow_status=WorkflowStatuses.SUBMITTED)
+
+        response = self.client.get(
+            reverse('complaint_list'),
+            [('cf_priority', 'High'), ('cf_priority', 'Low'), ('cf_workflow_status', WorkflowStatuses.APPROVED)],
+        )
+
+        self.assertEqual(response.context['page_obj'].paginator.count, 2)
+        result_ids = {complaint.complaint_id for complaint in response.context['complaints']}
+        self.assertEqual(result_ids, {'PAT-FLT0001', 'PAT-FLT0002'})
+
+    def test_keyword_search_combines_with_column_filters(self):
+        self.create_complaint(1, priority='High', complaint_description='needle visible')
+        self.create_complaint(2, priority='Low', complaint_description='needle excluded')
+        self.create_complaint(3, priority='High', complaint_description='different text')
+
+        response = self.client.get(reverse('complaint_list'), {
+            'search': 'needle', 'search_by': 'description', 'cf_priority': 'High',
+        })
+
+        self.assertEqual(response.context['page_obj'].paginator.count, 1)
+        self.assertContains(response, 'PAT-FLT0001')
+
+    def test_filters_and_search_persist_across_pagination(self):
+        for index in range(1, 31):
+            self.create_complaint(index, priority='High', complaint_description='persistent needle')
+
+        response = self.client.get(reverse('complaint_list'), {
+            'search': 'needle', 'search_by': 'description', 'cf_priority': 'High',
+        })
+
+        self.assertEqual(len(response.context['complaints']), 25)
+        query = response.context['pagination_querystring']
+        self.assertIn('search=needle', query)
+        self.assertIn('search_by=description', query)
+        self.assertIn('cf_priority=High', query)
+        escaped_query = query.replace('&', '&amp;')
+        self.assertContains(response, f'?page=2&amp;{escaped_query}', html=False)
+
+    def test_clear_one_and_clear_all_preserve_other_safe_parameters(self):
+        self.create_complaint(1, priority='High', workflow_status=WorkflowStatuses.APPROVED)
+        response = self.client.get(reverse('complaint_list'), {
+            'search': 'Filter',
+            'search_by': 'description',
+            'status': 'Open',
+            'cf_priority': 'High',
+            'cf_workflow_status': WorkflowStatuses.APPROVED,
+            'unsafe_parameter': 'discard-me',
+        })
+
+        clear_all = response.context['clear_all_column_filters_querystring']
+        self.assertIn('search=Filter', clear_all)
+        self.assertIn('status=Open', clear_all)
+        self.assertNotIn('cf_priority', clear_all)
+        self.assertNotIn('cf_workflow_status', clear_all)
+        self.assertNotIn('unsafe_parameter', clear_all)
+        self.assertContains(response, "url.searchParams.delete(param);", html=False)
+
+    def test_invalid_filter_values_are_ignored_and_not_persisted(self):
+        self.create_complaint(1)
+        response = self.client.get(reverse('complaint_list'), {
+            'cf_priority': "High') OR 1=1 --",
+            'cf_vehicle': '999999:999999',
+            'search_by': 'not-a-field',
+            'country': 'not-an-id',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['page_obj'].paginator.count, 1)
+        self.assertEqual(response.context['search_by'], 'complaint_id')
+        self.assertNotIn('cf_priority', response.context['pagination_querystring'])
+        self.assertNotIn('cf_vehicle', response.context['pagination_querystring'])
+
+    def test_valid_filter_can_return_empty_results(self):
+        self.create_complaint(1, priority='High', workflow_status=WorkflowStatuses.SUBMITTED)
+        self.create_complaint(2, priority='Low', workflow_status=WorkflowStatuses.APPROVED)
+
+        response = self.client.get(reverse('complaint_list'), {
+            'cf_priority': 'High', 'cf_workflow_status': WorkflowStatuses.APPROVED,
+        })
+
+        self.assertEqual(response.context['page_obj'].paginator.count, 0)
+        self.assertContains(response, 'No complaints found')
+
+    def test_filter_options_and_results_respect_country_visibility(self):
+        visible = self.create_complaint(1)
+        hidden = self.create_complaint(2, country=self.other_country)
+        country_user = get_user_model().objects.create_user(
+            username='filter_country_exec', password='Filters!234'
+        )
+        UserProfile.objects.filter(user=country_user).update(
+            role=WorkflowRoles.COUNTRY_EXECUTIVE, country=self.country
+        )
+        self.client.force_login(country_user)
+
+        response = self.client.get(reverse('complaint_list'), {'cf_complaint': hidden.complaint_id})
+
+        self.assertEqual(response.context['page_obj'].paginator.count, 1)
+        config = response.context['column_filter_config'][0]
+        option_values = {option['value'] for option in config['options']}
+        self.assertIn(visible.complaint_id, option_values)
+        self.assertNotIn(hidden.complaint_id, option_values)
+        self.assertEqual(config['selected'], [])
+
+    def test_filter_options_and_results_respect_factory_assignment(self):
+        factory_user = get_user_model().objects.create_user(
+            username='filter_factory_exec', password='Filters!234'
+        )
+        UserProfile.objects.filter(user=factory_user).update(role=WorkflowRoles.FACTORY_EXECUTIVE)
+        assigned = self.create_complaint(1, assigned_factory_executive=factory_user)
+        hidden = self.create_complaint(2)
+        self.client.force_login(factory_user)
+
+        response = self.client.get(reverse('complaint_list'))
+
+        self.assertEqual(response.context['page_obj'].paginator.count, 1)
+        self.assertContains(response, assigned.complaint_id)
+        self.assertNotContains(response, hidden.complaint_id)
+        options = {item['value'] for item in response.context['column_filter_config'][0]['options']}
+        self.assertEqual(options, {assigned.complaint_id})
+
+    def test_normal_and_htmx_requests_keep_active_filter_state(self):
+        self.create_complaint(1, priority='High')
+        params = {'cf_priority': 'High', 'search': 'Filter', 'search_by': 'description'}
+
+        normal = self.client.get(reverse('complaint_list'), params)
+        htmx = self.client.get(reverse('complaint_list'), params, HTTP_HX_REQUEST='true')
+
+        for response in (normal, htmx):
+            self.assertEqual(response.status_code, 200)
+            priority_config = next(
+                item for item in response.context['column_filter_config']
+                if item['param'] == 'cf_priority'
+            )
+            self.assertEqual(priority_config['selected'], ['High'])
+            self.assertContains(response, '"selected": ["High"]', html=False)
+        self.assertContains(normal, '<!DOCTYPE html>', html=False)
+        self.assertNotContains(htmx, '<!DOCTYPE html>', html=False)
+
+
 class HtmxNavigationTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_superuser(
@@ -2765,10 +3318,10 @@ class HtmxNavigationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'th[data-filter-col]', html=False)
-        self.assertContains(response, '.table tr[hidden]', html=False)
-        self.assertContains(response, 'function getComplaintFilterValue(infoRow, colIdx)', html=False)
-        self.assertContains(response, 'infoRow.hidden = !isVisible;', html=False)
-        self.assertContains(response, 'workflowRow.hidden = !isVisible;', html=False)
+        self.assertContains(response, 'id="complaint-column-filter-config"', html=False)
+        self.assertContains(response, 'function navigateWithColumnFilters(param, values)', html=False)
+        self.assertContains(response, 'url.searchParams.delete(param);', html=False)
+        self.assertNotContains(response, 'infoRow.hidden = !isVisible;', html=False)
         self.assertContains(response, 'window.__fabroComplaintPageController?.abort();', html=False)
         self.assertContains(response, "trigger.setAttribute('aria-expanded', 'false');", html=False)
         self.assertContains(response, 'window.fabroOnPageLoad(function () {', html=False)

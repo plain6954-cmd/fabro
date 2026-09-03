@@ -1,11 +1,15 @@
 import os
+import uuid
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.db import IntegrityError, models, transaction
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class WorkflowRoles:
@@ -17,12 +21,12 @@ class WorkflowRoles:
     ADMIN = 'admin'
 
     CHOICES = [
-        (COUNTRY_EXECUTIVE, 'Country Executive'),
-        (FACTORY_VIEWER, 'Factory Viewer'),
-        (FACTORY_EXECUTIVE, 'Factory Executive'),
-        (FACTORY_COMPLAINT_REGISTRAR, 'Factory Complaint Registrar'),
-        (APPROVER, 'Approver'),
-        (ADMIN, 'Admin'),
+        (COUNTRY_EXECUTIVE, _('Country Executive')),
+        (FACTORY_VIEWER, _('Factory Viewer')),
+        (FACTORY_EXECUTIVE, _('Factory Executive')),
+        (FACTORY_COMPLAINT_REGISTRAR, _('Factory Complaint Registrar')),
+        (APPROVER, _('Approver')),
+        (ADMIN, _('Admin')),
     ]
 
 
@@ -49,10 +53,10 @@ class ComplaintTypes:
     LINE = 'line'
 
     CHOICES = [
-        (PATTERN, 'Pattern Complaint'),
-        (PRODUCTION, 'Production Complaint'),
-        (QUALITY, 'Quality Complaint'),
-        (LINE, 'Factory Complaint'),
+        (PATTERN, _('Pattern Complaint')),
+        (PRODUCTION, _('Production Complaint')),
+        (QUALITY, _('Quality Complaint')),
+        (LINE, _('Factory Complaint')),
     ]
 
     PREFIXES = {
@@ -101,19 +105,19 @@ class WorkflowStatuses:
     ON_HOLD = 'on_hold'
 
     CHOICES = [
-        (SUBMITTED, 'Submitted'),
-        (ASSIGNED_TO_FACTORY, 'Assigned to Factory'),
-        (FACTORY_REVIEW, 'Factory Review'),
-        (AWAITING_APPROVAL, 'Awaiting Approval'),
-        (PARTIALLY_APPROVED, 'Partially Approved'),
-        (REWORK_REQUIRED, 'Rework Required'),
-        (APPROVED, 'Approved'),
-        (ACTION_IN_PROGRESS, 'Action In Progress'),
-        (AWAITING_EXECUTION_VERIFICATION, 'Awaiting Execution Verification'),
-        (EXECUTION_PARTIALLY_VERIFIED, 'Execution Partially Verified'),
-        (PENDING_FINAL_UPDATE, 'Pending Final Update'),
-        (CLOSED, 'Closed'),
-        (ON_HOLD, 'On Hold'),
+        (SUBMITTED, _('Submitted')),
+        (ASSIGNED_TO_FACTORY, _('Assigned to Factory')),
+        (FACTORY_REVIEW, _('Factory Review')),
+        (AWAITING_APPROVAL, _('Awaiting Approval')),
+        (PARTIALLY_APPROVED, _('Partially Approved')),
+        (REWORK_REQUIRED, _('Rework Required')),
+        (APPROVED, _('Approved')),
+        (ACTION_IN_PROGRESS, _('Action In Progress')),
+        (AWAITING_EXECUTION_VERIFICATION, _('Awaiting Execution Verification')),
+        (EXECUTION_PARTIALLY_VERIFIED, _('Execution Partially Verified')),
+        (PENDING_FINAL_UPDATE, _('Pending Final Update')),
+        (CLOSED, _('Closed')),
+        (ON_HOLD, _('On Hold')),
     ]
 
 
@@ -123,9 +127,9 @@ class FactoryPriorities:
     TOP = 'top'
 
     CHOICES = [
-        (LOW, 'Low'),
-        (MEDIUM, 'Medium'),
-        (TOP, 'Top'),
+        (LOW, _('Low')),
+        (MEDIUM, _('Medium')),
+        (TOP, _('Top')),
     ]
 
 
@@ -136,10 +140,10 @@ class DecisionStatuses:
     SUPERSEDED = 'superseded'
 
     CHOICES = [
-        (PENDING, 'Pending'),
-        (APPROVED, 'Approved'),
-        (REJECTED, 'Rejected'),
-        (SUPERSEDED, 'Superseded'),
+        (PENDING, _('Pending')),
+        (APPROVED, _('Approved')),
+        (REJECTED, _('Rejected')),
+        (SUPERSEDED, _('Superseded')),
     ]
 
 
@@ -149,9 +153,9 @@ class ApprovalStages:
     EXECUTION_VERIFICATION = 'execution_verification'
 
     CHOICES = [
-        (INITIAL, 'Initial approval'),
-        (RECONSIDERATION, 'Rejection reconsideration'),
-        (EXECUTION_VERIFICATION, 'Execution verification'),
+        (INITIAL, _('Initial approval')),
+        (RECONSIDERATION, _('Rejection reconsideration')),
+        (EXECUTION_VERIFICATION, _('Execution verification')),
     ]
 
 
@@ -219,16 +223,16 @@ class SKU(models.Model):
 
 class MasterSetting(models.Model):
     CATEGORY_CHOICES = [
-        ('Channel', 'Channel'),
-        ('Country', 'Country'),
-        ('Reported By', 'Reported By'),
-        ('Pattern Complaint Type', 'Pattern Complaint Types'),
-        ('Production Complaint Type', 'Production Complaint Types'),
-        ('Quality Complaint Type', 'Quality Complaint Types'),
-        ('Factory Complaint Type', 'Factory Complaint Types'),
-        ('Series', 'Series'),
-        ('Material', 'Material'),
-        ('Region', 'Region'),
+        ('Channel', _('Channel')),
+        ('Country', _('Country')),
+        ('Reported By', _('Reported By')),
+        ('Pattern Complaint Type', _('Pattern Complaint Types')),
+        ('Production Complaint Type', _('Production Complaint Types')),
+        ('Quality Complaint Type', _('Quality Complaint Types')),
+        ('Factory Complaint Type', _('Factory Complaint Types')),
+        ('Series', _('Series')),
+        ('Material', _('Material')),
+        ('Region', _('Region')),
     ]
 
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
@@ -376,8 +380,8 @@ class Complaint(models.Model):
     model = models.ForeignKey('management.Model', on_delete=models.SET_NULL, null=True)
     sub_model = models.ForeignKey('management.SubModel', on_delete=models.SET_NULL, null=True, blank=True)
     year = models.ForeignKey('management.YearRange', on_delete=models.SET_NULL, null=True)
-    status = models.CharField(max_length=10, choices=[('Open', 'Open'), ('Closed', 'Closed'), ('On Hold', 'On Hold')], default='Open', db_index=True)
-    priority = models.CharField(max_length=10, choices=[('High', 'High'), ('Medium', 'Medium'), ('Low', 'Low')], default='Medium', db_index=True)
+    status = models.CharField(max_length=10, choices=[('Open', _('Open')), ('Closed', _('Closed')), ('On Hold', _('On Hold'))], default='Open', db_index=True)
+    priority = models.CharField(max_length=10, choices=[('High', _('High')), ('Medium', _('Medium')), ('Low', _('Low'))], default='Medium', db_index=True)
     complaint_description = models.TextField(default="Not Provided")
     batch_order = models.CharField(max_length=100)
     justification_from_factory = models.TextField(blank=True, null=True, default="Not Provided")
@@ -469,6 +473,8 @@ class ComplaintMedia(models.Model):
             return ''
         if value.startswith(('https://', 'http://')):
             return value
+        if settings.USE_SUPABASE_STORAGE and self.pk:
+            return reverse('complaint_media_download', args=[self.pk])
         try:
             return default_storage.url(self.storage_name)
         except (NotImplementedError, ValueError):
@@ -482,7 +488,7 @@ class ComplaintMedia(models.Model):
         if value.startswith(('https://', 'http://')):
             return True
 
-        if settings.USE_S3:
+        if settings.USE_SUPABASE_STORAGE:
             return True
         media_root = Path(settings.MEDIA_ROOT).resolve()
         candidate = (media_root / self.storage_name).resolve()
@@ -494,6 +500,58 @@ class ComplaintMedia(models.Model):
 
     def __str__(self):
         return os.path.basename(self.file)
+
+
+def complaint_media_upload_expiry():
+    return timezone.now() + timedelta(seconds=settings.SUPABASE_SIGNED_UPLOAD_TTL_SECONDS)
+
+
+class ComplaintMediaUploadBatch(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='complaint_media_upload_batches')
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name='media_upload_batches',
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(default=complaint_media_upload_expiry)
+
+    class Meta:
+        indexes = [models.Index(fields=['user', 'expires_at'])]
+
+
+class ComplaintMediaUpload(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        ATTACHED = 'attached', 'Attached'
+        REJECTED = 'rejected', 'Rejected'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    batch = models.ForeignKey(
+        ComplaintMediaUploadBatch,
+        on_delete=models.CASCADE,
+        related_name='uploads',
+    )
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.SET_NULL,
+        related_name='verified_media_uploads',
+        null=True,
+        blank=True,
+    )
+    storage_path = models.CharField(max_length=500, unique=True)
+    original_name = models.CharField(max_length=255)
+    expected_size = models.PositiveBigIntegerField()
+    expected_content_type = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    attached_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['status', 'created_at'])]
 
 
 class ComplaintApproval(models.Model):

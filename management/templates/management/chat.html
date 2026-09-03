@@ -1,10 +1,10 @@
-{% load static %}
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Workspace - Fabro Leather</title>
+    <title>{% translate "Chat Workspace - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
     <style>
@@ -650,18 +650,18 @@
             <aside class="chat-sidebar {% if selected_user %}has-selected{% endif %}">
                 <div class="sidebar-header">
                     <h2 class="sidebar-title">
-                        <i class="fas fa-comments" style="color: var(--primary-color);"></i> Direct Messages
+                        <i class="fas fa-comments" style="color: var(--primary-color);"></i> {% translate "Direct Messages" %}
                     </h2>
                     <div class="chat-search-box">
                         <i class="fas fa-search chat-search-icon"></i>
-                        <input type="text" id="user-search" class="chat-search-input" placeholder="Search team member..." autocomplete="off">
+                        <input type="text" id="user-search" class="chat-search-input" placeholder="{% translate "Search team member..." %}" autocomplete="off">
                     </div>
                     <div class="chat-filter-bubbles">
                         <button type="button" class="chat-filter-bubble active" id="filter-all-btn" onclick="setChatFilter('all')">
-                            All
+                            {% translate "All" %}
                         </button>
                         <button type="button" class="chat-filter-bubble" id="filter-unread-btn" onclick="setChatFilter('unread')">
-                            Unread
+                            {% translate "Unread" %}
                             <span class="bubble-unread-count" id="bubble-unread-total" {% if not total_unread_chat_count %}style="display: none;"{% endif %}>
                                 {{ total_unread_chat_count|default:"" }}
                             </span>
@@ -672,7 +672,7 @@
                 <div class="chat-user-list" id="user-list-container">
                     <div id="no-unread-empty" style="display: none; padding: 2.5rem 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
                         <i class="fas fa-check-double" style="font-size: 1.8rem; display: block; margin-bottom: 0.5rem; color: #10b981; opacity: 0.85;"></i>
-                        No unread messages
+                        {% translate "No unread messages" %}
                     </div>
 
                     {% for ud in users_data %}
@@ -694,7 +694,7 @@
                                         {{ ud.user.username|first|upper }}
                                     {% endif %}
                                 </div>
-                                <span class="status-dot" title="Active"></span>
+                                <span class="status-dot" title="{% translate "Active" %}"></span>
                             </div>
                             <div class="user-details">
                                 <div class="user-name-row">
@@ -719,7 +719,7 @@
                     {% empty %}
                         <div style="padding: 2rem 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
                             <i class="fas fa-users-slash" style="font-size: 1.8rem; display: block; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-                            No team members found.
+                            {% translate "No team members found." %}
                         </div>
                     {% endfor %}
                 </div>
@@ -751,13 +751,13 @@
                                     <span class="user-role-pill" id="header-role">{{ selected_role_label }}</span>
                                 </h3>
                                 <div class="chat-status-sub">
-                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Active Now
+                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> {% translate "Active Now" %}
                                 </div>
                             </div>
                         </div>
                         <div>
                             <a href="{% url 'complaint_list' %}" class="workflow-btn secondary" style="min-height: 2.2rem; padding: 0.38rem 0.85rem; font-size: 0.78rem;">
-                                <i class="fas fa-list-alt"></i> Complaints List
+                                <i class="fas fa-list-alt"></i> {% translate "Complaints List" %}
                             </a>
                         </div>
                     </header>
@@ -765,10 +765,10 @@
                     {% if selected_complaint %}
                         <div class="complaint-context-bar" id="complaint-context-bar">
                             <div class="context-tag">
-                                <i class="fas fa-paperclip"></i> Linked Context: <strong>{{ selected_complaint.complaint_id }}</strong> ({{ selected_complaint.get_complaint_type_display }} · {{ selected_complaint.brand }} {{ selected_complaint.model }})
+                                <i class="fas fa-paperclip"></i> {% translate "Linked Context:" %} <strong>{{ selected_complaint.complaint_id }}</strong> ({{ selected_complaint.get_complaint_type_display }} · {{ selected_complaint.brand }} {{ selected_complaint.model }})
                             </div>
-                            <a href="javascript:void(0)" onclick="clearComplaintContext()" style="color: inherit; text-decoration: none; font-size: 0.78rem; opacity: 0.85;" title="Remove linked context">
-                                <i class="fas fa-times"></i> Clear Context
+                            <a href="javascript:void(0)" onclick="clearComplaintContext()" style="color: inherit; text-decoration: none; font-size: 0.78rem; opacity: 0.85;" title="{% translate "Remove linked context" %}">
+                                <i class="fas fa-times"></i> {% translate "Clear Context" %}
                             </a>
                         </div>
                     {% endif %}
@@ -793,8 +793,8 @@
                                 <div class="empty-workspace-icon">
                                     <i class="fas fa-comments"></i>
                                 </div>
-                                <h3>No messages yet</h3>
-                                <p style="font-size: 0.85rem; max-width: 320px;">Start the conversation by sending a text below.</p>
+                                <h3>{% translate "No messages yet" %}</h3>
+                                <p style="font-size: 0.85rem; max-width: 320px;">{% translate "Start the conversation by sending a text below." %}</p>
                             </div>
                         {% endfor %}
                     </div>
@@ -802,17 +802,17 @@
                     <!-- INPUT FOOTER -->
                     <footer class="chat-input-footer">
                         <div class="preset-chips">
-                            <button type="button" class="preset-chip" onclick="appendPreset('📌 Requesting status update regarding complaint')">📌 Request Status Update</button>
-                            <button type="button" class="preset-chip" onclick="appendPreset('✅ Action plan has been approved and verified')">✅ Action Plan Approved</button>
-                            <button type="button" class="preset-chip" onclick="appendPreset('⚠️ Rework required for factory submission')">⚠️ Rework Required</button>
-                            <button type="button" class="preset-chip" onclick="appendPreset('📦 Please verify production container number')">📦 Container Verification</button>
+                            <button type="button" class="preset-chip" onclick="appendPreset('📌 Requesting status update regarding complaint')">{% translate "📌 Request Status Update" %}</button>
+                            <button type="button" class="preset-chip" onclick="appendPreset('✅ Action plan has been approved and verified')">{% translate "✅ Action Plan Approved" %}</button>
+                            <button type="button" class="preset-chip" onclick="appendPreset('⚠️ Rework required for factory submission')">{% translate "⚠️ Rework Required" %}</button>
+                            <button type="button" class="preset-chip" onclick="appendPreset('📦 Please verify production container number')">{% translate "📦 Container Verification" %}</button>
                         </div>
                         <form id="chat-form" class="chat-input-form">
                             {% csrf_token %}
                             <input type="hidden" id="recipient-id" value="{{ selected_user.id }}">
                             <input type="hidden" id="complaint-id" value="{% if selected_complaint %}{{ selected_complaint.complaint_id }}{% endif %}">
                             <textarea id="message-input" class="chat-textarea" placeholder="Type a message to {{ selected_user.username }}... (Press Enter to send)" required>{{ default_message }}</textarea>
-                            <button type="submit" class="chat-send-btn" id="send-btn" title="Send Message">
+                            <button type="submit" class="chat-send-btn" id="send-btn" title="{% translate "Send Message" %}">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </form>
@@ -822,8 +822,8 @@
                         <div class="empty-workspace-icon">
                             <i class="fas fa-comments"></i>
                         </div>
-                        <h2>Select a Team Member</h2>
-                        <p style="max-width: 360px; font-size: 0.88rem;">Choose any user from the left directory to open a direct messaging workspace.</p>
+                        <h2>{% translate "Select a Team Member" %}</h2>
+                        <p style="max-width: 360px; font-size: 0.88rem;">{% translate "Choose any user from the left directory to open a direct messaging workspace." %}</p>
                     </div>
                 {% endif %}
             </section>
@@ -956,7 +956,7 @@
                 if (flagUrl) {
                     const flagImage = document.createElement('img');
                     flagImage.src = flagUrl;
-                    flagImage.alt = 'Flag';
+                    flagImage.alt = window.FabroI18n.gettext('Flag');
                     flagImage.style.cssText = 'width: 18px; height: 13px; border-radius: 2px;';
                     flagWrapper.appendChild(flagImage);
                 }
@@ -967,7 +967,10 @@
 
             const msgInput = document.getElementById('message-input');
             if (msgInput) {
-                msgInput.placeholder = `Type a message to ${username}... (Press Enter to send)`;
+                msgInput.placeholder = window.FabroI18n.interpolate(
+                    window.FabroI18n.gettext('Type a message to %(username)s... (Press Enter to send)'),
+                    { username }
+                );
                 msgInput.focus();
             }
 
@@ -1034,8 +1037,8 @@
                         <div class="empty-workspace-icon">
                             <i class="fas fa-comments"></i>
                         </div>
-                        <h3>No messages yet</h3>
-                        <p style="font-size: 0.85rem; max-width: 320px;">Start the conversation by sending a text below.</p>
+                        <h3>${window.FabroI18n.gettext('No messages yet')}</h3>
+                        <p style="font-size: 0.85rem; max-width: 320px;">${window.FabroI18n.gettext('Start the conversation by sending a text below.')}</p>
                     </div>
                 `;
                 return;
@@ -1148,7 +1151,7 @@
                             appendMessage(res.message);
                             scrollToBottom();
                         } else {
-                            alert(res.error || 'Failed to send message.');
+                            alert(res.error || window.FabroI18n.gettext('Failed to send message.'));
                         }
                     } catch (err) {
                         console.error('Chat send error:', err);

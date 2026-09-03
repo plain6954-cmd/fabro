@@ -20,6 +20,7 @@ from .models import (
 )
 from datetime import date
 from django.contrib.auth.password_validation import validate_password
+from django.utils.translation import gettext_lazy as _
 
 MAX_CSV_UPLOAD_SIZE = 5 * 1024 * 1024
 MAX_BRAND_LOGO_SIZE = 2 * 1024 * 1024
@@ -31,43 +32,43 @@ def validate_profile_photo(photo):
     if not photo:
         return photo
     if photo.size > MAX_PROFILE_PHOTO_SIZE:
-        raise forms.ValidationError('Profile photo must be 5 MB or smaller.')
+        raise forms.ValidationError(_('Profile photo must be 5 MB or smaller.'))
     content_type = (getattr(photo, 'content_type', '') or '').lower()
     if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
-        raise forms.ValidationError('Profile photo must be a JPG, PNG, WEBP, or GIF image.')
+        raise forms.ValidationError(_('Profile photo must be a JPG, PNG, WEBP, or GIF image.'))
     # ImageField asks Pillow to verify the bytes, not only the filename or MIME header.
     return forms.ImageField().clean(photo)
 
 
 def validate_csv_upload(csv_file):
     if not csv_file.name.lower().endswith('.csv'):
-        raise forms.ValidationError('File must be a CSV.')
+        raise forms.ValidationError(_('File must be a CSV.'))
     if csv_file.size > MAX_CSV_UPLOAD_SIZE:
-        raise forms.ValidationError('CSV file must be 5 MB or smaller.')
+        raise forms.ValidationError(_('CSV file must be 5 MB or smaller.'))
     return csv_file
 
 class CarDetailsForm(forms.Form):
-    layout_code = forms.CharField(label="Layout Code", max_length=100)
-    brand_name = forms.CharField(label="Brand Name", max_length=100)
-    brand_logo = forms.ImageField(label="Brand Logo", required=False)
-    model_name = forms.CharField(label="Model Name", max_length=100)
-    sub_model_name = forms.CharField(label="Sub-Model Name", max_length=100, required=False,)
-    year_start = forms.IntegerField(label="Year Start", min_value=1900, max_value=2100)
-    year_end = forms.IntegerField(label="Year End", min_value=1900, max_value=2100)
-    number_of_seats = forms.IntegerField(label="Number of Seats", min_value=1, max_value=100)
-    number_of_doors = forms.IntegerField(label="Number of Doors", min_value=1, max_value=20)
+    layout_code = forms.CharField(label=_("Layout Code"), max_length=100)
+    brand_name = forms.CharField(label=_("Brand Name"), max_length=100)
+    brand_logo = forms.ImageField(label=_("Brand Logo"), required=False)
+    model_name = forms.CharField(label=_("Model Name"), max_length=100)
+    sub_model_name = forms.CharField(label=_("Sub-Model Name"), max_length=100, required=False,)
+    year_start = forms.IntegerField(label=_("Year Start"), min_value=1900, max_value=2100)
+    year_end = forms.IntegerField(label=_("Year End"), min_value=1900, max_value=2100)
+    number_of_seats = forms.IntegerField(label=_("Number of Seats"), min_value=1, max_value=100)
+    number_of_doors = forms.IntegerField(label=_("Number of Doors"), min_value=1, max_value=20)
     vehicle_country = forms.ModelChoiceField(
-        label="Vehicle Country",
+        label=_("Vehicle Country"),
         queryset=MasterSetting.objects.filter(category='Country'),
         required=False,
-        empty_label="Select Country",
+        empty_label=_("Select Country"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     measurement_country = forms.ModelChoiceField(
-        label="Measurement Country",
+        label=_("Measurement Country"),
         queryset=MasterSetting.objects.filter(category='Country'),
         required=False,
-        empty_label="Select Country",
+        empty_label=_("Select Country"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
@@ -94,7 +95,7 @@ class CarDetailsForm(forms.Form):
         year_end = cleaned_data.get("year_end")
         
         if year_start and year_end and year_start > year_end:
-            self.add_error("year_end", "Year End must be greater than or equal to Year Start.")
+            self.add_error("year_end", _("Year End must be greater than or equal to Year Start."))
         
         return cleaned_data
 
@@ -103,10 +104,10 @@ class CarDetailsForm(forms.Form):
         if not logo:
             return logo
         if logo.size > MAX_BRAND_LOGO_SIZE:
-            raise forms.ValidationError('Brand logo must be 2 MB or smaller.')
+            raise forms.ValidationError(_('Brand logo must be 2 MB or smaller.'))
         content_type = (getattr(logo, 'content_type', '') or '').lower()
         if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
-            raise forms.ValidationError('Brand logo must be a JPG, PNG, WEBP, or GIF image.')
+            raise forms.ValidationError(_('Brand logo must be a JPG, PNG, WEBP, or GIF image.'))
         return logo
 
 class MasterSettingForm(forms.ModelForm):
@@ -166,7 +167,7 @@ class ComplaintForm(forms.ModelForm):
         self.fields['sub_model'].queryset = SubModel.objects.none()
         self.fields['year'].queryset = YearRange.objects.none()
         self.fields['sku'].queryset = SKU.objects.all()
-        self.fields['sku'].empty_label = 'Select SKU'
+        self.fields['sku'].empty_label = _('Select SKU')
         self.fields['sku'].label_from_instance = lambda sku: f"{sku.code} - {sku.description}" if sku.description else sku.code
 
         selected_complaint_type = complaint_type or getattr(self.instance, 'complaint_type', None)
@@ -180,7 +181,7 @@ class ComplaintForm(forms.ModelForm):
                 | Q(pk=self.instance.case_sub_category_id)
             )
         self.fields['case_sub_category'].queryset = type_queryset.order_by('name')
-        self.fields['case_sub_category'].empty_label = 'Select Type'
+        self.fields['case_sub_category'].empty_label = _('Select Type')
 
         optional_fields = [
             'channel', 'case_sub_category', 'series', 'material',
@@ -225,45 +226,45 @@ class FactoryReviewForm(forms.ModelForm):
             'factory_reason': forms.Textarea(attrs={
                 'rows': 5,
                 'class': 'form-textarea',
-                'placeholder': 'Write the real reason behind the defect after reviewing photos/videos.'
+                'placeholder': _('Write the real reason behind the defect after reviewing photos/videos.')
             }),
             'factory_action_plan': forms.Textarea(attrs={
                 'rows': 5,
                 'class': 'form-textarea',
-                'placeholder': 'Write the proposed action plan from the factory.'
+                'placeholder': _('Write the proposed action plan from the factory.')
             }),
             'factory_priority': forms.Select(attrs={'class': 'form-select'}),
         }
         labels = {
-            'factory_reason': 'Real reason behind defect',
-            'factory_action_plan': 'Factory action plan',
-            'factory_priority': 'Factory priority',
+            'factory_reason': _('Real reason behind defect'),
+            'factory_action_plan': _('Factory action plan'),
+            'factory_priority': _('Factory priority'),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['factory_priority'].choices = [('', 'Select Priority')] + list(FactoryPriorities.CHOICES)
+        self.fields['factory_priority'].choices = [('', _('Select Priority'))] + list(FactoryPriorities.CHOICES)
         for field in self.fields.values():
             field.required = True
 
 
 class ApprovalDecisionForm(forms.Form):
     decision = forms.ChoiceField(
-        label='Your decision',
+        label=_('Your decision'),
         choices=[
-            (DecisionStatuses.APPROVED, 'Approve'),
-            (DecisionStatuses.REJECTED, 'Reject'),
+            (DecisionStatuses.APPROVED, _('Approve')),
+            (DecisionStatuses.REJECTED, _('Reject')),
         ],
         widget=forms.RadioSelect(attrs={'class': 'decision-radio'}),
     )
     comment = forms.CharField(
-        label='Review comment',
+        label=_('Review comment'),
         required=False,
         max_length=2000,
         widget=forms.Textarea(attrs={
             'rows': 5,
             'class': 'form-textarea',
-            'placeholder': 'Optional for approval. Required when rejecting.',
+            'placeholder': _('Optional for approval. Required when rejecting.'),
         }),
     )
 
@@ -271,22 +272,22 @@ class ApprovalDecisionForm(forms.Form):
         approval_stage = kwargs.pop('approval_stage', ApprovalStages.INITIAL)
         super().__init__(*args, **kwargs)
         if approval_stage == ApprovalStages.RECONSIDERATION:
-            self.fields['decision'].label = 'Reconsideration decision'
+            self.fields['decision'].label = _('Reconsideration decision')
             self.fields['decision'].choices = [
-                (DecisionStatuses.APPROVED, 'Proceed with Action Plan'),
-                (DecisionStatuses.REJECTED, 'Return to Factory Executive for Rework'),
+                (DecisionStatuses.APPROVED, _('Proceed with Action Plan')),
+                (DecisionStatuses.REJECTED, _('Return to Factory Executive for Rework')),
             ]
             self.fields['comment'].widget.attrs['placeholder'] = (
-                'Optional when proceeding. Required when returning for rework.'
+                _('Optional when proceeding. Required when returning for rework.')
             )
         elif approval_stage == ApprovalStages.EXECUTION_VERIFICATION:
-            self.fields['decision'].label = 'Execution verification decision'
+            self.fields['decision'].label = _('Execution verification decision')
             self.fields['decision'].choices = [
-                (DecisionStatuses.APPROVED, 'Execution Is Correct'),
-                (DecisionStatuses.REJECTED, 'Execution Needs Correction'),
+                (DecisionStatuses.APPROVED, _('Execution Is Correct')),
+                (DecisionStatuses.REJECTED, _('Execution Needs Correction')),
             ]
             self.fields['comment'].widget.attrs['placeholder'] = (
-                'Optional when verifying. Required when requesting an execution correction.'
+                _('Optional when verifying. Required when requesting an execution correction.')
             )
 
     def clean(self):
@@ -295,22 +296,22 @@ class ApprovalDecisionForm(forms.Form):
         comment = (cleaned_data.get('comment') or '').strip()
         cleaned_data['comment'] = comment
         if decision == DecisionStatuses.REJECTED and not comment:
-            self.add_error('comment', 'Explain what must be corrected when rejecting.')
+            self.add_error('comment', _('Explain what must be corrected when rejecting.'))
         return cleaned_data
 
 
 class FinalComplaintUpdateForm(forms.Form):
     cad_date = forms.DateField(
-        label='CAD Updated Date',
+        label=_('CAD Updated Date'),
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
     )
     production_updates_container = forms.CharField(
-        label='New Production Container Number',
+        label=_('New Production Container Number'),
         max_length=100,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-input',
-            'placeholder': 'Enter the new production container number',
+            'placeholder': _('Enter the new production container number'),
             'autocomplete': 'off',
         }),
     )
@@ -326,12 +327,12 @@ class FinalComplaintUpdateForm(forms.Form):
     def clean_cad_date(self):
         cad_date = self.cleaned_data['cad_date']
         if cad_date > date.today():
-            raise forms.ValidationError('CAD Updated Date cannot be in the future.')
+            raise forms.ValidationError(_('CAD Updated Date cannot be in the future.'))
         return cad_date
 
 # forms.py
 class UploadCSVForm(forms.Form):
-    csv_file = forms.FileField(label="Upload CSV File")
+    csv_file = forms.FileField(label=_("Upload CSV File"))
 
     def clean_csv_file(self):
         return validate_csv_upload(self.cleaned_data['csv_file'])
@@ -354,11 +355,11 @@ class SKUForm(forms.ModelForm):
         if self.instance.pk:
             # Editing existing SKU
             if SKU.objects.filter(code__iexact=code).exclude(pk=self.instance.pk).exists():
-                raise forms.ValidationError("SKU code already exists.")
+                raise forms.ValidationError(_("SKU code already exists."))
         else:
             # Creating new SKU
             if SKU.objects.filter(code__iexact=code).exists():
-                raise forms.ValidationError("SKU code already exists.")
+                raise forms.ValidationError(_("SKU code already exists."))
         return code
 
     def clean_description(self):
@@ -366,7 +367,7 @@ class SKUForm(forms.ModelForm):
         return description.strip() if description else description
 
 class SKUUploadForm(forms.Form):
-    csv_file = forms.FileField(label="Upload CSV File")
+    csv_file = forms.FileField(label=_("Upload CSV File"))
     def clean_csv_file(self):
         return validate_csv_upload(self.cleaned_data['csv_file'])
     widgets = {
@@ -378,20 +379,20 @@ from django.contrib.auth.models import User, Group, Permission
 
 class UnifiedWorkflowRoles:
     CHOICES = [
-        (WorkflowRoles.COUNTRY_EXECUTIVE, 'Country Executive'),
-        (WorkflowRoles.FACTORY_VIEWER, 'Factory Viewer'),
-        (WorkflowRoles.FACTORY_EXECUTIVE, 'Factory Executive'),
-        (WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR, 'Factory Complaint Registrar'),
+        (WorkflowRoles.COUNTRY_EXECUTIVE, _('Country Executive')),
+        (WorkflowRoles.FACTORY_VIEWER, _('Factory Viewer')),
+        (WorkflowRoles.FACTORY_EXECUTIVE, _('Factory Executive')),
+        (WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR, _('Factory Complaint Registrar')),
         ('PM', 'PM'),
         ('OM', 'OM'),
         ('CAD', 'CAD'),
         ('ED', 'ED'),
         ('MD', 'MD'),
-        (WorkflowRoles.ADMIN, 'Admin'),
+        (WorkflowRoles.ADMIN, _('Admin')),
     ]
 
     ALL_CHOICES = CHOICES + [
-        (WorkflowRoles.APPROVER, 'Approver'),
+        (WorkflowRoles.APPROVER, _('Approver')),
         ('approver_PM', 'PM'),
         ('approver_OM', 'OM'),
         ('approver_CAD', 'CAD'),
@@ -447,16 +448,16 @@ class UserCreationForm(forms.ModelForm):
             mapped_approval = ''
 
         if mapped_role == WorkflowRoles.APPROVER and not mapped_approval:
-            self.add_error('role', 'Choose PM, OM, CAD, ED, or MD for an approver.')
+            self.add_error('role', _('Choose PM, OM, CAD, ED, or MD for an approver.'))
         elif mapped_role == WorkflowRoles.APPROVER and UserProfile.objects.filter(
             role=WorkflowRoles.APPROVER,
             approval_role=mapped_approval,
             user__is_active=True,
         ).exists():
-            self.add_error('role', f'An active {mapped_approval} approver already exists.')
+            self.add_error('role', _('An active %(role)s approver already exists.') % {'role': mapped_approval})
 
         if mapped_role == WorkflowRoles.COUNTRY_EXECUTIVE and not cleaned_data.get('country'):
-            self.add_error('country', 'Country executives must be assigned to a country.')
+            self.add_error('country', _('Country executives must be assigned to a country.'))
 
         if mapped_role != WorkflowRoles.FACTORY_EXECUTIVE:
             cleaned_data['can_receive_factory_assignments'] = False
@@ -513,16 +514,16 @@ class UserWorkflowProfileForm(forms.ModelForm):
             mapped_approval = ''
 
         if mapped_role == WorkflowRoles.APPROVER and not mapped_approval:
-            self.add_error('role', 'Choose PM, OM, CAD, ED, or MD for an approver.')
+            self.add_error('role', _('Choose PM, OM, CAD, ED, or MD for an approver.'))
         elif mapped_role == WorkflowRoles.APPROVER and UserProfile.objects.filter(
             role=WorkflowRoles.APPROVER,
             approval_role=mapped_approval,
             user__is_active=True,
         ).exclude(pk=self.instance.pk).exists():
-            self.add_error('role', f'An active {mapped_approval} approver already exists.')
+            self.add_error('role', _('An active %(role)s approver already exists.') % {'role': mapped_approval})
 
         if mapped_role == WorkflowRoles.COUNTRY_EXECUTIVE and not cleaned_data.get('country'):
-            self.add_error('country', 'Country executives must be assigned to a country.')
+            self.add_error('country', _('Country executives must be assigned to a country.'))
 
         if mapped_role != WorkflowRoles.FACTORY_EXECUTIVE:
             cleaned_data['can_receive_factory_assignments'] = False

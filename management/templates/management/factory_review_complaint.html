@@ -1,12 +1,12 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factory Review - Fabro Leather</title>
+    <title>{% translate "Factory Review - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
     <style data-fabro-page-asset>
@@ -270,7 +270,7 @@
     <main class="review-page">
         <header class="review-header">
             <div>
-                <h1 class="review-title">Factory Review</h1>
+                <h1 class="review-title">{% translate "Factory Review" %}</h1>
                 <p class="review-subtitle">{{ complaint.complaint_id }} - {{ complaint.get_complaint_type_display }}</p>
             </div>
             <span class="workflow-pill">
@@ -281,18 +281,18 @@
 
         <section class="review-shell">
             <article class="glass-panel">
-                <h2 class="panel-title"><i class="fas fa-clipboard-list"></i> Complaint Snapshot</h2>
+                <h2 class="panel-title"><i class="fas fa-clipboard-list"></i> {% translate "Complaint Snapshot" %}</h2>
                 <div class="summary-grid">
                     <div class="summary-item">
-                        <div class="summary-label">Country</div>
+                        <div class="summary-label">{% translate "Country" %}</div>
                         <div class="summary-value">{{ complaint.country|default:"-" }}</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-label">Reported By</div>
+                        <div class="summary-label">{% translate "Reported By" %}</div>
                         <div class="summary-value">{{ complaint.person|default:"-" }}</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-label">Vehicle</div>
+                        <div class="summary-label">{% translate "Vehicle" %}</div>
                         <div class="summary-value">
                             {{ complaint.brand|default:"-" }} {{ complaint.model|default:"" }}
                             {% if complaint.year %}
@@ -301,28 +301,28 @@
                         </div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-label">SKU / Material</div>
+                        <div class="summary-label">{% translate "SKU / Material" %}</div>
                         <div class="summary-value">{{ complaint.sku|default:"-" }} / {{ complaint.material|default:"-" }}</div>
                     </div>
                     <div class="summary-item wide">
-                        <div class="summary-label">Complaint Description</div>
+                        <div class="summary-label">{% translate "Complaint Description" %}</div>
                         <div class="summary-value">{{ complaint.complaint_description|default:"-" }}</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-label">Batch / Order</div>
+                        <div class="summary-label">{% translate "Batch / Order" %}</div>
                         <div class="summary-value">{{ complaint.batch_order|default:"-" }}</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-label">Submitted By</div>
+                        <div class="summary-label">{% translate "Submitted By" %}</div>
                         <div class="summary-value">{{ complaint.created_by|default:"-" }}</div>
                     </div>
                     <div class="summary-item wide">
-                        <div class="summary-label">Media Files</div>
+                        <div class="summary-label">{% translate "Media Files" %}</div>
                         {% if media_files %}
                             <div class="media-strip">
                                 {% for media in media_files %}
                                     {% if not media.is_available %}
-                                        <span class="summary-value">Media unavailable</span>
+                                        <span class="summary-value">{% translate "Media unavailable" %}</span>
                                     {% elif ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower %}
                                         <a href="{{ media.url }}" target="_blank" rel="noopener">
                                             <img src="{{ media.url }}" class="media-thumb" alt="Complaint media">
@@ -335,7 +335,7 @@
                                 {% endfor %}
                             </div>
                         {% else %}
-                            <div class="summary-value">No media uploaded</div>
+                            <div class="summary-value">{% translate "No media uploaded" %}</div>
                         {% endif %}
                     </div>
                 </div>
@@ -344,8 +344,8 @@
             <article class="glass-panel">
                 {% if complaint.workflow_status == 'rework_required' and approval_summary.total %}
                     <div class="rework-feedback">
-                        <h2 class="panel-title"><i class="fas fa-rotate-left"></i> Approval Feedback</h2>
-                        <p class="summary-value">Every required review is complete. Update the factory findings using all comments below, then submit a new approval round.</p>
+                        <h2 class="panel-title"><i class="fas fa-rotate-left"></i> {% translate "Approval Feedback" %}</h2>
+                        <p class="summary-value">{% translate "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round." %}</p>
                         <div class="approval-rail" style="margin: 0.9rem 0 1rem;">
                             {% for approval in approval_summary.approvals %}
                                 <div class="approval-step {{ approval.status }}">
@@ -366,7 +366,7 @@
                         </div>
                     </div>
                 {% endif %}
-                <h2 class="panel-title"><i class="fas fa-industry"></i> Factory Findings</h2>
+                <h2 class="panel-title"><i class="fas fa-industry"></i> {% translate "Factory Findings" %}</h2>
                 <form method="post" class="review-form">
                     {% csrf_token %}
                     <div class="form-group">
@@ -387,11 +387,11 @@
                     <div class="review-actions">
                         <a href="{% url 'complaint_list' %}" class="btn btn-secondary">
                             <i class="fas fa-times"></i>
-                            Cancel
+                            {% translate "Cancel" %}
                         </a>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-paper-plane"></i>
-                            Submit for Approval
+                            {% translate "Submit for Approval" %}
                         </button>
                     </div>
                 </form>

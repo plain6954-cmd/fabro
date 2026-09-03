@@ -29,6 +29,8 @@ urlpatterns = [
     path('api/complaints/<str:complaint_id>/start-action/', ComplaintStartActionAPIView.as_view(), name='api_start_action'),
     path('api/complaints/<str:complaint_id>/submit-execution-verification/', ComplaintSubmitExecutionVerificationAPIView.as_view(), name='api_submit_execution_verification'),
     path('api/complaints/<str:complaint_id>/final-update/', ComplaintFinalUpdateAPIView.as_view(), name='api_final_update'),
+    path('api/complaint-media/sign-upload/', views.complaint_media_signed_upload, name='complaint_media_signed_upload'),
+    path('api/complaint-media/discard/', views.complaint_media_discard_uploads, name='complaint_media_discard_uploads'),
     path('api/notifications/', NotificationListAPIView.as_view(), name='api_notifications'),
     path('api/notifications/<int:notification_id>/read/', NotificationReadAPIView.as_view(), name='api_notification_read'),
     path('api/skus/', SKUListCreateAPIView.as_view(), name='api_skus_list_create'),
@@ -37,6 +39,7 @@ urlpatterns = [
     path('api/vehicles/<int:pk>/', VehicleRetrieveUpdateDestroyAPIView.as_view(), name='api_vehicle_detail'),
 
     path('complaint/edit/<str:complaint_id>/', views.edit_complaint, name='edit_complaint'),
+    path('complaint/media/<int:media_id>/', views.complaint_media_download, name='complaint_media_download'),
     path('complaint/factory-review/<str:complaint_id>/', views.factory_review_complaint, name='factory_review_complaint'),
     path('approvals/', views.approvals_list_view, name='approvals_list'),
     path('approvals/inbox/', views.approval_inbox, name='approval_inbox'),

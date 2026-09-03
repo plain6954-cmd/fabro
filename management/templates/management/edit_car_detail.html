@@ -1,12 +1,12 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Vehicle - Fabro Leather</title>
+    <title>{% translate "Edit Vehicle - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -343,42 +343,42 @@
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-edit" style="color: var(--primary-color);"></i>
-                Edit Vehicle
+                {% translate "Edit Vehicle" %}
             </h1>
-            <p class="page-subtitle">Update vehicle configuration and specifications</p>
+            <p class="page-subtitle">{% translate "Update vehicle configuration and specifications" %}</p>
         </div>
 
         <form method="POST" enctype="multipart/form-data" class="form-container">
             {% csrf_token %}
             
             <div class="form-group full-width">
-                <label class="form-label">Layout Code</label>
+                <label class="form-label">{% translate "Layout Code" %}</label>
                 <input type="text" name="layout_code" class="form-input" 
-                       placeholder="Enter unique layout code" 
+                       placeholder="{% translate "Enter unique layout code" %}" 
                        value="{{ form.layout_code.value|default:'' }}" required>
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">Brand Name</label>
+                    <label class="form-label">{% translate "Brand Name" %}</label>
                     <input type="text" name="brand_name" class="form-input" 
-                           placeholder="e.g., BMW, Mercedes" 
+                           placeholder="{% translate "e.g., BMW, Mercedes" %}" 
                            value="{{ form.brand_name.value|default:'' }}" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Model Name</label>
+                    <label class="form-label">{% translate "Model Name" %}</label>
                     <input type="text" name="model_name" class="form-input" 
-                           placeholder="e.g., X5, C-Class" 
+                           placeholder="{% translate "e.g., X5, C-Class" %}" 
                            value="{{ form.model_name.value|default:'' }}" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Brand Logo</label>
+                <label class="form-label">{% translate "Brand Logo" %}</label>
                 {% if existing_logo %}
                     <div class="current-logo">
-                        <p style="color: var(--dark-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Current Logo:</p>
+                        <p style="color: var(--dark-text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">{% translate "Current Logo:" %}</p>
                         <img src="{{ existing_logo.url }}" alt="Current brand logo">
                     </div>
                 {% endif %}
@@ -387,8 +387,8 @@
                         <i class="fas fa-image"></i>
                     </div>
                     <div class="file-upload-text">
-                        <strong>Click to upload</strong> {% if existing_logo %}new{% endif %} brand logo<br>
-                        PNG, JPG (Max 5MB)
+                        <strong>{% translate "Click to upload" %}</strong> {% if existing_logo %}new{% endif %} brand logo<br>
+                        {% translate "PNG, JPG (Max 5MB)" %}
                     </div>
                     <input type="file" name="brand_logo" class="file-input" accept="image/*" id="brandLogoInput">
                 </div>
@@ -396,22 +396,22 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Sub-Model Name (Optional)</label>
+                <label class="form-label">{% translate "Sub-Model Name (Optional)" %}</label>
                 <input type="text" name="sub_model_name" class="form-input" 
-                       placeholder="e.g., Sport, Luxury" 
+                       placeholder="{% translate "e.g., Sport, Luxury" %}" 
                        value="{{ form.sub_model_name.value|default:'' }}">
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">Year Start</label>
+                    <label class="form-label">{% translate "Year Start" %}</label>
                     <input type="number" name="year_start" class="form-input" 
                            placeholder="2020" min="1900" max="2100"
                            value="{{ form.year_start.value|default:'' }}" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Year End</label>
+                    <label class="form-label">{% translate "Year End" %}</label>
                     <input type="number" name="year_end" class="form-input" 
                            placeholder="2025" min="1900" max="2100"
                            value="{{ form.year_end.value|default:'' }}" required>
@@ -420,14 +420,14 @@
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">Number of Seats</label>
+                    <label class="form-label">{% translate "Number of Seats" %}</label>
                     <input type="number" name="number_of_seats" class="form-input" 
                            placeholder="5" min="1"
                            value="{{ form.number_of_seats.value|default:'' }}" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Number of Doors</label>
+                    <label class="form-label">{% translate "Number of Doors" %}</label>
                     <input type="number" name="number_of_doors" class="form-input" 
                            placeholder="4" min="1"
                            value="{{ form.number_of_doors.value|default:'' }}" required>
@@ -435,14 +435,14 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">
-                        Vehicle Country
+                        {% translate "Vehicle Country" %}
                         <span class="tooltip-container">
                             <i class="fas fa-info-circle info-icon"></i>
-                            <span class="tooltip-text">Where the vehicle is manufactured.</span>
+                            <span class="tooltip-text">{% translate "Where the vehicle is manufactured." %}</span>
                         </span>
                     </label>
                     <select name="vehicle_country" class="form-input" style="height: 48px;">
-                        <option value="">Select Country</option>
+                        <option value="">{% translate "Select Country" %}</option>
                         {% for country in countries %}
                             <option value="{{ country.id }}" {% if form.vehicle_country.value == country.id or form.vehicle_country.value|stringformat:"s" == country.id|stringformat:"s" or form.vehicle_country.value.id == country.id %}selected{% endif %}>{{ country.name }}</option>
                         {% endfor %}
@@ -451,14 +451,14 @@
                 
                 <div class="form-group">
                     <label class="form-label">
-                        Measurement Country
+                        {% translate "Measurement Country" %}
                         <span class="tooltip-container">
                             <i class="fas fa-info-circle info-icon"></i>
-                            <span class="tooltip-text">Where the measurement is taken for this vehicle</span>
+                            <span class="tooltip-text">{% translate "Where the measurement is taken for this vehicle" %}</span>
                         </span>
                     </label>
                     <select name="measurement_country" class="form-input" style="height: 48px;">
-                        <option value="">Select Country</option>
+                        <option value="">{% translate "Select Country" %}</option>
                         {% for country in countries %}
                             <option value="{{ country.id }}" {% if form.measurement_country.value == country.id or form.measurement_country.value|stringformat:"s" == country.id|stringformat:"s" or form.measurement_country.value.id == country.id %}selected{% endif %}>{{ country.name }}</option>
                         {% endfor %}
@@ -469,11 +469,11 @@
             <div class="btn-group">
                 <a href="{% url 'car_details' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i>
-                    Cancel
+                    {% translate "Cancel" %}
                 </a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i>
-                    Save Changes
+                    {% translate "Save Changes" %}
                 </button>
             </div>
         </form>

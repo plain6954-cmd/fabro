@@ -1,12 +1,13 @@
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
     <meta charset="UTF-8">
-    <title>Logged Out</title>
-    {% load static %}
+    <title>{% translate "Logged Out" %}</title>
     <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
     <script>window.FABRO_LANGUAGE = '{{ LANGUAGE_CODE|default:"en"|escapejs }}';</script>
-    <script src="{% static 'js/fabro-i18n.js' %}?v=20260831-search-clear" defer></script>
+    <script src="{% url 'javascript-catalog' %}"></script>
+    <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-django-i18n"></script>
     <style>
         body {
             background-color: #121214;
@@ -73,9 +74,9 @@
 </head>
 <body>
     <div class="container">
-        <h1>You have been logged out</h1>
-        <p>Click the button below to log back in.</p>
-        <a href="{% url 'login' %}" class="btn">Log Back In</a>
+        <h1>{% translate "You have been logged out" %}</h1>
+        <p>{% translate "Click the button below to log back in." %}</p>
+        <a href="{% url 'login' %}" class="btn">{% translate "Log Back In" %}</a>
     </div>
 </body>
 </html>

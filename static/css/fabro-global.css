@@ -109,8 +109,8 @@ textarea {
 .language-menu-options {
     position: absolute;
     z-index: 1010;
-    right: 100%;
-    left: auto;
+    inset-inline-end: 100%;
+    inset-inline-start: auto;
     top: 0;
     width: 180px;
     padding: 0.35rem;
@@ -228,7 +228,7 @@ body.light-mode .language-menu-options {
 [dir="rtl"] label,
 [dir="rtl"] th,
 [dir="rtl"] td {
-    text-align: right;
+    text-align: start;
 }
 
 [dir="rtl"] input[type="email"],
@@ -237,7 +237,89 @@ body.light-mode .language-menu-options {
 [dir="rtl"] .complaint-id,
 [dir="rtl"] .sku-code {
     direction: ltr;
-    text-align: left;
+    text-align: start;
+}
+
+/* Direction-aware shell and workspace alignment. Component dimensions and
+   visual styling remain owned by each page stylesheet. */
+[dir="rtl"] .navbar,
+[dir="rtl"] .nav-links,
+[dir="rtl"] .profile-trigger,
+[dir="rtl"] .dropdown-item,
+[dir="rtl"] .page-header,
+[dir="rtl"] .section-header,
+[dir="rtl"] .modal-header,
+[dir="rtl"] .modal-footer,
+[dir="rtl"] .pagination,
+[dir="rtl"] .chat-header,
+[dir="rtl"] .chat-user-item,
+[dir="rtl"] .approval-workspace,
+[dir="rtl"] .erp-topbar,
+[dir="rtl"] .erp-subheader,
+[dir="rtl"] .erp-modal-header,
+[dir="rtl"] .erp-modal-footer {
+    direction: rtl;
+}
+
+[dir="rtl"] .profile-dropdown-content {
+    right: auto !important;
+    left: 0 !important;
+    inset-inline-end: 0 !important;
+    inset-inline-start: auto !important;
+}
+
+[dir="rtl"] .language-menu-options {
+    inset-inline-end: 100%;
+    inset-inline-start: auto;
+}
+
+[dir="rtl"] .search-icon,
+[dir="rtl"] .erp-search-icon,
+[dir="rtl"] .filter-search-icon,
+[dir="rtl"] .input-icon {
+    left: auto !important;
+    right: 0.8rem !important;
+    inset-inline-start: 0.8rem !important;
+    inset-inline-end: auto !important;
+}
+
+[dir="rtl"] .pwd-toggle-btn,
+[dir="rtl"] .password-toggle-btn {
+    right: auto !important;
+    left: 0.65rem !important;
+    inset-inline-end: 0.65rem !important;
+    inset-inline-start: auto !important;
+}
+
+[dir="rtl"] input[type="search"],
+[dir="rtl"] .search-input,
+[dir="rtl"] .erp-search-input,
+[dir="rtl"] .chat-search-input {
+    padding-inline-start: 2.35rem !important;
+    padding-inline-end: 0.8rem !important;
+}
+
+[dir="rtl"] .fa-arrow-left,
+[dir="rtl"] .fa-chevron-left,
+[dir="rtl"] .fa-arrow-right,
+[dir="rtl"] .fa-chevron-right {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .table-container,
+[dir="rtl"] .table-wrapper,
+[dir="rtl"] .erp-table-container,
+[dir="rtl"] .erp-table-pane {
+    direction: rtl;
+}
+
+[dir="rtl"] .complaint-id,
+[dir="rtl"] .sku-code,
+[dir="rtl"] [data-complaint-id],
+[dir="rtl"] code,
+[dir="rtl"] time {
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
 .sr-only {
@@ -270,9 +352,16 @@ body.light-mode .language-menu-options {
 
     .language-menu-options {
         top: calc(100% + 0.45rem);
-        right: 0;
-        left: auto;
+        inset-inline-end: 0;
+        inset-inline-start: auto;
         width: min(180px, calc(100vw - 2rem));
+    }
+
+    [dir="rtl"] .profile-dropdown-content {
+        right: auto !important;
+        left: max(1rem, env(safe-area-inset-left)) !important;
+        inset-inline-end: max(1rem, env(safe-area-inset-left)) !important;
+        inset-inline-start: auto !important;
     }
 
     .page-container,

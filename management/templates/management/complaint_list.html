@@ -1,14 +1,14 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complaint List - Fabro Leather</title>
+    <title>{% translate "Complaint List - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -272,10 +272,6 @@
         .table thead {
             position: relative;
             z-index: 30;
-        }
-
-        .table tr[hidden] {
-            display: none !important;
         }
 
         .column-filter-dropdown {
@@ -2301,19 +2297,21 @@
 <body>
     {% include 'management/base.html' %}
 {% endif %}
-    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}"
+         data-complaint-filter-query="{{ pagination_querystring }}"
+         data-clear-column-filters-query="{{ clear_all_column_filters_querystring }}">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-list-alt"></i>
-                Complaint Management
+                {% translate "Complaint Management" %}
             </h1>
             <div class="header-actions">
                 {% if can_create_complaint %}
-                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="Add Complaint" aria-label="Add Complaint">
+                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="{% translate "Add Complaint" %}" aria-label="{% translate "Add Complaint" %}">
                     <i class="fas fa-plus"></i>
                 </a>
-                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="Export CSV" aria-label="Export CSV">
+                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="{% translate "Export CSV" %}" aria-label="{% translate "Export CSV" %}">
                     <i class="fas fa-download"></i>
                 </a>
                 {% endif %}
@@ -2327,63 +2325,66 @@
                     <input type="hidden" name="priority" value="{{ selected_priority }}">
                     <input type="hidden" name="from_date" value="{{ from_date }}">
                     <input type="hidden" name="to_date" value="{{ to_date }}">
+                    {% for param, value in active_column_filter_pairs %}
+                    <input type="hidden" name="{{ param }}" value="{{ value }}">
+                    {% endfor %}
                     <div class="search-picker" id="search-picker">
                         <i class="fas fa-search search-leading-icon"></i>
-                        <input type="text" name="search" id="header-search-input" placeholder="Search complaints..."
+                        <input type="text" name="search" id="header-search-input" placeholder="{% translate "Search complaints..." %}"
                                value="{{ search_query }}" class="header-search-input" autocomplete="off"
-                               aria-label="Search complaints" aria-describedby="search-options-title"
+                               aria-label="{% translate "Search complaints" %}" aria-describedby="search-options-title"
                                aria-haspopup="listbox" aria-expanded="false">
-                        <button type="button" class="search-clear-button" id="header-search-clear" aria-label="Clear search" title="Clear search" hidden>
+                        <button type="button" class="search-clear-button" id="header-search-clear" aria-label="{% translate "Clear search" %}" title="{% translate "Clear search" %}" hidden>
                             <i class="fas fa-times" aria-hidden="true"></i>
                         </button>
-                        <span class="search-field-label" id="search-field-label">Complaint ID</span>
+                        <span class="search-field-label" id="search-field-label">{% translate "Complaint ID" %}</span>
                         <div class="search-options" id="search-options">
-                            <p class="search-options-title" id="search-options-title">Search this keyword in</p>
-                            <div class="search-option-grid" role="listbox" aria-label="Search field choices">
+                            <p class="search-options-title" id="search-options-title">{% translate "Search this keyword in" %}</p>
+                            <div class="search-option-grid" role="listbox" aria-label="{% translate "Search field choices" %}">
                                 <button type="button" class="search-option" data-search-by="complaint_id" role="option">
                                     <i class="fas fa-hashtag"></i>
-                                    Complaint ID
+                                    {% translate "Complaint ID" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="complaint_type" role="option">
                                     <i class="fas fa-layer-group"></i>
-                                    Complaint Type
+                                    {% translate "Complaint Type" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="channel" role="option">
                                     <i class="fas fa-bullhorn"></i>
-                                    Channel
+                                    {% translate "Channel" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="country" role="option">
                                     <i class="fas fa-globe"></i>
-                                    Country
+                                    {% translate "Country" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="reported_by" role="option">
                                     <i class="fas fa-user"></i>
-                                    Reported By
+                                    {% translate "Reported By" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="case_sub_category" role="option">
                                     <i class="fas fa-tag"></i>
-                                    Category
+                                    {% translate "Category" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="description" role="option">
                                     <i class="fas fa-align-left"></i>
-                                    Description
+                                    {% translate "Description" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="brand" role="option">
                                     <i class="fas fa-car-side"></i>
-                                    Brand
+                                    {% translate "Brand" %}
                                 </button>
                                 <button type="button" class="search-option" data-search-by="model" role="option">
                                     <i class="fas fa-car"></i>
-                                    Model
+                                    {% translate "Model" %}
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary icon-btn" title="Search" aria-label="Search complaints">
+                    <button type="submit" class="btn btn-primary icon-btn" title="{% translate "Search" %}" aria-label="{% translate "Search complaints" %}">
                         <i class="fas fa-arrow-right"></i>
                     </button>
                     <button type="button" class="btn btn-danger icon-btn" id="filter-toggle"
-                            title="Filters" aria-label="Toggle filters" aria-expanded="false" aria-controls="advanced-filter-section">
+                            title="{% translate "Filters" %}" aria-label="{% translate "Toggle filters" %}" aria-expanded="false" aria-controls="advanced-filter-section">
                         <i class="fas fa-filter"></i>
                     </button>
                 </form>
@@ -2393,15 +2394,18 @@
         <div class="filter-section{% if selected_complaint_type or selected_channel or selected_person or selected_country or selected_status or selected_priority or from_date or to_date %} is-open{% endif %}" id="advanced-filter-section">
             <h3 class="filter-title">
                 <i class="fas fa-filter"></i>
-                Filters
+                {% translate "Filters" %}
             </h3>
             
             <form method="GET" id="filter-form">
                 <input type="hidden" name="search" value="{{ search_query }}">
                 <input type="hidden" name="search_by" value="{{ search_by|default:'complaint_id' }}">
+                {% for param, value in active_column_filter_pairs %}
+                <input type="hidden" name="{{ param }}" value="{{ value }}">
+                {% endfor %}
                 <div class="filter-grid">
                     <select name="complaint_type" class="filter-select">
-                        <option value="">All Complaint Types</option>
+                        <option value="">{% translate "All Complaint Types" %}</option>
                         {% for value, label in complaint_type_choices %}
                             <option value="{{ value }}" {% if selected_complaint_type == value %}selected{% endif %}>
                                 {{ label }}
@@ -2410,7 +2414,7 @@
                     </select>
 
                     <select name="channel" class="filter-select">
-                        <option value="">All Channels</option>
+                        <option value="">{% translate "All Channels" %}</option>
                         {% for channel in channels %}
                             <option value="{{ channel.id }}" {% if selected_channel == channel.id|stringformat:"s" %}selected{% endif %}>
                                 {{ channel.name }}
@@ -2419,7 +2423,7 @@
                     </select>
 
                     <select name="person" class="filter-select">
-                        <option value="">All Reporters</option>
+                        <option value="">{% translate "All Reporters" %}</option>
                         {% for person in persons %}
                             <option value="{{ person.id }}" {% if selected_person == person.id|stringformat:"s" %}selected{% endif %}>
                                 {{ person.username }}
@@ -2428,7 +2432,7 @@
                     </select>
 
                     <select name="country" class="filter-select">
-                        <option value="">All Countries</option>
+                        <option value="">{% translate "All Countries" %}</option>
                         {% for country in countries %}
                             <option value="{{ country.id }}" {% if selected_country == country.id|stringformat:"s" %}selected{% endif %}>
                                 {{ country.name }}
@@ -2437,14 +2441,14 @@
                     </select>
 
                     <select name="status" class="filter-select">
-                        <option value="">All Statuses</option>
+                        <option value="">{% translate "All Statuses" %}</option>
                         {% for status in statuses %}
                             <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>
                         {% endfor %}
                     </select>
 
                     <select name="priority" class="filter-select">
-                        <option value="">All Priorities</option>
+                        <option value="">{% translate "All Priorities" %}</option>
                         {% for priority in priorities %}
                             <option value="{{ priority }}" {% if selected_priority == priority %}selected{% endif %}>{{ priority }}</option>
                         {% endfor %}
@@ -2457,11 +2461,11 @@
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-search"></i>
-                        Apply Filters
+                        {% translate "Apply Filters" %}
                     </button>
                     <a href="{% url 'complaint_list' %}" class="btn btn-danger">
                         <i class="fas fa-times"></i>
-                        Clear
+                        {% translate "Clear" %}
                     </a>
                 </div>
             </form>
@@ -2473,61 +2477,61 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th data-filter-col="1">
+                            <th data-filter-col="1" data-filter-key="cf_complaint">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>Date / ID</span>
+                                    <span>{% translate "Date / ID" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
                                     </div>
                                 </div>
                             </th>
-                            <th data-filter-col="2">
+                            <th data-filter-col="2" data-filter-key="cf_vehicle">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>Vehicle</span>
+                                    <span>{% translate "Vehicle" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
                                     </div>
                                 </div>
                             </th>
-                            <th data-filter-col="3">
+                            <th data-filter-col="3" data-filter-key="cf_category">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>Type &amp; Material</span>
+                                    <span>{% translate "Type &amp; Material" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
                                     </div>
                                 </div>
                             </th>
-                            <th data-filter-col="4">
+                            <th data-filter-col="4" data-filter-key="cf_reporter">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>Reported &amp; Source</span>
+                                    <span>{% translate "Reported &amp; Source" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
                                     </div>
                                 </div>
                             </th>
-                            <th data-filter-col="5">
+                            <th data-filter-col="5" data-filter-key="cf_priority">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>Priority</span>
+                                    <span>{% translate "Priority" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
                                     </div>
                                 </div>
                             </th>
-                            <th data-filter-col="6">
+                            <th data-filter-col="6" data-filter-key="cf_workflow_status">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>Status</span>
+                                    <span>{% translate "Status" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="Clear filter"><i class="fas fa-times"></i></span>
+                                        <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
                                     </div>
                                 </div>
                             </th>
-                            <th class="actions-column">Actions</th>
+                            <th class="actions-column">{% translate "Actions" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2574,37 +2578,37 @@
                             </td>
                             <td class="actions-column" style="vertical-align: middle;">
                                 <div class="action-buttons">
-                                    <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="View Details" aria-label="View complaint {{ complaint.complaint_id }}">
+                                    <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="{% translate "View Details" %}" aria-label="View complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-eye"></i>
-                                        <span class="action-label">View</span>
+                                        <span class="action-label">{% translate "View" %}</span>
                                     </button>
                                     <button type="button" class="action-btn chat" onclick="toggleChatUserPopover(event, '{{ complaint.complaint_id }}')" title="Text about Complaint {{ complaint.complaint_id }}" aria-label="Text about complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-comment-dots"></i>
                                     </button>
                                     {% if complaint.can_edit %}
-                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="Edit" aria-label="Edit complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="{% translate "Edit" %}" aria-label="Edit complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_factory_review %}
-                                    <a href="{% url 'factory_review_complaint' complaint.complaint_id %}" class="action-btn review" title="Factory Review" aria-label="Factory review complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'factory_review_complaint' complaint.complaint_id %}" class="action-btn review" title="{% translate "Factory Review" %}" aria-label="Factory review complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-industry"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_approve %}
-                                    <a href="{% url 'approval_review' complaint.current_approval.id %}" class="action-btn approve" title="Submit Approval" aria-label="Approve complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'approval_review' complaint.current_approval.id %}" class="action-btn approve" title="{% translate "Submit Approval" %}" aria-label="Approve complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-clipboard-check"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_execute %}
-                                    <a href="{% url 'execute_complaint' complaint.complaint_id %}" class="action-btn execute" title="Execute Approved Action" aria-label="Execute complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'execute_complaint' complaint.complaint_id %}" class="action-btn execute" title="{% translate "Execute Approved Action" %}" aria-label="Execute complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-circle-check"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_delete %}
                                     <form method="post" action="{% url 'delete_complaint' complaint.complaint_id %}" class="delete-complaint-form">
                                         {% csrf_token %}
-                                        <button type="submit" class="action-btn delete" title="Delete" aria-label="Delete complaint {{ complaint.complaint_id }}"
+                                        <button type="submit" class="action-btn delete" title="{% translate "Delete" %}" aria-label="Delete complaint {{ complaint.complaint_id }}"
                                                 onclick="return confirm('Are you sure you want to delete this complaint?');">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -2617,7 +2621,7 @@
                             <td colspan="8">
                                 <div class="journey-column-inline">
                                     <div class="journey-summary-inline">
-                                        <span class="journey-title-inline">Complaint Journey</span>
+                                        <span class="journey-title-inline">{% translate "Complaint Journey" %}</span>
                                     </div>
                                     <div class="journey-track-inline" aria-label="Complaint journey: {{ complaint.get_workflow_status_display }}">
                                         {% for step in complaint.journey_steps %}
@@ -2650,17 +2654,17 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <button type="button" class="close-btn" onclick="closeModal('{{ complaint.complaint_id }}')" aria-label="Close complaint details">
+                                    <button type="button" class="close-btn" onclick="closeModal('{{ complaint.complaint_id }}')" aria-label="{% translate "Close complaint details" %}">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
                                 <div class="modal-body">
-                                    <section class="modal-journey-panel" aria-label="Complaint workflow journey">
+                                    <section class="modal-journey-panel" aria-label="{% translate "Complaint workflow journey" %}">
                                         <div class="modal-journey-header">
                                             <div>
                                                 <span class="modal-journey-kicker">
                                                     <i class="fas fa-route"></i>
-                                                    Workflow status
+                                                    {% translate "Workflow status" %}
                                                 </span>
                                                 <h3 class="modal-journey-heading">{{ complaint.get_workflow_status_display }}</h3>
                                             </div>
@@ -2695,59 +2699,59 @@
                                     <div class="complaint-record-layout">
                                         <div class="complaint-record-details">
                                             <section class="record-section">
-                                                <h3 class="record-section-title">Description</h3>
+                                                <h3 class="record-section-title">{% translate "Description" %}</h3>
                                                 <p class="record-description">{{ complaint.complaint_description|default:"No description provided." }}</p>
                                             </section>
 
                                             <section class="record-section">
-                                                <h3 class="record-section-title">Complaint details</h3>
+                                                <h3 class="record-section-title">{% translate "Complaint details" %}</h3>
                                                 <dl class="record-fields">
-                                                    <div class="record-field"><dt>Complaint ID</dt><dd>{{ complaint.complaint_id }}</dd></div>
-                                                    <div class="record-field"><dt>Complaint type</dt><dd>{{ complaint.get_complaint_type_display }}</dd></div>
-                                                    <div class="record-field"><dt>Report status</dt><dd>{{ complaint.status }}</dd></div>
-                                                    <div class="record-field"><dt>Priority</dt><dd>{{ complaint.priority|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Report date</dt><dd>{{ complaint.date|date:"d M Y" }}</dd></div>
-                                                    <div class="record-field"><dt>Batch / Order #</dt><dd>{{ complaint.batch_order|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Updated Order #</dt><dd>{{ complaint.updated_order_no|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Created by</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Complaint ID" %}</dt><dd>{{ complaint.complaint_id }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Complaint type" %}</dt><dd>{{ complaint.get_complaint_type_display }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Report status" %}</dt><dd>{{ complaint.status }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Priority" %}</dt><dd>{{ complaint.priority|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Report date" %}</dt><dd>{{ complaint.date|date:"d M Y" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Batch / Order #" %}</dt><dd>{{ complaint.batch_order|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Updated Order #" %}</dt><dd>{{ complaint.updated_order_no|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Created by" %}</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}-{% endif %}</dd></div>
                                                 </dl>
                                             </section>
 
                                             <section class="record-section">
-                                                <h3 class="record-section-title">Product and source</h3>
+                                                <h3 class="record-section-title">{% translate "Product and source" %}</h3>
                                                 <dl class="record-fields">
-                                                    <div class="record-field"><dt>Country</dt><dd>{{ complaint.country|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Channel</dt><dd>{{ complaint.channel|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Reported by</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.username }}{% else %}{{ complaint.person|default:"-" }}{% endif %}</dd></div>
-                                                    <div class="record-field"><dt>Defect type</dt><dd>{{ complaint.case_sub_category|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Brand</dt><dd>{{ complaint.brand|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Model</dt><dd>{{ complaint.model|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Submodel</dt><dd>{{ complaint.sub_model|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Year</dt><dd>{% if complaint.year %}{{ complaint.year.year_start }}–{{ complaint.year.year_end }}{% else %}-{% endif %}</dd></div>
-                                                    <div class="record-field"><dt>Series</dt><dd>{{ complaint.series|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Material</dt><dd>{{ complaint.material|default:"-" }}</dd></div>
-                                                    <div class="record-field is-wide"><dt>SKU</dt><dd>{% if complaint.sku %}{{ complaint.sku.code }}{% if complaint.sku.description %} — {{ complaint.sku.description }}{% endif %}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Country" %}</dt><dd>{{ complaint.country|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Channel" %}</dt><dd>{{ complaint.channel|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Reported by" %}</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.username }}{% else %}{{ complaint.person|default:"-" }}{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Defect type" %}</dt><dd>{{ complaint.case_sub_category|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Brand" %}</dt><dd>{{ complaint.brand|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Model" %}</dt><dd>{{ complaint.model|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Submodel" %}</dt><dd>{{ complaint.sub_model|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Year" %}</dt><dd>{% if complaint.year %}{{ complaint.year.year_start }}–{{ complaint.year.year_end }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Series" %}</dt><dd>{{ complaint.series|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Material" %}</dt><dd>{{ complaint.material|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>{% translate "SKU" %}</dt><dd>{% if complaint.sku %}{{ complaint.sku.code }}{% if complaint.sku.description %} — {{ complaint.sku.description }}{% endif %}{% else %}-{% endif %}</dd></div>
                                                 </dl>
                                             </section>
 
                                             <section class="record-section">
-                                                <h3 class="record-section-title">Factory response</h3>
+                                                <h3 class="record-section-title">{% translate "Factory response" %}</h3>
                                                 <dl class="record-fields">
-                                                    <div class="record-field"><dt>Factory executive</dt><dd>{% if complaint.assigned_factory_executive %}{{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}{% else %}-{% endif %}</dd></div>
-                                                    <div class="record-field"><dt>Factory priority</dt><dd>{{ complaint.get_factory_priority_display|default:"-" }}</dd></div>
-                                                    <div class="record-field is-wide"><dt>Root cause</dt><dd>{{ complaint.factory_reason|default:complaint.justification_from_factory|default:"-" }}</dd></div>
-                                                    <div class="record-field is-wide"><dt>Action plan</dt><dd>{{ complaint.factory_action_plan|default:complaint.action_from_factory|default:"-" }}</dd></div>
-                                                    <div class="record-field is-wide"><dt>Execution notes</dt><dd>{{ complaint.execution_notes|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>CAD updated date</dt><dd>{% if complaint.cad_date %}{{ complaint.cad_date|date:"d M Y" }}{% else %}-{% endif %}</dd></div>
-                                                    <div class="record-field"><dt>Container number</dt><dd>{{ complaint.production_updates_container|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>Closed by</dt><dd>{% if complaint.closed_by %}{{ complaint.closed_by.get_full_name|default:complaint.closed_by.username }}{% else %}-{% endif %}</dd></div>
-                                                    <div class="record-field"><dt>Closed at</dt><dd>{% if complaint.closed_at %}{{ complaint.closed_at|date:"d M Y, H:i" }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Factory executive" %}</dt><dd>{% if complaint.assigned_factory_executive %}{{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Factory priority" %}</dt><dd>{{ complaint.get_factory_priority_display|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>{% translate "Root cause" %}</dt><dd>{{ complaint.factory_reason|default:complaint.justification_from_factory|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>{% translate "Action plan" %}</dt><dd>{{ complaint.factory_action_plan|default:complaint.action_from_factory|default:"-" }}</dd></div>
+                                                    <div class="record-field is-wide"><dt>{% translate "Execution notes" %}</dt><dd>{{ complaint.execution_notes|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "CAD updated date" %}</dt><dd>{% if complaint.cad_date %}{{ complaint.cad_date|date:"d M Y" }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Container number" %}</dt><dd>{{ complaint.production_updates_container|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Closed by" %}</dt><dd>{% if complaint.closed_by %}{{ complaint.closed_by.get_full_name|default:complaint.closed_by.username }}{% else %}-{% endif %}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Closed at" %}</dt><dd>{% if complaint.closed_at %}{{ complaint.closed_at|date:"d M Y, H:i" }}{% else %}-{% endif %}</dd></div>
                                                 </dl>
                                             </section>
 
                                     {% if complaint.approval_summary.total %}
                                         <section class="record-section">
-                                        <h3 class="record-section-title">Approval history</h3>
+                                        <h3 class="record-section-title">{% translate "Approval history" %}</h3>
                                         <div class="progress-row">
                                             <div class="progress-track">
                                                 <div class="progress-fill" style="width: {% widthratio complaint.approval_summary.decided complaint.approval_summary.total 100 %}%;"></div>
@@ -2785,7 +2789,7 @@
 
                                     {% if complaint.timeline_events.all %}
                                         <section class="record-section">
-                                        <h3 class="record-section-title">Activity</h3>
+                                        <h3 class="record-section-title">{% translate "Activity" %}</h3>
                                         <div class="timeline-list">
                                             {% for event in complaint.timeline_events.all %}
                                                 <div class="timeline-entry">
@@ -2805,16 +2809,16 @@
                                     {% endif %}
                                         </div>
 
-                                        <aside class="complaint-media-pane" aria-label="Complaint media">
+                                        <aside class="complaint-media-pane" aria-label="{% translate "Complaint media" %}">
                                             <div class="media-pane-header">
-                                                <h3>Images and videos</h3>
+                                                <h3>{% translate "Images and videos" %}</h3>
                                                 <span class="media-count">{{ complaint.media_files.count }} file{{ complaint.media_files.count|pluralize }}</span>
                                             </div>
                                             {% if complaint.media_files.count > 0 %}
                                         <div class="media-grid">
                                             {% for media in complaint.media_files.all %}
                                                 {% if not media.is_available %}
-                                                    <div class="media-item"><span>Unavailable</span></div>
+                                                    <div class="media-item"><span>{% translate "Unavailable" %}</span></div>
                                                 {% elif ".jpg" in media.file|lower or ".jpeg" in media.file|lower or ".png" in media.file|lower or ".webp" in media.file|lower or ".gif" in media.file|lower %}
                                                     <div class="media-item" onclick="enlargeImage('{{ media.url|escapejs }}')">
                                                         <img src="{{ media.url }}" class="media-thumbnail" alt="Media attached to complaint {{ complaint.complaint_id }}" loading="lazy">
@@ -2823,20 +2827,20 @@
                                                     <div class="media-item">
                                                         <video class="media-thumbnail complaint-video" preload="none" playsinline
                                                                data-src="{{ media.url }}" aria-label="Video attached to complaint {{ complaint.complaint_id }}"></video>
-                                                        <button type="button" class="video-play-button" onclick="playComplaintVideo(this)" aria-label="Play attached video">
+                                                        <button type="button" class="video-play-button" onclick="playComplaintVideo(this)" aria-label="{% translate "Play attached video" %}">
                                                             <i class="fas fa-play" aria-hidden="true"></i>
-                                                            <span>Play video</span>
+                                                            <span>{% translate "Play video" %}</span>
                                                         </button>
                                                     </div>
                                                 {% else %}
-                                                    <a class="media-item" href="{{ media.url }}" target="_blank" rel="noopener">Open attached file</a>
+                                                    <a class="media-item" href="{{ media.url }}" target="_blank" rel="noopener">{% translate "Open attached file" %}</a>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
                                             {% else %}
                                                 <div class="media-empty">
                                                     <i class="fas fa-photo-film"></i>
-                                                    <span>No media attached</span>
+                                                    <span>{% translate "No media attached" %}</span>
                                                 </div>
                                             {% endif %}
                                         </aside>
@@ -2851,15 +2855,15 @@
                 {% if page_obj and page_obj.has_other_pages %}
                 <div class="pagination-container">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">&laquo; First</a>
-                        <a href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Prev</a>
+                        <a href="?page=1{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "&laquo; First" %}</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "Prev" %}</a>
                     {% endif %}
 
                     <span class="pagination-copy">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Next</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">Last &raquo;</a>
+                        <a href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "Next" %}</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "Last &raquo;" %}</a>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -2868,11 +2872,11 @@
                     <div class="empty-icon">
                         <i class="fas fa-inbox"></i>
                     </div>
-                    <h3>No complaints found</h3>
-                    <p>Try adjusting your filters or add a new complaint to get started.</p>
+                    <h3>{% translate "No complaints found" %}</h3>
+                    <p>{% translate "Try adjusting your filters or add a new complaint to get started." %}</p>
                     <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="margin-top: 1rem;">
                         <i class="fas fa-plus"></i>
-                        Add First Complaint
+                        {% translate "Add First Complaint" %}
                     </a>
                 </div>
             {% endif %}
@@ -2883,7 +2887,7 @@
     <div id="imageModal" class="modal">
         <div class="modal-content" style="max-width: 90%; text-align: center;">
             <div class="modal-header">
-                <h2 class="modal-title">Image Preview</h2>
+                <h2 class="modal-title">{% translate "Image Preview" %}</h2>
                 <button class="close-btn" onclick="closeImageModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -2892,6 +2896,7 @@
         </div>
     </div>
 
+    {{ column_filter_config|json_script:"complaint-column-filter-config" }}
     <script>
         // Modal functions
         function resetComplaintVideo(video) {
@@ -3040,7 +3045,7 @@
             function refreshSearchChoice() {
                 if (!searchByInput || !searchLabel) return;
                 const selected = searchByInput.value || 'complaint_id';
-                searchLabel.textContent = searchLabels[selected] || 'Complaint ID';
+                searchLabel.textContent = searchLabels[selected] || window.FabroI18n.gettext('Complaint ID');
                 searchOptions.forEach((option) => {
                     option.classList.toggle('is-active', option.dataset.searchBy === selected);
                 });
@@ -3108,95 +3113,32 @@
                 }
             }, { signal: complaintPageSignal });
 
-            // Column filter dropdowns logic for Complaints Table
+            // Column menus submit validated server-side filters. They never hide
+            // rows locally, so pagination and filtering operate on one queryset.
             const filterHeaders = document.querySelectorAll('th[data-filter-col]');
+            const configElement = document.getElementById('complaint-column-filter-config');
+            const filterConfigs = configElement ? JSON.parse(configElement.textContent) : [];
+            const configByParam = new Map(filterConfigs.map(config => [config.param, config]));
+            const appContent = document.getElementById('app-content');
 
-            function getComplaintFilterValue(infoRow, colIdx) {
-                const cell = infoRow.cells[colIdx];
-                if (!cell) return '';
-                if (colIdx === 1) {
-                    return cell.querySelector('.complaint-id-badge')?.textContent.trim() || '';
-                }
-                if (colIdx === 2) {
-                    return cell.querySelector('.vehicle-primary')?.textContent.trim() || '';
-                }
-                if (colIdx === 3) {
-                    return cell.querySelector('.type-primary')?.textContent.trim() || '';
-                }
-                if (colIdx === 4) {
-                    return cell.querySelector('.reporter-primary')?.textContent.trim() || '';
-                }
-                if (colIdx === 5 || colIdx === 6) {
-                    return cell.querySelector('.status-badge')?.textContent.trim() || '';
-                }
-                return cell.textContent.trim();
+            function navigateWithColumnFilters(param, values) {
+                const query = appContent?.dataset.complaintFilterQuery || '';
+                const url = new URL(window.location.pathname + (query ? `?${query}` : ''), window.location.origin);
+                url.searchParams.delete('page');
+                url.searchParams.delete(param);
+                values.forEach(value => url.searchParams.append(param, value));
+                window.location.assign(url.pathname + url.search);
             }
-            
-            function runFilters() {
-                const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
-                if (infoRows.length === 0) return;
 
-                // Collect active column filters: column index -> Set of checked values
-                const activeFilters = {};
-                filterHeaders.forEach(th => {
-                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
-                    const checkedCheckboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]:checked');
-                    if (checkedCheckboxes.length > 0) {
-                        activeFilters[colIdx] = new Set(Array.from(checkedCheckboxes).map(cb => cb.value.toLowerCase()));
-                    }
-                });
-
-                // Filter each complaint info row & its workflow companion row
-                infoRows.forEach(infoRow => {
-                    let isVisible = true;
-                    
-                    for (const [colIdx, allowedValues] of Object.entries(activeFilters)) {
-                        const rowValue = getComplaintFilterValue(infoRow, Number(colIdx)).toLowerCase();
-                        if (!allowedValues.has(rowValue)) {
-                            isVisible = false;
-                            break;
-                        }
-                    }
-
-                    infoRow.hidden = !isVisible;
-                    const workflowRow = infoRow.nextElementSibling;
-                    if (workflowRow && workflowRow.classList.contains('complaint-workflow-row')) {
-                        workflowRow.hidden = !isVisible;
-                    }
-                });
-
-                // Update filter trigger icons and clear buttons
-                filterHeaders.forEach(th => {
-                    const colIdx = parseInt(th.getAttribute('data-filter-col'));
-                    const trigger = th.querySelector('.column-filter-trigger i');
-                    const clearBtn = th.querySelector('.column-filter-clear');
-                    const dropdownClearBtn = th.querySelector('.clear-col-filter');
-                    
-                    const hasActiveFilter = activeFilters[colIdx] !== undefined;
-                    
-                    if (clearBtn) {
-                        clearBtn.style.display = hasActiveFilter ? 'inline-block' : 'none';
-                    }
-                    if (dropdownClearBtn) {
-                        dropdownClearBtn.style.display = hasActiveFilter ? 'inline' : 'none';
-                    }
-
-                    if (trigger) {
-                        if (hasActiveFilter) {
-                            trigger.className = 'fas fa-filter';
-                            trigger.parentElement.style.color = 'var(--primary-color)';
-                            trigger.parentElement.style.opacity = '1';
-                        } else {
-                            trigger.className = 'fas fa-chevron-down';
-                            trigger.parentElement.style.color = '';
-                            trigger.parentElement.style.opacity = '0.6';
-                        }
-                    }
-                });
+            function navigateWithoutAllColumnFilters() {
+                const query = appContent?.dataset.clearColumnFiltersQuery || '';
+                window.location.assign(window.location.pathname + (query ? `?${query}` : ''));
             }
 
             filterHeaders.forEach(th => {
-                const colIdx = parseInt(th.getAttribute('data-filter-col'));
+                const param = th.dataset.filterKey;
+                const config = configByParam.get(param) || {options: [], selected: []};
+                const selectedValues = new Set(config.selected);
                 th.querySelector('.column-filter-dropdown')?.remove();
                 
                 // Create dropdown element
@@ -3213,7 +3155,7 @@
                 // Add text input for search
                 const searchInput = document.createElement('input');
                 searchInput.type = 'text';
-                searchInput.placeholder = 'Search values...';
+                searchInput.placeholder = window.FabroI18n.gettext('Search values...');
                 searchInput.className = 'column-filter-input';
                 searchInput.style.cssText = 'width: 100%; padding: 0.4rem 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; margin-bottom: 0.6rem; outline: none; box-sizing: border-box;';
                 if (document.body.classList.contains('light-mode')) {
@@ -3231,19 +3173,19 @@
 
                 const dropdownClearBtn = document.createElement('span');
                 dropdownClearBtn.className = 'clear-col-filter';
-                dropdownClearBtn.style.cssText = 'cursor: pointer; color: var(--primary-color); font-weight: 600; display: none;';
-                dropdownClearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+                dropdownClearBtn.style.cssText = `cursor: pointer; color: var(--primary-color); font-weight: 600; display: ${selectedValues.size ? 'inline' : 'none'};`;
+                dropdownClearBtn.innerHTML = `<i class="fas fa-times"></i> ${window.FabroI18n.gettext('Clear')}`;
 
-                const selectAllBtn = document.createElement('span');
-                selectAllBtn.className = 'select-all-col-filter';
-                selectAllBtn.style.cssText = 'cursor: pointer; color: var(--dark-text-secondary);';
+                const clearAllBtn = document.createElement('span');
+                clearAllBtn.className = 'clear-all-col-filters';
+                clearAllBtn.style.cssText = 'cursor: pointer; color: var(--dark-text-secondary);';
                 if (document.body.classList.contains('light-mode')) {
-                    selectAllBtn.style.color = '#64748b';
+                    clearAllBtn.style.color = '#64748b';
                 }
-                selectAllBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+                clearAllBtn.innerHTML = `<i class="fas fa-filter-circle-xmark"></i> ${window.FabroI18n.gettext('Clear All')}`;
 
                 actionBar.appendChild(dropdownClearBtn);
-                actionBar.appendChild(selectAllBtn);
+                actionBar.appendChild(clearAllBtn);
 
                 // Add values container
                 const valuesContainer = document.createElement('div');
@@ -3258,29 +3200,18 @@
                 dropdown.appendChild(valuesContainer);
                 th.appendChild(dropdown);
 
-                // Populate unique values
-                const infoRows = document.querySelectorAll('.table tbody tr.complaint-info-row');
-                const uniqueValues = new Set();
-                infoRows.forEach(row => {
-                    const val = getComplaintFilterValue(row, colIdx);
-                    if (val) uniqueValues.add(val);
-                });
-
-                // Render checkboxes
-                const sortedValues = Array.from(uniqueValues).sort();
-                
                 function renderList(filterTerm = '') {
                     valuesContainer.innerHTML = '';
                     const term = filterTerm.toLowerCase();
                     
-                    if (sortedValues.length === 0) {
-                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No values found</div>';
+                    if (config.options.length === 0) {
+                        valuesContainer.innerHTML = `<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">${window.FabroI18n.gettext('No values found')}</div>`;
                         return;
                     }
 
                     let visibleMatches = 0;
-                    sortedValues.forEach(val => {
-                        if (term && !val.toLowerCase().includes(term)) return;
+                    config.options.forEach(option => {
+                        if (term && !option.label.toLowerCase().includes(term)) return;
 
                         visibleMatches += 1;
 
@@ -3289,18 +3220,22 @@
                         
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
-                        checkbox.value = val;
+                        checkbox.value = option.value;
+                        checkbox.checked = selectedValues.has(option.value);
                         checkbox.style.cssText = 'cursor: pointer; width: 14px; height: 14px; margin: 0;';
-                        
-                        checkbox.addEventListener('change', runFilters);
+                        checkbox.addEventListener('change', function () {
+                            if (checkbox.checked) selectedValues.add(option.value);
+                            else selectedValues.delete(option.value);
+                            navigateWithColumnFilters(param, Array.from(selectedValues));
+                        });
 
                         label.appendChild(checkbox);
-                        label.appendChild(document.createTextNode(val));
+                        label.appendChild(document.createTextNode(option.label));
                         valuesContainer.appendChild(label);
                     });
 
                     if (visibleMatches === 0) {
-                        valuesContainer.innerHTML = '<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">No matching values</div>';
+                        valuesContainer.innerHTML = `<div style="font-size: 0.75rem; color: var(--dark-text-secondary); text-align: center; padding: 0.5rem 0;">${window.FabroI18n.gettext('No matching values')}</div>`;
                     }
                 }
 
@@ -3314,21 +3249,12 @@
                 // Dropdown clear action handler
                 dropdownClearBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
-                        cb.checked = false;
-                    });
-                    runFilters();
+                    navigateWithColumnFilters(param, []);
                 });
 
-                // Select all action handler
-                selectAllBtn.addEventListener('click', function(e) {
+                clearAllBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    const checkboxes = th.querySelectorAll('.column-filter-values input[type="checkbox"]');
-                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-                    checkboxes.forEach(cb => {
-                        cb.checked = !allChecked;
-                    });
-                    runFilters();
+                    navigateWithoutAllColumnFilters();
                 });
 
                 // Header level clear trigger
@@ -3337,12 +3263,10 @@
                     clearBtn.setAttribute('role', 'button');
                     clearBtn.setAttribute('tabindex', '0');
                     clearBtn.setAttribute('aria-label', 'Clear this column filter');
+                    clearBtn.style.display = selectedValues.size ? 'inline-block' : 'none';
                     clearBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        th.querySelectorAll('.column-filter-values input[type="checkbox"]').forEach(cb => {
-                            cb.checked = false;
-                        });
-                        runFilters();
+                        navigateWithColumnFilters(param, []);
                     });
                     clearBtn.addEventListener('keydown', function(e) {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -3360,6 +3284,12 @@
                     trigger.setAttribute('aria-haspopup', 'menu');
                     trigger.setAttribute('aria-expanded', 'false');
                     trigger.setAttribute('aria-label', 'Filter this column');
+                    const triggerIcon = trigger.querySelector('i');
+                    if (selectedValues.size && triggerIcon) {
+                        triggerIcon.className = 'fas fa-filter';
+                        trigger.style.color = 'var(--primary-color)';
+                        trigger.style.opacity = '1';
+                    }
 
                     const toggleDropdown = function(e) {
                         e.stopPropagation();
@@ -3570,16 +3500,16 @@
         <div class="chat-popover-header">
             <div class="popover-title-row">
                 <h4 class="popover-title">
-                    <i class="fas fa-comments" style="color: var(--primary-color);"></i> Message Team Member
+                    <i class="fas fa-comments" style="color: var(--primary-color);"></i> {% translate "Message Team Member" %}
                 </h4>
-                <button type="button" class="popover-close-btn" onclick="closeChatPopover()">&times;</button>
+                <button type="button" class="popover-close-btn" onclick="closeChatPopover()">{% translate "&times;" %}</button>
             </div>
             <div class="popover-context-tag">
-                Complaint Context: <strong id="popover-complaint-id-text">PAT-26070001</strong>
+                {% translate "Complaint Context:" %} <strong id="popover-complaint-id-text">{% translate "PAT-26070001" %}</strong>
             </div>
             <div class="popover-search-box">
                 <i class="fas fa-search popover-search-icon"></i>
-                <input type="text" id="popover-search-input" class="popover-search-input" placeholder="Search team member..." autocomplete="off">
+                <input type="text" id="popover-search-input" class="popover-search-input" placeholder="{% translate "Search team member..." %}" autocomplete="off">
             </div>
         </div>
         <div class="chat-popover-body" id="popover-user-list">
@@ -3607,7 +3537,7 @@
                 </div>
             {% empty %}
                 <div style="padding: 1.5rem 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
-                    No active team members available.
+                    {% translate "No active team members available." %}
                 </div>
             {% endfor %}
         </div>

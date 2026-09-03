@@ -1,14 +1,14 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile Settings - Fabro Leather</title>
+    <title>{% translate "Profile Settings - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
@@ -550,13 +550,13 @@
         <div class="profile-header-row">
             <div>
                 <h1 class="profile-title">
-                    <i class="fas fa-user-cog"></i> Profile Settings
+                    <i class="fas fa-user-cog"></i> {% translate "Profile Settings" %}
                 </h1>
-                <p class="profile-subtitle">Configure your personal information and adjust account security credentials</p>
+                <p class="profile-subtitle">{% translate "Configure your personal information and adjust account security credentials" %}</p>
             </div>
             {% if can_manage_workflow %}
             <a href="{% url 'admin_panel' %}" class="btn btn-secondary compact-admin-btn" data-testid="open-admin-panel">
-                <i class="fas fa-user-shield"></i> Admin Panel
+                <i class="fas fa-user-shield"></i> {% translate "Admin Panel" %}
             </a>
             {% endif %}
         </div>
@@ -574,11 +574,11 @@
                                     <span id="avatar-initial">{{ request.user.username|first|upper }}</span>
                                 {% endif %}
                             </div>
-                            <label for="id_profile_photo" class="avatar-camera-btn" title="Upload profile photo">
+                            <label for="id_profile_photo" class="avatar-camera-btn" title="{% translate "Upload profile photo" %}">
                                 <i class="fas fa-camera"></i>
                             </label>
                             {% if workflow_profile.photo %}
-                            <button type="button" class="avatar-delete-btn" onclick="triggerRemovePhoto()" title="Remove photo">
+                            <button type="button" class="avatar-delete-btn" onclick="triggerRemovePhoto()" title="{% translate "Remove photo" %}">
                                 <i class="fas fa-times"></i>
                             </button>
                             {% endif %}
@@ -596,19 +596,19 @@
                     </div>
 
                     <div class="profile-detail-list">
-                        <div class="profile-detail-item" title="Username">
+                        <div class="profile-detail-item" title="{% translate "Username" %}">
                             <i class="fas fa-user-circle"></i>
                             <span>{{ request.user.username }}</span>
                         </div>
-                        <div class="profile-detail-item" title="Email">
+                        <div class="profile-detail-item" title="{% translate "Email" %}">
                             <i class="fas fa-envelope"></i>
                             <span>{{ request.user.email|default:"No email registered" }}</span>
                         </div>
-                        <div class="profile-detail-item" title="Member Since">
+                        <div class="profile-detail-item" title="{% translate "Member Since" %}">
                             <i class="fas fa-calendar-alt"></i>
                             <span>Joined {{ request.user.date_joined|date:"M d, Y" }}</span>
                         </div>
-                        <div class="profile-detail-item" title="Last Active">
+                        <div class="profile-detail-item" title="{% translate "Last Active" %}">
                             <i class="fas fa-history"></i>
                             <span>Last login {{ request.user.last_login|date:"M d, H:i" }}</span>
                         </div>
@@ -620,7 +620,7 @@
             <div class="profile-card">
                 <div class="section-header">
                     <span class="section-title">
-                        <i class="fas fa-id-card"></i> Account Details
+                        <i class="fas fa-id-card"></i> {% translate "Account Details" %}
                     </span>
                 </div>
 
@@ -632,37 +632,37 @@
 
                     <div>
                         <div class="form-group-compact">
-                            <label class="form-label" for="username">Username (Read-only)</label>
+                            <label class="form-label" for="username">{% translate "Username (Read-only)" %}</label>
                             <div class="input-wrapper">
                                 <input type="text" id="username" class="form-input" value="{{ request.user.username }}" disabled>
                                 <i class="fas fa-lock input-icon"></i>
                             </div>
                         </div>
                         <div class="form-group-compact">
-                            <label class="form-label" for="email">Email Address</label>
+                            <label class="form-label" for="email">{% translate "Email Address" %}</label>
                             <div class="input-wrapper">
-                                <input type="email" name="email" id="email" class="form-input" value="{{ request.user.email }}" placeholder="Enter email address" required>
+                                <input type="email" name="email" id="email" class="form-input" value="{{ request.user.email }}" placeholder="{% translate "Enter email address" %}" required>
                                 <i class="fas fa-envelope input-icon"></i>
                             </div>
                         </div>
                         <div class="form-group-compact">
-                            <label class="form-label" for="first_name">First Name</label>
+                            <label class="form-label" for="first_name">{% translate "First Name" %}</label>
                             <div class="input-wrapper">
-                                <input type="text" name="first_name" id="first_name" class="form-input" value="{{ request.user.first_name }}" placeholder="Enter first name">
+                                <input type="text" name="first_name" id="first_name" class="form-input" value="{{ request.user.first_name }}" placeholder="{% translate "Enter first name" %}">
                                 <i class="fas fa-user input-icon"></i>
                             </div>
                         </div>
                         <div class="form-group-compact">
-                            <label class="form-label" for="last_name">Last Name</label>
+                            <label class="form-label" for="last_name">{% translate "Last Name" %}</label>
                             <div class="input-wrapper">
-                                <input type="text" name="last_name" id="last_name" class="form-input" value="{{ request.user.last_name }}" placeholder="Enter last name">
+                                <input type="text" name="last_name" id="last_name" class="form-input" value="{{ request.user.last_name }}" placeholder="{% translate "Enter last name" %}">
                                 <i class="fas fa-user input-icon"></i>
                             </div>
                         </div>
                         <div class="form-group-compact">
-                            <label class="form-label" for="phone_number">Phone Number</label>
+                            <label class="form-label" for="phone_number">{% translate "Phone Number" %}</label>
                             <div class="input-wrapper">
-                                <input type="tel" name="phone_number" id="phone_number" class="form-input" value="{{ workflow_profile.phone_number|default:'' }}" placeholder="Enter phone number">
+                                <input type="tel" name="phone_number" id="phone_number" class="form-input" value="{{ workflow_profile.phone_number|default:'' }}" placeholder="{% translate "Enter phone number" %}">
                                 <i class="fas fa-phone input-icon"></i>
                             </div>
                         </div>
@@ -677,7 +677,7 @@
                                 </div>
                             {% endif %}
                         {% endfor %}
-                        <button type="submit" class="btn-icon-save" title="Save Details" aria-label="Save Details">
+                        <button type="submit" class="btn-icon-save" title="{% translate "Save Details" %}" aria-label="{% translate "Save Details" %}">
                             <i class="fas fa-save"></i>
                         </button>
                     </div>
@@ -688,7 +688,7 @@
             <div class="profile-card">
                 <div class="section-header">
                     <span class="section-title">
-                        <i class="fas fa-key"></i> Security & Password
+                        <i class="fas fa-key"></i> {% translate "Security & Password" %}
                     </span>
                 </div>
 
@@ -698,33 +698,33 @@
 
                     <div>
                         <div class="form-group-compact">
-                            <label class="form-label" for="id_old_password">Current Password</label>
+                            <label class="form-label" for="id_old_password">{% translate "Current Password" %}</label>
                             <div class="input-wrapper">
-                                <input type="password" name="old_password" id="id_old_password" class="form-input" placeholder="Enter current password" required style="padding-right: 2.2rem;">
+                                <input type="password" name="old_password" id="id_old_password" class="form-input" placeholder="{% translate "Enter current password" %}" required style="padding-right: 2.2rem;">
                                 <i class="fas fa-shield-alt input-icon"></i>
-                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_old_password', this)" title="Show/Hide Password" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_old_password', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                         </div>
 
                         <div class="form-group-compact">
-                            <label class="form-label" for="id_new_password1">New Password</label>
+                            <label class="form-label" for="id_new_password1">{% translate "New Password" %}</label>
                             <div class="input-wrapper">
-                                <input type="password" name="new_password1" id="id_new_password1" class="form-input" placeholder="Enter new password" required style="padding-right: 2.2rem;">
+                                <input type="password" name="new_password1" id="id_new_password1" class="form-input" placeholder="{% translate "Enter new password" %}" required style="padding-right: 2.2rem;">
                                 <i class="fas fa-lock input-icon"></i>
-                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_new_password1', this)" title="Show/Hide Password" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_new_password1', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                         </div>
 
                         <div class="form-group-compact">
-                            <label class="form-label" for="id_new_password2">Confirm New Password</label>
+                            <label class="form-label" for="id_new_password2">{% translate "Confirm New Password" %}</label>
                             <div class="input-wrapper">
-                                <input type="password" name="new_password2" id="id_new_password2" class="form-input" placeholder="Confirm new password" required style="padding-right: 2.2rem;">
+                                <input type="password" name="new_password2" id="id_new_password2" class="form-input" placeholder="{% translate "Confirm new password" %}" required style="padding-right: 2.2rem;">
                                 <i class="fas fa-check-circle input-icon"></i>
-                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_new_password2', this)" title="Show/Hide Password" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('id_new_password2', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--dark-text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.82rem; z-index: 2;">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -740,11 +740,11 @@
                                 </div>
                             {% endif %}
                         {% endfor %}
-                        <button type="button" class="btn-forgot-pwd" onclick="alert('To reset your password if forgotten, please contact your system administrator.')" title="Forgot Password?">
-                            <i class="fas fa-question-circle"></i> Forgot
+                        <button type="button" class="btn-forgot-pwd" onclick="alert(window.FabroI18n.gettext('To reset your password if forgotten, please contact your system administrator.'))" title="{% translate "Forgot Password?" %}">
+                            <i class="fas fa-question-circle"></i> {% translate "Forgot" %}
                         </button>
-                        <button type="submit" class="btn-update-pwd" title="Update Password">
-                            <i class="fas fa-sync-alt"></i> Update
+                        <button type="submit" class="btn-update-pwd" title="{% translate "Update Password" %}">
+                            <i class="fas fa-sync-alt"></i> {% translate "Update" %}
                         </button>
                     </div>
                 </form>
@@ -778,7 +778,7 @@
 
             // Check file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                alert('Profile photo must be under 5 MB.');
+                alert(window.FabroI18n.gettext('Profile photo must be under 5 MB.'));
                 event.target.value = '';
                 return;
             }
@@ -803,7 +803,7 @@
         }
 
         function triggerRemovePhoto() {
-            if (confirm('Are you sure you want to remove your profile photo?')) {
+            if (confirm(window.FabroI18n.gettext('Are you sure you want to remove your profile photo?'))) {
                 const removeFlag = document.getElementById('id_remove_photo');
                 if (removeFlag) removeFlag.value = '1';
                 const fileInput = document.getElementById('id_profile_photo');

@@ -1,0 +1,2210 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#, python-format
+msgid "%(filename)s — Ready to upload"
+msgstr "%(filename)s — Ready to upload"
+
+#, python-format
+msgid "%(username)s was assigned to %(group)s."
+msgstr "%(username)s was assigned to %(group)s."
+
+msgid "&laquo; First"
+msgstr "&laquo; First"
+
+msgid "&times;"
+msgstr "&times;"
+
+msgid "(Required for rejection)"
+msgstr "(Required for rejection)"
+
+#, python-format
+msgid "A complaint can contain at most %(count)s media files."
+msgstr "A complaint can contain at most %(count)s media files."
+
+msgid "A group with that name already exists."
+msgstr "A group with that name already exists."
+
+msgid "A production container number is not required for Factory Complaints."
+msgstr "A production container number is not required for Factory Complaints."
+
+msgid "above to add one inline!"
+msgstr "above to add one inline!"
+
+msgid "Account Details"
+msgstr "Account Details"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Action In Progress"
+msgstr "Action In Progress"
+
+msgid "Action Plan"
+msgstr "Action Plan"
+
+msgid "Action plan"
+msgstr "Action plan"
+
+msgid "Action plan started. Submit the execution for verification when implementation is complete."
+msgstr "Action plan started. Submit the execution for verification when implementation is complete."
+
+msgid "ACTION REQUIRED: Your Vote is Pending"
+msgstr "ACTION REQUIRED: Your Vote is Pending"
+
+msgid "Action:"
+msgstr "Action:"
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Active"
+msgstr "Active"
+
+msgid "Active In Review"
+msgstr "Active In Review"
+
+msgid "Active Now"
+msgstr "Active Now"
+
+msgid "Active Pending"
+msgstr "Active Pending"
+
+msgid "Active Reviews"
+msgstr "Active Reviews"
+
+msgid "Active Sessions"
+msgstr "Active Sessions"
+
+msgid "Active Users Online"
+msgstr "Active Users Online"
+
+msgid "Active Workflow"
+msgstr "Active Workflow"
+
+msgid "Activity"
+msgstr "Activity"
+
+msgid "Activity Logs"
+msgstr "Activity Logs"
+
+msgid "Add Complaint"
+msgstr "Add Complaint"
+
+msgid "Add Complaint - Fabro Leather"
+msgstr "Add Complaint - Fabro Leather"
+
+msgid "Add First Complaint"
+msgstr "Add First Complaint"
+
+msgid "Add New Complaint"
+msgstr "Add New Complaint"
+
+msgid "Add New Media Files"
+msgstr "Add New Media Files"
+
+msgid "Add New Setting"
+msgstr "Add New Setting"
+
+msgid "Add New SKU (Inline)"
+msgstr "Add New SKU (Inline)"
+
+msgid "Add New Vehicle"
+msgstr "Add New Vehicle"
+
+msgid "Add Setting"
+msgstr "Add Setting"
+
+msgid "Add SKU"
+msgstr "Add SKU"
+
+msgid "Add Vehicle"
+msgstr "Add Vehicle"
+
+msgid "Add your first vehicle using the form on the left or upload a CSV file."
+msgstr "Add your first vehicle using the form on the left or upload a CSV file."
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "Admin Panel"
+msgstr "Admin Panel"
+
+msgid "All"
+msgstr "All"
+
+msgid "All Channels"
+msgstr "All Channels"
+
+msgid "All Complaint Types"
+msgstr "All Complaint Types"
+
+msgid "All Complaints"
+msgstr "All Complaints"
+
+msgid "All Countries"
+msgstr "All Countries"
+
+msgid "All Fields"
+msgstr "All Fields"
+
+msgid "All History"
+msgstr "All History"
+
+msgid "All marked as read"
+msgstr "All marked as read"
+
+msgid "All notifications marked as read."
+msgstr "All notifications marked as read."
+
+msgid "All Priorities"
+msgstr "All Priorities"
+
+msgid "All reconsideration reviews are complete. The complaint was returned for rework."
+msgstr "All reconsideration reviews are complete. The complaint was returned for rework."
+
+msgid "All Reporters"
+msgstr "All Reporters"
+
+msgid "All required members approved. The executive has received the green light."
+msgstr "All required members approved. The executive has received the green light."
+
+msgid "All Roles"
+msgstr "All Roles"
+
+msgid "All Statuses"
+msgstr "All Statuses"
+
+msgid "All Types"
+msgstr "All Types"
+
+msgid "Allowed Pages (comma-separated)"
+msgstr "Allowed Pages (comma-separated)"
+
+#, python-format
+msgid "An active %(role)s approver already exists."
+msgstr "An active %(role)s approver already exists."
+
+msgid "An error occurred while submitting your decision."
+msgstr "An error occurred while submitting your decision."
+
+msgid "Apply Filters"
+msgstr "Apply Filters"
+
+msgid "Approval Feedback"
+msgstr "Approval Feedback"
+
+msgid "Approval history"
+msgstr "Approval history"
+
+msgid "Approval Inbox"
+msgstr "Approval Inbox"
+
+msgid "Approval Inbox - Fabro Leather"
+msgstr "Approval Inbox - Fabro Leather"
+
+msgid "Approval requests, factory assignments, rework, and closure updates."
+msgstr "Approval requests, factory assignments, rework, and closure updates."
+
+msgid "Approval stage workspace"
+msgstr "Approval stage workspace"
+
+msgid "Approvals"
+msgstr "Approvals"
+
+msgid "Approvals Workspace"
+msgstr "Approvals Workspace"
+
+msgid "Approvals Workspace - Fabro Leather"
+msgstr "Approvals Workspace - Fabro Leather"
+
+msgid "Approve"
+msgstr "Approve"
+
+msgid "Approve Plan"
+msgstr "Approve Plan"
+
+msgid "Approved"
+msgstr "Approved"
+
+msgid "Approved Action Plan"
+msgstr "Approved Action Plan"
+
+msgid "Approved Factory Plan"
+msgstr "Approved Factory Plan"
+
+msgid "Approver"
+msgstr "Approver"
+
+msgid "Are you sure you want to delete this complaint?"
+msgstr "Are you sure you want to delete this complaint?"
+
+msgid "Are you sure you want to log out?"
+msgstr "Are you sure you want to log out?"
+
+#, python-format
+msgid "Are you sure you want to permanently delete user \"%(username)s\"?"
+msgstr "Are you sure you want to permanently delete user \"%(username)s\"?"
+
+msgid "Are you sure you want to remove your profile photo?"
+msgstr "Are you sure you want to remove your profile photo?"
+
+msgid "Assigned Country"
+msgstr "Assigned Country"
+
+msgid "Assigned Executive"
+msgstr "Assigned Executive"
+
+msgid "Assigned to Factory"
+msgstr "Assigned to Factory"
+
+msgid "Audit & Activity Logs"
+msgstr "Audit & Activity Logs"
+
+msgid "Awaiting Approval"
+msgstr "Awaiting Approval"
+
+msgid "Awaiting Execution Verification"
+msgstr "Awaiting Execution Verification"
+
+msgid "Back to Portal"
+msgstr "Back to Portal"
+
+msgid "Back to Vehicle Management"
+msgstr "Back to Vehicle Management"
+
+msgid "Basic Information"
+msgstr "Basic Information"
+
+msgid "Batch / Order"
+msgstr "Batch / Order"
+
+msgid "Batch / Order #"
+msgstr "Batch / Order #"
+
+msgid "Before Execution"
+msgstr "Before Execution"
+
+msgid "Brand"
+msgstr "Brand"
+
+msgid "Brand / Model"
+msgstr "Brand / Model"
+
+msgid "Brand Logo"
+msgstr "Brand Logo"
+
+msgid "Brand logo must be 2 MB or smaller."
+msgstr "Brand logo must be 2 MB or smaller."
+
+msgid "Brand logo must be a JPG, PNG, WEBP, or GIF image."
+msgstr "Brand logo must be a JPG, PNG, WEBP, or GIF image."
+
+msgid "Brand Name"
+msgstr "Brand Name"
+
+msgid "brand,model,sub_model,year_start,year_end,number_of_seats,number_of_doors,layout_code BMW,X5,Sport,2020,2025,5,4,BMW_X5_SPORT_20_25 Mercedes,C-Class,Luxury,2019,2024,5,4,MERC_C_LUX_19_24 Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26"
+msgstr "brand,model,sub_model,year_start,year_end,number_of_seats,number_of_doors,layout_code BMW,X5,Sport,2020,2025,5,4,BMW_X5_SPORT_20_25 Mercedes,C-Class,Luxury,2019,2024,5,4,MERC_C_LUX_19_24 Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26"
+
+msgid "Brand:"
+msgstr "Brand:"
+
+msgid "Brands"
+msgstr "Brands"
+
+msgid "Bulk import vehicle configurations from CSV file"
+msgstr "Bulk import vehicle configurations from CSV file"
+
+msgid "Bulk Upload CSV"
+msgstr "Bulk Upload CSV"
+
+msgid "By"
+msgstr "By"
+
+msgid "CAD"
+msgstr "CAD"
+
+msgid "CAD updated date"
+msgstr "CAD updated date"
+
+msgid "CAD Updated Date"
+msgstr "CAD Updated Date"
+
+msgid "CAD Updated Date cannot be in the future."
+msgstr "CAD Updated Date cannot be in the future."
+
+msgid "Can receive factory assignments"
+msgstr "Can receive factory assignments"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Cancel complaint"
+msgstr "Cancel complaint"
+
+msgid "Car Seat Management Portal"
+msgstr "Car Seat Management Portal"
+
+msgid "Car Seat Management System"
+msgstr "Car Seat Management System"
+
+msgid "Case Details"
+msgstr "Case Details"
+
+msgid "Category"
+msgstr "Category"
+
+msgid "Channel"
+msgstr "Channel"
+
+msgid "Channel:"
+msgstr "Channel:"
+
+msgid "CHAT"
+msgstr "CHAT"
+
+msgid "Chat Workspace - Fabro Leather"
+msgstr "Chat Workspace - Fabro Leather"
+
+msgid "Choose any user from the left directory to open a direct messaging workspace."
+msgstr "Choose any user from the left directory to open a direct messaging workspace."
+
+msgid "Choose PM, OM, CAD, ED, or MD for an approver."
+msgstr "Choose PM, OM, CAD, ED, or MD for an approver."
+
+msgid "Clear"
+msgstr "Clear"
+
+msgid "Clear All"
+msgstr "Clear All"
+
+msgid "Clear complaint form"
+msgstr "Clear complaint form"
+
+msgid "Clear Context"
+msgstr "Clear Context"
+
+msgid "Clear filter"
+msgstr "Clear filter"
+
+msgid "Clear Filters"
+msgstr "Clear Filters"
+
+msgid "Clear form"
+msgstr "Clear form"
+
+msgid "Clear search"
+msgstr "Clear search"
+
+msgid "Clear Search"
+msgstr "Clear Search"
+
+msgid "Click the button below to log back in."
+msgstr "Click the button below to log back in."
+
+msgid "Click to upload"
+msgstr "Click to upload"
+
+msgid "Close complaint details"
+msgstr "Close complaint details"
+
+msgid "Closed"
+msgstr "Closed"
+
+msgid "Closed at"
+msgstr "Closed at"
+
+msgid "Closed by"
+msgstr "Closed by"
+
+msgid "Complaint"
+msgstr "Complaint"
+
+msgid "Complaint And Factory Review"
+msgstr "Complaint And Factory Review"
+
+msgid "Complaint Batch Order:"
+msgstr "Complaint Batch Order:"
+
+msgid "Complaint Context:"
+msgstr "Complaint Context:"
+
+msgid "Complaint deleted successfully."
+msgstr "Complaint deleted successfully."
+
+msgid "Complaint Description"
+msgstr "Complaint Description"
+
+msgid "Complaint details"
+msgstr "Complaint details"
+
+msgid "Complaint Details"
+msgstr "Complaint Details"
+
+msgid "Complaint ID"
+msgstr "Complaint ID"
+
+msgid "Complaint ID:"
+msgstr "Complaint ID:"
+
+msgid "Complaint Journey"
+msgstr "Complaint Journey"
+
+msgid "Complaint List - Fabro Leather"
+msgstr "Complaint List - Fabro Leather"
+
+msgid "Complaint Management"
+msgstr "Complaint Management"
+
+msgid "Complaint media"
+msgstr "Complaint media"
+
+msgid "Complaint Media"
+msgstr "Complaint Media"
+
+msgid "Complaint media must be uploaded directly to Supabase Storage."
+msgstr "Complaint media must be uploaded directly to Supabase Storage."
+
+msgid "Complaint Snapshot"
+msgstr "Complaint Snapshot"
+
+msgid "Complaint type"
+msgstr "Complaint type"
+
+msgid "Complaint Type"
+msgstr "Complaint Type"
+
+msgid "Complaint Types"
+msgstr "Complaint Types"
+
+msgid "Complaint window type"
+msgstr "Complaint window type"
+
+msgid "Complaint workflow journey"
+msgstr "Complaint workflow journey"
+
+msgid "Complaint:"
+msgstr "Complaint:"
+
+msgid "Complaints"
+msgstr "Complaints"
+
+msgid "Complaints List"
+msgstr "Complaints List"
+
+msgid "Complaints Resolved"
+msgstr "Complaints Resolved"
+
+msgid "Completed Approvals"
+msgstr "Completed Approvals"
+
+msgid "Configure master data including channels, countries, and case categories"
+msgstr "Configure master data including channels, countries, and case categories"
+
+msgid "Configure your personal information and adjust account security credentials"
+msgstr "Configure your personal information and adjust account security credentials"
+
+msgid "Confirm Decision"
+msgstr "Confirm Decision"
+
+msgid "Confirm New Password"
+msgstr "Confirm New Password"
+
+msgid "Confirm new password"
+msgstr "Confirm new password"
+
+msgid "Confirmed Reason"
+msgstr "Confirmed Reason"
+
+msgid "Contact Information"
+msgstr "Contact Information"
+
+msgid "Container number"
+msgstr "Container number"
+
+msgid "Country"
+msgstr "Country"
+
+msgid "Country Executive"
+msgstr "Country Executive"
+
+msgid "Country executives must be assigned to a country."
+msgstr "Country executives must be assigned to a country."
+
+msgid "Country:"
+msgstr "Country:"
+
+msgid "Create Group"
+msgstr "Create Group"
+
+msgid "Create New User"
+msgstr "Create New User"
+
+msgid "Create Privilege"
+msgstr "Create Privilege"
+
+msgid "Create User"
+msgstr "Create User"
+
+msgid "Create User Group"
+msgstr "Create User Group"
+
+msgid "Created by"
+msgstr "Created by"
+
+msgid "Creating"
+msgstr "Creating"
+
+#, python-format
+msgid "CSV could not be parsed: %(error)s."
+msgstr "CSV could not be parsed: %(error)s."
+
+msgid "CSV file must be 5 MB or smaller."
+msgstr "CSV file must be 5 MB or smaller."
+
+msgid "CSV file with code &amp; description"
+msgstr "CSV file with code &amp; description"
+
+#, python-format
+msgid "CSV files may contain at most %(count)s data rows."
+msgstr "CSV files may contain at most %(count)s data rows."
+
+msgid "CSV files only (Max 5MB)"
+msgstr "CSV files only (Max 5MB)"
+
+msgid "CSV must use UTF-8 encoding."
+msgstr "CSV must use UTF-8 encoding."
+
+msgid "CURRENT"
+msgstr "CURRENT"
+
+msgid "Current Logo:"
+msgstr "Current Logo:"
+
+msgid "Current Password"
+msgstr "Current Password"
+
+msgid "CURRENT SESSION"
+msgstr "CURRENT SESSION"
+
+msgid "Current Settings"
+msgstr "Current Settings"
+
+msgid "Dash"
+msgstr "Dash"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Dashboard - Fabro Leather"
+msgstr "Dashboard - Fabro Leather"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Date / ID"
+msgstr "Date / ID"
+
+msgid "Defect type"
+msgstr "Defect type"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Delete Complaint"
+msgstr "Delete Complaint"
+
+msgid "Delete User"
+msgstr "Delete User"
+
+msgid "Department"
+msgstr "Department"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Direct Messages"
+msgstr "Direct Messages"
+
+msgid "Dismiss message"
+msgstr "Dismiss message"
+
+msgid "Doors"
+msgstr "Doors"
+
+msgid "Duplicate Layout Code"
+msgstr "Duplicate Layout Code"
+
+msgid "Duplicate SKU Found"
+msgstr "Duplicate SKU Found"
+
+msgid "Duplicate Vehicle Entry"
+msgstr "Duplicate Vehicle Entry"
+
+msgid "e.g. Sales, Operations"
+msgstr "e.g. Sales, Operations"
+
+msgid "e.g., BMW, Mercedes"
+msgstr "e.g., BMW, Mercedes"
+
+msgid "e.g., Sport, Luxury"
+msgstr "e.g., Sport, Luxury"
+
+msgid "e.g., X5, C-Class"
+msgstr "e.g., X5, C-Class"
+
+msgid "Each media file must be 100 MB or smaller."
+msgstr "Each media file must be 100 MB or smaller."
+
+msgid "ED"
+msgstr "ED"
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Edit Complaint"
+msgstr "Edit Complaint"
+
+msgid "Edit Complaint - Fabro Leather"
+msgstr "Edit Complaint - Fabro Leather"
+
+msgid "Edit Inline"
+msgstr "Edit Inline"
+
+msgid "Edit Master Setting"
+msgstr "Edit Master Setting"
+
+msgid "Edit SKU - Fabro Leather"
+msgstr "Edit SKU - Fabro Leather"
+
+msgid "Edit User Profile & Workflow Role"
+msgstr "Edit User Profile & Workflow Role"
+
+msgid "Edit Vehicle"
+msgstr "Edit Vehicle"
+
+msgid "Edit Vehicle - Fabro Leather"
+msgstr "Edit Vehicle - Fabro Leather"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Email Address"
+msgstr "Email Address"
+
+msgid "Email Address *"
+msgstr "Email Address *"
+
+msgid "End"
+msgstr "End"
+
+msgid "Enter a new password"
+msgstr "Enter a new password"
+
+msgid "Enter a new password."
+msgstr "Enter a new password."
+
+msgid "Enter a valid email address."
+msgstr "Enter a valid email address."
+
+msgid "Enter current password"
+msgstr "Enter current password"
+
+msgid "Enter email address"
+msgstr "Enter email address"
+
+msgid "Enter first name"
+msgstr "Enter first name"
+
+msgid "Enter last name"
+msgstr "Enter last name"
+
+msgid "Enter new password"
+msgstr "Enter new password"
+
+msgid "Enter phone number"
+msgstr "Enter phone number"
+
+msgid "Enter reason, feedback, or stipulations for factory executive..."
+msgstr "Enter reason, feedback, or stipulations for factory executive..."
+
+msgid "Enter the new production container number"
+msgstr "Enter the new production container number"
+
+msgid "Enter unique layout code"
+msgstr "Enter unique layout code"
+
+msgid "Enter your password"
+msgstr "Enter your password"
+
+msgid "Enter your username"
+msgstr "Enter your username"
+
+msgid "ERP ADMIN"
+msgstr "ERP ADMIN"
+
+msgid "ERP Admin Suite - Fabro Leather"
+msgstr "ERP Admin Suite - Fabro Leather"
+
+#, python-format
+msgid "Error clearing sessions: %(error)s"
+msgstr "Error clearing sessions: %(error)s"
+
+msgid "Error loading complaint types"
+msgstr "Error loading complaint types"
+
+msgid "Error loading data"
+msgstr "Error loading data"
+
+msgid "Error loading SKUs"
+msgstr "Error loading SKUs"
+
+#, python-format
+msgid "Error terminating session: %(error)s"
+msgstr "Error terminating session: %(error)s"
+
+msgid "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round."
+msgstr "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round."
+
+msgid "Execute Approved Action"
+msgstr "Execute Approved Action"
+
+msgid "Execution correction was requested and the case returned to the Factory Executive."
+msgstr "Execution correction was requested and the case returned to the Factory Executive."
+
+msgid "Execution Is Correct"
+msgstr "Execution Is Correct"
+
+msgid "Execution Needs Correction"
+msgstr "Execution Needs Correction"
+
+msgid "Execution notes"
+msgstr "Execution notes"
+
+msgid "Execution Partially Verified"
+msgstr "Execution Partially Verified"
+
+msgid "Execution submitted to the original approvers for verification."
+msgstr "Execution submitted to the original approvers for verification."
+
+msgid "Execution verification"
+msgstr "Execution verification"
+
+msgid "Execution verification decision"
+msgstr "Execution verification decision"
+
+msgid "Execution was verified unanimously. Final CAD and container updates are now unlocked."
+msgstr "Execution was verified unanimously. Final CAD and container updates are now unlocked."
+
+msgid "Existing Complaints"
+msgstr "Existing Complaints"
+
+msgid "Existing Media Files"
+msgstr "Existing Media Files"
+
+msgid "Explain what must be corrected when rejecting."
+msgstr "Explain what must be corrected when rejecting."
+
+msgid "Export CSV"
+msgstr "Export CSV"
+
+msgid "FABRO"
+msgstr "FABRO"
+
+msgid "Fabro Leather"
+msgstr "Fabro Leather"
+
+msgid "Factory"
+msgstr "Factory"
+
+msgid "Factory action plan"
+msgstr "Factory action plan"
+
+msgid "Factory Complaint"
+msgstr "Factory Complaint"
+
+msgid "FACTORY COMPLAINT"
+msgstr "FACTORY COMPLAINT"
+
+msgid "Factory Complaint Registrar"
+msgstr "Factory Complaint Registrar"
+
+msgid "Factory Complaint Types"
+msgstr "Factory Complaint Types"
+
+msgid "Factory Executive"
+msgstr "Factory Executive"
+
+msgid "Factory executive"
+msgstr "Factory executive"
+
+msgid "Factory Executive:"
+msgstr "Factory Executive:"
+
+msgid "Factory Findings"
+msgstr "Factory Findings"
+
+msgid "Factory Priority"
+msgstr "Factory Priority"
+
+msgid "Factory priority"
+msgstr "Factory priority"
+
+msgid "Factory Reason"
+msgstr "Factory Reason"
+
+msgid "Factory response"
+msgstr "Factory response"
+
+msgid "Factory Review"
+msgstr "Factory Review"
+
+msgid "Factory Review - Fabro Leather"
+msgstr "Factory Review - Fabro Leather"
+
+msgid "Factory review submitted for approval."
+msgstr "Factory review submitted for approval."
+
+msgid "Factory Viewer"
+msgstr "Factory Viewer"
+
+msgid "Factory:"
+msgstr "Factory:"
+
+msgid "Failed to send message."
+msgstr "Failed to send message."
+
+msgid "File must be a CSV."
+msgstr "File must be a CSV."
+
+#, python-format
+msgid "File size: %(size)s MB"
+msgstr "File size: %(size)s MB"
+
+msgid "File unavailable"
+msgstr "File unavailable"
+
+msgid "Filters"
+msgstr "Filters"
+
+msgid "Final Production Update"
+msgstr "Final Production Update"
+
+msgid "Final updates saved. The complaint is now closed."
+msgstr "Final updates saved. The complaint is now closed."
+
+msgid "First Name"
+msgstr "First Name"
+
+msgid "Flag"
+msgstr "Flag"
+
+msgid "Flag / Detail"
+msgstr "Flag / Detail"
+
+msgid "Forgot"
+msgstr "Forgot"
+
+msgid "Forgot Password?"
+msgstr "Forgot Password?"
+
+msgid "Full Name"
+msgstr "Full Name"
+
+msgid "Full Review Page"
+msgstr "Full Review Page"
+
+msgid "General Info"
+msgstr "General Info"
+
+msgid "Go to workflow page"
+msgstr "Go to workflow page"
+
+msgid "Green light proposed action"
+msgstr "Green light proposed action"
+
+msgid "Group"
+msgstr "Group"
+
+#, python-format
+msgid "Group %(group)s was created successfully."
+msgstr "Group %(group)s was created successfully."
+
+msgid "Group Name"
+msgstr "Group Name"
+
+msgid "Group name is required."
+msgstr "Group name is required."
+
+msgid "Group name must be 150 characters or fewer."
+msgstr "Group name must be 150 characters or fewer."
+
+msgid "High"
+msgstr "High"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "Image Preview"
+msgstr "Image Preview"
+
+msgid "Images and videos"
+msgstr "Images and videos"
+
+msgid "Images and videos (Max 100MB each)"
+msgstr "Images and videos (Max 100MB each)"
+
+msgid "India"
+msgstr "India"
+
+msgid "Initial approval"
+msgstr "Initial approval"
+
+msgid "Inspect complaint in full complaint list"
+msgstr "Inspect complaint in full complaint list"
+
+msgid "Invalid username or password. Please try again."
+msgstr "Invalid username or password. Please try again."
+
+msgid "IP"
+msgstr "IP"
+
+msgid "IP Address"
+msgstr "IP Address"
+
+msgid "Kanban Card View"
+msgstr "Kanban Card View"
+
+#, python-format
+msgid "Keep at most %(count)s media files on one complaint."
+msgstr "Keep at most %(count)s media files on one complaint."
+
+msgid "Kick"
+msgstr "Kick"
+
+msgid "Kick this session?"
+msgstr "Kick this session?"
+
+msgid "Kick this user session?"
+msgstr "Kick this user session?"
+
+msgid "KSA"
+msgstr "KSA"
+
+msgid "Language"
+msgstr "Language"
+
+msgid "Last &raquo;"
+msgstr "Last &raquo;"
+
+msgid "Last Active"
+msgstr "Last Active"
+
+msgid "Last Name"
+msgstr "Last Name"
+
+msgid "Layout"
+msgstr "Layout"
+
+msgid "Layout Code"
+msgstr "Layout Code"
+
+msgid "Layout code already exists. Please use a unique layout code."
+msgstr "Layout code already exists. Please use a unique layout code."
+
+msgid "Layout Code:"
+msgstr "Layout Code:"
+
+msgid "Linked Context:"
+msgstr "Linked Context:"
+
+msgid "List Table View"
+msgstr "List Table View"
+
+msgid "Live Activity Feed"
+msgstr "Live Activity Feed"
+
+msgid "Live Approver Status Matrix"
+msgstr "Live Approver Status Matrix"
+
+msgid "Loading SKUs..."
+msgstr "Loading SKUs..."
+
+msgid "Loading types..."
+msgstr "Loading types..."
+
+msgid "Log Back In"
+msgstr "Log Back In"
+
+msgid "Logged Out"
+msgstr "Logged Out"
+
+msgid "Login - Fabro Leather"
+msgstr "Login - Fabro Leather"
+
+msgid "Login Time"
+msgstr "Login Time"
+
+msgid "Logout"
+msgstr "Logout"
+
+msgid "Logs"
+msgstr "Logs"
+
+msgid "Low"
+msgstr "Low"
+
+msgid "Low Priority"
+msgstr "Low Priority"
+
+msgid "Manage Catalog"
+msgstr "Manage Catalog"
+
+msgid "Manage Master Settings"
+msgstr "Manage Master Settings"
+
+msgid "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities"
+msgstr "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities"
+
+msgid "Manage User Groups & Privileges"
+msgstr "Manage User Groups & Privileges"
+
+msgid "Manage Users"
+msgstr "Manage Users"
+
+msgid "Manufacturing, material, or stitching defect."
+msgstr "Manufacturing, material, or stitching defect."
+
+msgid "Mark All Read"
+msgstr "Mark All Read"
+
+msgid "Master"
+msgstr "Master"
+
+msgid "Master Settings"
+msgstr "Master Settings"
+
+msgid "Master Settings - Fabro Leather"
+msgstr "Master Settings - Fabro Leather"
+
+msgid "Material"
+msgstr "Material"
+
+msgid "Material / Series:"
+msgstr "Material / Series:"
+
+msgid "MD"
+msgstr "MD"
+
+msgid "Measurement Country"
+msgstr "Measurement Country"
+
+msgid "Media Files"
+msgstr "Media Files"
+
+msgid "Media unavailable"
+msgstr "Media unavailable"
+
+msgid "Medium"
+msgstr "Medium"
+
+msgid "Medium Priority"
+msgstr "Medium Priority"
+
+msgid "Member Since"
+msgstr "Member Since"
+
+msgid "Message Team Member"
+msgstr "Message Team Member"
+
+#, python-format
+msgid "Missing required CSV columns: %(columns)s."
+msgstr "Missing required CSV columns: %(columns)s."
+
+msgid "Model"
+msgstr "Model"
+
+msgid "Model Name"
+msgstr "Model Name"
+
+msgid "Model:"
+msgstr "Model:"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Names must be 150 characters or fewer."
+msgstr "Names must be 150 characters or fewer."
+
+msgid "Needs Correction"
+msgstr "Needs Correction"
+
+#, python-format
+msgid "Network error while contacting server: %(error)s"
+msgstr "Network error while contacting server: %(error)s"
+
+msgid "New"
+msgstr "New"
+
+msgid "NEW"
+msgstr "NEW"
+
+msgid "New approval requests will appear here."
+msgstr "New approval requests will appear here."
+
+msgid "New Password"
+msgstr "New Password"
+
+msgid "New Production Container Number"
+msgstr "New Production Container Number"
+
+msgid "Next"
+msgstr "Next"
+
+msgid "No active sessions."
+msgstr "No active sessions."
+
+msgid "No active team members available."
+msgstr "No active team members available."
+
+msgid "No activity logs found."
+msgstr "No activity logs found."
+
+msgid "No Approvals Found"
+msgstr "No Approvals Found"
+
+msgid "No brands found."
+msgstr "No brands found."
+
+msgid "No complaints available yet."
+msgstr "No complaints available yet."
+
+msgid "No complaints found"
+msgstr "No complaints found"
+
+msgid "No decisions submitted yet."
+msgstr "No decisions submitted yet."
+
+msgid "No Logo"
+msgstr "No Logo"
+
+msgid "No master settings found."
+msgstr "No master settings found."
+
+msgid "No matching SKUs"
+msgstr "No matching SKUs"
+
+msgid "No matching values"
+msgstr "No matching values"
+
+msgid "No media attached"
+msgstr "No media attached"
+
+msgid "No media files attached to this complaint"
+msgstr "No media files attached to this complaint"
+
+msgid "No media uploaded"
+msgstr "No media uploaded"
+
+msgid "No messages yet"
+msgstr "No messages yet"
+
+msgid "No notifications yet"
+msgstr "No notifications yet"
+
+msgid "No recent activities."
+msgstr "No recent activities."
+
+msgid "No reviews waiting"
+msgstr "No reviews waiting"
+
+msgid "No settings for this category"
+msgstr "No settings for this category"
+
+msgid "No SKUs found. Click"
+msgstr "No SKUs found. Click"
+
+msgid "No SKUs loaded."
+msgstr "No SKUs loaded."
+
+msgid "No team members found."
+msgstr "No team members found."
+
+msgid "No timeline events recorded yet."
+msgstr "No timeline events recorded yet."
+
+msgid "No unread messages"
+msgstr "No unread messages"
+
+msgid "No users found."
+msgstr "No users found."
+
+msgid "No values found"
+msgstr "No values found"
+
+msgid "No vehicles added yet"
+msgstr "No vehicles added yet"
+
+msgid "None (Global)"
+msgstr "None (Global)"
+
+msgid "Note:"
+msgstr "Note:"
+
+msgid "Notifications"
+msgstr "Notifications"
+
+msgid "Notifications - Fabro Leather"
+msgstr "Notifications - Fabro Leather"
+
+msgid "Number of Doors"
+msgstr "Number of Doors"
+
+msgid "Number of Seats"
+msgstr "Number of Seats"
+
+msgid "Object Detail"
+msgstr "Object Detail"
+
+msgid "Object Type"
+msgstr "Object Type"
+
+msgid "Offline"
+msgstr "Offline"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "OM"
+msgstr "OM"
+
+msgid "On Hold"
+msgstr "On Hold"
+
+msgid "Online Now"
+msgstr "Online Now"
+
+msgid "Only a Django superuser can delete another superuser account."
+msgstr "Only a Django superuser can delete another superuser account."
+
+msgid "Only a Django superuser can edit another superuser account."
+msgstr "Only a Django superuser can edit another superuser account."
+
+msgid "Only a Django superuser can reset another superuser password."
+msgstr "Only a Django superuser can reset another superuser password."
+
+msgid "Open"
+msgstr "Open"
+
+msgid "Open attached file"
+msgstr "Open attached file"
+
+msgid "Open full dedicated review screen"
+msgstr "Open full dedicated review screen"
+
+msgid "Optional for approval. Required when rejecting."
+msgstr "Optional for approval. Required when rejecting."
+
+msgid "Optional when proceeding. Required when returning for rework."
+msgstr "Optional when proceeding. Required when returning for rework."
+
+msgid "Optional when verifying. Required when requesting an execution correction."
+msgstr "Optional when verifying. Required when requesting an execution correction."
+
+msgid "or drag and drop"
+msgstr "or drag and drop"
+
+msgid "Parallel Review Progress"
+msgstr "Parallel Review Progress"
+
+msgid "Partially Approved"
+msgstr "Partially Approved"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Password *"
+msgstr "Password *"
+
+#, python-format
+msgid "Password reset successfully for %(username)s."
+msgstr "Password reset successfully for %(username)s."
+
+msgid "PAT-26070001"
+msgstr "PAT-26070001"
+
+msgid "Pattern"
+msgstr "Pattern"
+
+msgid "PATTERN COMPLAINT"
+msgstr "PATTERN COMPLAINT"
+
+msgid "Pattern Complaint"
+msgstr "Pattern Complaint"
+
+msgid "Pattern Complaint Types"
+msgstr "Pattern Complaint Types"
+
+msgid "Pending"
+msgstr "Pending"
+
+msgid "Pending Final Update"
+msgstr "Pending Final Update"
+
+msgid "Phone"
+msgstr "Phone"
+
+msgid "Phone Number"
+msgstr "Phone Number"
+
+msgid "Phone number must be 30 characters or fewer."
+msgstr "Phone number must be 30 characters or fewer."
+
+msgid "Play attached video"
+msgstr "Play attached video"
+
+msgid "Play video"
+msgstr "Play video"
+
+msgid "Please enter a review comment explaining the rejection or rework requirement."
+msgstr "Please enter a review comment explaining the rejection or rework requirement."
+
+msgid "Please sign in to your account"
+msgstr "Please sign in to your account"
+
+msgid "PM"
+msgstr "PM"
+
+msgid "PNG, JPG (Max 5MB)"
+msgstr "PNG, JPG (Max 5MB)"
+
+msgid "Prev"
+msgstr "Prev"
+
+msgid "Priority"
+msgstr "Priority"
+
+msgid "Priority:"
+msgstr "Priority:"
+
+msgid "Privilege Name"
+msgstr "Privilege Name"
+
+msgid "Privileges"
+msgstr "Privileges"
+
+msgid "Privileges (select multiple):"
+msgstr "Privileges (select multiple):"
+
+msgid "Proceed with Action Plan"
+msgstr "Proceed with Action Plan"
+
+msgid "Proceed With Action Plan"
+msgstr "Proceed With Action Plan"
+
+msgid "Proceed with Plan"
+msgstr "Proceed with Plan"
+
+msgid "Proceed with the approved action plan to unlock the final update fields."
+msgstr "Proceed with the approved action plan to unlock the final update fields."
+
+msgid "Product and source"
+msgstr "Product and source"
+
+msgid "Production"
+msgstr "Production"
+
+msgid "PRODUCTION COMPLAINT"
+msgstr "PRODUCTION COMPLAINT"
+
+msgid "Production Complaint"
+msgstr "Production Complaint"
+
+msgid "Production Complaint Types"
+msgstr "Production Complaint Types"
+
+msgid "Profile"
+msgstr "Profile"
+
+msgid "Profile Photo"
+msgstr "Profile Photo"
+
+msgid "Profile photo must be 5 MB or smaller."
+msgstr "Profile photo must be 5 MB or smaller."
+
+msgid "Profile photo must be a JPG, PNG, WEBP, or GIF image."
+msgstr "Profile photo must be a JPG, PNG, WEBP, or GIF image."
+
+msgid "Profile photo must be under 5 MB."
+msgstr "Profile photo must be under 5 MB."
+
+msgid "Profile Settings"
+msgstr "Profile Settings"
+
+msgid "Profile Settings - Fabro Leather"
+msgstr "Profile Settings - Fabro Leather"
+
+msgid "Proposed Factory Action Plan"
+msgstr "Proposed Factory Action Plan"
+
+msgid "Quality"
+msgstr "Quality"
+
+msgid "Quality Complaint"
+msgstr "Quality Complaint"
+
+msgid "QUALITY COMPLAINT"
+msgstr "QUALITY COMPLAINT"
+
+msgid "Quality Complaint Types"
+msgstr "Quality Complaint Types"
+
+msgid "Quality-related complaint using the standard report fields."
+msgstr "Quality-related complaint using the standard report fields."
+
+msgid "Read"
+msgstr "Read"
+
+msgid "Ready for execution"
+msgstr "Ready for execution"
+
+msgid "Real reason behind defect"
+msgstr "Real reason behind defect"
+
+msgid "Reason:"
+msgstr "Reason:"
+
+msgid "Recent Decisions"
+msgstr "Recent Decisions"
+
+msgid "Reconsideration decision"
+msgstr "Reconsideration decision"
+
+msgid "Reconsideration Rounds"
+msgstr "Reconsideration Rounds"
+
+msgid "Reconsiderations"
+msgstr "Reconsiderations"
+
+msgid "Region"
+msgstr "Region"
+
+msgid "Register a new customer complaint with detailed information"
+msgstr "Register a new customer complaint with detailed information"
+
+msgid "Reject"
+msgstr "Reject"
+
+msgid "Reject / Rework"
+msgstr "Reject / Rework"
+
+msgid "Reject Plan"
+msgstr "Reject Plan"
+
+msgid "Rejected"
+msgstr "Rejected"
+
+msgid "Rejection reconsideration"
+msgstr "Rejection reconsideration"
+
+msgid "Rejection To Reconsider"
+msgstr "Rejection To Reconsider"
+
+msgid "Remove current photo"
+msgstr "Remove current photo"
+
+msgid "Remove linked context"
+msgstr "Remove linked context"
+
+msgid "Remove photo"
+msgstr "Remove photo"
+
+msgid "Report date"
+msgstr "Report date"
+
+msgid "Report status"
+msgstr "Report status"
+
+msgid "Reported &amp; Source"
+msgstr "Reported &amp; Source"
+
+msgid "Reported By"
+msgstr "Reported By"
+
+msgid "Reported by"
+msgstr "Reported by"
+
+msgid "Request revisions or reject"
+msgstr "Request revisions or reject"
+
+msgid "Required CSV Format"
+msgstr "Required CSV Format"
+
+msgid "Reset Filters"
+msgstr "Reset Filters"
+
+msgid "Reset Password"
+msgstr "Reset Password"
+
+msgid "Resolved"
+msgstr "Resolved"
+
+msgid "Return for Rework"
+msgstr "Return for Rework"
+
+msgid "Return to Factory Executive for Rework"
+msgstr "Return to Factory Executive for Rework"
+
+msgid "Return to Main Portal"
+msgstr "Return to Main Portal"
+
+msgid "Review comment"
+msgstr "Review comment"
+
+msgid "Review Comments"
+msgstr "Review Comments"
+
+msgid "Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed."
+msgstr "Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed."
+
+msgid "Rework Required"
+msgstr "Rework Required"
+
+msgid "Role"
+msgstr "Role"
+
+msgid "Root cause"
+msgstr "Root cause"
+
+#, python-format
+msgid "Save %(type)s"
+msgstr "Save %(type)s"
+
+msgid "Save Changes"
+msgstr "Save Changes"
+
+msgid "Save Details"
+msgstr "Save Details"
+
+msgid "Save SKU"
+msgstr "Save SKU"
+
+msgid "Save Updates And Close Case"
+msgstr "Save Updates And Close Case"
+
+#, python-format
+msgid "Saving %(type)s..."
+msgstr "Saving %(type)s..."
+
+msgid "Search"
+msgstr "Search"
+
+msgid "Search approvals"
+msgstr "Search approvals"
+
+msgid "Search approvals..."
+msgstr "Search approvals..."
+
+msgid "Search by name, username, email, phone, role..."
+msgstr "Search by name, username, email, phone, role..."
+
+msgid "Search complaints"
+msgstr "Search complaints"
+
+msgid "Search complaints..."
+msgstr "Search complaints..."
+
+msgid "Search field choices"
+msgstr "Search field choices"
+
+msgid "Search SKUs"
+msgstr "Search SKUs"
+
+msgid "Search SKUs..."
+msgstr "Search SKUs..."
+
+msgid "Search team member..."
+msgstr "Search team member..."
+
+msgid "Search this keyword in"
+msgstr "Search this keyword in"
+
+msgid "Search values..."
+msgstr "Search values..."
+
+msgid "Search vehicles"
+msgstr "Search vehicles"
+
+msgid "Search vehicles..."
+msgstr "Search vehicles..."
+
+msgid "Seats"
+msgstr "Seats"
+
+msgid "Security & Password"
+msgstr "Security & Password"
+
+msgid "Select a Team Member"
+msgstr "Select a Team Member"
+
+msgid "Select All"
+msgstr "Select All"
+
+msgid "Select Country"
+msgstr "Select Country"
+
+msgid "Select Model"
+msgstr "Select Model"
+
+msgid "Select Priority"
+msgstr "Select Priority"
+
+msgid "Select SKU"
+msgstr "Select SKU"
+
+msgid "Select Sub-Model (Optional)"
+msgstr "Select Sub-Model (Optional)"
+
+msgid "Select Type"
+msgstr "Select Type"
+
+msgid "Select User Group"
+msgstr "Select User Group"
+
+msgid "Select User Type"
+msgstr "Select User Type"
+
+msgid "Select Year"
+msgstr "Select Year"
+
+msgid "Send Message"
+msgstr "Send Message"
+
+msgid "Series"
+msgstr "Series"
+
+msgid "Session not found or already expired."
+msgstr "Session not found or already expired."
+
+msgid "Session terminated successfully."
+msgstr "Session terminated successfully."
+
+msgid "Sessions"
+msgstr "Sessions"
+
+msgid "Setting Name"
+msgstr "Setting Name"
+
+msgid "Setting updated successfully."
+msgstr "Setting updated successfully."
+
+msgid "Show/Hide Password"
+msgstr "Show/Hide Password"
+
+msgid "Sign In"
+msgstr "Sign In"
+
+#, python-format
+msgid "Skipped %(count)s duplicate layout codes: %(preview)s"
+msgstr "Skipped %(count)s duplicate layout codes: %(preview)s"
+
+#, python-format
+msgid "Skipped %(count)s invalid rows. %(preview)s"
+msgstr "Skipped %(count)s invalid rows. %(preview)s"
+
+msgid "SKU"
+msgstr "SKU"
+
+msgid "SKU / Material"
+msgstr "SKU / Material"
+
+msgid "SKU Catalog"
+msgstr "SKU Catalog"
+
+msgid "SKU Code"
+msgstr "SKU Code"
+
+msgid "SKU code already exists."
+msgstr "SKU code already exists."
+
+msgid "SKU Items"
+msgstr "SKU Items"
+
+msgid "SKU Management"
+msgstr "SKU Management"
+
+msgid "SKU Management - Fabro Leather"
+msgstr "SKU Management - Fabro Leather"
+
+msgid "SKU Master Catalog"
+msgstr "SKU Master Catalog"
+
+msgid "SKU:"
+msgstr "SKU:"
+
+msgid "SKUs"
+msgstr "SKUs"
+
+msgid "Staff"
+msgstr "Staff"
+
+msgid "Start"
+msgstr "Start"
+
+msgid "Start the conversation by sending a text below."
+msgstr "Start the conversation by sending a text below."
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Sub-Model"
+msgstr "Sub-Model"
+
+msgid "Sub-Model Name"
+msgstr "Sub-Model Name"
+
+msgid "Sub-Model Name (Optional)"
+msgstr "Sub-Model Name (Optional)"
+
+msgid "Sub-Model:"
+msgstr "Sub-Model:"
+
+msgid "Submit Approval"
+msgstr "Submit Approval"
+
+msgid "Submit Approval Decision"
+msgstr "Submit Approval Decision"
+
+msgid "Submit completed execution for verification"
+msgstr "Submit completed execution for verification"
+
+msgid "Submit Execution For Verification"
+msgstr "Submit Execution For Verification"
+
+msgid "Submit for Approval"
+msgstr "Submit for Approval"
+
+msgid "Submit Reconsideration Vote"
+msgstr "Submit Reconsideration Vote"
+
+msgid "Submit Your Opinion"
+msgstr "Submit Your Opinion"
+
+msgid "Submitted"
+msgstr "Submitted"
+
+msgid "Submitted By"
+msgstr "Submitted By"
+
+msgid "Submitting..."
+msgstr "Submitting..."
+
+msgid "Submodel"
+msgstr "Submodel"
+
+#, python-format
+msgid "Successfully added %(count)s record."
+msgid_plural "Successfully added %(count)s records."
+msgstr[0] "Successfully added %(count)s record."
+msgstr[1] "Successfully added %(count)s records."
+
+msgid "Superseded"
+msgstr "Superseded"
+
+msgid "Superuser"
+msgstr "Superuser"
+
+msgid "System Dashboard"
+msgstr "System Dashboard"
+
+msgid "System Statistics"
+msgstr "System Statistics"
+
+msgid "Template, dimension, or cutting issue."
+msgstr "Template, dimension, or cutting issue."
+
+msgid "Terminate"
+msgstr "Terminate"
+
+msgid "Terminate all other user sessions?"
+msgstr "Terminate all other user sessions?"
+
+msgid "Terminate Other Sessions"
+msgstr "Terminate Other Sessions"
+
+msgid "Terminate Others"
+msgstr "Terminate Others"
+
+#, python-format
+msgid "Terminated %(count)s active session. Only your current session remains active."
+msgid_plural "Terminated %(count)s active sessions. Only your current session remains active."
+msgstr[0] "Terminated %(count)s active session. Only your current session remains active."
+msgstr[1] "Terminated %(count)s active sessions. Only your current session remains active."
+
+msgid "That username is already in use."
+msgstr "That username is already in use."
+
+msgid "The CAD and container fields unlock only after every original approver verifies the execution."
+msgstr "The CAD and container fields unlock only after every original approver verifies the execution."
+
+msgid "The complaint could not be saved. Please try again."
+msgstr "The complaint could not be saved. Please try again."
+
+msgid "The complaint could not be updated. Please try again."
+msgstr "The complaint could not be updated. Please try again."
+
+msgid "The final active superuser cannot be deleted."
+msgstr "The final active superuser cannot be deleted."
+
+msgid "The final active superuser cannot be demoted."
+msgstr "The final active superuser cannot be demoted."
+
+msgid "The import conflicted with another update. Please retry."
+msgstr "The import conflicted with another update. Please retry."
+
+msgid "The layout code you entered already exists. Please use a unique layout code."
+msgstr "The layout code you entered already exists. Please use a unique layout code."
+
+msgid "The SKU code or description you entered already exists. Please use unique values."
+msgstr "The SKU code or description you entered already exists. Please use unique values."
+
+msgid "This approval round is complete"
+msgstr "This approval round is complete"
+
+msgid "This complaint can no longer be edited from the report step."
+msgstr "This complaint can no longer be edited from the report step."
+
+msgid "This complaint is not ready for factory review."
+msgstr "This complaint is not ready for factory review."
+
+msgid "This Month"
+msgstr "This Month"
+
+msgid "This page is restricted to administrators only."
+msgstr "This page is restricted to administrators only."
+
+msgid "This vehicle configuration overlaps with an existing entry:"
+msgstr "This vehicle configuration overlaps with an existing entry:"
+
+msgid "Timestamp"
+msgstr "Timestamp"
+
+msgid "To reset your password if forgotten, please contact your system administrator."
+msgstr "To reset your password if forgotten, please contact your system administrator."
+
+msgid "Toggle filters"
+msgstr "Toggle filters"
+
+msgid "Top"
+msgstr "Top"
+
+msgid "Top Priority"
+msgstr "Top Priority"
+
+msgid "Total Complaints"
+msgstr "Total Complaints"
+
+msgid "Total Complaints:"
+msgstr "Total Complaints:"
+
+msgid "Total Users"
+msgstr "Total Users"
+
+msgid "Try adjusting your filters or add a new complaint to get started."
+msgstr "Try adjusting your filters or add a new complaint to get started."
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Type &amp; Material"
+msgstr "Type &amp; Material"
+
+#, python-format
+msgid "Type a message to %(username)s... (Press Enter to send)"
+msgstr "Type a message to %(username)s... (Press Enter to send)"
+
+msgid "Type:"
+msgstr "Type:"
+
+msgid "Unable to load types"
+msgstr "Unable to load types"
+
+msgid "Unavailable"
+msgstr "Unavailable"
+
+msgid "Unread"
+msgstr "Unread"
+
+msgid "Update"
+msgstr "Update"
+
+msgid "Update Complaint"
+msgstr "Update Complaint"
+
+msgid "Update complaint information and manage media files"
+msgstr "Update complaint information and manage media files"
+
+msgid "Update Order #"
+msgstr "Update Order #"
+
+msgid "Update Password"
+msgstr "Update Password"
+
+msgid "Update Privileges"
+msgstr "Update Privileges"
+
+msgid "Update Profile Photo"
+msgstr "Update Profile Photo"
+
+msgid "Update Setting"
+msgstr "Update Setting"
+
+msgid "Update SKU"
+msgstr "Update SKU"
+
+msgid "Update SKU information and manage media files"
+msgstr "Update SKU information and manage media files"
+
+msgid "Update vehicle configuration and specifications"
+msgstr "Update vehicle configuration and specifications"
+
+msgid "Updated Order #"
+msgstr "Updated Order #"
+
+msgid "Upload"
+msgstr "Upload"
+
+msgid "Upload a valid image."
+msgstr "Upload a valid image."
+
+msgid "Upload CSV"
+msgstr "Upload CSV"
+
+msgid "Upload CSV File"
+msgstr "Upload CSV File"
+
+msgid "Upload profile photo"
+msgstr "Upload profile photo"
+
+msgid "Upload Vehicle CSV"
+msgstr "Upload Vehicle CSV"
+
+msgid "Upload Vehicle CSV - Fabro Leather"
+msgstr "Upload Vehicle CSV - Fabro Leather"
+
+msgid "Uploading..."
+msgstr "Uploading..."
+
+msgid "Urgent assembly-line fitment issue."
+msgstr "Urgent assembly-line fitment issue."
+
+msgid "Use \"-\" for empty sub_model values. Layout codes must be unique."
+msgstr "Use \"-\" for empty sub_model values. Layout codes must be unique."
+
+msgid "User"
+msgstr "User"
+
+#, python-format
+msgid "User %(username)s and workflow access were updated."
+msgstr "User %(username)s and workflow access were updated."
+
+#, python-format
+msgid "User %(username)s was created successfully."
+msgstr "User %(username)s was created successfully."
+
+msgid "User Directory"
+msgstr "User Directory"
+
+msgid "User Groups"
+msgstr "User Groups"
+
+msgid "User not found."
+msgstr "User not found."
+
+msgid "User Type"
+msgstr "User Type"
+
+msgid "Username"
+msgstr "Username"
+
+msgid "Username (Read-only)"
+msgstr "Username (Read-only)"
+
+msgid "Username *"
+msgstr "Username *"
+
+msgid "Username is required."
+msgstr "Username is required."
+
+msgid "Username must be 150 characters or fewer."
+msgstr "Username must be 150 characters or fewer."
+
+msgid "Users"
+msgstr "Users"
+
+msgid "Vehicle"
+msgstr "Vehicle"
+
+msgid "Vehicle & SKU"
+msgstr "Vehicle & SKU"
+
+msgid "Vehicle added successfully."
+msgstr "Vehicle added successfully."
+
+msgid "Vehicle Brands & Models"
+msgstr "Vehicle Brands & Models"
+
+msgid "Vehicle Catalog"
+msgstr "Vehicle Catalog"
+
+msgid "Vehicle Country"
+msgstr "Vehicle Country"
+
+msgid "Vehicle deleted successfully."
+msgstr "Vehicle deleted successfully."
+
+msgid "Vehicle Information"
+msgstr "Vehicle Information"
+
+msgid "Vehicle Management"
+msgstr "Vehicle Management"
+
+msgid "Vehicle Management - Fabro Leather"
+msgstr "Vehicle Management - Fabro Leather"
+
+msgid "Vehicle Models"
+msgstr "Vehicle Models"
+
+msgid "Vehicle updated successfully."
+msgstr "Vehicle updated successfully."
+
+msgid "Vehicle:"
+msgstr "Vehicle:"
+
+msgid "Vehicles"
+msgstr "Vehicles"
+
+msgid "Verify Executed Action Plan"
+msgstr "Verify Executed Action Plan"
+
+msgid "Verify Execution"
+msgstr "Verify Execution"
+
+msgid "View"
+msgstr "View"
+
+msgid "View all complaints"
+msgstr "View all complaints"
+
+msgid "View Complaint Details"
+msgstr "View Complaint Details"
+
+msgid "View Details"
+msgstr "View Details"
+
+msgid "Waiting for execution verification"
+msgstr "Waiting for execution verification"
+
+msgid "Waiting My Vote"
+msgstr "Waiting My Vote"
+
+msgid "Welcome Back"
+msgstr "Welcome Back"
+
+msgid "Where the measurement is taken for this vehicle"
+msgstr "Where the measurement is taken for this vehicle"
+
+msgid "Where the vehicle is manufactured."
+msgstr "Where the vehicle is manufactured."
+
+msgid "Workflow Role *"
+msgstr "Workflow Role *"
+
+msgid "Workflow status"
+msgstr "Workflow status"
+
+msgid "Workflow Status"
+msgstr "Workflow Status"
+
+msgid "Workflow Status:"
+msgstr "Workflow Status:"
+
+msgid "Workflow updates assigned to you will appear here."
+msgstr "Workflow updates assigned to you will appear here."
+
+msgid "Write the proposed action plan from the factory."
+msgstr "Write the proposed action plan from the factory."
+
+msgid "Write the real reason behind the defect after reviewing photos/videos."
+msgstr "Write the real reason behind the defect after reviewing photos/videos."
+
+msgid "Year"
+msgstr "Year"
+
+msgid "Year End"
+msgstr "Year End"
+
+msgid "Year End must be greater than or equal to Year Start."
+msgstr "Year End must be greater than or equal to Year Start."
+
+msgid "Year Range"
+msgstr "Year Range"
+
+msgid "Year Range:"
+msgstr "Year Range:"
+
+msgid "Year Start"
+msgstr "Year Start"
+
+msgid "Yes, delete"
+msgstr "Yes, delete"
+
+msgid "You are not allowed to review this complaint."
+msgstr "You are not allowed to review this complaint."
+
+msgid "You cannot delete your own signed-in account."
+msgstr "You cannot delete your own signed-in account."
+
+msgid "You have been logged out"
+msgstr "You have been logged out"
+
+msgid "Your CSV file must include the following columns in this exact order:"
+msgstr "Your CSV file must include the following columns in this exact order:"
+
+msgid "Your decision"
+msgstr "Your decision"
+
+msgid "Your password has been changed successfully."
+msgstr "Your password has been changed successfully."
+
+msgid "Your profile details have been updated successfully."
+msgstr "Your profile details have been updated successfully."
+
+msgid "Your rejection was saved. Every other required approver was asked to reconsider the complaint."
+msgstr "Your rejection was saved. Every other required approver was asked to reconsider the complaint."
+
+msgid "Your review was saved. The remaining member reviews are still pending."
+msgstr "Your review was saved. The remaining member reviews are still pending."
+
+msgid "© 2025 Fabro Leather. All rights reserved."
+msgstr "© 2025 Fabro Leather. All rights reserved."
+
+msgid "● Online"
+msgstr "● Online"
+
+msgid "⚠️ Rework Required"
+msgstr "⚠️ Rework Required"
+
+msgid "✅ Action Plan Approved"
+msgstr "✅ Action Plan Approved"
+
+msgid "📌 Request Status Update"
+msgstr "📌 Request Status Update"
+
+msgid "📦 Container Verification"
+msgstr "📦 Container Verification"

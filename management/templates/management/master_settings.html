@@ -1,14 +1,14 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Settings - Fabro Leather</title>
+    <title>{% translate "Master Settings - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
         .page-container {
@@ -467,9 +467,9 @@
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-cogs"></i>
-                Master Settings
+                {% translate "Master Settings" %}
             </h1>
-            <p class="page-subtitle">Configure master data including channels, countries, and case categories</p>
+            <p class="page-subtitle">{% translate "Configure master data including channels, countries, and case categories" %}</p>
         </div>
 
         <div class="content-grid">
@@ -477,25 +477,25 @@
             <div class="form-section">
                 <h2 class="section-title">
                     <i class="fas fa-plus-circle"></i>
-                    Add New Setting
+                    {% translate "Add New Setting" %}
                 </h2>
 
                 <form method="POST">
                     {% csrf_token %}
                     
                     <div class="form-group">
-                        <label class="form-label">Category</label>
+                        <label class="form-label">{% translate "Category" %}</label>
                         {{ form.category }}
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Name</label>
+                        <label class="form-label">{% translate "Name" %}</label>
                         {{ form.name }}
                     </div>
 
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        Add Setting
+                        {% translate "Add Setting" %}
                     </button>
                 </form>
             </div>
@@ -504,7 +504,7 @@
             <div class="settings-section">
                 <h2 class="section-title">
                     <i class="fas fa-list"></i>
-                    Current Settings
+                    {% translate "Current Settings" %}
                 </h2>
 
                 <div class="category-grid">
@@ -568,7 +568,7 @@
                                     </div>
                                 {% empty %}
                                     <div class="empty-state">
-                                        No settings for this category
+                                        {% translate "No settings for this category" %}
                                     </div>
                                 {% endfor %}
                             </div>
@@ -583,7 +583,7 @@
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">Edit Master Setting</h2>
+                <h2 class="modal-title">{% translate "Edit Master Setting" %}</h2>
                 <button class="close-btn" onclick="closeEditModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -593,7 +593,7 @@
                 <input type="hidden" name="edit_setting" value="1">
                 
                 <div class="form-group">
-                    <label class="form-label">Category</label>
+                    <label class="form-label">{% translate "Category" %}</label>
                     <select name="category" id="editCategory" class="form-select" required>
                         {% for choice in form.category.field.choices %}
                             <option value="{{ choice.0 }}">{{ choice.1 }}</option>
@@ -602,18 +602,18 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Name</label>
+                    <label class="form-label">{% translate "Name" %}</label>
                     <input type="text" name="name" id="editName" class="form-input" required>
                 </div>
 
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
                         <i class="fas fa-times"></i>
-                        Cancel
+                        {% translate "Cancel" %}
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i>
-                        Update Setting
+                        {% translate "Update Setting" %}
                     </button>
                 </div>
             </form>
@@ -666,7 +666,7 @@
 
         // Show success message if setting was added
         {% if request.method == "POST" and not form.errors %}
-            showToast('Setting updated successfully!', 'success');
+            showToast(window.FabroI18n.gettext('Setting updated successfully.'), 'success');
         {% endif %}
     </script>
     </div>

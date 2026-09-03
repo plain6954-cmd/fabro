@@ -1,0 +1,2210 @@
+msgid ""
+msgstr ""
+"Language: hi\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#, python-format
+msgid "%(filename)s — Ready to upload"
+msgstr ""
+
+#, python-format
+msgid "%(username)s was assigned to %(group)s."
+msgstr ""
+
+msgid "&laquo; First"
+msgstr ""
+
+msgid "&times;"
+msgstr ""
+
+msgid "(Required for rejection)"
+msgstr ""
+
+#, python-format
+msgid "A complaint can contain at most %(count)s media files."
+msgstr ""
+
+msgid "A group with that name already exists."
+msgstr ""
+
+msgid "A production container number is not required for Factory Complaints."
+msgstr ""
+
+msgid "above to add one inline!"
+msgstr ""
+
+msgid "Account Details"
+msgstr ""
+
+msgid "Action"
+msgstr "कार्रवाई"
+
+msgid "Action In Progress"
+msgstr "कार्रवाई जारी"
+
+msgid "Action Plan"
+msgstr "कार्य योजना"
+
+msgid "Action plan"
+msgstr "कार्य योजना"
+
+msgid "Action plan started. Submit the execution for verification when implementation is complete."
+msgstr "कार्य योजना शुरू हुई। कार्यान्वयन पूरा होने पर निष्पादन सत्यापन के लिए जमा करें।"
+
+msgid "ACTION REQUIRED: Your Vote is Pending"
+msgstr ""
+
+msgid "Action:"
+msgstr ""
+
+msgid "Actions"
+msgstr "कार्रवाइयाँ"
+
+msgid "Active"
+msgstr ""
+
+msgid "Active In Review"
+msgstr ""
+
+msgid "Active Now"
+msgstr ""
+
+msgid "Active Pending"
+msgstr ""
+
+msgid "Active Reviews"
+msgstr ""
+
+msgid "Active Sessions"
+msgstr "सक्रिय सत्र"
+
+msgid "Active Users Online"
+msgstr "ऑनलाइन सक्रिय उपयोगकर्ता"
+
+msgid "Active Workflow"
+msgstr "सक्रिय कार्यप्रवाह"
+
+msgid "Activity"
+msgstr "गतिविधि"
+
+msgid "Activity Logs"
+msgstr ""
+
+msgid "Add Complaint"
+msgstr "शिकायत जोड़ें"
+
+msgid "Add Complaint - Fabro Leather"
+msgstr ""
+
+msgid "Add First Complaint"
+msgstr ""
+
+msgid "Add New Complaint"
+msgstr "नई शिकायत जोड़ें"
+
+msgid "Add New Media Files"
+msgstr ""
+
+msgid "Add New Setting"
+msgstr "नई सेटिंग जोड़ें"
+
+msgid "Add New SKU (Inline)"
+msgstr ""
+
+msgid "Add New Vehicle"
+msgstr ""
+
+msgid "Add Setting"
+msgstr "सेटिंग जोड़ें"
+
+msgid "Add SKU"
+msgstr ""
+
+msgid "Add Vehicle"
+msgstr ""
+
+msgid "Add your first vehicle using the form on the left or upload a CSV file."
+msgstr "फ़ॉर्म से अपना पहला वाहन जोड़ें या CSV फ़ाइल अपलोड करें।"
+
+msgid "Admin"
+msgstr "एडमिन"
+
+msgid "Admin Panel"
+msgstr ""
+
+msgid "All"
+msgstr ""
+
+msgid "All Channels"
+msgstr "सभी चैनल"
+
+msgid "All Complaint Types"
+msgstr "सभी शिकायत प्रकार"
+
+msgid "All Complaints"
+msgstr ""
+
+msgid "All Countries"
+msgstr "सभी देश"
+
+msgid "All Fields"
+msgstr "सभी फ़ील्ड"
+
+msgid "All History"
+msgstr ""
+
+msgid "All marked as read"
+msgstr ""
+
+msgid "All notifications marked as read."
+msgstr "सभी सूचनाएँ पढ़ी हुई चिह्नित की गईं।"
+
+msgid "All Priorities"
+msgstr "सभी प्राथमिकताएँ"
+
+msgid "All reconsideration reviews are complete. The complaint was returned for rework."
+msgstr ""
+
+msgid "All Reporters"
+msgstr "सभी रिपोर्टकर्ता"
+
+msgid "All required members approved. The executive has received the green light."
+msgstr "सभी आवश्यक सदस्यों ने अनुमोदन दिया। कार्यकारी को हरी झंडी मिल गई है।"
+
+msgid "All Roles"
+msgstr ""
+
+msgid "All Statuses"
+msgstr "सभी स्थितियाँ"
+
+msgid "All Types"
+msgstr "सभी प्रकार"
+
+msgid "Allowed Pages (comma-separated)"
+msgstr ""
+
+#, python-format
+msgid "An active %(role)s approver already exists."
+msgstr ""
+
+msgid "An error occurred while submitting your decision."
+msgstr ""
+
+msgid "Apply Filters"
+msgstr ""
+
+msgid "Approval Feedback"
+msgstr ""
+
+msgid "Approval history"
+msgstr "अनुमोदन इतिहास"
+
+msgid "Approval Inbox"
+msgstr "अनुमोदन इनबॉक्स"
+
+msgid "Approval Inbox - Fabro Leather"
+msgstr ""
+
+msgid "Approval requests, factory assignments, rework, and closure updates."
+msgstr ""
+
+msgid "Approval stage workspace"
+msgstr ""
+
+msgid "Approvals"
+msgstr "अनुमोदन"
+
+msgid "Approvals Workspace"
+msgstr "अनुमोदन कार्यक्षेत्र"
+
+msgid "Approvals Workspace - Fabro Leather"
+msgstr ""
+
+msgid "Approve"
+msgstr ""
+
+msgid "Approve Plan"
+msgstr "योजना अनुमोदित करें"
+
+msgid "Approved"
+msgstr "अनुमोदित"
+
+msgid "Approved Action Plan"
+msgstr ""
+
+msgid "Approved Factory Plan"
+msgstr ""
+
+msgid "Approver"
+msgstr ""
+
+msgid "Are you sure you want to delete this complaint?"
+msgstr "क्या आप वाकई यह शिकायत हटाना चाहते हैं?"
+
+msgid "Are you sure you want to log out?"
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to permanently delete user \"%(username)s\"?"
+msgstr ""
+
+msgid "Are you sure you want to remove your profile photo?"
+msgstr ""
+
+msgid "Assigned Country"
+msgstr "निर्धारित देश"
+
+msgid "Assigned Executive"
+msgstr ""
+
+msgid "Assigned to Factory"
+msgstr "फैक्टरी को सौंपा गया"
+
+msgid "Audit & Activity Logs"
+msgstr "ऑडिट और गतिविधि लॉग"
+
+msgid "Awaiting Approval"
+msgstr "अनुमोदन की प्रतीक्षा"
+
+msgid "Awaiting Execution Verification"
+msgstr "निष्पादन सत्यापन की प्रतीक्षा"
+
+msgid "Back to Portal"
+msgstr ""
+
+msgid "Back to Vehicle Management"
+msgstr ""
+
+msgid "Basic Information"
+msgstr ""
+
+msgid "Batch / Order"
+msgstr ""
+
+msgid "Batch / Order #"
+msgstr "बैच / ऑर्डर संख्या"
+
+msgid "Before Execution"
+msgstr ""
+
+msgid "Brand"
+msgstr "ब्रांड"
+
+msgid "Brand / Model"
+msgstr ""
+
+msgid "Brand Logo"
+msgstr "ब्रांड लोगो"
+
+msgid "Brand logo must be 2 MB or smaller."
+msgstr ""
+
+msgid "Brand logo must be a JPG, PNG, WEBP, or GIF image."
+msgstr ""
+
+msgid "Brand Name"
+msgstr "ब्रांड नाम"
+
+msgid "brand,model,sub_model,year_start,year_end,number_of_seats,number_of_doors,layout_code BMW,X5,Sport,2020,2025,5,4,BMW_X5_SPORT_20_25 Mercedes,C-Class,Luxury,2019,2024,5,4,MERC_C_LUX_19_24 Audi,A4,-,2021,2026,5,4,AUDI_A4_21_26"
+msgstr ""
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Brands"
+msgstr ""
+
+msgid "Bulk import vehicle configurations from CSV file"
+msgstr ""
+
+msgid "Bulk Upload CSV"
+msgstr ""
+
+msgid "By"
+msgstr ""
+
+msgid "CAD"
+msgstr ""
+
+msgid "CAD updated date"
+msgstr "CAD अपडेट तारीख"
+
+msgid "CAD Updated Date"
+msgstr ""
+
+msgid "CAD Updated Date cannot be in the future."
+msgstr ""
+
+msgid "Can receive factory assignments"
+msgstr ""
+
+msgid "Cancel"
+msgstr "रद्द करें"
+
+msgid "Cancel complaint"
+msgstr ""
+
+msgid "Car Seat Management Portal"
+msgstr ""
+
+msgid "Car Seat Management System"
+msgstr ""
+
+msgid "Case Details"
+msgstr ""
+
+msgid "Category"
+msgstr "श्रेणी"
+
+msgid "Channel"
+msgstr "चैनल"
+
+msgid "Channel:"
+msgstr ""
+
+msgid "CHAT"
+msgstr "चैट"
+
+msgid "Chat Workspace - Fabro Leather"
+msgstr ""
+
+msgid "Choose any user from the left directory to open a direct messaging workspace."
+msgstr ""
+
+msgid "Choose PM, OM, CAD, ED, or MD for an approver."
+msgstr ""
+
+msgid "Clear"
+msgstr "साफ़ करें"
+
+msgid "Clear All"
+msgstr ""
+
+msgid "Clear complaint form"
+msgstr ""
+
+msgid "Clear Context"
+msgstr ""
+
+msgid "Clear filter"
+msgstr ""
+
+msgid "Clear Filters"
+msgstr ""
+
+msgid "Clear form"
+msgstr ""
+
+msgid "Clear search"
+msgstr "खोज साफ़ करें"
+
+msgid "Clear Search"
+msgstr ""
+
+msgid "Click the button below to log back in."
+msgstr ""
+
+msgid "Click to upload"
+msgstr "अपलोड करने के लिए क्लिक करें"
+
+msgid "Close complaint details"
+msgstr ""
+
+msgid "Closed"
+msgstr "बंद"
+
+msgid "Closed at"
+msgstr "बंद होने का समय"
+
+msgid "Closed by"
+msgstr "बंद करने वाला"
+
+msgid "Complaint"
+msgstr ""
+
+msgid "Complaint And Factory Review"
+msgstr ""
+
+msgid "Complaint Batch Order:"
+msgstr ""
+
+msgid "Complaint Context:"
+msgstr ""
+
+msgid "Complaint deleted successfully."
+msgstr "शिकायत सफलतापूर्वक हटाई गई।"
+
+msgid "Complaint Description"
+msgstr "शिकायत का विवरण"
+
+msgid "Complaint details"
+msgstr "शिकायत विवरण"
+
+msgid "Complaint Details"
+msgstr "शिकायत विवरण"
+
+msgid "Complaint ID"
+msgstr "शिकायत आईडी"
+
+msgid "Complaint ID:"
+msgstr ""
+
+msgid "Complaint Journey"
+msgstr "शिकायत यात्रा"
+
+msgid "Complaint List - Fabro Leather"
+msgstr ""
+
+msgid "Complaint Management"
+msgstr "शिकायत प्रबंधन"
+
+msgid "Complaint media"
+msgstr ""
+
+msgid "Complaint Media"
+msgstr "शिकायत मीडिया"
+
+msgid "Complaint media must be uploaded directly to Supabase Storage."
+msgstr ""
+
+msgid "Complaint Snapshot"
+msgstr ""
+
+msgid "Complaint type"
+msgstr "शिकायत का प्रकार"
+
+msgid "Complaint Type"
+msgstr ""
+
+msgid "Complaint Types"
+msgstr "शिकायत के प्रकार"
+
+msgid "Complaint window type"
+msgstr ""
+
+msgid "Complaint workflow journey"
+msgstr ""
+
+msgid "Complaint:"
+msgstr ""
+
+msgid "Complaints"
+msgstr "शिकायतें"
+
+msgid "Complaints List"
+msgstr ""
+
+msgid "Complaints Resolved"
+msgstr "समाधान की गई शिकायतें"
+
+msgid "Completed Approvals"
+msgstr ""
+
+msgid "Configure master data including channels, countries, and case categories"
+msgstr "चैनल, देश और शिकायत श्रेणियों सहित मास्टर डेटा व्यवस्थित करें"
+
+msgid "Configure your personal information and adjust account security credentials"
+msgstr ""
+
+msgid "Confirm Decision"
+msgstr "निर्णय की पुष्टि करें"
+
+msgid "Confirm New Password"
+msgstr ""
+
+msgid "Confirm new password"
+msgstr ""
+
+msgid "Confirmed Reason"
+msgstr ""
+
+msgid "Contact Information"
+msgstr ""
+
+msgid "Container number"
+msgstr "कंटेनर संख्या"
+
+msgid "Country"
+msgstr "देश"
+
+msgid "Country Executive"
+msgstr "देश कार्यकारी"
+
+msgid "Country executives must be assigned to a country."
+msgstr "देश कार्यकारी को किसी देश से संबद्ध करना आवश्यक है।"
+
+msgid "Country:"
+msgstr ""
+
+msgid "Create Group"
+msgstr ""
+
+msgid "Create New User"
+msgstr "नया उपयोगकर्ता बनाएँ"
+
+msgid "Create Privilege"
+msgstr ""
+
+msgid "Create User"
+msgstr "उपयोगकर्ता बनाएँ"
+
+msgid "Create User Group"
+msgstr ""
+
+msgid "Created by"
+msgstr "निर्माता"
+
+msgid "Creating"
+msgstr "बनाया जा रहा है"
+
+#, python-format
+msgid "CSV could not be parsed: %(error)s."
+msgstr ""
+
+msgid "CSV file must be 5 MB or smaller."
+msgstr ""
+
+msgid "CSV file with code &amp; description"
+msgstr ""
+
+#, python-format
+msgid "CSV files may contain at most %(count)s data rows."
+msgstr ""
+
+msgid "CSV files only (Max 5MB)"
+msgstr ""
+
+msgid "CSV must use UTF-8 encoding."
+msgstr ""
+
+msgid "CURRENT"
+msgstr ""
+
+msgid "Current Logo:"
+msgstr ""
+
+msgid "Current Password"
+msgstr ""
+
+msgid "CURRENT SESSION"
+msgstr ""
+
+msgid "Current Settings"
+msgstr "वर्तमान सेटिंग्स"
+
+msgid "Dash"
+msgstr ""
+
+msgid "Dashboard"
+msgstr "डैशबोर्ड"
+
+msgid "Dashboard - Fabro Leather"
+msgstr ""
+
+msgid "Date"
+msgstr "तारीख"
+
+msgid "Date / ID"
+msgstr ""
+
+msgid "Defect type"
+msgstr ""
+
+msgid "Delete"
+msgstr "हटाएँ"
+
+msgid "Delete Complaint"
+msgstr "शिकायत हटाएँ"
+
+msgid "Delete User"
+msgstr "उपयोगकर्ता हटाएँ"
+
+msgid "Department"
+msgstr "विभाग"
+
+msgid "Description"
+msgstr "विवरण"
+
+msgid "Direct Messages"
+msgstr ""
+
+msgid "Dismiss message"
+msgstr ""
+
+msgid "Doors"
+msgstr "दरवाज़े"
+
+msgid "Duplicate Layout Code"
+msgstr ""
+
+msgid "Duplicate SKU Found"
+msgstr ""
+
+msgid "Duplicate Vehicle Entry"
+msgstr ""
+
+msgid "e.g. Sales, Operations"
+msgstr ""
+
+msgid "e.g., BMW, Mercedes"
+msgstr ""
+
+msgid "e.g., Sport, Luxury"
+msgstr ""
+
+msgid "e.g., X5, C-Class"
+msgstr ""
+
+msgid "Each media file must be 100 MB or smaller."
+msgstr ""
+
+msgid "ED"
+msgstr ""
+
+msgid "Edit"
+msgstr "संपादित करें"
+
+msgid "Edit Complaint"
+msgstr ""
+
+msgid "Edit Complaint - Fabro Leather"
+msgstr ""
+
+msgid "Edit Inline"
+msgstr ""
+
+msgid "Edit Master Setting"
+msgstr "मास्टर सेटिंग संपादित करें"
+
+msgid "Edit SKU - Fabro Leather"
+msgstr ""
+
+msgid "Edit User Profile & Workflow Role"
+msgstr ""
+
+msgid "Edit Vehicle"
+msgstr ""
+
+msgid "Edit Vehicle - Fabro Leather"
+msgstr ""
+
+msgid "Email"
+msgstr "ईमेल"
+
+msgid "Email Address"
+msgstr ""
+
+msgid "Email Address *"
+msgstr "ईमेल पता *"
+
+msgid "End"
+msgstr ""
+
+msgid "Enter a new password"
+msgstr ""
+
+msgid "Enter a new password."
+msgstr ""
+
+msgid "Enter a valid email address."
+msgstr ""
+
+msgid "Enter current password"
+msgstr ""
+
+msgid "Enter email address"
+msgstr ""
+
+msgid "Enter first name"
+msgstr ""
+
+msgid "Enter last name"
+msgstr ""
+
+msgid "Enter new password"
+msgstr ""
+
+msgid "Enter phone number"
+msgstr ""
+
+msgid "Enter reason, feedback, or stipulations for factory executive..."
+msgstr ""
+
+msgid "Enter the new production container number"
+msgstr ""
+
+msgid "Enter unique layout code"
+msgstr ""
+
+msgid "Enter your password"
+msgstr ""
+
+msgid "Enter your username"
+msgstr ""
+
+msgid "ERP ADMIN"
+msgstr ""
+
+msgid "ERP Admin Suite - Fabro Leather"
+msgstr ""
+
+#, python-format
+msgid "Error clearing sessions: %(error)s"
+msgstr ""
+
+msgid "Error loading complaint types"
+msgstr ""
+
+msgid "Error loading data"
+msgstr ""
+
+msgid "Error loading SKUs"
+msgstr ""
+
+#, python-format
+msgid "Error terminating session: %(error)s"
+msgstr ""
+
+msgid "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round."
+msgstr ""
+
+msgid "Execute Approved Action"
+msgstr ""
+
+msgid "Execution correction was requested and the case returned to the Factory Executive."
+msgstr "निष्पादन सुधार माँगा गया और मामला फैक्टरी कार्यकारी को लौटाया गया।"
+
+msgid "Execution Is Correct"
+msgstr ""
+
+msgid "Execution Needs Correction"
+msgstr ""
+
+msgid "Execution notes"
+msgstr "निष्पादन टिप्पणियाँ"
+
+msgid "Execution Partially Verified"
+msgstr "निष्पादन आंशिक सत्यापित"
+
+msgid "Execution submitted to the original approvers for verification."
+msgstr "निष्पादन सत्यापन के लिए मूल अनुमोदकों को भेजा गया।"
+
+msgid "Execution verification"
+msgstr ""
+
+msgid "Execution verification decision"
+msgstr ""
+
+msgid "Execution was verified unanimously. Final CAD and container updates are now unlocked."
+msgstr "निष्पादन सर्वसम्मति से सत्यापित हुआ। अंतिम CAD और कंटेनर अपडेट अब उपलब्ध हैं।"
+
+msgid "Existing Complaints"
+msgstr ""
+
+msgid "Existing Media Files"
+msgstr ""
+
+msgid "Explain what must be corrected when rejecting."
+msgstr ""
+
+msgid "Export CSV"
+msgstr ""
+
+msgid "FABRO"
+msgstr ""
+
+msgid "Fabro Leather"
+msgstr ""
+
+msgid "Factory"
+msgstr "फैक्टरी"
+
+msgid "Factory action plan"
+msgstr ""
+
+msgid "Factory Complaint"
+msgstr "फैक्टरी शिकायत"
+
+msgid "FACTORY COMPLAINT"
+msgstr "फैक्टरी शिकायत"
+
+msgid "Factory Complaint Registrar"
+msgstr "फैक्टरी शिकायत पंजीयक"
+
+msgid "Factory Complaint Types"
+msgstr ""
+
+msgid "Factory Executive"
+msgstr "फैक्टरी कार्यकारी"
+
+msgid "Factory executive"
+msgstr "फैक्टरी कार्यकारी"
+
+msgid "Factory Executive:"
+msgstr ""
+
+msgid "Factory Findings"
+msgstr ""
+
+msgid "Factory Priority"
+msgstr "फैक्टरी प्राथमिकता"
+
+msgid "Factory priority"
+msgstr ""
+
+msgid "Factory Reason"
+msgstr "फैक्टरी कारण"
+
+msgid "Factory response"
+msgstr "फैक्टरी प्रतिक्रिया"
+
+msgid "Factory Review"
+msgstr "फैक्टरी समीक्षा"
+
+msgid "Factory Review - Fabro Leather"
+msgstr ""
+
+msgid "Factory review submitted for approval."
+msgstr "फैक्टरी समीक्षा अनुमोदन के लिए जमा की गई।"
+
+msgid "Factory Viewer"
+msgstr "फैक्टरी दर्शक"
+
+msgid "Factory:"
+msgstr ""
+
+msgid "Failed to send message."
+msgstr "संदेश भेजा नहीं जा सका।"
+
+msgid "File must be a CSV."
+msgstr ""
+
+#, python-format
+msgid "File size: %(size)s MB"
+msgstr ""
+
+msgid "File unavailable"
+msgstr ""
+
+msgid "Filters"
+msgstr ""
+
+msgid "Final Production Update"
+msgstr ""
+
+msgid "Final updates saved. The complaint is now closed."
+msgstr "अंतिम अपडेट सहेजे गए। शिकायत अब बंद है।"
+
+msgid "First Name"
+msgstr "पहला नाम"
+
+msgid "Flag"
+msgstr ""
+
+msgid "Flag / Detail"
+msgstr ""
+
+msgid "Forgot"
+msgstr ""
+
+msgid "Forgot Password?"
+msgstr ""
+
+msgid "Full Name"
+msgstr ""
+
+msgid "Full Review Page"
+msgstr ""
+
+msgid "General Info"
+msgstr ""
+
+msgid "Go to workflow page"
+msgstr ""
+
+msgid "Green light proposed action"
+msgstr "प्रस्तावित कार्रवाई को हरी झंडी दें"
+
+msgid "Group"
+msgstr ""
+
+#, python-format
+msgid "Group %(group)s was created successfully."
+msgstr ""
+
+msgid "Group Name"
+msgstr ""
+
+msgid "Group name is required."
+msgstr ""
+
+msgid "Group name must be 150 characters or fewer."
+msgstr ""
+
+msgid "High"
+msgstr ""
+
+msgid "ID"
+msgstr ""
+
+msgid "Image Preview"
+msgstr "चित्र पूर्वावलोकन"
+
+msgid "Images and videos"
+msgstr "चित्र और वीडियो"
+
+msgid "Images and videos (Max 100MB each)"
+msgstr ""
+
+msgid "India"
+msgstr ""
+
+msgid "Initial approval"
+msgstr ""
+
+msgid "Inspect complaint in full complaint list"
+msgstr ""
+
+msgid "Invalid username or password. Please try again."
+msgstr ""
+
+msgid "IP"
+msgstr ""
+
+msgid "IP Address"
+msgstr "आईपी पता"
+
+msgid "Kanban Card View"
+msgstr ""
+
+#, python-format
+msgid "Keep at most %(count)s media files on one complaint."
+msgstr ""
+
+msgid "Kick"
+msgstr ""
+
+msgid "Kick this session?"
+msgstr ""
+
+msgid "Kick this user session?"
+msgstr ""
+
+msgid "KSA"
+msgstr ""
+
+msgid "Language"
+msgstr "भाषा"
+
+msgid "Last &raquo;"
+msgstr ""
+
+msgid "Last Active"
+msgstr ""
+
+msgid "Last Name"
+msgstr "अंतिम नाम"
+
+msgid "Layout"
+msgstr ""
+
+msgid "Layout Code"
+msgstr "लेआउट कोड"
+
+msgid "Layout code already exists. Please use a unique layout code."
+msgstr ""
+
+msgid "Layout Code:"
+msgstr ""
+
+msgid "Linked Context:"
+msgstr ""
+
+msgid "List Table View"
+msgstr ""
+
+msgid "Live Activity Feed"
+msgstr ""
+
+msgid "Live Approver Status Matrix"
+msgstr "लाइव अनुमोदक स्थिति मैट्रिक्स"
+
+msgid "Loading SKUs..."
+msgstr "एसकेयू लोड हो रहे हैं..."
+
+msgid "Loading types..."
+msgstr "प्रकार लोड हो रहे हैं..."
+
+msgid "Log Back In"
+msgstr ""
+
+msgid "Logged Out"
+msgstr ""
+
+msgid "Login - Fabro Leather"
+msgstr ""
+
+msgid "Login Time"
+msgstr "लॉगिन समय"
+
+msgid "Logout"
+msgstr "लॉग आउट"
+
+msgid "Logs"
+msgstr ""
+
+msgid "Low"
+msgstr "निम्न"
+
+msgid "Low Priority"
+msgstr "निम्न प्राथमिकता"
+
+msgid "Manage Catalog"
+msgstr "कैटलॉग प्रबंधित करें"
+
+msgid "Manage Master Settings"
+msgstr "मास्टर सेटिंग्स प्रबंधित करें"
+
+msgid "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities"
+msgstr ""
+
+msgid "Manage User Groups & Privileges"
+msgstr ""
+
+msgid "Manage Users"
+msgstr ""
+
+msgid "Manufacturing, material, or stitching defect."
+msgstr ""
+
+msgid "Mark All Read"
+msgstr ""
+
+msgid "Master"
+msgstr "मास्टर"
+
+msgid "Master Settings"
+msgstr "मास्टर सेटिंग्स"
+
+msgid "Master Settings - Fabro Leather"
+msgstr ""
+
+msgid "Material"
+msgstr "सामग्री"
+
+msgid "Material / Series:"
+msgstr ""
+
+msgid "MD"
+msgstr ""
+
+msgid "Measurement Country"
+msgstr "मापन देश"
+
+msgid "Media Files"
+msgstr "मीडिया फ़ाइलें"
+
+msgid "Media unavailable"
+msgstr ""
+
+msgid "Medium"
+msgstr "मध्यम"
+
+msgid "Medium Priority"
+msgstr "मध्यम प्राथमिकता"
+
+msgid "Member Since"
+msgstr ""
+
+msgid "Message Team Member"
+msgstr ""
+
+#, python-format
+msgid "Missing required CSV columns: %(columns)s."
+msgstr ""
+
+msgid "Model"
+msgstr "मॉडल"
+
+msgid "Model Name"
+msgstr "मॉडल नाम"
+
+msgid "Model:"
+msgstr ""
+
+msgid "Name"
+msgstr "नाम"
+
+msgid "Names must be 150 characters or fewer."
+msgstr ""
+
+msgid "Needs Correction"
+msgstr ""
+
+#, python-format
+msgid "Network error while contacting server: %(error)s"
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "NEW"
+msgstr ""
+
+msgid "New approval requests will appear here."
+msgstr ""
+
+msgid "New Password"
+msgstr ""
+
+msgid "New Production Container Number"
+msgstr ""
+
+msgid "Next"
+msgstr "अगला"
+
+msgid "No active sessions."
+msgstr "कोई सक्रिय सत्र नहीं।"
+
+msgid "No active team members available."
+msgstr ""
+
+msgid "No activity logs found."
+msgstr "कोई गतिविधि लॉग नहीं मिला।"
+
+msgid "No Approvals Found"
+msgstr "कोई अनुमोदन नहीं मिला"
+
+msgid "No brands found."
+msgstr ""
+
+msgid "No complaints available yet."
+msgstr ""
+
+msgid "No complaints found"
+msgstr "कोई शिकायत नहीं मिली"
+
+msgid "No decisions submitted yet."
+msgstr "अभी कोई निर्णय जमा नहीं हुआ।"
+
+msgid "No Logo"
+msgstr ""
+
+msgid "No master settings found."
+msgstr ""
+
+msgid "No matching SKUs"
+msgstr "कोई मेल खाता एसकेयू नहीं"
+
+msgid "No matching values"
+msgstr "कोई मेल खाता मान नहीं"
+
+msgid "No media attached"
+msgstr "कोई मीडिया संलग्न नहीं"
+
+msgid "No media files attached to this complaint"
+msgstr ""
+
+msgid "No media uploaded"
+msgstr ""
+
+msgid "No messages yet"
+msgstr "अभी कोई संदेश नहीं"
+
+msgid "No notifications yet"
+msgstr ""
+
+msgid "No recent activities."
+msgstr ""
+
+msgid "No reviews waiting"
+msgstr "कोई समीक्षा लंबित नहीं"
+
+msgid "No settings for this category"
+msgstr "इस श्रेणी में कोई सेटिंग नहीं है"
+
+msgid "No SKUs found. Click"
+msgstr ""
+
+msgid "No SKUs loaded."
+msgstr ""
+
+msgid "No team members found."
+msgstr ""
+
+msgid "No timeline events recorded yet."
+msgstr ""
+
+msgid "No unread messages"
+msgstr ""
+
+msgid "No users found."
+msgstr ""
+
+msgid "No values found"
+msgstr "कोई मान नहीं मिला"
+
+msgid "No vehicles added yet"
+msgstr "अभी कोई वाहन नहीं जोड़ा गया"
+
+msgid "None (Global)"
+msgstr ""
+
+msgid "Note:"
+msgstr ""
+
+msgid "Notifications"
+msgstr "सूचनाएँ"
+
+msgid "Notifications - Fabro Leather"
+msgstr ""
+
+msgid "Number of Doors"
+msgstr "दरवाज़ों की संख्या"
+
+msgid "Number of Seats"
+msgstr "सीटों की संख्या"
+
+msgid "Object Detail"
+msgstr "ऑब्जेक्ट विवरण"
+
+msgid "Object Type"
+msgstr "ऑब्जेक्ट प्रकार"
+
+msgid "Offline"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid "OM"
+msgstr ""
+
+msgid "On Hold"
+msgstr "होल्ड पर"
+
+msgid "Online Now"
+msgstr ""
+
+msgid "Only a Django superuser can delete another superuser account."
+msgstr ""
+
+msgid "Only a Django superuser can edit another superuser account."
+msgstr ""
+
+msgid "Only a Django superuser can reset another superuser password."
+msgstr ""
+
+msgid "Open"
+msgstr ""
+
+msgid "Open attached file"
+msgstr "संलग्न फ़ाइल खोलें"
+
+msgid "Open full dedicated review screen"
+msgstr ""
+
+msgid "Optional for approval. Required when rejecting."
+msgstr ""
+
+msgid "Optional when proceeding. Required when returning for rework."
+msgstr ""
+
+msgid "Optional when verifying. Required when requesting an execution correction."
+msgstr ""
+
+msgid "or drag and drop"
+msgstr "या खींचकर छोड़ें"
+
+msgid "Parallel Review Progress"
+msgstr "समानांतर समीक्षा प्रगति"
+
+msgid "Partially Approved"
+msgstr "आंशिक अनुमोदन"
+
+msgid "Password"
+msgstr "पासवर्ड"
+
+msgid "Password *"
+msgstr "पासवर्ड *"
+
+#, python-format
+msgid "Password reset successfully for %(username)s."
+msgstr ""
+
+msgid "PAT-26070001"
+msgstr ""
+
+msgid "Pattern"
+msgstr "पैटर्न"
+
+msgid "PATTERN COMPLAINT"
+msgstr "पैटर्न शिकायत"
+
+msgid "Pattern Complaint"
+msgstr "पैटर्न शिकायत"
+
+msgid "Pattern Complaint Types"
+msgstr ""
+
+msgid "Pending"
+msgstr ""
+
+msgid "Pending Final Update"
+msgstr "अंतिम अपडेट लंबित"
+
+msgid "Phone"
+msgstr ""
+
+msgid "Phone Number"
+msgstr "फ़ोन नंबर"
+
+msgid "Phone number must be 30 characters or fewer."
+msgstr ""
+
+msgid "Play attached video"
+msgstr ""
+
+msgid "Play video"
+msgstr "वीडियो चलाएँ"
+
+msgid "Please enter a review comment explaining the rejection or rework requirement."
+msgstr ""
+
+msgid "Please sign in to your account"
+msgstr ""
+
+msgid "PM"
+msgstr ""
+
+msgid "PNG, JPG (Max 5MB)"
+msgstr ""
+
+msgid "Prev"
+msgstr "पिछला"
+
+msgid "Priority"
+msgstr "प्राथमिकता"
+
+msgid "Priority:"
+msgstr ""
+
+msgid "Privilege Name"
+msgstr ""
+
+msgid "Privileges"
+msgstr ""
+
+msgid "Privileges (select multiple):"
+msgstr ""
+
+msgid "Proceed with Action Plan"
+msgstr ""
+
+msgid "Proceed With Action Plan"
+msgstr ""
+
+msgid "Proceed with Plan"
+msgstr ""
+
+msgid "Proceed with the approved action plan to unlock the final update fields."
+msgstr ""
+
+msgid "Product and source"
+msgstr "उत्पाद और स्रोत"
+
+msgid "Production"
+msgstr "उत्पादन"
+
+msgid "PRODUCTION COMPLAINT"
+msgstr "उत्पादन शिकायत"
+
+msgid "Production Complaint"
+msgstr "उत्पादन शिकायत"
+
+msgid "Production Complaint Types"
+msgstr ""
+
+msgid "Profile"
+msgstr "प्रोफ़ाइल"
+
+msgid "Profile Photo"
+msgstr "प्रोफ़ाइल फ़ोटो"
+
+msgid "Profile photo must be 5 MB or smaller."
+msgstr ""
+
+msgid "Profile photo must be a JPG, PNG, WEBP, or GIF image."
+msgstr ""
+
+msgid "Profile photo must be under 5 MB."
+msgstr ""
+
+msgid "Profile Settings"
+msgstr ""
+
+msgid "Profile Settings - Fabro Leather"
+msgstr ""
+
+msgid "Proposed Factory Action Plan"
+msgstr "प्रस्तावित फैक्टरी कार्य योजना"
+
+msgid "Quality"
+msgstr "गुणवत्ता"
+
+msgid "Quality Complaint"
+msgstr "गुणवत्ता शिकायत"
+
+msgid "QUALITY COMPLAINT"
+msgstr "गुणवत्ता शिकायत"
+
+msgid "Quality Complaint Types"
+msgstr ""
+
+msgid "Quality-related complaint using the standard report fields."
+msgstr ""
+
+msgid "Read"
+msgstr "पढ़ा गया"
+
+msgid "Ready for execution"
+msgstr ""
+
+msgid "Real reason behind defect"
+msgstr ""
+
+msgid "Reason:"
+msgstr ""
+
+msgid "Recent Decisions"
+msgstr ""
+
+msgid "Reconsideration decision"
+msgstr ""
+
+msgid "Reconsideration Rounds"
+msgstr ""
+
+msgid "Reconsiderations"
+msgstr ""
+
+msgid "Region"
+msgstr "क्षेत्र"
+
+msgid "Register a new customer complaint with detailed information"
+msgstr "विस्तृत जानकारी के साथ नई ग्राहक शिकायत दर्ज करें"
+
+msgid "Reject"
+msgstr ""
+
+msgid "Reject / Rework"
+msgstr "अस्वीकार / पुनःकार्य"
+
+msgid "Reject Plan"
+msgstr ""
+
+msgid "Rejected"
+msgstr ""
+
+msgid "Rejection reconsideration"
+msgstr ""
+
+msgid "Rejection To Reconsider"
+msgstr ""
+
+msgid "Remove current photo"
+msgstr ""
+
+msgid "Remove linked context"
+msgstr ""
+
+msgid "Remove photo"
+msgstr ""
+
+msgid "Report date"
+msgstr "रिपोर्ट की तारीख"
+
+msgid "Report status"
+msgstr "रिपोर्ट स्थिति"
+
+msgid "Reported &amp; Source"
+msgstr ""
+
+msgid "Reported By"
+msgstr "रिपोर्टकर्ता"
+
+msgid "Reported by"
+msgstr "रिपोर्टकर्ता"
+
+msgid "Request revisions or reject"
+msgstr "संशोधन माँगें या अस्वीकार करें"
+
+msgid "Required CSV Format"
+msgstr ""
+
+msgid "Reset Filters"
+msgstr ""
+
+msgid "Reset Password"
+msgstr "पासवर्ड रीसेट करें"
+
+msgid "Resolved"
+msgstr ""
+
+msgid "Return for Rework"
+msgstr ""
+
+msgid "Return to Factory Executive for Rework"
+msgstr ""
+
+msgid "Return to Main Portal"
+msgstr ""
+
+msgid "Review comment"
+msgstr ""
+
+msgid "Review Comments"
+msgstr ""
+
+msgid "Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed."
+msgstr ""
+
+msgid "Rework Required"
+msgstr "पुनःकार्य आवश्यक"
+
+msgid "Role"
+msgstr "भूमिका"
+
+msgid "Root cause"
+msgstr "मूल कारण"
+
+#, python-format
+msgid "Save %(type)s"
+msgstr ""
+
+msgid "Save Changes"
+msgstr "बदलाव सहेजें"
+
+msgid "Save Details"
+msgstr ""
+
+msgid "Save SKU"
+msgstr ""
+
+msgid "Save Updates And Close Case"
+msgstr ""
+
+#, python-format
+msgid "Saving %(type)s..."
+msgstr ""
+
+msgid "Search"
+msgstr "खोजें"
+
+msgid "Search approvals"
+msgstr ""
+
+msgid "Search approvals..."
+msgstr ""
+
+msgid "Search by name, username, email, phone, role..."
+msgstr ""
+
+msgid "Search complaints"
+msgstr "शिकायतें खोजें"
+
+msgid "Search complaints..."
+msgstr "शिकायतें खोजें..."
+
+msgid "Search field choices"
+msgstr ""
+
+msgid "Search SKUs"
+msgstr ""
+
+msgid "Search SKUs..."
+msgstr ""
+
+msgid "Search team member..."
+msgstr ""
+
+msgid "Search this keyword in"
+msgstr "इस शब्द को इसमें खोजें"
+
+msgid "Search values..."
+msgstr "मान खोजें..."
+
+msgid "Search vehicles"
+msgstr ""
+
+msgid "Search vehicles..."
+msgstr ""
+
+msgid "Seats"
+msgstr "सीटें"
+
+msgid "Security & Password"
+msgstr ""
+
+msgid "Select a Team Member"
+msgstr "टीम सदस्य चुनें"
+
+msgid "Select All"
+msgstr "सभी चुनें"
+
+msgid "Select Country"
+msgstr "देश चुनें"
+
+msgid "Select Model"
+msgstr "मॉडल चुनें"
+
+msgid "Select Priority"
+msgstr ""
+
+msgid "Select SKU"
+msgstr "एसकेयू चुनें"
+
+msgid "Select Sub-Model (Optional)"
+msgstr "सब-मॉडल चुनें (वैकल्पिक)"
+
+msgid "Select Type"
+msgstr "प्रकार चुनें"
+
+msgid "Select User Group"
+msgstr ""
+
+msgid "Select User Type"
+msgstr ""
+
+msgid "Select Year"
+msgstr "वर्ष चुनें"
+
+msgid "Send Message"
+msgstr ""
+
+msgid "Series"
+msgstr "सीरीज़"
+
+msgid "Session not found or already expired."
+msgstr ""
+
+msgid "Session terminated successfully."
+msgstr "सत्र सफलतापूर्वक समाप्त हुआ।"
+
+msgid "Sessions"
+msgstr ""
+
+msgid "Setting Name"
+msgstr ""
+
+msgid "Setting updated successfully."
+msgstr ""
+
+msgid "Show/Hide Password"
+msgstr ""
+
+msgid "Sign In"
+msgstr "साइन इन"
+
+#, python-format
+msgid "Skipped %(count)s duplicate layout codes: %(preview)s"
+msgstr ""
+
+#, python-format
+msgid "Skipped %(count)s invalid rows. %(preview)s"
+msgstr ""
+
+msgid "SKU"
+msgstr "एसकेयू"
+
+msgid "SKU / Material"
+msgstr ""
+
+msgid "SKU Catalog"
+msgstr ""
+
+msgid "SKU Code"
+msgstr "एसकेयू कोड"
+
+msgid "SKU code already exists."
+msgstr ""
+
+msgid "SKU Items"
+msgstr "एसकेयू आइटम"
+
+msgid "SKU Management"
+msgstr "एसकेयू प्रबंधन"
+
+msgid "SKU Management - Fabro Leather"
+msgstr ""
+
+msgid "SKU Master Catalog"
+msgstr "एसकेयू मास्टर कैटलॉग"
+
+msgid "SKU:"
+msgstr ""
+
+msgid "SKUs"
+msgstr ""
+
+msgid "Staff"
+msgstr "स्टाफ"
+
+msgid "Start"
+msgstr ""
+
+msgid "Start the conversation by sending a text below."
+msgstr "नीचे संदेश भेजकर बातचीत शुरू करें।"
+
+msgid "Status"
+msgstr "स्थिति"
+
+msgid "Sub-Model"
+msgstr "सब-मॉडल"
+
+msgid "Sub-Model Name"
+msgstr ""
+
+msgid "Sub-Model Name (Optional)"
+msgstr "सब-मॉडल नाम (वैकल्पिक)"
+
+msgid "Sub-Model:"
+msgstr ""
+
+msgid "Submit Approval"
+msgstr ""
+
+msgid "Submit Approval Decision"
+msgstr "अनुमोदन निर्णय जमा करें"
+
+msgid "Submit completed execution for verification"
+msgstr ""
+
+msgid "Submit Execution For Verification"
+msgstr ""
+
+msgid "Submit for Approval"
+msgstr ""
+
+msgid "Submit Reconsideration Vote"
+msgstr ""
+
+msgid "Submit Your Opinion"
+msgstr "अपनी राय जमा करें"
+
+msgid "Submitted"
+msgstr "जमा"
+
+msgid "Submitted By"
+msgstr ""
+
+msgid "Submitting..."
+msgstr "जमा किया जा रहा है..."
+
+msgid "Submodel"
+msgstr "सब-मॉडल"
+
+#, python-format
+msgid "Successfully added %(count)s record."
+msgid_plural "Successfully added %(count)s records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Superseded"
+msgstr ""
+
+msgid "Superuser"
+msgstr "सुपरयूज़र"
+
+msgid "System Dashboard"
+msgstr ""
+
+msgid "System Statistics"
+msgstr ""
+
+msgid "Template, dimension, or cutting issue."
+msgstr ""
+
+msgid "Terminate"
+msgstr "समाप्त करें"
+
+msgid "Terminate all other user sessions?"
+msgstr ""
+
+msgid "Terminate Other Sessions"
+msgstr ""
+
+msgid "Terminate Others"
+msgstr ""
+
+#, python-format
+msgid "Terminated %(count)s active session. Only your current session remains active."
+msgid_plural "Terminated %(count)s active sessions. Only your current session remains active."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "That username is already in use."
+msgstr ""
+
+msgid "The CAD and container fields unlock only after every original approver verifies the execution."
+msgstr ""
+
+msgid "The complaint could not be saved. Please try again."
+msgstr ""
+
+msgid "The complaint could not be updated. Please try again."
+msgstr ""
+
+msgid "The final active superuser cannot be deleted."
+msgstr ""
+
+msgid "The final active superuser cannot be demoted."
+msgstr ""
+
+msgid "The import conflicted with another update. Please retry."
+msgstr ""
+
+msgid "The layout code you entered already exists. Please use a unique layout code."
+msgstr ""
+
+msgid "The SKU code or description you entered already exists. Please use unique values."
+msgstr ""
+
+msgid "This approval round is complete"
+msgstr ""
+
+msgid "This complaint can no longer be edited from the report step."
+msgstr ""
+
+msgid "This complaint is not ready for factory review."
+msgstr "यह शिकायत फैक्टरी समीक्षा के लिए तैयार नहीं है।"
+
+msgid "This Month"
+msgstr ""
+
+msgid "This page is restricted to administrators only."
+msgstr "यह पृष्ठ केवल प्रशासकों के लिए है।"
+
+msgid "This vehicle configuration overlaps with an existing entry:"
+msgstr ""
+
+msgid "Timestamp"
+msgstr "समय-मुद्रा"
+
+msgid "To reset your password if forgotten, please contact your system administrator."
+msgstr ""
+
+msgid "Toggle filters"
+msgstr ""
+
+msgid "Top"
+msgstr "शीर्ष"
+
+msgid "Top Priority"
+msgstr "शीर्ष प्राथमिकता"
+
+msgid "Total Complaints"
+msgstr "कुल शिकायतें"
+
+msgid "Total Complaints:"
+msgstr ""
+
+msgid "Total Users"
+msgstr "कुल उपयोगकर्ता"
+
+msgid "Try adjusting your filters or add a new complaint to get started."
+msgstr "फ़िल्टर बदलें या शुरू करने के लिए नई शिकायत जोड़ें।"
+
+msgid "Type"
+msgstr "प्रकार"
+
+msgid "Type &amp; Material"
+msgstr ""
+
+#, python-format
+msgid "Type a message to %(username)s... (Press Enter to send)"
+msgstr ""
+
+msgid "Type:"
+msgstr ""
+
+msgid "Unable to load types"
+msgstr "प्रकार लोड नहीं किए जा सके"
+
+msgid "Unavailable"
+msgstr ""
+
+msgid "Unread"
+msgstr ""
+
+msgid "Update"
+msgstr ""
+
+msgid "Update Complaint"
+msgstr ""
+
+msgid "Update complaint information and manage media files"
+msgstr ""
+
+msgid "Update Order #"
+msgstr "अपडेट ऑर्डर संख्या"
+
+msgid "Update Password"
+msgstr ""
+
+msgid "Update Privileges"
+msgstr ""
+
+msgid "Update Profile Photo"
+msgstr "प्रोफ़ाइल फ़ोटो अपडेट करें"
+
+msgid "Update Setting"
+msgstr "सेटिंग अपडेट करें"
+
+msgid "Update SKU"
+msgstr ""
+
+msgid "Update SKU information and manage media files"
+msgstr ""
+
+msgid "Update vehicle configuration and specifications"
+msgstr ""
+
+msgid "Updated Order #"
+msgstr "अपडेटेड ऑर्डर संख्या"
+
+msgid "Upload"
+msgstr "अपलोड"
+
+msgid "Upload a valid image."
+msgstr ""
+
+msgid "Upload CSV"
+msgstr "CSV अपलोड करें"
+
+msgid "Upload CSV File"
+msgstr ""
+
+msgid "Upload profile photo"
+msgstr ""
+
+msgid "Upload Vehicle CSV"
+msgstr ""
+
+msgid "Upload Vehicle CSV - Fabro Leather"
+msgstr ""
+
+msgid "Uploading..."
+msgstr ""
+
+msgid "Urgent assembly-line fitment issue."
+msgstr ""
+
+msgid "Use \"-\" for empty sub_model values. Layout codes must be unique."
+msgstr ""
+
+msgid "User"
+msgstr "उपयोगकर्ता"
+
+#, python-format
+msgid "User %(username)s and workflow access were updated."
+msgstr ""
+
+#, python-format
+msgid "User %(username)s was created successfully."
+msgstr ""
+
+msgid "User Directory"
+msgstr ""
+
+msgid "User Groups"
+msgstr ""
+
+msgid "User not found."
+msgstr ""
+
+msgid "User Type"
+msgstr ""
+
+msgid "Username"
+msgstr "उपयोगकर्ता नाम"
+
+msgid "Username (Read-only)"
+msgstr ""
+
+msgid "Username *"
+msgstr "उपयोगकर्ता नाम *"
+
+msgid "Username is required."
+msgstr ""
+
+msgid "Username must be 150 characters or fewer."
+msgstr ""
+
+msgid "Users"
+msgstr "उपयोगकर्ता"
+
+msgid "Vehicle"
+msgstr "वाहन"
+
+msgid "Vehicle & SKU"
+msgstr ""
+
+msgid "Vehicle added successfully."
+msgstr ""
+
+msgid "Vehicle Brands & Models"
+msgstr "वाहन ब्रांड और मॉडल"
+
+msgid "Vehicle Catalog"
+msgstr ""
+
+msgid "Vehicle Country"
+msgstr "वाहन देश"
+
+msgid "Vehicle deleted successfully."
+msgstr ""
+
+msgid "Vehicle Information"
+msgstr "वाहन जानकारी"
+
+msgid "Vehicle Management"
+msgstr "वाहन प्रबंधन"
+
+msgid "Vehicle Management - Fabro Leather"
+msgstr ""
+
+msgid "Vehicle Models"
+msgstr "वाहन मॉडल"
+
+msgid "Vehicle updated successfully."
+msgstr ""
+
+msgid "Vehicle:"
+msgstr ""
+
+msgid "Vehicles"
+msgstr "वाहन"
+
+msgid "Verify Executed Action Plan"
+msgstr ""
+
+msgid "Verify Execution"
+msgstr ""
+
+msgid "View"
+msgstr "देखें"
+
+msgid "View all complaints"
+msgstr ""
+
+msgid "View Complaint Details"
+msgstr ""
+
+msgid "View Details"
+msgstr ""
+
+msgid "Waiting for execution verification"
+msgstr ""
+
+msgid "Waiting My Vote"
+msgstr ""
+
+msgid "Welcome Back"
+msgstr ""
+
+msgid "Where the measurement is taken for this vehicle"
+msgstr ""
+
+msgid "Where the vehicle is manufactured."
+msgstr ""
+
+msgid "Workflow Role *"
+msgstr "कार्यप्रवाह भूमिका *"
+
+msgid "Workflow status"
+msgstr ""
+
+msgid "Workflow Status"
+msgstr ""
+
+msgid "Workflow Status:"
+msgstr ""
+
+msgid "Workflow updates assigned to you will appear here."
+msgstr ""
+
+msgid "Write the proposed action plan from the factory."
+msgstr ""
+
+msgid "Write the real reason behind the defect after reviewing photos/videos."
+msgstr ""
+
+msgid "Year"
+msgstr "वर्ष"
+
+msgid "Year End"
+msgstr ""
+
+msgid "Year End must be greater than or equal to Year Start."
+msgstr ""
+
+msgid "Year Range"
+msgstr "वर्ष सीमा"
+
+msgid "Year Range:"
+msgstr ""
+
+msgid "Year Start"
+msgstr ""
+
+msgid "Yes, delete"
+msgstr "हाँ, हटाएँ"
+
+msgid "You are not allowed to review this complaint."
+msgstr "आपको इस शिकायत की समीक्षा की अनुमति नहीं है।"
+
+msgid "You cannot delete your own signed-in account."
+msgstr ""
+
+msgid "You have been logged out"
+msgstr ""
+
+msgid "Your CSV file must include the following columns in this exact order:"
+msgstr ""
+
+msgid "Your decision"
+msgstr ""
+
+msgid "Your password has been changed successfully."
+msgstr "आपका पासवर्ड सफलतापूर्वक बदल गया।"
+
+msgid "Your profile details have been updated successfully."
+msgstr "आपकी प्रोफ़ाइल जानकारी सफलतापूर्वक अपडेट हुई।"
+
+msgid "Your rejection was saved. Every other required approver was asked to reconsider the complaint."
+msgstr ""
+
+msgid "Your review was saved. The remaining member reviews are still pending."
+msgstr ""
+
+msgid "© 2025 Fabro Leather. All rights reserved."
+msgstr ""
+
+msgid "● Online"
+msgstr ""
+
+msgid "⚠️ Rework Required"
+msgstr ""
+
+msgid "✅ Action Plan Approved"
+msgstr ""
+
+msgid "📌 Request Status Update"
+msgstr ""
+
+msgid "📦 Container Verification"
+msgstr ""

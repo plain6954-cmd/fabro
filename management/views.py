@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 import os
 import uuid
@@ -18,13 +19,14 @@ from django.core.paginator import Paginator
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Case, When, Value, IntegerField
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.utils.text import get_valid_filename
 from django.utils.timezone import now
 from django.utils import translation
+from django.utils.translation import gettext as _, ngettext
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from PIL import Image, UnidentifiedImageError
@@ -53,6 +55,7 @@ from .models import (
     Complaint,
     ComplaintApproval,
     ComplaintMedia,
+    ComplaintMediaUploadBatch,
     ComplaintTypes,
     complaint_type_master_category,
     DecisionStatuses,
@@ -94,15 +97,23 @@ from .services.workflow import (
     is_workflow_admin,
     visible_complaints_for_user,
 )
+from .services.media_uploads import (
+    MAX_COMPLAINT_MEDIA_FILES,
+    attach_verified_uploads,
+    create_upload_batch,
+    create_upload_ticket,
+    discard_uploads,
+    get_owned_batch,
+    validate_media_metadata,
+    verify_pending_uploads,
+)
+from .services.supabase_storage import (
+    SupabaseStorageError,
+    create_signed_download_url,
+)
 
 
-MAX_COMPLAINT_MEDIA_FILES = 10
-MAX_COMPLAINT_MEDIA_SIZE = 100 * 1024 * 1024
 MAX_CSV_IMPORT_ROWS = 5000
-ALLOWED_COMPLAINT_MEDIA_EXTENSIONS = {
-    '.jpg', '.jpeg', '.png', '.webp', '.gif',
-    '.mp4', '.mov', '.webm', '.avi', '.mkv',
-}
 logger = logging.getLogger(__name__)
 
 
@@ -118,18 +129,18 @@ def _iter_csv_rows(uploaded_file, required_headers):
         }
         missing = sorted(set(required_headers) - headers)
         if missing:
-            raise ValidationError(f"Missing required CSV columns: {', '.join(missing)}.")
+            raise ValidationError(_("Missing required CSV columns: %(columns)s.") % {'columns': ', '.join(missing)})
         for row_number, row in enumerate(reader, start=2):
             if row_number > MAX_CSV_IMPORT_ROWS + 1:
-                raise ValidationError(f'CSV files may contain at most {MAX_CSV_IMPORT_ROWS} data rows.')
+                raise ValidationError(_('CSV files may contain at most %(count)s data rows.') % {'count': MAX_CSV_IMPORT_ROWS})
             yield row_number, {
                 (key or '').strip().lower(): (value or '').strip()
                 for key, value in row.items()
             }
     except UnicodeDecodeError as exc:
-        raise ValidationError('CSV must use UTF-8 encoding.') from exc
+        raise ValidationError(_('CSV must use UTF-8 encoding.')) from exc
     except csv.Error as exc:
-        raise ValidationError(f'CSV could not be parsed: {exc}.') from exc
+        raise ValidationError(_('CSV could not be parsed: %(error)s.') % {'error': exc}) from exc
     finally:
         try:
             wrapper.detach()
@@ -163,17 +174,17 @@ def _configure_complaint_form(form, user):
 
 def _validate_complaint_media_files(uploaded_files, existing_count=0):
     if existing_count + len(uploaded_files) > MAX_COMPLAINT_MEDIA_FILES:
-        raise ValidationError(f'Keep at most {MAX_COMPLAINT_MEDIA_FILES} media files on one complaint.')
+        raise ValidationError(_('Keep at most %(count)s media files on one complaint.') % {'count': MAX_COMPLAINT_MEDIA_FILES})
 
     for uploaded_file in uploaded_files:
-        extension = os.path.splitext(uploaded_file.name)[1].lower()
-        content_type = (getattr(uploaded_file, 'content_type', '') or '').lower()
-        if extension not in ALLOWED_COMPLAINT_MEDIA_EXTENSIONS:
-            raise ValidationError(f'{uploaded_file.name}: unsupported file type.')
-        if not (content_type.startswith('image/') or content_type.startswith('video/')):
-            raise ValidationError(f'{uploaded_file.name}: only image and video files are allowed.')
-        if uploaded_file.size > MAX_COMPLAINT_MEDIA_SIZE:
-            raise ValidationError(f'{uploaded_file.name}: file size exceeds 100 MB.')
+        try:
+            validate_media_metadata(
+                uploaded_file.name,
+                uploaded_file.size,
+                getattr(uploaded_file, 'content_type', ''),
+            )
+        except ValidationError as exc:
+            raise ValidationError(f'{uploaded_file.name}: {exc.message}') from exc
 
 
 def _save_complaint_media_files(complaint, uploaded_files, existing_count=0):
@@ -199,6 +210,103 @@ def _delete_complaint_media_record(media):
     # ComplaintMedia's post-delete signal owns physical storage cleanup. Keeping
     # one cleanup path avoids a second unguarded attempt for Windows-locked files.
     media.delete()
+
+
+def _media_upload_template_context(user, complaint=None):
+    if not settings.USE_SUPABASE_STORAGE:
+        return {'direct_media_uploads': False, 'media_upload_batch': None}
+    batch = create_upload_batch(user, complaint=complaint)
+    return {'direct_media_uploads': True, 'media_upload_batch': batch}
+
+
+@login_required
+@require_POST
+def complaint_media_signed_upload(request):
+    if not settings.USE_SUPABASE_STORAGE:
+        return JsonResponse({'error': 'Direct media uploads are disabled.'}, status=400)
+    try:
+        payload = json.loads(request.body or b'{}')
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'error': 'Invalid JSON request.'}, status=400)
+
+    try:
+        batch = ComplaintMediaUploadBatch.objects.select_related('complaint').get(
+            id=payload.get('batch_id'),
+            user=request.user,
+        )
+    except (ComplaintMediaUploadBatch.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid media upload session.'}, status=400)
+
+    complaint = batch.complaint
+    if complaint:
+        complaint = get_object_or_404(
+            visible_complaints_for_user(request.user, Complaint.objects.all()),
+            pk=complaint.pk,
+        )
+        if not can_user_edit_report_step(request.user, complaint):
+            raise PermissionDenied('You cannot add media to this complaint.')
+    elif not can_user_create_complaint(request.user):
+        raise PermissionDenied('Your role cannot create complaints.')
+
+    try:
+        with transaction.atomic():
+            batch = get_owned_batch(
+                request.user,
+                batch.id,
+                complaint=complaint,
+                for_update=True,
+            )
+            upload, signed_url = create_upload_ticket(
+                request.user,
+                batch,
+                filename=payload.get('filename'),
+                size=payload.get('size'),
+                content_type=payload.get('content_type'),
+                removal_ids=payload.get('delete_media_ids') or [],
+            )
+    except ValidationError as exc:
+        return JsonResponse({'error': '; '.join(exc.messages)}, status=400)
+    except SupabaseStorageError:
+        logger.exception('Unable to create a Supabase signed upload URL.')
+        return JsonResponse({'error': 'Unable to prepare the media upload.'}, status=502)
+
+    return JsonResponse({
+        'upload_id': str(upload.id),
+        'storage_path': upload.storage_path,
+        'signed_url': signed_url,
+        'expires_in': settings.SUPABASE_SIGNED_UPLOAD_TTL_SECONDS,
+    })
+
+
+@login_required
+@require_POST
+def complaint_media_discard_uploads(request):
+    try:
+        payload = json.loads(request.body or b'{}')
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'error': 'Invalid JSON request.'}, status=400)
+    discarded = discard_uploads(request.user, payload.get('upload_ids') or [])
+    return JsonResponse({'discarded': discarded})
+
+
+@login_required
+def complaint_media_download(request, media_id):
+    media = get_object_or_404(
+        ComplaintMedia.objects.select_related('complaint').filter(
+            complaint__in=visible_complaints_for_user(
+                request.user,
+                Complaint.objects.all(),
+            )
+        ),
+        pk=media_id,
+    )
+    if settings.USE_SUPABASE_STORAGE:
+        try:
+            return redirect(create_signed_download_url(media.storage_name))
+        except SupabaseStorageError:
+            logger.exception('Unable to create a signed media download URL for %s.', media.pk)
+            return HttpResponse('Media is temporarily unavailable.', status=503)
+    return redirect(default_storage.url(media.storage_name))
 
 @login_required
 def index(request):
@@ -345,7 +453,7 @@ def car_details(request):
                     object_type="Car",
                     object_name=f"{brand_name} {model_name} {sub_model_name} ({year_start}-{year_end})"
                 )
-                messages.success(request, 'Vehicle added successfully!')
+                messages.success(request, _('Vehicle added successfully.'))
                 return redirect('car_details')
 
     new_search_enabled = True
@@ -419,7 +527,7 @@ def delete_car_detail(request, year_range_id):
     if not _can_manage_catalog(request.user):
         raise PermissionDenied('Only staff users can delete vehicles.')
     year_range = get_object_or_404(YearRange, id=year_range_id)
-    messages.success(request, 'Vehicle deleted successfully!')
+    messages.success(request, _('Vehicle deleted successfully.'))
     ActivityLog.objects.create(
         user=request.user,
         action="deleted",
@@ -467,7 +575,7 @@ def edit_car_detail(request, car_id):
 
             # Check for layout code duplication (excluding current record)
             if YearRange.objects.filter(layout_code=layout_code).exclude(id=car_id).exists():
-                messages.error(request, 'Layout code already exists. Please use a unique layout code.')
+                messages.error(request, _('Layout code already exists. Please use a unique layout code.'))
                 return render(request, 'management/edit_car_detail.html', {
                     'form': form,
                     'car_id': car_id,
@@ -499,7 +607,7 @@ def edit_car_detail(request, car_id):
             year_range.measurement_country = form.cleaned_data.get("measurement_country")
             year_range.save()
 
-            messages.success(request, 'Vehicle updated successfully!')
+            messages.success(request, _('Vehicle updated successfully.'))
             ActivityLog.objects.create(
                 user=request.user,
                 action="updated",
@@ -521,7 +629,7 @@ def edit_car_detail(request, car_id):
 @login_required
 def master_settings(request):
     if not is_workflow_admin(request.user):
-        messages.error(request, "This page is restricted to administrators only.")
+        messages.error(request, _("This page is restricted to administrators only."))
         return redirect('index')
     
     if request.method == "POST":
@@ -613,15 +721,25 @@ def add_complaint(request):
             len(allowed_complaint_types),
             980,
         ),
+        'direct_media_uploads': settings.USE_SUPABASE_STORAGE,
+        'media_upload_batch': None,
     }
     if request.method == 'POST':
         form = ComplaintForm(request.POST, complaint_type=selected_complaint_type)
         _configure_complaint_form(form, request.user)
         uploaded_files = request.FILES.getlist('media_files')
+        upload_ids = request.POST.getlist('media_upload_ids')
+        upload_batch_id = request.POST.get('media_upload_batch')
+        if settings.USE_SUPABASE_STORAGE and uploaded_files:
+            form.add_error(None, _('Complaint media must be uploaded directly to Supabase Storage.'))
         try:
-            _validate_complaint_media_files(uploaded_files)
+            if not settings.USE_SUPABASE_STORAGE:
+                _validate_complaint_media_files(uploaded_files)
         except ValidationError as exc:
             form.add_error(None, exc)
+            if upload_ids:
+                discard_uploads(request.user, upload_ids)
+            template_context.update(_media_upload_template_context(request.user))
             return render(request, 'management/add_complaint.html', {'form': form, **template_context})
         if form.is_valid():
             complaint = form.save(commit=False)
@@ -630,26 +748,50 @@ def add_complaint(request):
                 prepare_complaint_for_create(complaint, request.user)
             except (PermissionError, ValueError) as exc:
                 messages.error(request, str(exc))
+                if upload_ids:
+                    discard_uploads(request.user, upload_ids)
+                template_context.update(_media_upload_template_context(request.user))
                 return render(request, 'management/add_complaint.html', {'form': form, **template_context})
             stored_names = []
             try:
                 with transaction.atomic():
                     complaint.save()
                     initialize_created_complaint(complaint, request.user)
-                    stored_names = _save_complaint_media_files(complaint, uploaded_files)
+                    if settings.USE_SUPABASE_STORAGE:
+                        batch = get_owned_batch(request.user, upload_batch_id, for_update=True)
+                        verified_uploads = verify_pending_uploads(
+                            request.user,
+                            batch,
+                            upload_ids,
+                        )
+                        attach_verified_uploads(complaint, verified_uploads)
+                    else:
+                        stored_names = _save_complaint_media_files(complaint, uploaded_files)
                     ActivityLog.objects.create(
                         user=request.user,
                         action='created',
                         object_type='complaint',
                         object_name=complaint.complaint_id,
                     )
+            except ValidationError as exc:
+                if upload_ids:
+                    discard_uploads(request.user, upload_ids)
+                form.add_error(None, exc)
+                template_context.update(_media_upload_template_context(request.user))
+                return render(request, 'management/add_complaint.html', {'form': form, **template_context})
             except Exception:
                 for stored_name in stored_names:
                     default_storage.delete(stored_name)
+                if upload_ids:
+                    discard_uploads(request.user, upload_ids)
                 logger.exception('Unable to create complaint for user %s', request.user.pk)
-                form.add_error(None, 'The complaint could not be saved. Please try again.')
+                form.add_error(None, _('The complaint could not be saved. Please try again.'))
+                template_context.update(_media_upload_template_context(request.user))
                 return render(request, 'management/add_complaint.html', {'form': form, **template_context})
             return redirect('complaint_list')
+        if upload_ids:
+            discard_uploads(request.user, upload_ids)
+        template_context.update(_media_upload_template_context(request.user))
     else:
         initial = {}
         brand_id = request.GET.get('brand')
@@ -667,6 +809,7 @@ def add_complaint(request):
             
         form = ComplaintForm(initial=initial, complaint_type=selected_complaint_type)
         _configure_complaint_form(form, request.user)
+        template_context.update(_media_upload_template_context(request.user))
     return render(request, 'management/add_complaint.html', {'form': form, **template_context})
 
 @login_required
@@ -775,7 +918,7 @@ def get_filtered_skus(request):
 
 @login_required
 def complaint_list(request):
-    complaints = visible_complaints_for_user(request.user, Complaint.objects.select_related(
+    authorized_complaints = visible_complaints_for_user(request.user, Complaint.objects.select_related(
         'channel', 'country', 'person', 'case_sub_category',
         'series', 'material', 'sku', 'brand', 'model', 'sub_model', 'year',
         'created_by', 'assigned_factory_executive', 'closed_by',
@@ -791,8 +934,9 @@ def complaint_list(request):
             output_field=IntegerField(),
         )
     ).order_by('sort_weight', '-complaint_id'))
-    filter_scope = complaints
-    search_query = request.GET.get('search', '')
+    filter_scope = authorized_complaints
+    complaints = authorized_complaints
+    search_query = request.GET.get('search', '')[:200]
     allowed_search_fields = {
         'complaint_id': 'complaint_id',
         'batch_order': 'batch_order',
@@ -810,20 +954,45 @@ def complaint_list(request):
         'model': 'model__name',
     }
     search_by = request.GET.get('search_by', 'complaint_id')
+    if search_by not in {*allowed_search_fields, 'reported_by'}:
+        search_by = 'complaint_id'
     search_field = allowed_search_fields.get(search_by, 'complaint_id')
+
+    def scoped_ids(field_name):
+        return {
+            str(value) for value in filter_scope.order_by().values_list(field_name, flat=True).distinct()
+            if value is not None
+        }
+
+    permitted_brand_ids = scoped_ids('brand_id')
+    permitted_country_ids = scoped_ids('country_id')
+    permitted_channel_ids = scoped_ids('channel_id')
+    permitted_person_ids = scoped_ids('created_by_id')
     selected_brand = request.GET.get('brand', '')
+    selected_brand = selected_brand if selected_brand in permitted_brand_ids else ''
     selected_country = request.GET.get('country', '')
-    selected_status = request.GET.get('status', '')
-    selected_priority = request.GET.get('priority', '')
+    selected_country = selected_country if selected_country in permitted_country_ids else ''
     selected_channel = request.GET.get('channel', '')
+    selected_channel = selected_channel if selected_channel in permitted_channel_ids else ''
     selected_person = request.GET.get('person', '')
+    selected_person = selected_person if selected_person in permitted_person_ids else ''
+    selected_status = request.GET.get('status', '')
+    selected_status = selected_status if selected_status in {'Open', 'Closed', 'On Hold'} else ''
+    selected_priority = request.GET.get('priority', '')
+    selected_priority = selected_priority if selected_priority in {'High', 'Medium', 'Low'} else ''
     selected_complaint_type = request.GET.get('complaint_type', '')
+    complaint_type_values = {value for value, _ in ComplaintTypes.CHOICES}
+    selected_complaint_type = selected_complaint_type if selected_complaint_type in complaint_type_values else ''
 
     from_date = request.GET.get('from_date', '')
     to_date = request.GET.get('to_date', '')
+    parsed_from_date = parse_date(from_date)
+    parsed_to_date = parse_date(to_date)
+    from_date = from_date if parsed_from_date else ''
+    to_date = to_date if parsed_to_date else ''
 
     if search_query:
-        trimmed_search_query = search_query[:200]
+        trimmed_search_query = search_query
         if search_by == 'reported_by':
             complaints = complaints.filter(
                 Q(created_by__username__icontains=trimmed_search_query)
@@ -861,23 +1030,114 @@ def complaint_list(request):
         complaints = complaints.filter(country=selected_country)
 
     if from_date:
-        parsed_from_date = parse_date(from_date)
-        if parsed_from_date:
-            complaints = complaints.filter(date__gte=parsed_from_date)
+        complaints = complaints.filter(date__gte=parsed_from_date)
 
     if to_date:
-        parsed_to_date = parse_date(to_date)
-        if parsed_to_date:
-            complaints = complaints.filter(date__lte=parsed_to_date)
+        complaints = complaints.filter(date__lte=parsed_to_date)
 
-    if selected_complaint_type in {value for value, _ in ComplaintTypes.CHOICES}:
+    if selected_complaint_type:
         complaints = complaints.filter(complaint_type=selected_complaint_type)
 
-    brands = Brand.objects.all().order_by('name')
-    countries = MasterSetting.objects.filter(category='Country').order_by('name')
-    channels = MasterSetting.objects.filter(category='Channel').order_by('name')
+    # Column-menu values always come from the complete role-authorized queryset,
+    # never from the current page or from complaints hidden from this user.
+    id_options = [
+        {'value': value, 'label': value}
+        for value in filter_scope.order_by().values_list('complaint_id', flat=True).distinct()
+    ]
+    vehicle_options = []
+    vehicle_filters = {}
+    for brand_id, brand_name, model_id, model_name in filter_scope.order_by().values_list(
+        'brand_id', 'brand__name', 'model_id', 'model__name'
+    ).distinct():
+        value = f'{brand_id or 0}:{model_id or 0}'
+        label = f'{brand_name or ""} {model_name or ""}'.strip() or '-'
+        vehicle_options.append({'value': value, 'label': label})
+        vehicle_filters[value] = Q(brand_id=brand_id, model_id=model_id)
+    vehicle_options.sort(key=lambda option: option['label'].casefold())
+
+    category_options = []
+    category_filters = {}
+    for category_id, category_name in filter_scope.order_by().values_list(
+        'case_sub_category_id', 'case_sub_category__name'
+    ).distinct():
+        value = str(category_id or 0)
+        category_options.append({'value': value, 'label': category_name or '-'})
+        category_filters[value] = Q(case_sub_category_id=category_id)
+    category_options.sort(key=lambda option: option['label'].casefold())
+
+    reporter_options = []
+    reporter_filters = {}
+    reporter_rows = filter_scope.order_by().values_list(
+        'created_by_id', 'created_by__username', 'person_id', 'person__name'
+    ).distinct()
+    for user_id, username, person_id, person_name in reporter_rows:
+        if user_id:
+            value, label, condition = f'u:{user_id}', username, Q(created_by_id=user_id)
+        elif person_id:
+            value, label, condition = f'p:{person_id}', person_name, Q(created_by__isnull=True, person_id=person_id)
+        else:
+            value, label, condition = 'none', '-', Q(created_by__isnull=True, person__isnull=True)
+        if value not in reporter_filters:
+            reporter_options.append({'value': value, 'label': label or '-'})
+            reporter_filters[value] = condition
+    reporter_options.sort(key=lambda option: option['label'].casefold())
+
+    present_priorities = set(filter_scope.order_by().values_list('priority', flat=True).distinct())
+    priority_options = [
+        {'value': value, 'label': label}
+        for value, label in Complaint._meta.get_field('priority').choices
+        if value in present_priorities
+    ]
+    present_workflow_statuses = set(
+        filter_scope.order_by().values_list('workflow_status', flat=True).distinct()
+    )
+    workflow_options = [
+        {'value': value, 'label': label}
+        for value, label in WorkflowStatuses.CHOICES
+        if value in present_workflow_statuses
+    ]
+
+    column_definitions = [
+        ('cf_complaint', id_options, None),
+        ('cf_vehicle', vehicle_options, vehicle_filters),
+        ('cf_category', category_options, category_filters),
+        ('cf_reporter', reporter_options, reporter_filters),
+        ('cf_priority', priority_options, None),
+        ('cf_workflow_status', workflow_options, None),
+    ]
+    column_filter_config = []
+    active_column_filter_pairs = []
+    for param, options, custom_filters in column_definitions:
+        valid_values = {option['value'] for option in options}
+        selected = []
+        for value in request.GET.getlist(param)[:100]:
+            if value in valid_values and value not in selected:
+                selected.append(value)
+        column_filter_config.append({
+            'param': param,
+            'options': options,
+            'selected': selected,
+        })
+        active_column_filter_pairs.extend((param, value) for value in selected)
+        if not selected:
+            continue
+        if param == 'cf_complaint':
+            complaints = complaints.filter(complaint_id__in=selected)
+        elif param == 'cf_priority':
+            complaints = complaints.filter(priority__in=selected)
+        elif param == 'cf_workflow_status':
+            complaints = complaints.filter(workflow_status__in=selected)
+        else:
+            combined = Q()
+            for value in selected:
+                combined |= custom_filters[value]
+            complaints = complaints.filter(combined)
+
+    brands = Brand.objects.filter(id__in=permitted_brand_ids).order_by('name')
+    countries = MasterSetting.objects.filter(id__in=permitted_country_ids, category='Country').order_by('name')
+    channels = MasterSetting.objects.filter(id__in=permitted_channel_ids, category='Channel').order_by('name')
     persons = User.objects.filter(
-        created_complaints__in=complaints,
+        id__in=permitted_person_ids,
     ).distinct().order_by('username')
     statuses = ['Open', 'Closed', 'On Hold']
     priorities = ['High', 'Medium', 'Low']
@@ -897,9 +1157,30 @@ def complaint_list(request):
     paginator = Paginator(complaints, 25)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    pagination_query = request.GET.copy()
-    pagination_query.pop('page', None)
+    pagination_query = QueryDict('', mutable=True)
+    normalized_values = {
+        'search': search_query,
+        'search_by': search_by,
+        'complaint_type': selected_complaint_type,
+        'brand': selected_brand,
+        'country': selected_country,
+        'channel': selected_channel,
+        'person': selected_person,
+        'status': selected_status,
+        'priority': selected_priority,
+        'from_date': from_date,
+        'to_date': to_date,
+    }
+    for key, value in normalized_values.items():
+        if value:
+            pagination_query[key] = value
+    for key, value in active_column_filter_pairs:
+        pagination_query.appendlist(key, value)
     pagination_querystring = pagination_query.urlencode()
+    clear_all_query = pagination_query.copy()
+    for param, _, _ in column_definitions:
+        clear_all_query.pop(param, None)
+    clear_all_column_filters_querystring = clear_all_query.urlencode()
 
     for complaint in page_obj.object_list:
         complaint.can_edit = can_user_edit_report_step(request.user, complaint)
@@ -933,6 +1214,9 @@ def complaint_list(request):
         'complaints': page_obj.object_list,
         'page_obj': page_obj,
         'pagination_querystring': pagination_querystring,
+        'clear_all_column_filters_querystring': clear_all_column_filters_querystring,
+        'column_filter_config': column_filter_config,
+        'active_column_filter_pairs': active_column_filter_pairs,
         'status_labels': status_labels,
         'status_data': status_data,
         'country_labels': country_labels,
@@ -1006,7 +1290,7 @@ def edit_complaint(request, complaint_id):
     )
 
     if not can_user_edit_report_step(request.user, complaint):
-        messages.error(request, 'This complaint can no longer be edited from the report step.')
+        messages.error(request, _('This complaint can no longer be edited from the report step.'))
         return redirect('complaint_list')
 
     if request.method == 'POST':
@@ -1021,54 +1305,94 @@ def edit_complaint(request, complaint_id):
         )
         _configure_complaint_form(form, request.user)
         uploaded_files = request.FILES.getlist('media_files')
+        upload_ids = request.POST.getlist('media_upload_ids')
+        upload_batch_id = request.POST.get('media_upload_batch')
         media_to_delete = request.POST.getlist('delete_media')
         remaining_media_count = complaint.media_files.exclude(id__in=media_to_delete).count()
+        if settings.USE_SUPABASE_STORAGE and uploaded_files:
+            form.add_error(None, _('Complaint media must be uploaded directly to Supabase Storage.'))
         try:
-            _validate_complaint_media_files(uploaded_files, existing_count=remaining_media_count)
+            if not settings.USE_SUPABASE_STORAGE:
+                _validate_complaint_media_files(uploaded_files, existing_count=remaining_media_count)
         except ValidationError as exc:
             form.add_error(None, exc)
+            if upload_ids:
+                discard_uploads(request.user, upload_ids)
             return render(request, 'management/edit_complaint.html', {
                 'form': form,
                 'complaint': complaint,
                 'media_files': complaint.media_files.all(),
+                **_media_upload_template_context(request.user, complaint),
             })
         if form.is_valid():
-            complaint = form.save()
-            changes = {
-                field_name: (old_value, getattr(complaint, field_name))
-                for field_name, old_value in tracked_fields.items()
-                if field_name in form.changed_data
-            }
+            try:
+                with transaction.atomic():
+                    complaint = form.save()
+                    changes = {
+                        field_name: (old_value, getattr(complaint, field_name))
+                        for field_name, old_value in tracked_fields.items()
+                        if field_name in form.changed_data
+                    }
+                    removed_media = list(ComplaintMedia.objects.filter(
+                        id__in=media_to_delete,
+                        complaint=complaint,
+                    ))
+                    removed_media_count = len(removed_media)
 
-            # Delete selected media
-            removed_media = list(ComplaintMedia.objects.filter(
-                id__in=media_to_delete,
-                complaint=complaint,
-            ))
-            removed_media_count = len(removed_media)
-            for media in removed_media:
-                _delete_complaint_media_record(media)
+                    if settings.USE_SUPABASE_STORAGE:
+                        batch = get_owned_batch(
+                            request.user,
+                            upload_batch_id,
+                            complaint=complaint,
+                            for_update=True,
+                        )
+                        verified_uploads = verify_pending_uploads(
+                            request.user,
+                            batch,
+                            upload_ids,
+                            complaint=complaint,
+                            existing_count=remaining_media_count,
+                        )
+                    else:
+                        verified_uploads = []
 
-            _save_complaint_media_files(
-                complaint,
-                uploaded_files,
-                existing_count=remaining_media_count,
-            )
-            record_report_edit(
-                complaint,
-                request.user,
-                changes=changes,
-                media_added=len(uploaded_files),
-                media_removed=removed_media_count,
-            )
+                    for media in removed_media:
+                        _delete_complaint_media_record(media)
 
-            ActivityLog.objects.create(
-                user=request.user,
-                action="updated",
-                object_type="complaint",
-                object_name=complaint_id)
-
-            return redirect('complaint_list')
+                    if settings.USE_SUPABASE_STORAGE:
+                        attach_verified_uploads(complaint, verified_uploads)
+                    else:
+                        _save_complaint_media_files(
+                            complaint,
+                            uploaded_files,
+                            existing_count=remaining_media_count,
+                        )
+                    record_report_edit(
+                        complaint,
+                        request.user,
+                        changes=changes,
+                        media_added=len(upload_ids) if settings.USE_SUPABASE_STORAGE else len(uploaded_files),
+                        media_removed=removed_media_count,
+                    )
+                    ActivityLog.objects.create(
+                        user=request.user,
+                        action='updated',
+                        object_type='complaint',
+                        object_name=complaint_id,
+                    )
+            except ValidationError as exc:
+                if upload_ids:
+                    discard_uploads(request.user, upload_ids)
+                form.add_error(None, exc)
+            except Exception:
+                if upload_ids:
+                    discard_uploads(request.user, upload_ids)
+                logger.exception('Unable to update complaint %s.', complaint_id)
+                form.add_error(None, _('The complaint could not be updated. Please try again.'))
+            else:
+                return redirect('complaint_list')
+        elif upload_ids:
+            discard_uploads(request.user, upload_ids)
     else:
         form = ComplaintForm(instance=complaint, complaint_type=complaint.complaint_type)
         _configure_complaint_form(form, request.user)
@@ -1079,6 +1403,7 @@ def edit_complaint(request, complaint_id):
         'form': form,
         'complaint': complaint,
         'media_files': media_files,
+        **_media_upload_template_context(request.user, complaint),
     })
 @login_required
 def factory_review_complaint(request, complaint_id):
@@ -1092,11 +1417,11 @@ def factory_review_complaint(request, complaint_id):
     )
 
     if not can_user_review_factory_step(request.user, complaint):
-        messages.error(request, 'You are not allowed to review this complaint.')
+        messages.error(request, _('You are not allowed to review this complaint.'))
         return redirect('complaint_list')
 
     if not can_start_factory_review(complaint):
-        messages.error(request, 'This complaint is not ready for factory review.')
+        messages.error(request, _('This complaint is not ready for factory review.'))
         return redirect('complaint_list')
 
     if request.method == 'POST':
@@ -1119,7 +1444,7 @@ def factory_review_complaint(request, complaint_id):
                     object_type="complaint",
                     object_name=complaint_id
                 )
-                messages.success(request, 'Factory review submitted for approval.')
+                messages.success(request, _('Factory review submitted for approval.'))
                 return redirect('complaint_list')
     else:
         form = FactoryReviewForm(instance=complaint)
@@ -1505,17 +1830,17 @@ def approval_review(request, approval_id):
                     object_name=complaint.complaint_id,
                 )
                 if outcome == 'approved':
-                    messages.success(request, 'All required members approved. The executive has received the green light.')
+                    messages.success(request, _('All required members approved. The executive has received the green light.'))
                 elif outcome == 'execution_verified':
-                    messages.success(request, 'Execution was verified unanimously. Final CAD and container updates are now unlocked.')
+                    messages.success(request, _('Execution was verified unanimously. Final CAD and container updates are now unlocked.'))
                 elif outcome == 'execution_rejected':
-                    messages.warning(request, 'Execution correction was requested and the case returned to the Factory Executive.')
+                    messages.warning(request, _('Execution correction was requested and the case returned to the Factory Executive.'))
                 elif outcome == 'rejected':
-                    messages.warning(request, 'All reconsideration reviews are complete. The complaint was returned for rework.')
+                    messages.warning(request, _('All reconsideration reviews are complete. The complaint was returned for rework.'))
                 elif outcome == 'reconsideration':
-                    messages.warning(request, 'Your rejection was saved. Every other required approver was asked to reconsider the complaint.')
+                    messages.warning(request, _('Your rejection was saved. Every other required approver was asked to reconsider the complaint.'))
                 else:
-                    messages.success(request, 'Your review was saved. The remaining member reviews are still pending.')
+                    messages.success(request, _('Your review was saved. The remaining member reviews are still pending.'))
                 Notification.objects.filter(
                     recipient=request.user,
                     complaint=complaint,
@@ -1564,7 +1889,7 @@ def execute_complaint(request, complaint_id):
                     object_type='complaint',
                     object_name=complaint.complaint_id,
                 )
-                messages.success(request, 'Action plan started. Submit the execution for verification when implementation is complete.')
+                messages.success(request, _('Action plan started. Submit the execution for verification when implementation is complete.'))
             return redirect('execute_complaint', complaint_id=complaint.complaint_id)
 
         if action == 'submit_verification':
@@ -1579,7 +1904,7 @@ def execute_complaint(request, complaint_id):
                     object_type='complaint',
                     object_name=complaint.complaint_id,
                 )
-                messages.success(request, 'Execution submitted to the original approvers for verification.')
+                messages.success(request, _('Execution submitted to the original approvers for verification.'))
             return redirect('execute_complaint', complaint_id=complaint.complaint_id)
 
         form = FinalComplaintUpdateForm(request.POST, complaint=complaint)
@@ -1602,7 +1927,7 @@ def execute_complaint(request, complaint_id):
                     object_type='complaint',
                     object_name=complaint.complaint_id,
                 )
-                messages.success(request, 'Final updates saved. The complaint is now closed.')
+                messages.success(request, _('Final updates saved. The complaint is now closed.'))
                 Notification.objects.filter(
                     recipient=request.user,
                     complaint=complaint,
@@ -1666,7 +1991,7 @@ def mark_all_notifications_read(request):
             'message': 'All notifications marked as read.',
             'count': updated_count
         })
-    messages.success(request, 'All notifications marked as read.')
+    messages.success(request, _('All notifications marked as read.'))
     return redirect('notification_list')
 
 @login_required
@@ -1681,7 +2006,7 @@ def delete_complaint(request, complaint_id):
     for media in complaint.media_files.all():
         _delete_complaint_media_record(media)
     complaint.delete()
-    messages.success(request, 'Complaint deleted successfully.')
+    messages.success(request, _('Complaint deleted successfully.'))
     ActivityLog.objects.create(
         user=request.user,
         action="deleted",
@@ -1844,15 +2169,19 @@ def upload_car_csv(request):
                 form.add_error('csv_file', exc)
             except IntegrityError:
                 logger.exception('Vehicle CSV import conflict for user %s', request.user.pk)
-                form.add_error('csv_file', 'The import conflicted with another update. Please retry.')
+                form.add_error('csv_file', _('The import conflicted with another update. Please retry.'))
             else:
                 if duplicates:
                     preview = ', '.join(duplicates[:10])
-                    messages.warning(request, f'Skipped {len(duplicates)} duplicate layout codes: {preview}')
+                    messages.warning(request, _('Skipped %(count)s duplicate layout codes: %(preview)s') % {'count': len(duplicates), 'preview': preview})
                 if invalid_rows:
                     preview = '; '.join(invalid_rows[:5])
-                    messages.warning(request, f'Skipped {len(invalid_rows)} invalid rows. {preview}')
-                messages.success(request, f'Successfully added {len(new_entries)} records.')
+                    messages.warning(request, _('Skipped %(count)s invalid rows. %(preview)s') % {'count': len(invalid_rows), 'preview': preview})
+                messages.success(request, ngettext(
+                    'Successfully added %(count)s record.',
+                    'Successfully added %(count)s records.',
+                    len(new_entries),
+                ) % {'count': len(new_entries)})
                 return redirect('car_details')
     else:
         form = UploadCSVForm()
@@ -1954,7 +2283,7 @@ def add_sku(request):
                     upload_form.add_error('csv_file', exc)
                 except IntegrityError:
                     logger.exception('SKU CSV import conflict for user %s', request.user.pk)
-                    upload_form.add_error('csv_file', 'The import conflicted with another update. Please retry.')
+                    upload_form.add_error('csv_file', _('The import conflicted with another update. Please retry.'))
                 else:
                     upload_feedback = (
                         f'{len(pending_skus)} SKUs added. {skipped} duplicates and '
@@ -2047,7 +2376,7 @@ def admin_panel_view(request):
                     object_type="User",
                     object_name=user.username
                 )
-                messages.success(request, f'User {user.username} was created successfully.')
+                messages.success(request, _('User %(username)s was created successfully.') % {'username': user.username})
             for errors in user_form.errors.values():
                 for error in errors:
                     messages.error(request, error)
@@ -2062,7 +2391,7 @@ def admin_panel_view(request):
                     object_type="Group",
                     object_name=group.name
                 )
-                messages.success(request, f'Group {group.name} was created successfully.')
+                messages.success(request, _('Group %(group)s was created successfully.') % {'group': group.name})
 
         elif 'assign_group' in request.POST:
             assign_form = AssignUserToGroupForm(request.POST)
@@ -2076,7 +2405,7 @@ def admin_panel_view(request):
                     object_type="Group",
                     object_name=f"{user.username} → {group.name}"
                 )
-                messages.success(request, f'{user.username} was assigned to {group.name}.')
+                messages.success(request, _('%(username)s was assigned to %(group)s.') % {'username': user.username, 'group': group.name})
         
     users = list(User.objects.select_related('workflow_profile__country').all())
     groups = Group.objects.prefetch_related('permissions__content_type')
@@ -2143,14 +2472,14 @@ def edit_group(request):
         group_id = request.POST.get('group_id')
         new_name = (request.POST.get('name') or '').strip()
         if not new_name:
-            messages.error(request, 'Group name is required.')
+            messages.error(request, _('Group name is required.'))
             return redirect('admin_panel')
         if len(new_name) > 150:
-            messages.error(request, 'Group name must be 150 characters or fewer.')
+            messages.error(request, _('Group name must be 150 characters or fewer.'))
             return redirect('admin_panel')
         group = get_object_or_404(Group, id=group_id)
         if Group.objects.filter(name__iexact=new_name).exclude(pk=group.pk).exists():
-            messages.error(request, 'A group with that name already exists.')
+            messages.error(request, _('A group with that name already exists.'))
             return redirect('admin_panel')
         group.name = new_name
         group.save()
@@ -2196,23 +2525,44 @@ def edit_user(request):
 
         if 'reset_password' in request.POST:
             new_password = request.POST.get('new_password') or ''
+            is_ajax_password_reset = (
+                request.headers.get('x-requested-with') == 'XMLHttpRequest'
+            )
+
+            def password_reset_response(success, feedback, status=200):
+                feedback = list(feedback)
+                if is_ajax_password_reset:
+                    return JsonResponse(
+                        {'success': success, 'messages': feedback},
+                        status=status,
+                    )
+                level = messages.SUCCESS if success else messages.ERROR
+                for message in feedback:
+                    add_edit_feedback(level, message)
+                return redirect(edit_redirect)
+
             try:
                 user = User.objects.get(id=user_id)
                 if user.is_superuser and not request.user.is_superuser:
-                    add_edit_feedback(
-                        messages.ERROR,
-                        'Only a Django superuser can reset another superuser password.',
+                    return password_reset_response(
+                        False,
+                        [_('Only a Django superuser can reset another superuser password.')],
+                        status=403,
                     )
-                    return redirect(edit_redirect)
                 if not new_password:
-                    add_edit_feedback(messages.ERROR, 'Enter a new password.')
-                    return redirect(edit_redirect)
+                    return password_reset_response(
+                        False,
+                        [_('Enter a new password.')],
+                        status=400,
+                    )
                 try:
                     validate_password(new_password, user=user)
                 except ValidationError as exc:
-                    for error in exc.messages:
-                        add_edit_feedback(messages.ERROR, error)
-                    return redirect(edit_redirect)
+                    return password_reset_response(
+                        False,
+                        exc.messages,
+                        status=400,
+                    )
 
                 user.set_password(new_password)
                 user.save(update_fields=['password'])
@@ -2224,13 +2574,16 @@ def edit_user(request):
                 )
                 if user.pk == request.user.pk:
                     update_session_auth_hash(request, user)
-                add_edit_feedback(
-                    messages.SUCCESS,
-                    f'Password reset successfully for {user.username}.',
+                return password_reset_response(
+                    True,
+                    [_('Password reset successfully for %(username)s.') % {'username': user.username}],
                 )
             except User.DoesNotExist:
-                add_edit_feedback(messages.ERROR, 'User not found.')
-            return redirect(edit_redirect)
+                return password_reset_response(
+                    False,
+                    [_('User not found.')],
+                    status=404,
+                )
 
         username = (request.POST.get('username') or '').strip()
         email = (request.POST.get('email') or '').strip()
@@ -2239,26 +2592,26 @@ def edit_user(request):
 
         try:
             if not username:
-                add_edit_feedback(messages.ERROR, 'Username is required.')
+                add_edit_feedback(messages.ERROR, _('Username is required.'))
                 return redirect(edit_redirect)
             if User.objects.filter(username=username).exclude(id=user_id).exists():
-                add_edit_feedback(messages.ERROR, 'That username is already in use.')
+                add_edit_feedback(messages.ERROR, _('That username is already in use.'))
                 return redirect(edit_redirect)
             if len(username) > 150:
-                add_edit_feedback(messages.ERROR, 'Username must be 150 characters or fewer.')
+                add_edit_feedback(messages.ERROR, _('Username must be 150 characters or fewer.'))
                 return redirect(edit_redirect)
             if len(first_name) > 150 or len(last_name) > 150:
-                add_edit_feedback(messages.ERROR, 'Names must be 150 characters or fewer.')
+                add_edit_feedback(messages.ERROR, _('Names must be 150 characters or fewer.'))
                 return redirect(edit_redirect)
             if email:
                 try:
                     validate_email(email)
                 except ValidationError:
-                    add_edit_feedback(messages.ERROR, 'Enter a valid email address.')
+                    add_edit_feedback(messages.ERROR, _('Enter a valid email address.'))
                     return redirect(edit_redirect)
             user = User.objects.select_related('workflow_profile').get(id=user_id)
             if user.is_superuser and not request.user.is_superuser:
-                add_edit_feedback(messages.ERROR, 'Only a Django superuser can edit another superuser account.')
+                add_edit_feedback(messages.ERROR, _('Only a Django superuser can edit another superuser account.'))
                 return redirect(edit_redirect)
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile_form = UserWorkflowProfileForm(request.POST, request.FILES, instance=profile)
@@ -2279,7 +2632,7 @@ def edit_user(request):
                     and User.objects.filter(is_superuser=True, is_active=True).count() <= 1
                 )
                 if removing_final_superuser:
-                    add_edit_feedback(messages.ERROR, 'The final active superuser cannot be demoted.')
+                    add_edit_feedback(messages.ERROR, _('The final active superuser cannot be demoted.'))
                     return redirect(edit_redirect)
 
             user.username = username
@@ -2307,10 +2660,10 @@ def edit_user(request):
                 transaction.on_commit(lambda: default_storage.delete(old_photo_name))
             add_edit_feedback(
                 messages.SUCCESS,
-                f'User {username} and workflow access were updated.',
+                _('User %(username)s and workflow access were updated.') % {'username': username},
             )
         except User.DoesNotExist:
-            add_edit_feedback(messages.ERROR, 'User not found.')
+            add_edit_feedback(messages.ERROR, _('User not found.'))
 
     return redirect(edit_redirect)
 
@@ -2323,13 +2676,13 @@ def delete_user(request):
         try:
             user = User.objects.get(id=user_id)
             if user == request.user:
-                messages.error(request, "You cannot delete your own signed-in account.")
+                messages.error(request, _("You cannot delete your own signed-in account."))
                 return redirect('admin_panel')
             if user.is_superuser and not request.user.is_superuser:
-                messages.error(request, 'Only a Django superuser can delete another superuser account.')
+                messages.error(request, _('Only a Django superuser can delete another superuser account.'))
                 return redirect('admin_panel')
             if user.is_superuser and User.objects.filter(is_superuser=True, is_active=True).count() <= 1:
-                messages.error(request, "The final active superuser cannot be deleted.")
+                messages.error(request, _("The final active superuser cannot be deleted."))
                 return redirect('admin_panel')
             ActivityLog.objects.create(
                 user=request.user,
@@ -2339,7 +2692,7 @@ def delete_user(request):
             )
             user.delete()
         except User.DoesNotExist:
-            messages.error(request, "User not found.")
+            messages.error(request, _("User not found."))
 
     return redirect('admin_panel')
 
@@ -2385,28 +2738,28 @@ def profile_settings(request):
             phone_number = request.POST.get('phone_number', '').strip()
             profile_photo = request.FILES.get('photo')
             if len(first_name) > 150 or len(last_name) > 150:
-                messages.error(request, 'Names must be 150 characters or fewer.')
+                messages.error(request, _('Names must be 150 characters or fewer.'))
                 return redirect('profile_settings')
             if len(phone_number) > UserProfile._meta.get_field('phone_number').max_length:
-                messages.error(request, 'Phone number must be 30 characters or fewer.')
+                messages.error(request, _('Phone number must be 30 characters or fewer.'))
                 return redirect('profile_settings')
             if email:
                 try:
                     validate_email(email)
                 except ValidationError:
-                    messages.error(request, 'Enter a valid email address.')
+                    messages.error(request, _('Enter a valid email address.'))
                     return redirect('profile_settings')
 
             if profile_photo:
                 if profile_photo.size > 5 * 1024 * 1024:
-                    messages.error(request, 'Profile photo must be 5 MB or smaller.')
+                    messages.error(request, _('Profile photo must be 5 MB or smaller.'))
                     return redirect('profile_settings')
                 try:
                     image = Image.open(profile_photo)
                     image.verify()
                     profile_photo.seek(0)
                 except (UnidentifiedImageError, OSError, ValueError):
-                    messages.error(request, 'Upload a valid image.')
+                    messages.error(request, _('Upload a valid image.'))
                     return redirect('profile_settings')
 
             with transaction.atomic():
@@ -2433,7 +2786,7 @@ def profile_settings(request):
                 object_name=user.username
             )
             
-            messages.success(request, "Your profile details have been updated successfully.")
+            messages.success(request, _("Your profile details have been updated successfully."))
             return redirect('profile_settings')
             
         elif 'change_password' in request.POST:
@@ -2449,7 +2802,7 @@ def profile_settings(request):
                     object_name=user.username
                 )
                 
-                messages.success(request, "Your password has been changed successfully.")
+                messages.success(request, _("Your password has been changed successfully."))
                 return redirect('profile_settings')
             else:
                 for field, errors in password_form.errors.items():
@@ -2468,11 +2821,11 @@ def terminate_session_view(request, session_key):
     try:
         deleted_count, _ = Session.objects.filter(session_key=session_key).delete()
         if deleted_count > 0:
-            messages.success(request, "Session terminated successfully.")
+            messages.success(request, _("Session terminated successfully."))
         else:
-            messages.error(request, "Session not found or already expired.")
+            messages.error(request, _("Session not found or already expired."))
     except Exception as e:
-        messages.error(request, f"Error terminating session: {e}")
+        messages.error(request, _("Error terminating session: %(error)s") % {'error': e})
     return redirect('admin_panel')
 
 
@@ -2482,9 +2835,13 @@ def terminate_all_sessions_view(request):
     try:
         current_key = request.session.session_key
         deleted_count, _ = Session.objects.exclude(session_key=current_key).delete()
-        messages.success(request, f"Terminated {deleted_count} active session(s). Only your current session remains active.")
+        messages.success(request, ngettext(
+            'Terminated %(count)s active session. Only your current session remains active.',
+            'Terminated %(count)s active sessions. Only your current session remains active.',
+            deleted_count,
+        ) % {'count': deleted_count})
     except Exception as e:
-        messages.error(request, f"Error clearing sessions: {e}")
+        messages.error(request, _("Error clearing sessions: %(error)s") % {'error': e})
     return redirect('admin_panel')
 
 

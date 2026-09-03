@@ -1,14 +1,14 @@
-{% load static %}
+{% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications - Fabro Leather</title>
+    <title>{% translate "Notifications - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
     <style data-fabro-page-asset>
@@ -57,19 +57,19 @@
     <main class="workflow-page">
         <header class="workflow-header">
             <div>
-                <h1 class="workflow-title"><i class="fas fa-bell"></i> Notifications</h1>
-                <p class="workflow-subtitle">Approval requests, factory assignments, rework, and closure updates.</p>
+                <h1 class="workflow-title"><i class="fas fa-bell"></i> {% translate "Notifications" %}</h1>
+                <p class="workflow-subtitle">{% translate "Approval requests, factory assignments, rework, and closure updates." %}</p>
             </div>
             <div class="workflow-header-actions" style="position: relative; display: flex; align-items: center; gap: 0.65rem;">
                 <div id="subtle-mark-read-toast" class="subtle-read-toast" aria-hidden="true">
                     <i class="fas fa-check-circle"></i>
-                    <span>All marked as read</span>
+                    <span>{% translate "All marked as read" %}</span>
                 </div>
                 <form id="mark-all-read-form" method="post" action="{% url 'mark_all_notifications_read' %}">
                     {% csrf_token %}
-                    <button type="submit" id="mark-all-read-btn" class="workflow-btn secondary"><i class="fas fa-check-double"></i> Mark All Read</button>
+                    <button type="submit" id="mark-all-read-btn" class="workflow-btn secondary"><i class="fas fa-check-double"></i> {% translate "Mark All Read" %}</button>
                 </form>
-                <a href="{% url 'index' %}" class="workflow-btn secondary"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="{% url 'index' %}" class="workflow-btn secondary"><i class="fas fa-home"></i> {% translate "Dashboard" %}</a>
             </div>
         </header>
 
@@ -94,8 +94,8 @@
             {% else %}
                 <div class="empty-workflow">
                     <i class="fas fa-bell-slash"></i>
-                    <strong>No notifications yet</strong>
-                    <p>Workflow updates assigned to you will appear here.</p>
+                    <strong>{% translate "No notifications yet" %}</strong>
+                    <p>{% translate "Workflow updates assigned to you will appear here." %}</p>
                 </div>
             {% endif %}
         </section>
@@ -131,7 +131,7 @@
                             if (pill) {
                                 pill.classList.remove('pending');
                                 pill.classList.add('approved');
-                                pill.textContent = 'Read';
+                                pill.textContent = window.FabroI18n.gettext('Read');
                             }
                         });
 
