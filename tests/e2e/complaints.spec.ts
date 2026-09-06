@@ -83,6 +83,7 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
   await page.locator('select[name="series"]').selectOption({ index: 1 }).catch(() => {});
   await page.locator('select[name="material"]').selectOption({ index: 1 }).catch(() => {});
   await page.locator('select[name="sku"]').selectOption({ index: 1 }).catch(() => {});
+  await page.locator('input[name="serial_no"]').fill('SN-E2E-TEST-001');
   await page.locator('input[name="media_files"]').setInputFiles(path.join(process.cwd(), 'static', 'FABRO__BRAND ICON_FINAL_CMYK.png'));
   await expect(page.getByText(/file\(s\) selected/i)).toBeVisible();
   await page.locator('#save-complaint-button').click({ force: true });

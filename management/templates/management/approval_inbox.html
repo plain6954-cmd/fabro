@@ -1,7 +1,7 @@
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -20,7 +20,7 @@
         <header class="workflow-header">
             <div>
                 <h1 class="workflow-title"><i class="fas fa-user-check"></i> {% translate "Approval Inbox" %}</h1>
-                <p class="workflow-subtitle">{{ profile.get_approval_role_display }} reviews assigned to your account.</p>
+                <p class="workflow-subtitle">{% blocktranslate with role=profile.get_approval_role_display %}{{ role }} reviews assigned to your account.{% endblocktranslate %}</p>
             </div>
             <div class="workflow-header-actions">
                 <a href="{% url 'notification_list' %}" class="workflow-btn secondary">
@@ -35,7 +35,7 @@
         <section class="workflow-panel" aria-labelledby="pending-approvals-title">
             <h2 class="workflow-section-title" id="pending-approvals-title">
                 <i class="fas fa-hourglass-half"></i> {% translate "Active Reviews" %}
-                <span class="status-pill pending">{{ active_approvals|length }} active</span>
+                <span class="status-pill pending">{% blocktranslate with count=active_approvals|length %}{{ count }} active{% endblocktranslate %}</span>
             </h2>
 
             {% if active_approvals %}
@@ -47,8 +47,8 @@
                                 <div>
                                     <h3 class="workflow-id">{{ approval.complaint.complaint_id }}</h3>
                                     <div class="workflow-meta">
-                                        {{ approval.complaint.get_complaint_type_display }} | Round {{ approval.approval_round }}
-                                        {% if approval.review_stage == 'reconsideration' %}| Reconsideration{% endif %}
+                                        {{ approval.complaint.get_complaint_type_display }} | {% blocktranslate with round=approval.approval_round %}Round {{ round }}{% endblocktranslate %}
+                                        {% if approval.review_stage == 'reconsideration' %}| {% translate "Reconsideration" %}{% endif %}
                                     </div>
                                 </div>
                                 <span class="status-pill {{ approval.status }}">
@@ -103,7 +103,7 @@
                         <div class="approval-step {{ approval.status }}">
                             <div class="approval-role">{{ approval.approver_role }}</div>
                             <div class="approval-person">
-                                <strong>{{ approval.complaint.complaint_id }} | Round {{ approval.approval_round }}{% if approval.review_stage == 'reconsideration' %} | Reconsideration{% endif %}</strong>
+                                <strong>{{ approval.complaint.complaint_id }} | {% blocktranslate with round=approval.approval_round %}Round {{ round }}{% endblocktranslate %}{% if approval.review_stage == 'reconsideration' %} | {% translate "Reconsideration" %}{% endif %}</strong>
                                 <span>{{ approval.comment|default:"No comment provided"|truncatechars:110 }}</span>
                             </div>
                             <span class="status-pill {{ approval.status }}">{{ approval.get_status_display }}</span>

@@ -13,10 +13,14 @@ ROOT = Path(__file__).resolve().parents[1]
 LANGUAGES = ("en", "ar", "hi")
 HEADERS = {
     "en": "nplurals=2; plural=(n != 1);",
-    "ar": "nplurals=2; plural=(n != 1);",
+    "ar": "nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);",
     "hi": "nplurals=2; plural=(n != 1);",
 }
 TEMPLATE_MESSAGE = re.compile(r'{%\s*translate\s+(["\'])(.*?)\1(?:\s+as\s+\w+)?\s*%}', re.DOTALL)
+BLOCK_MESSAGE = re.compile(
+    r'{%\s*blocktranslate\b[^%]*%}(.*?){%\s*endblocktranslate\s*%}',
+    re.DOTALL,
+)
 JS_MESSAGE = re.compile(r'\.gettext\(\s*(["\'])(.*?)\1\s*\)', re.DOTALL)
 LEGACY_ENTRY = re.compile(
     r"'((?:\\.|[^'])*)'\s*:\s*\[\s*'((?:\\.|[^'])*)'\s*,\s*'((?:\\.|[^'])*)'\s*\]",
@@ -45,6 +49,18 @@ SUPPLEMENT = {
     "Unable to load types": ("تعذر تحميل الأنواع", "प्रकार लोड नहीं किए जा सके"),
     "Loading SKUs...": ("جارٍ تحميل رموز المنتجات...", "एसकेयू लोड हो रहे हैं..."),
     "No matching SKUs": ("لا توجد رموز منتجات مطابقة", "कोई मेल खाता एसकेयू नहीं"),
+    "Pending Approvals": ("الموافقات المعلقة", "लंबित अनुमोदन"),
+    "Workspace": ("مساحة العمل", "कार्यक्षेत्र"),
+    "Stage": ("المرحلة", "चरण"),
+    "Role": ("الدور", "भूमिका"),
+    "Review": ("مراجعة", "समीक्षा"),
+    "Initial Approval": ("الموافقة الأولية", "प्रारंभिक अनुमोदन"),
+    "Reconsideration": ("إعادة النظر", "पुनर्विचार"),
+    "Verification": ("التحقق", "सत्यापन"),
+    "No pending approvals requiring your action.": (
+        "لا توجد موافقات معلقة تتطلب اتخاذ إجراء.",
+        "आपकी कार्रवाई की आवश्यकता वाला कोई लंबित अनुमोदन नहीं है।",
+    ),
 }
 
 
@@ -52,25 +68,34 @@ def decode_literal(quote: str, value: str) -> str:
     return ast.literal_eval(quote + value + quote)
 
 
+def normalize_block_message(value: str) -> str:
+    normalized = re.sub(r"\s+", " ", value).strip()
+    return re.sub(r"{{\s*(\w+)\s*}}", r"%(\1)s", normalized)
+
+
 def legacy_translations() -> dict[str, tuple[str, str]]:
-    try:
-        source = subprocess.run(
-            ["git", "show", "HEAD:static/js/fabro-i18n.js"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        ).stdout
-    except (OSError, subprocess.CalledProcessError):
-        return {}
-    return {
-        decode_literal("'", english): (
-            decode_literal("'", arabic),
-            decode_literal("'", hindi),
-        )
-        for english, arabic, hindi in LEGACY_ENTRY.findall(source)
-    }
+    for revision in ("HEAD^", "HEAD"):
+        try:
+            source = subprocess.run(
+                ["git", "show", f"{revision}:static/js/fabro-i18n.js"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            ).stdout
+        except (OSError, subprocess.CalledProcessError):
+            continue
+        entries = {
+            decode_literal("'", english): (
+                decode_literal("'", arabic),
+                decode_literal("'", hindi),
+            )
+            for english, arabic, hindi in LEGACY_ENTRY.findall(source)
+        }
+        if entries:
+            return entries
+    return {}
 
 
 def python_messages(path: Path) -> tuple[set[str], dict[str, str]]:
@@ -92,13 +117,23 @@ def python_messages(path: Path) -> tuple[set[str], dict[str, str]]:
     return messages, plurals
 
 
-def collect_messages() -> tuple[set[str], dict[str, str]]:
+def collect_messages() -> tuple[set[str], set[str], dict[str, str]]:
     messages: set[str] = set()
+    javascript_messages: set[str] = set()
     plurals: dict[str, str] = {}
     for path in (ROOT / "management" / "templates").rglob("*.html"):
         source = path.read_text(encoding="utf-8")
         messages.update(decode_literal(quote, value) for quote, value in TEMPLATE_MESSAGE.findall(source))
-        messages.update(decode_literal(quote, value) for quote, value in JS_MESSAGE.findall(source))
+        for value in BLOCK_MESSAGE.findall(source):
+            plural_parts = re.split(r"{%\s*plural\s*%}", value, maxsplit=1)
+            singular = normalize_block_message(plural_parts[0])
+            messages.add(singular)
+            if len(plural_parts) == 2:
+                plural = normalize_block_message(plural_parts[1])
+                plurals[singular] = plural
+        found_javascript = {decode_literal(quote, value) for quote, value in JS_MESSAGE.findall(source)}
+        messages.update(found_javascript)
+        javascript_messages.update(found_javascript)
     for path in (ROOT / "management").rglob("*.py"):
         if "migrations" in path.parts:
             continue
@@ -106,27 +141,37 @@ def collect_messages() -> tuple[set[str], dict[str, str]]:
         messages.update(found)
         plurals.update(found_plurals)
     source = (ROOT / "static" / "js" / "fabro-i18n.js").read_text(encoding="utf-8")
-    messages.update(decode_literal(quote, value) for quote, value in JS_MESSAGE.findall(source))
-    return messages, plurals
+    found_javascript = {decode_literal(quote, value) for quote, value in JS_MESSAGE.findall(source)}
+    messages.update(found_javascript)
+    javascript_messages.update(found_javascript)
+    return messages, javascript_messages, plurals
 
 
 def po_quote(value: str) -> str:
     return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n') + '"'
 
 
-def catalog_translation(language: str, message: str, legacy: dict[str, tuple[str, str]]) -> str:
+def catalog_translation(
+    language: str,
+    message: str,
+    legacy: dict[str, tuple[str, str]],
+    existing: dict[str, str] | None = None,
+) -> str:
     if language == "en":
         return message
+    if existing and existing.get(message):
+        return existing[message]
     translated = SUPPLEMENT.get(message) or legacy.get(message)
     if not translated:
         return ""
     return translated[0 if language == "ar" else 1]
 
 
-def write_po(language: str, messages: set[str], plurals: dict[str, str], legacy: dict[str, tuple[str, str]]) -> Path:
+def write_po(language: str, messages: set[str], plurals: dict[str, str], legacy: dict[str, tuple[str, str]], domain: str) -> Path:
     locale_dir = ROOT / "locale" / language / "LC_MESSAGES"
     locale_dir.mkdir(parents=True, exist_ok=True)
-    path = locale_dir / "django.po"
+    path = locale_dir / f"{domain}.po"
+    existing = parse_po(path) if path.exists() else {}
     lines = [
         'msgid ""',
         'msgstr ""',
@@ -138,16 +183,23 @@ def write_po(language: str, messages: set[str], plurals: dict[str, str], legacy:
         "",
     ]
     for message in sorted(messages, key=str.casefold):
-        translated = catalog_translation(language, message, legacy)
+        translated = catalog_translation(language, message, legacy, existing)
         if "%(" in message:
             lines.append("#, python-format")
         lines.append(f"msgid {po_quote(message)}")
         if message in plurals:
             plural = plurals[message]
             lines.append(f"msgid_plural {po_quote(plural)}")
-            lines.append(f"msgstr[0] {po_quote(translated if language != 'en' else message)}")
-            plural_translation = catalog_translation(language, plural, legacy)
-            lines.append(f"msgstr[1] {po_quote(plural_translation if language != 'en' else plural)}")
+            plural_translation = catalog_translation(language, plural, legacy, existing)
+            form_count = 6 if language == "ar" else 2
+            for index in range(form_count):
+                if language == "en":
+                    value = message if index == 0 else plural
+                elif index == 1:
+                    value = translated
+                else:
+                    value = plural_translation or translated
+                lines.append(f"msgstr[{index}] {po_quote(value)}")
         else:
             lines.append(f"msgstr {po_quote(translated)}")
         lines.append("")
@@ -232,14 +284,19 @@ def compile_mo(po_path: Path) -> Path:
 
 
 def main() -> None:
-    messages, plurals = collect_messages()
+    messages, javascript_messages, plurals = collect_messages()
     legacy = legacy_translations()
     print(f"Collected {len(messages)} messages; legacy translations: {len(legacy)}")
     for language in LANGUAGES:
-        po_path = write_po(language, messages, plurals, legacy)
-        mo_path = compile_mo(po_path)
-        translated = sum(bool(catalog_translation(language, message, legacy)) for message in messages)
-        print(f"{language}: {translated}/{len(messages)} translated; {po_path}; {mo_path}")
+        for domain in ("django", "djangojs"):
+            domain_messages = messages if domain == "django" else javascript_messages
+            domain_plurals = plurals if domain == "django" else {}
+            existing_path = ROOT / "locale" / language / "LC_MESSAGES" / f"{domain}.po"
+            existing = parse_po(existing_path) if existing_path.exists() else {}
+            translated = sum(bool(catalog_translation(language, message, legacy, existing)) for message in domain_messages)
+            po_path = write_po(language, domain_messages, domain_plurals, legacy, domain)
+            mo_path = compile_mo(po_path)
+            print(f"{language}/{domain}: {translated}/{len(domain_messages)} translated; {po_path}; {mo_path}")
 
 
 if __name__ == "__main__":

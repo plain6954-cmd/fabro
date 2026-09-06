@@ -40,3 +40,5 @@ debug.log
 # Local test documentation
 SCREENSHOTS.txt
 FABRO_SCREENSHOTS_REPORT.pdf
+*.pdf
+scratch/

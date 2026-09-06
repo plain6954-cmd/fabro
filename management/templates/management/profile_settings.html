@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -606,11 +606,11 @@
                         </div>
                         <div class="profile-detail-item" title="{% translate "Member Since" %}">
                             <i class="fas fa-calendar-alt"></i>
-                            <span>Joined {{ request.user.date_joined|date:"M d, Y" }}</span>
+                            <span>{% blocktranslate with date=request.user.date_joined|date:"M d, Y" %}Joined {{ date }}{% endblocktranslate %}</span>
                         </div>
                         <div class="profile-detail-item" title="{% translate "Last Active" %}">
                             <i class="fas fa-history"></i>
-                            <span>Last login {{ request.user.last_login|date:"M d, H:i" }}</span>
+                            <span>{% blocktranslate with date=request.user.last_login|date:"M d, H:i" %}Last login {{ date }}{% endblocktranslate %}</span>
                         </div>
                     </div>
                 </div>

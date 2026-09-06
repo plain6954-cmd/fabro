@@ -1,7 +1,7 @@
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -228,8 +228,10 @@
             border-radius: 8px;
             margin-bottom: 1rem;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 0.75rem;
+            white-space: pre-line;
+            line-height: 1.5;
         }
 
         .message.success {
@@ -413,11 +415,23 @@
             uploadBtn.disabled = true;
         });
 
-        // Add active nav state
+        // Add active nav state and auto-dismiss messages
         window.fabroOnPageLoad(function() {
             const vehicleLink = document.querySelector('a[href="{% url 'car_details' %}"]');
             if (vehicleLink) {
                 vehicleLink.classList.add('active');
+            }
+
+            const csvMessages = document.querySelectorAll('.messages .message');
+            if (csvMessages.length > 0) {
+                setTimeout(() => {
+                    csvMessages.forEach(msg => {
+                        msg.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                        msg.style.opacity = '0';
+                        msg.style.transform = 'translateY(-6px)';
+                        setTimeout(() => msg.remove(), 400);
+                    });
+                }, 3000);
             }
         });
     </script>

@@ -49,17 +49,17 @@
 
     const initialize = (root = document) => {
         document.documentElement.lang = language;
-        document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.dir = 'ltr';
         translateMarkedElements(root);
         document.dispatchEvent(new CustomEvent('fabro:i18n-ready', {
-            detail: { language, direction: document.documentElement.dir, root }
+            detail: { language, direction: 'ltr', root }
         }));
     };
 
     window.FABRO_LANGUAGE = language;
     window.FabroI18n = Object.freeze({
         language,
-        direction: language === 'ar' ? 'rtl' : 'ltr',
+        direction: 'ltr',
         gettext: translate,
         ngettext: translatePlural,
         interpolate: interpolateMessage,

@@ -4,6 +4,11 @@
     --fabro-font-hindi: "Nirmala UI", Mangal, "Segoe UI", sans-serif;
 }
 
+html,
+body {
+    direction: ltr !important;
+}
+
 html {
     max-width: 100%;
     text-size-adjust: 100%;
@@ -223,101 +228,12 @@ body.light-mode .language-menu-options {
     border-color: rgba(255, 255, 255, 0.16);
 }
 
-[dir="rtl"] .profile-dropdown-content,
-[dir="rtl"] .dropdown-item,
-[dir="rtl"] label,
-[dir="rtl"] th,
-[dir="rtl"] td {
-    text-align: start;
-}
-
-[dir="rtl"] input[type="email"],
-[dir="rtl"] input[type="tel"],
-[dir="rtl"] input[type="number"],
-[dir="rtl"] .complaint-id,
-[dir="rtl"] .sku-code {
-    direction: ltr;
-    text-align: start;
-}
-
-/* Direction-aware shell and workspace alignment. Component dimensions and
-   visual styling remain owned by each page stylesheet. */
-[dir="rtl"] .navbar,
-[dir="rtl"] .nav-links,
-[dir="rtl"] .profile-trigger,
-[dir="rtl"] .dropdown-item,
-[dir="rtl"] .page-header,
-[dir="rtl"] .section-header,
-[dir="rtl"] .modal-header,
-[dir="rtl"] .modal-footer,
-[dir="rtl"] .pagination,
-[dir="rtl"] .chat-header,
-[dir="rtl"] .chat-user-item,
-[dir="rtl"] .approval-workspace,
-[dir="rtl"] .erp-topbar,
-[dir="rtl"] .erp-subheader,
-[dir="rtl"] .erp-modal-header,
-[dir="rtl"] .erp-modal-footer {
-    direction: rtl;
-}
-
-[dir="rtl"] .profile-dropdown-content {
-    right: auto !important;
-    left: 0 !important;
-    inset-inline-end: 0 !important;
-    inset-inline-start: auto !important;
-}
-
-[dir="rtl"] .language-menu-options {
-    inset-inline-end: 100%;
-    inset-inline-start: auto;
-}
-
-[dir="rtl"] .search-icon,
-[dir="rtl"] .erp-search-icon,
-[dir="rtl"] .filter-search-icon,
-[dir="rtl"] .input-icon {
-    left: auto !important;
-    right: 0.8rem !important;
-    inset-inline-start: 0.8rem !important;
-    inset-inline-end: auto !important;
-}
-
-[dir="rtl"] .pwd-toggle-btn,
-[dir="rtl"] .password-toggle-btn {
-    right: auto !important;
-    left: 0.65rem !important;
-    inset-inline-end: 0.65rem !important;
-    inset-inline-start: auto !important;
-}
-
-[dir="rtl"] input[type="search"],
-[dir="rtl"] .search-input,
-[dir="rtl"] .erp-search-input,
-[dir="rtl"] .chat-search-input {
-    padding-inline-start: 2.35rem !important;
-    padding-inline-end: 0.8rem !important;
-}
-
-[dir="rtl"] .fa-arrow-left,
-[dir="rtl"] .fa-chevron-left,
-[dir="rtl"] .fa-arrow-right,
-[dir="rtl"] .fa-chevron-right {
-    transform: scaleX(-1);
-}
-
-[dir="rtl"] .table-container,
-[dir="rtl"] .table-wrapper,
-[dir="rtl"] .erp-table-container,
-[dir="rtl"] .erp-table-pane {
-    direction: rtl;
-}
-
-[dir="rtl"] .complaint-id,
-[dir="rtl"] .sku-code,
-[dir="rtl"] [data-complaint-id],
-[dir="rtl"] code,
-[dir="rtl"] time {
+/* Arabic and Hindi text styling. Visual layout remains strictly Left-to-Right (LTR) default across all languages. */
+html[lang="ar"] .complaint-id,
+html[lang="ar"] .sku-code,
+html[lang="ar"] [data-complaint-id],
+html[lang="ar"] code,
+html[lang="ar"] time {
     direction: ltr;
     unicode-bidi: isolate;
 }
@@ -355,13 +271,6 @@ body.light-mode .language-menu-options {
         inset-inline-end: 0;
         inset-inline-start: auto;
         width: min(180px, calc(100vw - 2rem));
-    }
-
-    [dir="rtl"] .profile-dropdown-content {
-        right: auto !important;
-        left: max(1rem, env(safe-area-inset-left)) !important;
-        inset-inline-end: max(1rem, env(safe-area-inset-left)) !important;
-        inset-inline-start: auto !important;
     }
 
     .page-container,

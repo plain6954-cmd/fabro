@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -1194,7 +1194,7 @@
                     </a>
                     {% endif %}
                     <a href="?stage={{ workspace_stage }}&status=partially_approved" class="kpi-chip {% if status_filter == 'partially_approved' %}urgent{% endif %}">
-                        <i class="fas fa-tasks"></i> {% if workspace_stage == 'verification' %}Partially Verified{% else %}Partially Approved{% endif %}
+                        <i class="fas fa-tasks"></i> {% if workspace_stage == 'verification' %}{% translate "Partially Verified" %}{% else %}{% translate "Partially Approved" %}{% endif %}
                         <span class="kpi-count">{{ partially_approved_count }}</span>
                     </a>
                     {% if reconsideration_count > 0 %}
@@ -1229,11 +1229,11 @@
                     </a>
                     {% if is_workflow_approver %}
                     <a href="?stage={{ workspace_stage }}&status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
-                        <i class="fas fa-user-clock"></i> My Pending Reviews {% if my_pending_count %}({{ my_pending_count }}){% endif %}
+                        <i class="fas fa-user-clock"></i> {% translate "My Pending Reviews" %} {% if my_pending_count %}({{ my_pending_count }}){% endif %}
                     </a>
                     {% endif %}
                     <a href="?stage={{ workspace_stage }}&status=partially_approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'partially_approved' %}active{% endif %}">
-                        <i class="fas fa-check-circle"></i> {% if workspace_stage == 'verification' %}Partially Verified{% else %}Partially Approved{% endif %}
+                        <i class="fas fa-check-circle"></i> {% if workspace_stage == 'verification' %}{% translate "Partially Verified" %}{% else %}{% translate "Partially Approved" %}{% endif %}
                     </a>
                     {% if workspace_stage == 'plan' %}
                     <a href="?status=reconsideration{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'reconsideration' %}active{% endif %}">
@@ -1241,7 +1241,7 @@
                     </a>
                     {% endif %}
                     <a href="?stage={{ workspace_stage }}&status=approved{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'approved' %}active{% endif %}">
-                        <i class="fas fa-thumbs-up"></i> {% if workspace_stage == 'verification' %}Verified{% else %}Approved & Executing{% endif %}
+                        <i class="fas fa-thumbs-up"></i> {% if workspace_stage == 'verification' %}{% translate "Verified" %}{% else %}{% translate "Approved & Executing" %}{% endif %}
                     </a>
                     <a href="?stage={{ workspace_stage }}&status=all{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'all' %}active{% endif %}">
                         <i class="fas fa-list-alt"></i> {% translate "All History" %}
@@ -1355,14 +1355,14 @@
                             </span>
 
                             <span class="priority-badge priority-{{ item.complaint.factory_priority|default:item.complaint.priority|lower }}">
-                                Priority: {{ item.complaint.get_factory_priority_display|default:item.complaint.get_priority_display }}
+                                {% translate "Priority:" %} {{ item.complaint.get_factory_priority_display|default:item.complaint.get_priority_display }}
                             </span>
 
                             <span class="round-stage-badge {% if item.progress.stage == 'reconsideration' %}reconsideration{% endif %}">
                                 <i class="fas {% if item.progress.stage == 'reconsideration' %}fa-sync-alt{% elif item.progress.stage == 'execution_verification' %}fa-clipboard-check{% else %}fa-layer-group{% endif %}"></i>
-                                Round {{ item.progress.round }}
-                                {% if item.progress.stage == 'reconsideration' %}• Reconsideration{% endif %}
-                                {% if item.progress.stage == 'execution_verification' %}• Execution Verification{% endif %}
+                                {% blocktranslate with round=item.progress.round %}Round {{ round }}{% endblocktranslate %}
+                                {% if item.progress.stage == 'reconsideration' %}• {% translate "Reconsideration" %}{% endif %}
+                                {% if item.progress.stage == 'execution_verification' %}• {% translate "Execution Verification" %}{% endif %}
                             </span>
 
                             {% if item.can_decide %}
@@ -1440,11 +1440,11 @@
                                         <span class="role-tag">{{ app.role }}</span>
                                         <span class="decision-status-chip {{ app.status }}">
                                             {% if app.status == 'approved' %}
-                                                <i class="fas fa-check-circle"></i> Approved
+                                                <i class="fas fa-check-circle"></i> {% translate "Approved" %}
                                             {% elif app.status == 'rejected' %}
-                                                <i class="fas fa-times-circle"></i> Rejected
+                                                <i class="fas fa-times-circle"></i> {% translate "Rejected" %}
                                             {% else %}
-                                                <i class="fas fa-clock"></i> Pending
+                                                <i class="fas fa-clock"></i> {% translate "Pending" %}
                                             {% endif %}
                                         </span>
                                     </div>
@@ -1478,9 +1478,9 @@
                     <!-- CARD FOOTER ACTIONS -->
                     <div class="card-actions-footer">
                         <div class="footer-left-info">
-                            <span><i class="fas fa-paperclip"></i> {{ item.media_count }} media file{{ item.media_count|pluralize }}</span>
+                            <span><i class="fas fa-paperclip"></i> {% blocktranslate count media_count=item.media_count %}{{ media_count }} media file{% plural %}{{ media_count }} media files{% endblocktranslate %}</span>
                             <span>•</span>
-                            <span>Reported by {{ item.reporter_name }}</span>
+                            <span>{% blocktranslate with reporter=item.reporter_name %}Reported by {{ reporter }}{% endblocktranslate %}</span>
                         </div>
 
                         <div class="footer-buttons">
@@ -1488,11 +1488,11 @@
                             <button type="button" class="btn-action-primary" onclick="openDecisionModal('{{ item.my_approval.id }}', '{{ item.complaint.complaint_id }}', '{{ item.progress.stage }}')">
                                 <i class="fas fa-gavel"></i>
                                 {% if item.progress.stage == 'reconsideration' %}
-                                    Submit Reconsideration Vote
+                                    {% translate "Submit Reconsideration Vote" %}
                                 {% elif item.progress.stage == 'execution_verification' %}
-                                    Verify Executed Action
+                                    {% translate "Verify Executed Action" %}
                                 {% else %}
-                                    Review & Submit Decision
+                                    {% translate "Review & Submit Decision" %}
                                 {% endif %}
                             </button>
                             <a href="{% url 'approval_review' item.my_approval.id %}" class="btn-action-secondary" title="{% translate "Open full dedicated review screen" %}">
@@ -1535,7 +1535,7 @@
         <div class="decision-modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h3 class="modal-title" id="modalTitle">{% translate "Submit Approval Decision" %}</h3>
-                <button type="button" class="modal-close-btn" onclick="closeDecisionModal()">{% translate "&times;" %}</button>
+                <button type="button" class="modal-close-btn" onclick="closeDecisionModal()">×</button>
             </div>
 
             <form id="quickDecisionForm" onsubmit="submitQuickDecision(event)">
@@ -1708,21 +1708,21 @@
             const searchLabel = document.getElementById('approvals-search-field-label');
             const searchOptions = document.querySelectorAll('#approvals-search-options .search-option');
             const searchLabels = {
-                complaint_id: 'Complaint ID',
-                complaint_type: 'Complaint Type',
-                priority: 'Priority',
-                country: 'Country',
-                channel: 'Channel',
-                vehicle: 'Brand / Model',
-                factory_reason: 'Factory Reason',
-                factory_action_plan: 'Action Plan',
-                all: 'All Fields'
+                complaint_id: window.FabroI18n.gettext('Complaint ID'),
+                complaint_type: window.FabroI18n.gettext('Complaint Type'),
+                priority: window.FabroI18n.gettext('Priority'),
+                country: window.FabroI18n.gettext('Country'),
+                channel: window.FabroI18n.gettext('Channel'),
+                vehicle: window.FabroI18n.gettext('Brand / Model'),
+                factory_reason: window.FabroI18n.gettext('Factory Reason'),
+                factory_action_plan: window.FabroI18n.gettext('Action Plan'),
+                all: window.FabroI18n.gettext('All Fields')
             };
 
             function refreshSearchChoice() {
                 if (!searchByInput || !searchLabel) return;
                 const selected = searchByInput.value || 'all';
-                searchLabel.textContent = searchLabels[selected] || 'All Fields';
+                searchLabel.textContent = searchLabels[selected] || window.FabroI18n.gettext('All Fields');
                 searchOptions.forEach((option) => {
                     option.classList.toggle('is-active', option.dataset.searchBy === selected);
                 });

@@ -246,6 +246,17 @@ class ComplaintSerializer(serializers.ModelSerializer):
                 })
         return attrs
 
+    def validate_serial_no(self, value):
+        if not value or not str(value).strip():
+            raise serializers.ValidationError('Serial No is required.')
+        return str(value).strip()
+
+    def validate_batch_no(self, value):
+        return str(value).strip() if value else ''
+
+    def validate_shipment_order_no(self, value):
+        return str(value).strip() if value else ''
+
     class Meta:
         model = Complaint
         fields = '__all__'
@@ -270,4 +281,5 @@ class ComplaintSerializer(serializers.ModelSerializer):
             'fully_approved_at',
             'closed_at',
             'closed_by',
+            'updated_order_no',
         ]

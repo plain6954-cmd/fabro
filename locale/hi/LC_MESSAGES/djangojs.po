@@ -1,0 +1,297 @@
+msgid ""
+msgstr ""
+"Language: hi\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#, python-format
+msgid "%(count)s file(s) selected"
+msgstr ""
+
+#, python-format
+msgid "%(filename)s — Ready to upload"
+msgstr ""
+
+#, python-format
+msgid "+%(count)s more"
+msgstr ""
+
+#, python-format
+msgid "A complaint can contain at most %(count)s media files."
+msgstr ""
+
+msgid "Action Plan"
+msgstr "कार्य योजना"
+
+msgid "All Fields"
+msgstr "सभी फ़ील्ड"
+
+msgid "An error occurred while submitting your decision."
+msgstr ""
+
+msgid "Approve Plan"
+msgstr "योजना अनुमोदित करें"
+
+#, python-format
+msgid "Are you sure you want to delete %(name)s?"
+msgstr ""
+
+msgid "Are you sure you want to delete this complaint?"
+msgstr "क्या आप वाकई यह शिकायत हटाना चाहते हैं?"
+
+msgid "Are you sure you want to delete this SKU?"
+msgstr ""
+
+msgid "Are you sure you want to delete this vehicle?"
+msgstr ""
+
+msgid "Are you sure you want to log out?"
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to permanently delete user \"%(username)s\"?"
+msgstr ""
+
+msgid "Are you sure you want to remove your profile photo?"
+msgstr ""
+
+msgid "Brand"
+msgstr "ब्रांड"
+
+msgid "Brand / Model"
+msgstr ""
+
+msgid "Category"
+msgstr "श्रेणी"
+
+msgid "Channel"
+msgstr "चैनल"
+
+msgid "Clear"
+msgstr "साफ़ करें"
+
+msgid "Clear All"
+msgstr ""
+
+msgid "Complaint"
+msgstr ""
+
+msgid "Complaint ID"
+msgstr "शिकायत आईडी"
+
+msgid "Complaint Type"
+msgstr ""
+
+msgid "Confirm Decision"
+msgstr "निर्णय की पुष्टि करें"
+
+msgid "Country"
+msgstr "देश"
+
+msgid "Dashboard"
+msgstr "डैशबोर्ड"
+
+msgid "Delete group?"
+msgstr ""
+
+msgid "Delete privilege?"
+msgstr ""
+
+msgid "Description"
+msgstr "विवरण"
+
+msgid "Each media file must be 100 MB or smaller."
+msgstr ""
+
+msgid "Error loading complaint types"
+msgstr ""
+
+msgid "Error loading data"
+msgstr ""
+
+msgid "Error loading SKUs"
+msgstr ""
+
+msgid "Execution Is Correct"
+msgstr ""
+
+msgid "Factory Complaint"
+msgstr "फैक्टरी शिकायत"
+
+msgid "Factory Reason"
+msgstr "फैक्टरी कारण"
+
+msgid "Failed to send message."
+msgstr "संदेश भेजा नहीं जा सका।"
+
+#, python-format
+msgid "File size: %(size)s MB"
+msgstr ""
+
+msgid "Flag"
+msgstr ""
+
+msgid "Kick this session?"
+msgstr ""
+
+msgid "Kick this user session?"
+msgstr ""
+
+msgid "Layout Code"
+msgstr "लेआउट कोड"
+
+msgid "Loading SKUs..."
+msgstr "एसकेयू लोड हो रहे हैं..."
+
+msgid "Loading types..."
+msgstr "प्रकार लोड हो रहे हैं..."
+
+msgid "Manufacturing, material, or stitching defect."
+msgstr ""
+
+msgid "Measurement Country"
+msgstr "मापन देश"
+
+msgid "Model"
+msgstr "मॉडल"
+
+msgid "Needs Correction"
+msgstr ""
+
+#, python-format
+msgid "Network error while contacting server: %(error)s"
+msgstr ""
+
+msgid "No matching SKUs"
+msgstr "कोई मेल खाता एसकेयू नहीं"
+
+msgid "No matching values"
+msgstr "कोई मेल खाता मान नहीं"
+
+msgid "No messages yet"
+msgstr "अभी कोई संदेश नहीं"
+
+msgid "No values found"
+msgstr "कोई मान नहीं मिला"
+
+msgid "Pattern Complaint"
+msgstr "पैटर्न शिकायत"
+
+msgid "Please enter a review comment explaining the rejection or rework requirement."
+msgstr ""
+
+msgid "Priority"
+msgstr "प्राथमिकता"
+
+msgid "Proceed with Plan"
+msgstr ""
+
+msgid "Production Complaint"
+msgstr "उत्पादन शिकायत"
+
+msgid "Profile photo must be under 5 MB."
+msgstr ""
+
+msgid "Quality Complaint"
+msgstr "गुणवत्ता शिकायत"
+
+msgid "Quality-related complaint using the standard report fields."
+msgstr ""
+
+msgid "Read"
+msgstr "पढ़ा गया"
+
+msgid "Ready to upload"
+msgstr ""
+
+msgid "Region"
+msgstr "क्षेत्र"
+
+msgid "Reject Plan"
+msgstr ""
+
+msgid "Reported By"
+msgstr "रिपोर्टकर्ता"
+
+msgid "Return for Rework"
+msgstr ""
+
+#, python-format
+msgid "Save %(type)s"
+msgstr ""
+
+#, python-format
+msgid "Saving %(type)s..."
+msgstr ""
+
+msgid "Search values..."
+msgstr "मान खोजें..."
+
+msgid "Select All"
+msgstr "सभी चुनें"
+
+msgid "Select Model"
+msgstr "मॉडल चुनें"
+
+msgid "Select SKU"
+msgstr "एसकेयू चुनें"
+
+msgid "Select Sub-Model (Optional)"
+msgstr "सब-मॉडल चुनें (वैकल्पिक)"
+
+msgid "Select Type"
+msgstr "प्रकार चुनें"
+
+msgid "Select Year"
+msgstr "वर्ष चुनें"
+
+msgid "Setting updated successfully."
+msgstr ""
+
+msgid "SKU Code"
+msgstr "एसकेयू कोड"
+
+msgid "Start the conversation by sending a text below."
+msgstr "नीचे संदेश भेजकर बातचीत शुरू करें।"
+
+msgid "Sub-Model"
+msgstr "सब-मॉडल"
+
+msgid "Submit Approval Decision"
+msgstr "अनुमोदन निर्णय जमा करें"
+
+msgid "Submit Reconsideration Vote"
+msgstr ""
+
+msgid "Submitting..."
+msgstr "जमा किया जा रहा है..."
+
+msgid "Template, dimension, or cutting issue."
+msgstr ""
+
+msgid "Terminate all other user sessions?"
+msgstr ""
+
+msgid "To reset your password if forgotten, please contact your system administrator."
+msgstr ""
+
+#, python-format
+msgid "Type a message to %(username)s... (Press Enter to send)"
+msgstr ""
+
+msgid "Unable to load types"
+msgstr "प्रकार लोड नहीं किए जा सके"
+
+msgid "Uploading..."
+msgstr ""
+
+msgid "Urgent assembly-line fitment issue."
+msgstr ""
+
+msgid "Vehicle Country"
+msgstr "वाहन देश"
+
+msgid "Verify Executed Action Plan"
+msgstr ""

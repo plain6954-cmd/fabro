@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -2497,7 +2497,7 @@
                             </th>
                             <th data-filter-col="3" data-filter-key="cf_category">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>{% translate "Type &amp; Material" %}</span>
+                                    <span>{% translate "Type & Material" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
                                         <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
@@ -2506,7 +2506,7 @@
                             </th>
                             <th data-filter-col="4" data-filter-key="cf_reporter">
                                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;">
-                                    <span>{% translate "Reported &amp; Source" %}</span>
+                                    <span>{% translate "Reported & Source" %}</span>
                                     <div style="display: flex; align-items: center; gap: 0.25rem;">
                                         <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.75rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                         <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.75rem;"><i class="fas fa-chevron-down"></i></span>
@@ -2559,7 +2559,7 @@
                             </td>
                             <td class="type-material-cell" style="vertical-align: middle;">
                                 <span class="type-primary">{{ complaint.case_sub_category|default:"-" }}</span>
-                                <span class="material-secondary">Material: {{ complaint.material|default:"-" }}</span>
+                                <span class="material-secondary">{% blocktranslate with material=complaint.material|default:"-" %}Material: {{ material }}{% endblocktranslate %}</span>
                             </td>
                             <td class="reporter-source-cell" style="vertical-align: middle;">
                                 <span class="reporter-primary">{% if complaint.created_by %}{{ complaint.created_by.username }}{% else %}{{ complaint.person.name|default:"-" }}{% endif %}</span>
@@ -2609,7 +2609,7 @@
                                     <form method="post" action="{% url 'delete_complaint' complaint.complaint_id %}" class="delete-complaint-form">
                                         {% csrf_token %}
                                         <button type="submit" class="action-btn delete" title="{% translate "Delete" %}" aria-label="Delete complaint {{ complaint.complaint_id }}"
-                                                onclick="return confirm('Are you sure you want to delete this complaint?');">
+                                                onclick="return confirm(window.FabroI18n.gettext('Are you sure you want to delete this complaint?'));">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -2647,7 +2647,7 @@
                                         </div>
                                         <div class="modal-record-meta">
                                             <span><i class="fas fa-calendar-alt"></i>{{ complaint.date|date:"d M Y" }}</span>
-                                            <span><i class="fas fa-flag"></i>{{ complaint.priority }} priority</span>
+                                            <span><i class="fas fa-flag"></i>{% blocktranslate with priority=complaint.priority %}{{ priority }} priority{% endblocktranslate %}</span>
                                             <span><i class="fas fa-user"></i>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}Unknown reporter{% endif %}</span>
                                             {% if complaint.assigned_factory_executive %}
                                                 <span><i class="fas fa-industry"></i>{{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}</span>
@@ -2668,7 +2668,7 @@
                                                 </span>
                                                 <h3 class="modal-journey-heading">{{ complaint.get_workflow_status_display }}</h3>
                                             </div>
-                                            <span class="modal-journey-status">{{ complaint.approval_summary.decided }}/{{ complaint.approval_summary.total }} reviews</span>
+                                            <span class="modal-journey-status">{% blocktranslate with decided=complaint.approval_summary.decided total=complaint.approval_summary.total %}{{ decided }}/{{ total }} reviews{% endblocktranslate %}</span>
                                         </div>
                                         <div class="modal-journey-rail">
                                             {% for step in complaint.journey_steps %}
@@ -2711,8 +2711,9 @@
                                                     <div class="record-field"><dt>{% translate "Report status" %}</dt><dd>{{ complaint.status }}</dd></div>
                                                     <div class="record-field"><dt>{% translate "Priority" %}</dt><dd>{{ complaint.priority|default:"-" }}</dd></div>
                                                     <div class="record-field"><dt>{% translate "Report date" %}</dt><dd>{{ complaint.date|date:"d M Y" }}</dd></div>
-                                                    <div class="record-field"><dt>{% translate "Batch / Order #" %}</dt><dd>{{ complaint.batch_order|default:"-" }}</dd></div>
-                                                    <div class="record-field"><dt>{% translate "Updated Order #" %}</dt><dd>{{ complaint.updated_order_no|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Serial No" %}</dt><dd>{{ complaint.serial_no|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Batch No" %}</dt><dd>{{ complaint.batch_no|default:"-" }}</dd></div>
+                                                    <div class="record-field"><dt>{% translate "Shipment/Order No" %}</dt><dd>{{ complaint.shipment_order_no|default:"-" }}</dd></div>
                                                     <div class="record-field"><dt>{% translate "Created by" %}</dt><dd>{% if complaint.created_by %}{{ complaint.created_by.get_full_name|default:complaint.created_by.username }}{% else %}-{% endif %}</dd></div>
                                                 </dl>
                                             </section>
@@ -2756,12 +2757,12 @@
                                             <div class="progress-track">
                                                 <div class="progress-fill" style="width: {% widthratio complaint.approval_summary.decided complaint.approval_summary.total 100 %}%;"></div>
                                             </div>
-                                            <span class="progress-copy">Current round: {{ complaint.approval_summary.decided }}/{{ complaint.approval_summary.total }} reviewed</span>
+                                            <span class="progress-copy">{% blocktranslate with decided=complaint.approval_summary.decided total=complaint.approval_summary.total %}Current round: {{ decided }}/{{ total }} reviewed{% endblocktranslate %}</span>
                                         </div>
                                         {% regroup complaint.approvals.all by approval_round as approval_rounds %}
                                         {% for round in approval_rounds %}
                                             <div class="approval-round-group">
-                                                <h4 class="approval-round-title">Round {{ round.grouper }}</h4>
+                                                <h4 class="approval-round-title">{% blocktranslate with number=round.grouper %}Round {{ number }}{% endblocktranslate %}</h4>
                                                 <div class="approval-rail">
                                                     {% for approval in round.list %}
                                                         <div class="approval-step {{ approval.status }}">
@@ -2812,7 +2813,7 @@
                                         <aside class="complaint-media-pane" aria-label="{% translate "Complaint media" %}">
                                             <div class="media-pane-header">
                                                 <h3>{% translate "Images and videos" %}</h3>
-                                                <span class="media-count">{{ complaint.media_files.count }} file{{ complaint.media_files.count|pluralize }}</span>
+                                                <span class="media-count">{% blocktranslate count media_count=complaint.media_files.count %}{{ media_count }} file{% plural %}{{ media_count }} files{% endblocktranslate %}</span>
                                             </div>
                                             {% if complaint.media_files.count > 0 %}
                                         <div class="media-grid">
@@ -2855,15 +2856,15 @@
                 {% if page_obj and page_obj.has_other_pages %}
                 <div class="pagination-container">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "&laquo; First" %}</a>
+                        <a href="?page=1{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">&laquo; {% translate "First" %}</a>
                         <a href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "Prev" %}</a>
                     {% endif %}
 
-                    <span class="pagination-copy">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <span class="pagination-copy">{% blocktranslate with page=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
 
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "Next" %}</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "Last &raquo;" %}</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" class="btn pagination-btn">{% translate "Last" %} &raquo;</a>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -3031,15 +3032,15 @@
             const searchLabel = document.getElementById('search-field-label');
             const searchOptions = document.querySelectorAll('.search-option');
             const searchLabels = {
-                complaint_id: 'Complaint ID',
-                complaint_type: 'Complaint Type',
-                channel: 'Channel',
-                country: 'Country',
-                reported_by: 'Reported By',
-                case_sub_category: 'Category',
-                description: 'Description',
-                brand: 'Brand',
-                model: 'Model'
+                complaint_id: window.FabroI18n.gettext('Complaint ID'),
+                complaint_type: window.FabroI18n.gettext('Complaint Type'),
+                channel: window.FabroI18n.gettext('Channel'),
+                country: window.FabroI18n.gettext('Country'),
+                reported_by: window.FabroI18n.gettext('Reported By'),
+                case_sub_category: window.FabroI18n.gettext('Category'),
+                description: window.FabroI18n.gettext('Description'),
+                brand: window.FabroI18n.gettext('Brand'),
+                model: window.FabroI18n.gettext('Model')
             };
 
             function refreshSearchChoice() {
@@ -3502,7 +3503,7 @@
                 <h4 class="popover-title">
                     <i class="fas fa-comments" style="color: var(--primary-color);"></i> {% translate "Message Team Member" %}
                 </h4>
-                <button type="button" class="popover-close-btn" onclick="closeChatPopover()">{% translate "&times;" %}</button>
+                <button type="button" class="popover-close-btn" onclick="closeChatPopover()">×</button>
             </div>
             <div class="popover-context-tag">
                 {% translate "Complaint Context:" %} <strong id="popover-complaint-id-text">{% translate "PAT-26070001" %}</strong>

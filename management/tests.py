@@ -500,14 +500,23 @@ class FabroBackendTests(TestCase):
 
     def test_vehicle_csv_validation_does_not_raise_server_errors(self):
         self.login()
-        missing_headers = SimpleUploadedFile(
-            'missing-columns.csv',
-            b'brand,model\nFABRO,TEST\n',
+        empty_csv = SimpleUploadedFile(
+            'empty.csv',
+            b'',
             content_type='text/csv',
         )
-        response = self.client.post(reverse('upload_car_csv'), {'csv_file': missing_headers})
+        response = self.client.post(reverse('upload_car_csv'), {'csv_file': empty_csv})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Missing required CSV columns')
+
+        partial_headers = SimpleUploadedFile(
+            'partial-columns.csv',
+            b'brand,model\nFABRO,TEST_PARTIAL\n',
+            content_type='text/csv',
+        )
+        response = self.client.post(reverse('upload_car_csv'), {'csv_file': partial_headers})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Brand.objects.filter(name='FABRO').exists())
+        self.assertTrue(Model.objects.filter(name='TEST_PARTIAL').exists())
 
         malformed_row = SimpleUploadedFile(
             'malformed-row.csv',
@@ -521,6 +530,107 @@ class FabroBackendTests(TestCase):
         response = self.client.post(reverse('upload_car_csv'), {'csv_file': malformed_row})
         self.assertEqual(response.status_code, 302)
         self.assertFalse(YearRange.objects.filter(layout_code='MALFORMED-LAYOUT').exists())
+
+    def test_pattern_master_csv_import_behaviors(self):
+        self.login()
+        # 1. Full-column CSV with Fitment.csv headers
+        full_csv = SimpleUploadedFile(
+            'fitment_full.csv',
+            (
+                '#,Brand,Model,Sub Model,Year Start,Year End,Seats,Doors,X,Fitting Confirm,First Sample Container\n'
+                '1,Honda,Civic,EX,2016,2021,5,4,CIV-EX-1621,Confirmed,CONT-999\n'
+            ).encode('utf-8'),
+            content_type='text/csv',
+        )
+        resp = self.client.post(reverse('upload_car_csv'), {'csv_file': full_csv}, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        civic_yr = YearRange.objects.filter(x_code='CIV-EX-1621').first()
+        self.assertIsNotNone(civic_yr)
+        self.assertEqual(civic_yr.sub_model.model.brand.name, 'Honda')
+        self.assertEqual(civic_yr.sub_model.model.name, 'Civic')
+        self.assertEqual(civic_yr.sub_model.name, 'EX')
+        self.assertEqual(civic_yr.year_start, 2016)
+        self.assertEqual(civic_yr.year_end, 2021)
+        self.assertEqual(civic_yr.number_of_seats, 5)
+        self.assertEqual(civic_yr.number_of_doors, 4)
+        self.assertEqual(civic_yr.fitting_confirmation, 'Confirmed')
+
+        # 2. Reuploading the same file (duplicates skipped, no overwrite, no error)
+        full_csv_re = SimpleUploadedFile(
+            'fitment_full.csv',
+            (
+                '#,Brand,Model,Sub Model,Year Start,Year End,Seats,Doors,X,Fitting Confirm,First Sample Container\n'
+                '1,Honda,Civic,EX,2016,2021,5,4,CIV-EX-1621,Confirmed,CONT-999\n'
+            ).encode('utf-8'),
+            content_type='text/csv',
+        )
+        resp_re = self.client.post(reverse('upload_car_csv'), {'csv_file': full_csv_re}, follow=True)
+        self.assertEqual(resp_re.status_code, 200)
+        # Verify count is still exactly 1
+        self.assertEqual(YearRange.objects.filter(x_code='CIV-EX-1621').count(), 1)
+
+        # 3. Partial-column CSV (only Brand, Model, Year Start, X)
+        partial_csv = SimpleUploadedFile(
+            'fitment_partial.csv',
+            (
+                'Brand,Model,Year Start,X\n'
+                'Mazda,CX-5,2017,MAZ-CX5-17\n'
+            ).encode('utf-8'),
+            content_type='text/csv',
+        )
+        resp_partial = self.client.post(reverse('upload_car_csv'), {'csv_file': partial_csv}, follow=True)
+        self.assertEqual(resp_partial.status_code, 200)
+        cx5_yr = YearRange.objects.filter(x_code='MAZ-CX5-17').first()
+        self.assertIsNotNone(cx5_yr)
+        self.assertEqual(cx5_yr.sub_model.model.brand.name, 'Mazda')
+        self.assertEqual(cx5_yr.sub_model.model.name, 'CX-5')
+        self.assertEqual(cx5_yr.sub_model.name, '')  # Left blank
+        self.assertEqual(cx5_yr.year_start, 2017)
+        self.assertIsNone(cx5_yr.year_end)  # Left null
+        self.assertIsNone(cx5_yr.number_of_seats)  # Left null
+        self.assertIsNone(cx5_yr.number_of_doors)  # Left null
+        self.assertEqual(cx5_yr.fitting_confirmation, '')  # Left blank
+
+        # 4. Columns in a different order & unknown extra columns
+        diff_order_csv = SimpleUploadedFile(
+            'diff_order.csv',
+            (
+                'UnknownCol1,X,Year End,Model,Seats,Brand,Year Start,CustomField\n'
+                'ExtraVal,NIS-ALTI-19,2022,Altima,5,Nissan,2019,IgnoredVal\n'
+            ).encode('utf-8'),
+            content_type='text/csv',
+        )
+        resp_diff = self.client.post(reverse('upload_car_csv'), {'csv_file': diff_order_csv}, follow=True)
+        self.assertEqual(resp_diff.status_code, 200)
+        altima_yr = YearRange.objects.filter(x_code='NIS-ALTI-19').first()
+        self.assertIsNotNone(altima_yr)
+        self.assertEqual(altima_yr.sub_model.model.brand.name, 'Nissan')
+        self.assertEqual(altima_yr.sub_model.model.name, 'Altima')
+        self.assertEqual(altima_yr.year_start, 2019)
+        self.assertEqual(altima_yr.year_end, 2022)
+        self.assertEqual(altima_yr.number_of_seats, 5)
+
+        # 5. Blank optional values & quoted values containing commas
+        quoted_csv = SimpleUploadedFile(
+            'quoted_commas.csv',
+            (
+                'Brand,Model,Sub Model,Year Start,Year End,Seats,Doors,X,Fitting Confirm\n'
+                '"Subaru, Inc.","Outback, AWD","Limited, Touring",2020,,5,,SUB-OUT-20,"Confirmed, Verified"\n'
+            ).encode('utf-8'),
+            content_type='text/csv',
+        )
+        resp_quoted = self.client.post(reverse('upload_car_csv'), {'csv_file': quoted_csv}, follow=True)
+        self.assertEqual(resp_quoted.status_code, 200)
+        subaru_yr = YearRange.objects.filter(x_code='SUB-OUT-20').first()
+        self.assertIsNotNone(subaru_yr)
+        self.assertEqual(subaru_yr.sub_model.model.brand.name, 'Subaru, Inc.')
+        self.assertEqual(subaru_yr.sub_model.model.name, 'Outback, AWD')
+        self.assertEqual(subaru_yr.sub_model.name, 'Limited, Touring')
+        self.assertEqual(subaru_yr.year_start, 2020)
+        self.assertIsNone(subaru_yr.year_end)
+        self.assertEqual(subaru_yr.number_of_seats, 5)
+        self.assertIsNone(subaru_yr.number_of_doors)
+        self.assertEqual(subaru_yr.fitting_confirmation, 'Confirmed, Verified')
 
     def test_dropdown_json_endpoints(self):
         self.login()
@@ -3646,3 +3756,498 @@ class PortalLanguageTests(TestCase):
                         f"window.FABRO_LANGUAGE = '{language}'",
                         html=False,
                     )
+
+
+class ComplaintFormFieldsAndValidationTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser(
+            username="complaint_field_admin",
+            email="complaint_fields@example.com",
+            password="FieldTest!234",
+        )
+        self.client = Client()
+        self.case_type = MasterSetting.objects.create(category="Pattern Complaint Type", name="Template Issue")
+        self.series = MasterSetting.objects.create(category="Series", name="Luxe")
+        self.material = MasterSetting.objects.create(category="Material", name="Nappa")
+        self.region = MasterSetting.objects.create(category="Region", name="Middle East")
+        self.sku = SKU.objects.create(code="SKU-FIELD-TEST", description="Field Test SKU", region=self.region)
+        self.brand = Brand.objects.create(name="Toyota")
+        self.model = Model.objects.create(brand=self.brand, name="Camry")
+        self.sub_model = SubModel.objects.create(model=self.model, name="LE")
+        self.year = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2022,
+            year_end=2024,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="CAMRY-22-24",
+        )
+
+    def login(self):
+        self.client.force_login(self.user)
+
+    def test_complaint_creation_success_with_serial_no_only(self):
+        self.login()
+        data = {
+            'complaint_type': 'pattern',
+            'date': timezone.localdate().isoformat(),
+            'priority': 'Medium',
+            'case_sub_category': self.case_type.id,
+            'series': self.series.id,
+            'material': self.material.id,
+            'brand': self.brand.id,
+            'model': self.model.id,
+            'sub_model': self.sub_model.id,
+            'year': self.year.id,
+            'sku': self.sku.id,
+            'serial_no': '  SN-TEST-001  ',
+            'batch_no': '',
+            'shipment_order_no': '',
+            'complaint_description': 'Test complaint with serial only',
+        }
+        response = self.client.post(reverse('add_complaint'), data)
+        self.assertEqual(response.status_code, 302)
+        complaint = Complaint.objects.get(complaint_description='Test complaint with serial only')
+        self.assertEqual(complaint.serial_no, 'SN-TEST-001')
+        self.assertEqual(complaint.batch_no, '')
+        self.assertEqual(complaint.shipment_order_no, '')
+
+    def test_complaint_creation_fails_when_serial_no_missing_or_whitespace(self):
+        self.login()
+        for invalid_serial in ['', '   ']:
+            with self.subTest(invalid_serial=invalid_serial):
+                data = {
+                    'complaint_type': 'pattern',
+                    'date': timezone.localdate().isoformat(),
+                    'priority': 'Medium',
+                    'case_sub_category': self.case_type.id,
+                    'series': self.series.id,
+                    'material': self.material.id,
+                    'brand': self.brand.id,
+                    'model': self.model.id,
+                    'sub_model': self.sub_model.id,
+                    'year': self.year.id,
+                    'sku': self.sku.id,
+                    'serial_no': invalid_serial,
+                    'batch_no': '',
+                    'shipment_order_no': '',
+                    'complaint_description': 'Should fail',
+                }
+                response = self.client.post(reverse('add_complaint'), data)
+                self.assertEqual(response.status_code, 200)
+                self.assertFalse(Complaint.objects.filter(complaint_description='Should fail').exists())
+
+    def test_batch_no_and_shipment_order_no_can_be_saved_independently_or_together(self):
+        self.login()
+        base_data = {
+            'complaint_type': 'pattern',
+            'date': timezone.localdate().isoformat(),
+            'priority': 'Medium',
+            'case_sub_category': self.case_type.id,
+            'series': self.series.id,
+            'material': self.material.id,
+            'brand': self.brand.id,
+            'model': self.model.id,
+            'sub_model': self.sub_model.id,
+            'year': self.year.id,
+            'sku': self.sku.id,
+        }
+
+        # 1. Batch only
+        data1 = dict(base_data, serial_no='SN-BATCH-ONLY', batch_no='  BATCH-001  ', shipment_order_no='', complaint_description='Batch only')
+        self.client.post(reverse('add_complaint'), data1)
+        c1 = Complaint.objects.get(serial_no='SN-BATCH-ONLY')
+        self.assertEqual(c1.batch_no, 'BATCH-001')
+        self.assertEqual(c1.shipment_order_no, '')
+
+        # 2. Shipment only
+        data2 = dict(base_data, serial_no='SN-SHIP-ONLY', batch_no='', shipment_order_no='  SHIP-001  ', complaint_description='Shipment only')
+        self.client.post(reverse('add_complaint'), data2)
+        c2 = Complaint.objects.get(serial_no='SN-SHIP-ONLY')
+        self.assertEqual(c2.batch_no, '')
+        self.assertEqual(c2.shipment_order_no, 'SHIP-001')
+
+        # 3. Both together
+        data3 = dict(base_data, serial_no='SN-BOTH', batch_no='BATCH-002', shipment_order_no='SHIP-002', complaint_description='Both together')
+        self.client.post(reverse('add_complaint'), data3)
+        c3 = Complaint.objects.get(serial_no='SN-BOTH')
+        self.assertEqual(c3.batch_no, 'BATCH-002')
+        self.assertEqual(c3.shipment_order_no, 'SHIP-002')
+
+    def test_batch_order_property_backwards_compatibility(self):
+        c = Complaint(serial_no='SN-PROP-TEST', batch_no='ORIGINAL-BATCH')
+        self.assertEqual(c.batch_order, 'ORIGINAL-BATCH')
+        c.batch_order = 'UPDATED-BATCH'
+        self.assertEqual(c.batch_no, 'UPDATED-BATCH')
+
+    def test_updated_order_no_removed_from_forms_and_add_page(self):
+        from .forms import ComplaintForm
+        form = ComplaintForm()
+        self.assertNotIn('updated_order_no', form.fields)
+        self.assertNotIn('batch_order', form.fields)
+        self.assertIn('serial_no', form.fields)
+        self.assertIn('batch_no', form.fields)
+        self.assertIn('shipment_order_no', form.fields)
+
+        self.login()
+        res = self.client.get(reverse('add_complaint'))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'updated_order_no')
+        self.assertNotContains(res, 'Update Order #')
+        self.assertContains(res, 'Serial No')
+        self.assertContains(res, 'Complaint Product')
+        self.assertContains(res, 'Batch No')
+        self.assertContains(res, 'Shipment/Order No')
+
+
+class DesignOptionsFolderAndImageTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin_user = User.objects.create_superuser(
+            username='design_admin',
+            email='design.admin@example.com',
+            password='AdminPassword123!',
+        )
+        self.client.force_login(self.admin_user)
+
+    def test_design_folder_lifecycle_and_image_upload(self):
+        from .models import PatternDesignFolder, PatternDesignImage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        # 1. Create folder
+        create_res = self.client.post(reverse('create_design_folder_api'), {'name': 'Diamond Stitching Pattern'})
+        self.assertEqual(create_res.status_code, 200)
+        folder_id = create_res.json()['folder']['id']
+        self.assertTrue(PatternDesignFolder.objects.filter(id=folder_id).exists())
+
+        # 2. List folders
+        list_res = self.client.get(reverse('get_design_folders_api'))
+        self.assertEqual(list_res.status_code, 200)
+        folders = list_res.json()['folders']
+        self.assertEqual(len(folders), 1)
+        self.assertEqual(folders[0]['name'], 'Diamond Stitching Pattern')
+
+        # 3. Rename folder
+        rename_res = self.client.post(reverse('rename_design_folder_api', args=[folder_id]), {'name': 'Luxury Diamond Pattern'})
+        self.assertEqual(rename_res.status_code, 200)
+        self.assertEqual(PatternDesignFolder.objects.get(id=folder_id).name, 'Luxury Diamond Pattern')
+
+        # 4. Upload images (test 2 images)
+        tiny_gif = (
+            b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        )
+        f1 = SimpleUploadedFile('pattern_1.gif', tiny_gif, content_type='image/gif')
+        f2 = SimpleUploadedFile('pattern_2.gif', tiny_gif, content_type='image/gif')
+
+        upload_res = self.client.post(
+            reverse('upload_design_images_api', args=[folder_id]),
+            {'images': [f1, f2]}
+        )
+        self.assertEqual(upload_res.status_code, 200)
+        self.assertEqual(upload_res.json()['uploaded_count'], 2)
+        self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 2)
+
+        # 5. Detail API (used for 2x2 matrix display)
+        detail_res = self.client.get(reverse('get_design_folder_detail_api', args=[folder_id]))
+        self.assertEqual(detail_res.status_code, 200)
+        detail_data = detail_res.json()
+        self.assertEqual(len(detail_data['images']), 2)
+
+        # 6. Delete single image
+        img_id = detail_data['images'][0]['id']
+        del_img_res = self.client.post(reverse('delete_design_image_api', args=[img_id]))
+        self.assertEqual(del_img_res.status_code, 200)
+        self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 1)
+
+        # 7. Delete folder
+        del_folder_res = self.client.post(reverse('delete_design_folder_api', args=[folder_id]))
+        self.assertEqual(del_folder_res.status_code, 200)
+        self.assertFalse(PatternDesignFolder.objects.filter(id=folder_id).exists())
+        self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 0)
+
+
+class FittingConfirmationDropdownTests(TestCase):
+    def setUp(self):
+        from .models import Brand, Model, SubModel, YearRange
+        self.admin_user = get_user_model().objects.create_superuser(
+            username='fitting_admin',
+            email='fitting_admin@example.com',
+            password='AdminPassword123!',
+        )
+        self.regular_user = get_user_model().objects.create_user(
+            username='viewer_user',
+            email='viewer_user@example.com',
+            password='ViewerPassword123!',
+        )
+        self.brand = Brand.objects.create(name='Test Fitting Brand')
+        self.model = Model.objects.create(brand=self.brand, name='TF Model')
+        self.sub_model = SubModel.objects.create(model=self.model, name='TF Sub')
+        self.year_range = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2022,
+            year_end=2025,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code='TF-2022-2025',
+            x_code='TF-X01',
+            fitting_confirmation='',
+        )
+
+    def test_update_fitting_confirmation_statuses(self):
+        self.client.force_login(self.admin_user)
+        url = reverse('update_fitting_confirmation_api', args=[self.year_range.id])
+
+        for status in ['Confirmed', 'Pending', 'Rework', 'Sampling']:
+            res = self.client.post(url, data=json.dumps({'fitting_confirmation': status}), content_type='application/json')
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.json()['fitting_confirmation'], status)
+            self.year_range.refresh_from_db()
+            self.assertEqual(self.year_range.fitting_confirmation, status)
+
+        # Clear to empty
+        res_clear = self.client.post(url, data=json.dumps({'fitting_confirmation': ''}), content_type='application/json')
+        self.assertEqual(res_clear.status_code, 200)
+        self.assertEqual(res_clear.json()['fitting_confirmation'], '')
+        self.year_range.refresh_from_db()
+        self.assertEqual(self.year_range.fitting_confirmation, '')
+
+    def test_unauthorized_user_cannot_update_fitting(self):
+        self.client.force_login(self.regular_user)
+        url = reverse('update_fitting_confirmation_api', args=[self.year_range.id])
+        res = self.client.post(url, data=json.dumps({'fitting_confirmation': 'Confirmed'}), content_type='application/json')
+        self.assertEqual(res.status_code, 403)
+        self.year_range.refresh_from_db()
+        self.assertEqual(self.year_range.fitting_confirmation, '')
+
+
+class PatternMasterCsvUploadTests(TestCase):
+    def setUp(self):
+        self.admin = get_user_model().objects.create_superuser(
+            username='csv_admin',
+            email='csv_admin@example.com',
+            password='Password123!',
+        )
+        self.url = reverse('upload_car_csv')
+
+    def test_pattern_master_csv_import_behaviors(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import YearRange
+
+        self.client.force_login(self.admin)
+
+        # 1. Full-column CSV with Fitment.csv headers
+        full_csv = (
+            "#,Brand,Model,Year Start,Year End,Sub Model,Seats,Doors,X,Fitting Confirm,First Sample Container\n"
+            '1,Toyota,Camry,2015,2020,Sedan,5,4,X-101,Confirmed,CONT-01\n'
+            '2,Honda,Civic,2018,2022,Hatchback,5,5,X-102,Pending,CONT-02\n'
+        )
+        csv_file = SimpleUploadedFile("fitment.csv", full_csv.encode("utf-8"), content_type="text/csv")
+        res = self.client.post(self.url, {"csv_file": csv_file}, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(YearRange.objects.filter(x_code="X-101", fitting_confirmation="Confirmed").exists())
+        self.assertTrue(YearRange.objects.filter(x_code="X-102", fitting_confirmation="Pending").exists())
+
+        # 2. Reuploading same file - skipped duplicates
+        csv_file2 = SimpleUploadedFile("fitment.csv", full_csv.encode("utf-8"), content_type="text/csv")
+        res2 = self.client.post(self.url, {"csv_file": csv_file2}, follow=True)
+        self.assertEqual(res2.status_code, 200)
+        self.assertContains(res2, "Duplicates skipped: 2")
+
+        # 3. Partial columns (Brand, Model, Year Start, X)
+        partial_csv = (
+            "Brand,Model,Year Start,X\n"
+            "Ford,Mustang,2020,X-M01\n"
+        )
+        csv_file3 = SimpleUploadedFile("partial.csv", partial_csv.encode("utf-8"), content_type="text/csv")
+        res3 = self.client.post(self.url, {"csv_file": csv_file3}, follow=True)
+        self.assertEqual(res3.status_code, 200)
+        yr = YearRange.objects.get(x_code="X-M01")
+        self.assertEqual(yr.sub_model.model.name, "Mustang")
+        self.assertEqual(yr.year_start, 2020)
+        self.assertIsNone(yr.year_end)
+        self.assertIsNone(yr.number_of_seats)
+        self.assertIsNone(yr.number_of_doors)
+        self.assertEqual(yr.fitting_confirmation, "")
+
+        # 4. Column order differences + unknown extra columns
+        diff_csv = (
+            "RandomCol,X,Doors,Model,Seats,Brand\n"
+            "IgnoreMe,X-T01,4,Model 3,5,Tesla\n"
+        )
+        csv_file4 = SimpleUploadedFile("diff.csv", diff_csv.encode("utf-8"), content_type="text/csv")
+        res4 = self.client.post(self.url, {"csv_file": csv_file4}, follow=True)
+        self.assertEqual(res4.status_code, 200)
+        yr_tesla = YearRange.objects.get(x_code="X-T01")
+        self.assertEqual(yr_tesla.sub_model.model.brand.name, "Tesla")
+        self.assertEqual(yr_tesla.number_of_doors, 4)
+        self.assertEqual(yr_tesla.number_of_seats, 5)
+
+        # 5. Blank optional values and quoted values containing commas
+        quote_csv = (
+            'Brand,Model,Sub Model,Year Start,Year End,X\n'
+            '"BMW","3 Series","Sedan, Touring",2019,,X-B01\n'
+        )
+        csv_file5 = SimpleUploadedFile("quote.csv", quote_csv.encode("utf-8"), content_type="text/csv")
+        res5 = self.client.post(self.url, {"csv_file": csv_file5}, follow=True)
+        self.assertEqual(res5.status_code, 200)
+        yr_bmw = YearRange.objects.get(x_code="X-B01")
+        self.assertEqual(yr_bmw.sub_model.name, "Sedan, Touring")
+        self.assertEqual(yr_bmw.year_start, 2019)
+        self.assertIsNone(yr_bmw.year_end)
+
+    def test_pattern_serial_number_formatting_and_country_prefix(self):
+        from .models import format_pattern_serial, get_country_letter, MasterSetting, YearRange, Brand, Model, SubModel
+
+        # 1. Country letter helper
+        ksa, _ = MasterSetting.objects.get_or_create(category='Country', name='KSA')
+        india, _ = MasterSetting.objects.get_or_create(category='Country', name='India')
+        usa, _ = MasterSetting.objects.get_or_create(category='Country', name='USA')
+
+        self.assertEqual(get_country_letter(ksa), 'S')
+        self.assertEqual(get_country_letter(india), 'I')
+        self.assertEqual(get_country_letter(usa), 'U')
+        self.assertEqual(get_country_letter(None), 'S')
+
+        # 2. Format serial number helper
+        self.assertEqual(format_pattern_serial(1, ksa), 'S0001')
+        self.assertEqual(format_pattern_serial('1', None), 'S0001')
+        self.assertEqual(format_pattern_serial(214, ksa), 'S0214')
+        self.assertEqual(format_pattern_serial(1, india), 'I0001')
+        self.assertEqual(format_pattern_serial(55, usa), 'U0055')
+        self.assertEqual(format_pattern_serial('S0001'), 'S0001')
+
+        # 3. Model save auto-generates serial number
+        brand = Brand.objects.create(name='TestSerialBrand')
+        model = Model.objects.create(brand=brand, name='TestSerialModel')
+        sub = SubModel.objects.create(model=model, name='Base')
+
+        yr1 = YearRange.objects.create(
+            sub_model=sub,
+            year_start=2020,
+            year_end=2021,
+            vehicle_country=ksa,
+        )
+        self.assertEqual(yr1.serial_number, 'S0001')
+
+        yr2 = YearRange.objects.create(
+            sub_model=sub,
+            year_start=2022,
+            year_end=2023,
+            vehicle_country=india,
+        )
+        self.assertEqual(yr2.serial_number, 'I0001')
+
+        # 4. car_details view renders serial_number in table
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse('car_details'))
+        self.assertContains(res, 'S0001')
+        self.assertContains(res, 'I0001')
+
+        # 5. Search by serial_number
+        res_search = self.client.get(reverse('car_details'), {'search': 'I0001', 'search_by': 'serial_number'})
+        self.assertContains(res_search, 'I0001')
+        self.assertNotContains(res_search, 'S0001')
+
+    def test_inline_vehicle_edit_and_row_rendering(self):
+        self.client.force_login(self.admin)
+        saudi, _ = MasterSetting.objects.get_or_create(category='Country', name='Saudi Arabia')
+        brand = Brand.objects.create(name='Lexus')
+        model = Model.objects.create(brand=brand, name='LX600')
+        sub = SubModel.objects.create(model=model, name='VIP')
+        yr = YearRange.objects.create(
+            sub_model=sub,
+            year_start=2022,
+            year_end=2024,
+            number_of_seats=4,
+            number_of_doors=5,
+            x_code='LX-22-01',
+            fitting_confirmation='Confirmed',
+            vehicle_country=saudi,
+        )
+
+        # 1. Check car_details renders inline edit row and trigger
+        res = self.client.get(reverse('car_details'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, f'id="row-view-{yr.id}"')
+        self.assertContains(res, f'id="row-edit-{yr.id}"')
+        self.assertContains(res, f'id="edit-vehicle-form-{yr.id}"')
+        self.assertContains(res, f"startInlineEdit('{yr.id}')")
+        self.assertContains(res, f"cancelInlineEdit('{yr.id}')")
+
+        # 2. Submit inline edit POST via AJAX to edit_car_detail without page reload
+        edit_url = reverse('edit_car_detail', args=[yr.id])
+        post_data = {
+            'serial_number': 'S0999',
+            'brand_name': 'Lexus',
+            'model_name': 'LX600',
+            'sub_model_name': 'Executive VIP',
+            'year_start': 2023,
+            'year_end': 2025,
+            'number_of_seats': 5,
+            'number_of_doors': 5,
+            'x_code': 'LX-23-EX',
+            'fitting_confirmation': 'Confirmed',
+            'vehicle_country': saudi.id,
+            'measurement_country': saudi.id,
+            'is_ajax': '1',
+        }
+        res_post = self.client.post(edit_url, post_data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_post.status_code, 200)
+        data = res_post.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['car']['serial_number'], 'S0999')
+        self.assertEqual(data['car']['sub_model'], 'Executive VIP')
+
+        yr.refresh_from_db()
+        self.assertEqual(yr.serial_number, 'S0999')
+        self.assertEqual(yr.sub_model.name, 'Executive VIP')
+        self.assertEqual(yr.year_start, 2023)
+        self.assertEqual(yr.year_end, 2025)
+        self.assertEqual(yr.number_of_seats, 5)
+        self.assertEqual(yr.x_code, 'LX-23-EX')
+
+        # 3. Edit vehicle to another country (e.g. India) -> serial auto-adjusts to new country prefix and sequence
+        india, _ = MasterSetting.objects.get_or_create(category='Country', name='India')
+        post_data_india = dict(post_data, vehicle_country=india.id, measurement_country=india.id, serial_number='S0999')
+        res_india = self.client.post(edit_url, post_data_india, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_india.status_code, 200)
+        data_india = res_india.json()
+        self.assertTrue(data_india['success'])
+        self.assertEqual(data_india['car']['serial_number'], 'I0001')
+
+        yr.refresh_from_db()
+        self.assertEqual(yr.serial_number, 'I0001')
+
+        # 4. Adding a new vehicle with Auto or blank serial continues from last sequence
+        yr_s = YearRange.objects.create(
+            sub_model=sub,
+            year_start=2024,
+            year_end=2025,
+            vehicle_country=saudi,
+            serial_number='S0999',
+        )
+        self.assertEqual(yr_s.serial_number, 'S0999')
+
+        yr_next_ksa = YearRange.objects.create(
+            sub_model=sub,
+            year_start=2025,
+            year_end=2026,
+            vehicle_country=saudi,
+            serial_number='',
+        )
+        # Last S was S0999, so next is S1000
+        self.assertEqual(yr_next_ksa.serial_number, 'S1000')
+
+        # 5. Test next pattern serial API endpoint
+        api_url = reverse('get_next_pattern_serial_api')
+        res_api_ksa = self.client.get(f"{api_url}?country_id={saudi.id}")
+        self.assertEqual(res_api_ksa.status_code, 200)
+        self.assertEqual(res_api_ksa.json()['next_serial'], 'S1001')
+
+        res_api_india = self.client.get(f"{api_url}?country_id={india.id}")
+        self.assertEqual(res_api_india.status_code, 200)
+        self.assertEqual(res_api_india.json()['next_serial'], 'I0002')
+
+
+

@@ -1,0 +1,297 @@
+msgid ""
+msgstr ""
+"Language: ar\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#, python-format
+msgid "%(count)s file(s) selected"
+msgstr ""
+
+#, python-format
+msgid "%(filename)s — Ready to upload"
+msgstr ""
+
+#, python-format
+msgid "+%(count)s more"
+msgstr ""
+
+#, python-format
+msgid "A complaint can contain at most %(count)s media files."
+msgstr ""
+
+msgid "Action Plan"
+msgstr "خطة العمل"
+
+msgid "All Fields"
+msgstr "كل الحقول"
+
+msgid "An error occurred while submitting your decision."
+msgstr ""
+
+msgid "Approve Plan"
+msgstr "الموافقة على الخطة"
+
+#, python-format
+msgid "Are you sure you want to delete %(name)s?"
+msgstr ""
+
+msgid "Are you sure you want to delete this complaint?"
+msgstr "هل أنت متأكد أنك تريد حذف هذه الشكوى؟"
+
+msgid "Are you sure you want to delete this SKU?"
+msgstr ""
+
+msgid "Are you sure you want to delete this vehicle?"
+msgstr ""
+
+msgid "Are you sure you want to log out?"
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to permanently delete user \"%(username)s\"?"
+msgstr ""
+
+msgid "Are you sure you want to remove your profile photo?"
+msgstr ""
+
+msgid "Brand"
+msgstr "العلامة التجارية"
+
+msgid "Brand / Model"
+msgstr ""
+
+msgid "Category"
+msgstr "الفئة"
+
+msgid "Channel"
+msgstr "القناة"
+
+msgid "Clear"
+msgstr "مسح"
+
+msgid "Clear All"
+msgstr ""
+
+msgid "Complaint"
+msgstr ""
+
+msgid "Complaint ID"
+msgstr "رقم الشكوى"
+
+msgid "Complaint Type"
+msgstr ""
+
+msgid "Confirm Decision"
+msgstr "تأكيد القرار"
+
+msgid "Country"
+msgstr "الدولة"
+
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
+msgid "Delete group?"
+msgstr ""
+
+msgid "Delete privilege?"
+msgstr ""
+
+msgid "Description"
+msgstr "الوصف"
+
+msgid "Each media file must be 100 MB or smaller."
+msgstr ""
+
+msgid "Error loading complaint types"
+msgstr ""
+
+msgid "Error loading data"
+msgstr ""
+
+msgid "Error loading SKUs"
+msgstr ""
+
+msgid "Execution Is Correct"
+msgstr ""
+
+msgid "Factory Complaint"
+msgstr "شكوى المصنع"
+
+msgid "Factory Reason"
+msgstr "سبب المصنع"
+
+msgid "Failed to send message."
+msgstr "تعذر إرسال الرسالة."
+
+#, python-format
+msgid "File size: %(size)s MB"
+msgstr ""
+
+msgid "Flag"
+msgstr ""
+
+msgid "Kick this session?"
+msgstr ""
+
+msgid "Kick this user session?"
+msgstr ""
+
+msgid "Layout Code"
+msgstr "رمز التخطيط"
+
+msgid "Loading SKUs..."
+msgstr "جارٍ تحميل رموز المنتجات..."
+
+msgid "Loading types..."
+msgstr "جارٍ تحميل الأنواع..."
+
+msgid "Manufacturing, material, or stitching defect."
+msgstr ""
+
+msgid "Measurement Country"
+msgstr "دولة القياس"
+
+msgid "Model"
+msgstr "الطراز"
+
+msgid "Needs Correction"
+msgstr ""
+
+#, python-format
+msgid "Network error while contacting server: %(error)s"
+msgstr ""
+
+msgid "No matching SKUs"
+msgstr "لا توجد رموز منتجات مطابقة"
+
+msgid "No matching values"
+msgstr "لا توجد قيم مطابقة"
+
+msgid "No messages yet"
+msgstr "لا توجد رسائل بعد"
+
+msgid "No values found"
+msgstr "لم يتم العثور على قيم"
+
+msgid "Pattern Complaint"
+msgstr "شكوى النمط"
+
+msgid "Please enter a review comment explaining the rejection or rework requirement."
+msgstr ""
+
+msgid "Priority"
+msgstr "الأولوية"
+
+msgid "Proceed with Plan"
+msgstr ""
+
+msgid "Production Complaint"
+msgstr "شكوى الإنتاج"
+
+msgid "Profile photo must be under 5 MB."
+msgstr ""
+
+msgid "Quality Complaint"
+msgstr "شكوى الجودة"
+
+msgid "Quality-related complaint using the standard report fields."
+msgstr ""
+
+msgid "Read"
+msgstr "مقروء"
+
+msgid "Ready to upload"
+msgstr ""
+
+msgid "Region"
+msgstr "المنطقة"
+
+msgid "Reject Plan"
+msgstr ""
+
+msgid "Reported By"
+msgstr "أبلغ بواسطة"
+
+msgid "Return for Rework"
+msgstr ""
+
+#, python-format
+msgid "Save %(type)s"
+msgstr ""
+
+#, python-format
+msgid "Saving %(type)s..."
+msgstr ""
+
+msgid "Search values..."
+msgstr "ابحث في القيم..."
+
+msgid "Select All"
+msgstr "تحديد الكل"
+
+msgid "Select Model"
+msgstr "اختر الطراز"
+
+msgid "Select SKU"
+msgstr "اختر رمز المنتج"
+
+msgid "Select Sub-Model (Optional)"
+msgstr "اختر الطراز الفرعي (اختياري)"
+
+msgid "Select Type"
+msgstr "اختر النوع"
+
+msgid "Select Year"
+msgstr "اختر السنة"
+
+msgid "Setting updated successfully."
+msgstr ""
+
+msgid "SKU Code"
+msgstr "رمز المنتج"
+
+msgid "Start the conversation by sending a text below."
+msgstr "ابدأ المحادثة بإرسال رسالة أدناه."
+
+msgid "Sub-Model"
+msgstr "الطراز الفرعي"
+
+msgid "Submit Approval Decision"
+msgstr "إرسال قرار الموافقة"
+
+msgid "Submit Reconsideration Vote"
+msgstr ""
+
+msgid "Submitting..."
+msgstr "جارٍ الإرسال..."
+
+msgid "Template, dimension, or cutting issue."
+msgstr ""
+
+msgid "Terminate all other user sessions?"
+msgstr ""
+
+msgid "To reset your password if forgotten, please contact your system administrator."
+msgstr ""
+
+#, python-format
+msgid "Type a message to %(username)s... (Press Enter to send)"
+msgstr ""
+
+msgid "Unable to load types"
+msgstr "تعذر تحميل الأنواع"
+
+msgid "Uploading..."
+msgstr ""
+
+msgid "Urgent assembly-line fitment issue."
+msgstr ""
+
+msgid "Vehicle Country"
+msgstr "دولة المركبة"
+
+msgid "Verify Executed Action Plan"
+msgstr ""

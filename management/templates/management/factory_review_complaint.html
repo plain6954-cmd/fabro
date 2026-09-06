@@ -1,7 +1,7 @@
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -309,8 +309,16 @@
                         <div class="summary-value">{{ complaint.complaint_description|default:"-" }}</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-label">{% translate "Batch / Order" %}</div>
-                        <div class="summary-value">{{ complaint.batch_order|default:"-" }}</div>
+                        <div class="summary-label">{% translate "Serial No" %}</div>
+                        <div class="summary-value">{{ complaint.serial_no|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">{% translate "Batch No" %}</div>
+                        <div class="summary-value">{{ complaint.batch_no|default:"-" }}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">{% translate "Shipment/Order No" %}</div>
+                        <div class="summary-value">{{ complaint.shipment_order_no|default:"-" }}</div>
                     </div>
                     <div class="summary-item">
                         <div class="summary-label">{% translate "Submitted By" %}</div>
@@ -329,7 +337,7 @@
                                         </a>
                                     {% else %}
                                         <a href="{{ media.url }}" target="_blank" rel="noopener" class="summary-value">
-                                            <i class="fas fa-play-circle"></i> Media {{ forloop.counter }}
+                                            <i class="fas fa-play-circle"></i> {% blocktranslate with number=forloop.counter %}Media {{ number }}{% endblocktranslate %}
                                         </a>
                                     {% endif %}
                                 {% endfor %}

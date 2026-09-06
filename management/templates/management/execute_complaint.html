@@ -1,12 +1,12 @@
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Execute {{ complaint.complaint_id }} - Fabro Leather</title>
+    <title>{% blocktranslate with complaint_id=complaint.complaint_id %}Execute {{ complaint_id }} - Fabro Leather{% endblocktranslate %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
 {% if is_htmx_request %}</template>{% else %}
@@ -156,7 +156,7 @@
                         <div class="empty-workflow">
                             <i class="fas fa-user-check"></i>
                             <strong>{% translate "Waiting for execution verification" %}</strong>
-                            <p>{{ approval_summary.approved }} of {{ approval_summary.total }} required approvers have verified the execution.</p>
+                            <p>{% blocktranslate with approved=approval_summary.approved total=approval_summary.total %}{{ approved }} of {{ total }} required approvers have verified the execution.{% endblocktranslate %}</p>
                         </div>
                     </section>
                 {% else %}

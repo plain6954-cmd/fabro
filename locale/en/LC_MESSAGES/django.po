@@ -7,21 +7,55 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #, python-format
+msgid "%(approved)s of %(total)s required approvers have verified the execution."
+msgstr "%(approved)s of %(total)s required approvers have verified the execution."
+
+#, python-format
+msgid "%(count)s active"
+msgstr "%(count)s active"
+
+#, python-format
+msgid "%(count)s file(s) selected"
+msgstr "%(count)s file(s) selected"
+
+#, python-format
+msgid "%(decided)s/%(total)s reviews"
+msgstr "%(decided)s/%(total)s reviews"
+
+#, python-format
 msgid "%(filename)s — Ready to upload"
 msgstr "%(filename)s — Ready to upload"
+
+#, python-format
+msgid "%(media_count)s file"
+msgid_plural "%(media_count)s files"
+msgstr[0] "%(media_count)s file"
+msgstr[1] "%(media_count)s files"
+
+#, python-format
+msgid "%(media_count)s media file"
+msgid_plural "%(media_count)s media files"
+msgstr[0] "%(media_count)s media file"
+msgstr[1] "%(media_count)s media files"
+
+#, python-format
+msgid "%(priority)s priority"
+msgstr "%(priority)s priority"
+
+#, python-format
+msgid "%(role)s reviews assigned to your account."
+msgstr "%(role)s reviews assigned to your account."
 
 #, python-format
 msgid "%(username)s was assigned to %(group)s."
 msgstr "%(username)s was assigned to %(group)s."
 
-msgid "&laquo; First"
-msgstr "&laquo; First"
-
-msgid "&times;"
-msgstr "&times;"
-
 msgid "(Required for rejection)"
 msgstr "(Required for rejection)"
+
+#, python-format
+msgid "+%(count)s more"
+msgstr "+%(count)s more"
 
 #, python-format
 msgid "A complaint can contain at most %(count)s media files."
@@ -81,6 +115,10 @@ msgstr "Active Reviews"
 msgid "Active Sessions"
 msgstr "Active Sessions"
 
+#, python-format
+msgid "Active Sessions (%(count)s)"
+msgstr "Active Sessions (%(count)s)"
+
 msgid "Active Users Online"
 msgstr "Active Users Online"
 
@@ -92,6 +130,9 @@ msgstr "Activity"
 
 msgid "Activity Logs"
 msgstr "Activity Logs"
+
+msgid "Add"
+msgstr "Add"
 
 msgid "Add Complaint"
 msgstr "Add Complaint"
@@ -211,6 +252,10 @@ msgstr "Approval Inbox - Fabro Leather"
 msgid "Approval requests, factory assignments, rework, and closure updates."
 msgstr "Approval requests, factory assignments, rework, and closure updates."
 
+#, python-format
+msgid "Approval round %(round)s"
+msgstr "Approval round %(round)s"
+
 msgid "Approval stage workspace"
 msgstr "Approval stage workspace"
 
@@ -232,6 +277,9 @@ msgstr "Approve Plan"
 msgid "Approved"
 msgstr "Approved"
 
+msgid "Approved & Executing"
+msgstr "Approved & Executing"
+
 msgid "Approved Action Plan"
 msgstr "Approved Action Plan"
 
@@ -241,8 +289,18 @@ msgstr "Approved Factory Plan"
 msgid "Approver"
 msgstr "Approver"
 
+#, python-format
+msgid "Are you sure you want to delete %(name)s?"
+msgstr "Are you sure you want to delete %(name)s?"
+
 msgid "Are you sure you want to delete this complaint?"
 msgstr "Are you sure you want to delete this complaint?"
+
+msgid "Are you sure you want to delete this SKU?"
+msgstr "Are you sure you want to delete this SKU?"
+
+msgid "Are you sure you want to delete this vehicle?"
+msgstr "Are you sure you want to delete this vehicle?"
 
 msgid "Are you sure you want to log out?"
 msgstr "Are you sure you want to log out?"
@@ -329,11 +387,11 @@ msgstr "By"
 msgid "CAD"
 msgstr "CAD"
 
-msgid "CAD updated date"
-msgstr "CAD updated date"
-
 msgid "CAD Updated Date"
 msgstr "CAD Updated Date"
+
+msgid "CAD updated date"
+msgstr "CAD updated date"
 
 msgid "CAD Updated Date cannot be in the future."
 msgstr "CAD Updated Date cannot be in the future."
@@ -512,11 +570,11 @@ msgstr "Configure your personal information and adjust account security credenti
 msgid "Confirm Decision"
 msgstr "Confirm Decision"
 
-msgid "Confirm New Password"
-msgstr "Confirm New Password"
-
 msgid "Confirm new password"
 msgstr "Confirm new password"
+
+msgid "Confirm New Password"
+msgstr "Confirm New Password"
 
 msgid "Confirmed Reason"
 msgstr "Confirmed Reason"
@@ -567,8 +625,8 @@ msgstr "CSV could not be parsed: %(error)s."
 msgid "CSV file must be 5 MB or smaller."
 msgstr "CSV file must be 5 MB or smaller."
 
-msgid "CSV file with code &amp; description"
-msgstr "CSV file with code &amp; description"
+msgid "CSV file with code & description"
+msgstr "CSV file with code & description"
 
 #, python-format
 msgid "CSV files may contain at most %(count)s data rows."
@@ -588,6 +646,10 @@ msgstr "Current Logo:"
 
 msgid "Current Password"
 msgstr "Current Password"
+
+#, python-format
+msgid "Current round: %(decided)s/%(total)s reviewed"
+msgstr "Current round: %(decided)s/%(total)s reviewed"
 
 msgid "CURRENT SESSION"
 msgstr "CURRENT SESSION"
@@ -618,6 +680,12 @@ msgstr "Delete"
 
 msgid "Delete Complaint"
 msgstr "Delete Complaint"
+
+msgid "Delete group?"
+msgstr "Delete group?"
+
+msgid "Delete privilege?"
+msgstr "Delete privilege?"
 
 msgid "Delete User"
 msgstr "Delete User"
@@ -771,6 +839,10 @@ msgstr "Error terminating session: %(error)s"
 msgid "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round."
 msgstr "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round."
 
+#, python-format
+msgid "Execute %(complaint_id)s - Fabro Leather"
+msgstr "Execute %(complaint_id)s - Fabro Leather"
+
 msgid "Execute Approved Action"
 msgstr "Execute Approved Action"
 
@@ -794,6 +866,9 @@ msgstr "Execution submitted to the original approvers for verification."
 
 msgid "Execution verification"
 msgstr "Execution verification"
+
+msgid "Execution Verification"
+msgstr "Execution Verification"
 
 msgid "Execution verification decision"
 msgstr "Execution verification decision"
@@ -825,11 +900,11 @@ msgstr "Factory"
 msgid "Factory action plan"
 msgstr "Factory action plan"
 
-msgid "Factory Complaint"
-msgstr "Factory Complaint"
-
 msgid "FACTORY COMPLAINT"
 msgstr "FACTORY COMPLAINT"
+
+msgid "Factory Complaint"
+msgstr "Factory Complaint"
 
 msgid "Factory Complaint Registrar"
 msgstr "Factory Complaint Registrar"
@@ -849,11 +924,11 @@ msgstr "Factory Executive:"
 msgid "Factory Findings"
 msgstr "Factory Findings"
 
-msgid "Factory Priority"
-msgstr "Factory Priority"
-
 msgid "Factory priority"
 msgstr "Factory priority"
+
+msgid "Factory Priority"
+msgstr "Factory Priority"
 
 msgid "Factory Reason"
 msgstr "Factory Reason"
@@ -897,6 +972,9 @@ msgstr "Final Production Update"
 
 msgid "Final updates saved. The complaint is now closed."
 msgstr "Final updates saved. The complaint is now closed."
+
+msgid "First"
+msgstr "First"
 
 msgid "First Name"
 msgstr "First Name"
@@ -965,6 +1043,9 @@ msgstr "India"
 msgid "Initial approval"
 msgstr "Initial approval"
 
+msgid "Initial Approval"
+msgstr "Initial Approval"
+
 msgid "Inspect complaint in full complaint list"
 msgstr "Inspect complaint in full complaint list"
 
@@ -976,6 +1057,10 @@ msgstr "IP"
 
 msgid "IP Address"
 msgstr "IP Address"
+
+#, python-format
+msgid "Joined %(date)s"
+msgstr "Joined %(date)s"
 
 msgid "Kanban Card View"
 msgstr "Kanban Card View"
@@ -999,11 +1084,15 @@ msgstr "KSA"
 msgid "Language"
 msgstr "Language"
 
-msgid "Last &raquo;"
-msgstr "Last &raquo;"
+msgid "Last"
+msgstr "Last"
 
 msgid "Last Active"
 msgstr "Last Active"
+
+#, python-format
+msgid "Last login %(date)s"
+msgstr "Last login %(date)s"
 
 msgid "Last Name"
 msgstr "Last Name"
@@ -1025,6 +1114,14 @@ msgstr "Linked Context:"
 
 msgid "List Table View"
 msgstr "List Table View"
+
+#, python-format
+msgid "Live Active Sessions (%(count)s)"
+msgstr "Live Active Sessions (%(count)s)"
+
+#, python-format
+msgid "Live Active User Sessions (%(count)s)"
+msgstr "Live Active User Sessions (%(count)s)"
 
 msgid "Live Activity Feed"
 msgstr "Live Activity Feed"
@@ -1068,8 +1165,8 @@ msgstr "Manage Catalog"
 msgid "Manage Master Settings"
 msgstr "Manage Master Settings"
 
-msgid "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities"
-msgstr "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities"
+msgid "Manage product SKUs and inventory with inline editing & bulk upload capabilities"
+msgstr "Manage product SKUs and inventory with inline editing & bulk upload capabilities"
 
 msgid "Manage User Groups & Privileges"
 msgstr "Manage User Groups & Privileges"
@@ -1098,11 +1195,19 @@ msgstr "Material"
 msgid "Material / Series:"
 msgstr "Material / Series:"
 
+#, python-format
+msgid "Material: %(material)s"
+msgstr "Material: %(material)s"
+
 msgid "MD"
 msgstr "MD"
 
 msgid "Measurement Country"
 msgstr "Measurement Country"
+
+#, python-format
+msgid "Media %(number)s"
+msgstr "Media %(number)s"
 
 msgid "Media Files"
 msgstr "Media Files"
@@ -1134,6 +1239,9 @@ msgstr "Model Name"
 
 msgid "Model:"
 msgstr "Model:"
+
+msgid "My Pending Reviews"
+msgstr "My Pending Reviews"
 
 msgid "Name"
 msgstr "Name"
@@ -1216,6 +1324,9 @@ msgstr "No messages yet"
 
 msgid "No notifications yet"
 msgstr "No notifications yet"
+
+msgid "No pending approvals requiring your action."
+msgstr "No pending approvals requiring your action."
 
 msgid "No recent activities."
 msgstr "No recent activities."
@@ -1301,6 +1412,9 @@ msgstr "Only a Django superuser can reset another superuser password."
 msgid "Open"
 msgstr "Open"
 
+msgid "Open Approvals Workspace"
+msgstr "Open Approvals Workspace"
+
 msgid "Open attached file"
 msgstr "Open attached file"
 
@@ -1319,11 +1433,18 @@ msgstr "Optional when verifying. Required when requesting an execution correctio
 msgid "or drag and drop"
 msgstr "or drag and drop"
 
+#, python-format
+msgid "Page %(page)s of %(pages)s"
+msgstr "Page %(page)s of %(pages)s"
+
 msgid "Parallel Review Progress"
 msgstr "Parallel Review Progress"
 
 msgid "Partially Approved"
 msgstr "Partially Approved"
+
+msgid "Partially Verified"
+msgstr "Partially Verified"
 
 msgid "Password"
 msgstr "Password"
@@ -1341,17 +1462,20 @@ msgstr "PAT-26070001"
 msgid "Pattern"
 msgstr "Pattern"
 
-msgid "PATTERN COMPLAINT"
-msgstr "PATTERN COMPLAINT"
-
 msgid "Pattern Complaint"
 msgstr "Pattern Complaint"
+
+msgid "PATTERN COMPLAINT"
+msgstr "PATTERN COMPLAINT"
 
 msgid "Pattern Complaint Types"
 msgstr "Pattern Complaint Types"
 
 msgid "Pending"
 msgstr "Pending"
+
+msgid "Pending Approvals"
+msgstr "Pending Approvals"
 
 msgid "Pending Final Update"
 msgstr "Pending Final Update"
@@ -1401,11 +1525,11 @@ msgstr "Privileges"
 msgid "Privileges (select multiple):"
 msgstr "Privileges (select multiple):"
 
-msgid "Proceed with Action Plan"
-msgstr "Proceed with Action Plan"
-
 msgid "Proceed With Action Plan"
 msgstr "Proceed With Action Plan"
+
+msgid "Proceed with Action Plan"
+msgstr "Proceed with Action Plan"
 
 msgid "Proceed with Plan"
 msgstr "Proceed with Plan"
@@ -1419,11 +1543,11 @@ msgstr "Product and source"
 msgid "Production"
 msgstr "Production"
 
-msgid "PRODUCTION COMPLAINT"
-msgstr "PRODUCTION COMPLAINT"
-
 msgid "Production Complaint"
 msgstr "Production Complaint"
+
+msgid "PRODUCTION COMPLAINT"
+msgstr "PRODUCTION COMPLAINT"
 
 msgid "Production Complaint Types"
 msgstr "Production Complaint Types"
@@ -1473,6 +1597,9 @@ msgstr "Read"
 msgid "Ready for execution"
 msgstr "Ready for execution"
 
+msgid "Ready to upload"
+msgstr "Ready to upload"
+
 msgid "Real reason behind defect"
 msgstr "Real reason behind defect"
 
@@ -1481,6 +1608,9 @@ msgstr "Reason:"
 
 msgid "Recent Decisions"
 msgstr "Recent Decisions"
+
+msgid "Reconsideration"
+msgstr "Reconsideration"
 
 msgid "Reconsideration decision"
 msgstr "Reconsideration decision"
@@ -1509,6 +1639,10 @@ msgstr "Reject Plan"
 msgid "Rejected"
 msgstr "Rejected"
 
+#, python-format
+msgid "Rejected by %(role)s"
+msgstr "Rejected by %(role)s"
+
 msgid "Rejection reconsideration"
 msgstr "Rejection reconsideration"
 
@@ -1530,14 +1664,18 @@ msgstr "Report date"
 msgid "Report status"
 msgstr "Report status"
 
-msgid "Reported &amp; Source"
-msgstr "Reported &amp; Source"
+msgid "Reported & Source"
+msgstr "Reported & Source"
 
 msgid "Reported By"
 msgstr "Reported By"
 
 msgid "Reported by"
 msgstr "Reported by"
+
+#, python-format
+msgid "Reported by %(reporter)s"
+msgstr "Reported by %(reporter)s"
 
 msgid "Request revisions or reject"
 msgstr "Request revisions or reject"
@@ -1563,6 +1701,16 @@ msgstr "Return to Factory Executive for Rework"
 msgid "Return to Main Portal"
 msgstr "Return to Main Portal"
 
+msgid "Review"
+msgstr "Review"
+
+#, python-format
+msgid "Review %(complaint_id)s - Fabro Leather"
+msgstr "Review %(complaint_id)s - Fabro Leather"
+
+msgid "Review & Submit Decision"
+msgstr "Review & Submit Decision"
+
 msgid "Review comment"
 msgstr "Review comment"
 
@@ -1582,6 +1730,14 @@ msgid "Root cause"
 msgstr "Root cause"
 
 #, python-format
+msgid "Round %(number)s"
+msgstr "Round %(number)s"
+
+#, python-format
+msgid "Round %(round)s"
+msgstr "Round %(round)s"
+
+#, python-format
 msgid "Save %(type)s"
 msgstr "Save %(type)s"
 
@@ -1596,6 +1752,10 @@ msgstr "Save SKU"
 
 msgid "Save Updates And Close Case"
 msgstr "Save Updates And Close Case"
+
+#, python-format
+msgid "Saving %(type)s complaint..."
+msgstr "Saving %(type)s complaint..."
 
 #, python-format
 msgid "Saving %(type)s..."
@@ -1753,6 +1913,9 @@ msgstr "SKUs"
 msgid "Staff"
 msgstr "Staff"
 
+msgid "Stage"
+msgstr "Stage"
+
 msgid "Start"
 msgstr "Start"
 
@@ -1761,6 +1924,9 @@ msgstr "Start the conversation by sending a text below."
 
 msgid "Status"
 msgstr "Status"
+
+msgid "Status:"
+msgstr "Status:"
 
 msgid "Sub-Model"
 msgstr "Sub-Model"
@@ -1921,8 +2087,8 @@ msgstr "Try adjusting your filters or add a new complaint to get started."
 msgid "Type"
 msgstr "Type"
 
-msgid "Type &amp; Material"
-msgstr "Type &amp; Material"
+msgid "Type & Material"
+msgstr "Type & Material"
 
 #, python-format
 msgid "Type a message to %(username)s... (Press Enter to send)"
@@ -2089,6 +2255,15 @@ msgstr "Vehicle:"
 msgid "Vehicles"
 msgstr "Vehicles"
 
+msgid "Verification"
+msgstr "Verification"
+
+msgid "Verified"
+msgstr "Verified"
+
+msgid "Verify Executed Action"
+msgstr "Verify Executed Action"
+
 msgid "Verify Executed Action Plan"
 msgstr "Verify Executed Action Plan"
 
@@ -2097,6 +2272,9 @@ msgstr "Verify Execution"
 
 msgid "View"
 msgstr "View"
+
+msgid "View All"
+msgstr "View All"
 
 msgid "View all complaints"
 msgstr "View all complaints"
@@ -2125,17 +2303,20 @@ msgstr "Where the vehicle is manufactured."
 msgid "Workflow Role *"
 msgstr "Workflow Role *"
 
-msgid "Workflow status"
-msgstr "Workflow status"
-
 msgid "Workflow Status"
 msgstr "Workflow Status"
+
+msgid "Workflow status"
+msgstr "Workflow status"
 
 msgid "Workflow Status:"
 msgstr "Workflow Status:"
 
 msgid "Workflow updates assigned to you will appear here."
 msgstr "Workflow updates assigned to you will appear here."
+
+msgid "Workspace"
+msgstr "Workspace"
 
 msgid "Write the proposed action plan from the factory."
 msgstr "Write the proposed action plan from the factory."
@@ -2184,6 +2365,10 @@ msgstr "Your password has been changed successfully."
 
 msgid "Your profile details have been updated successfully."
 msgstr "Your profile details have been updated successfully."
+
+#, python-format
+msgid "Your recorded decision is %(decision)s. Completed rounds are read-only."
+msgstr "Your recorded decision is %(decision)s. Completed rounds are read-only."
 
 msgid "Your rejection was saved. Every other required approver was asked to reconsider the complaint."
 msgstr "Your rejection was saved. Every other required approver was asked to reconsider the complaint."

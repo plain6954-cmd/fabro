@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -16,6 +16,7 @@
         html, body {
             height: 100vh;
             overflow: hidden;
+            direction: ltr !important;
         }
 
         body {
@@ -84,6 +85,7 @@
             min-height: 0;      /* critical: lets grid children shrink */
             overflow: hidden;
             align-items: stretch;
+            direction: ltr !important;
         }
 
         /* Each column is a flex column filling its height */
@@ -98,7 +100,8 @@
         .stats-sidebar-section {
             position: relative;
             height: 100%;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         .section-header {
@@ -545,10 +548,7 @@
             cursor: default;
         }
 
-        .complaint-type-summary-card:hover {
-            transform: none;
-            border-color: rgba(255, 255, 255, 0.18);
-        }
+
 
         .stat-header-row {
             display: flex;
@@ -629,14 +629,17 @@
         .complaint-type-box.quality { border-color: rgba(16, 185, 129, 0.35); }
 
         /* ── Right Column: stat cards fill height evenly ── */
+        /* ── Right Column: stat cards fill height evenly ── */
         .stats-sidebar-list {
             display: flex;
             flex-direction: column;
             gap: 0.45rem;
             flex: 1;
             min-height: 0;
-            overflow: hidden;
+            overflow: visible;
             justify-content: space-between;
+            padding: 6px 10px 8px;
+            box-sizing: border-box;
         }
 
         .stat-card-compact {
@@ -655,6 +658,10 @@
             text-decoration: none;
             flex: 1;
             min-height: 0;
+            position: relative;
+            z-index: 1;
+            transform-origin: center center;
+            box-sizing: border-box;
         }
 
         body.light-mode .stat-card-compact {
@@ -662,10 +669,45 @@
             border-color: rgba(0, 0, 0, 0.08);
         }
 
-        .stat-card-compact:hover {
-            transform: translateY(-4px) scale(1.01);
-            box-shadow: 0 26px 70px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(220, 38, 38, 0.12);
+        .stat-card-compact:hover,
+        .stat-card-compact:focus-visible {
+            transform: translateY(-4px) scale(1.012);
+            box-shadow: 0 26px 70px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(220, 38, 38, 0.25);
             border-color: var(--primary-color);
+            position: relative;
+            z-index: 5;
+            outline: none;
+        }
+
+        .stat-card-compact:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        body.light-mode .stat-card-compact:hover,
+        body.light-mode .stat-card-compact:focus-visible {
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(220, 38, 38, 0.25);
+            border-color: var(--primary-color);
+        }
+
+        /* Disable unnecessary hover scaling on touch / pointer-coarse devices */
+        @media (hover: none), (pointer: coarse) {
+            .stat-card-compact:hover {
+                transform: none !important;
+                box-shadow: 0 18px 55px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+            }
+        }
+
+        /* Support reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            .stat-card-compact {
+                transition: none !important;
+            }
+            .stat-card-compact:hover,
+            .stat-card-compact:focus-visible {
+                transform: none !important;
+                transition: none !important;
+            }
         }
 
 
@@ -991,7 +1033,10 @@
 
         @media (max-width: 640px) {
             .quick-actions-grid { grid-template-columns: 1fr; }
-            .stats-sidebar-list { grid-template-columns: repeat(2, 1fr); }
+            .stats-sidebar-list {
+                grid-template-columns: repeat(2, 1fr);
+                padding: 6px 8px 8px;
+            }
             .quick-actions-section {
                 padding: 0.85rem !important;
             }
@@ -1199,6 +1244,238 @@
         body.light-mode .table tr {
             border-bottom-color: rgba(0, 0, 0, 0.08) !important;
         }
+
+        /* Split dashboard layout for Approvers & Admins */
+        .dashboard-split-column {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .dashboard-half-card {
+            flex: 1 1 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--dark-surface);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .dashboard-half-card {
+            background: var(--light-surface) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .dashboard-compact-header {
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+        }
+
+        body.light-mode .dashboard-compact-header {
+            border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .section-header-title {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        body.light-mode .section-header-title {
+            color: var(--light-text);
+        }
+
+        .header-badge-count {
+            background: var(--primary-color);
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0.1rem 0.42rem;
+            border-radius: 999px;
+            margin-left: 0.35rem;
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+        }
+
+        .btn-subtle {
+            font-size: 0.76rem;
+            font-weight: 500;
+            color: var(--dark-text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.28rem;
+            padding: 0.2rem 0.45rem;
+            border-radius: 5px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-subtle:hover {
+            color: var(--primary-color);
+            background: rgba(220, 38, 38, 0.08);
+        }
+
+        body.light-mode .btn-subtle {
+            color: var(--light-text-secondary);
+        }
+
+        body.light-mode .btn-subtle:hover {
+            color: var(--primary-color);
+            background: rgba(220, 38, 38, 0.06);
+        }
+
+        .btn-compact {
+            font-size: 0.75rem !important;
+            padding: 0.25rem 0.6rem !important;
+            border-radius: 6px !important;
+            gap: 0.25rem !important;
+        }
+
+        .dashboard-table-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            background: rgba(18, 18, 20, 0.3);
+        }
+
+        body.light-mode .dashboard-table-scroll {
+            border-color: rgba(0, 0, 0, 0.08) !important;
+            background: rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .empty-dashboard-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1.5rem 1rem;
+            color: var(--dark-text-secondary);
+            font-size: 0.82rem;
+            flex: 1;
+        }
+
+        body.light-mode .empty-dashboard-state {
+            color: var(--light-text-secondary);
+        }
+
+        .stage-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.12rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .stage-pill.initial {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .stage-pill.reconsideration {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .stage-pill.verification {
+            background: rgba(34, 211, 238, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(34, 211, 238, 0.3);
+        }
+
+        .role-tag {
+            display: inline-block;
+            padding: 0.1rem 0.35rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--dark-text);
+        }
+
+        body.light-mode .role-tag {
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--light-text);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-split-column {
+                height: auto;
+                min-height: auto;
+                gap: 1rem;
+                overflow: visible;
+            }
+            .dashboard-half-card {
+                flex: none;
+                height: auto;
+                max-height: 480px;
+                padding: 0.85rem;
+            }
+            .dashboard-half-card .dashboard-table-scroll {
+                max-height: 380px;
+            }
+            .dashboard-half-card .dashboard-approvals-table thead {
+                display: none;
+            }
+            .dashboard-half-card .dashboard-approvals-table,
+            .dashboard-half-card .dashboard-approvals-table tbody {
+                display: block;
+                width: 100%;
+            }
+            .dashboard-half-card .dashboard-approvals-table .approval-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.35rem;
+                margin-bottom: 0.65rem;
+                padding: 0.65rem;
+                border: 1px solid rgba(255, 255, 255, 0.09);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.035);
+            }
+            body.light-mode .dashboard-half-card .dashboard-approvals-table .approval-row {
+                background: rgba(255, 255, 255, 0.62);
+                border-color: rgba(24, 24, 27, 0.1);
+            }
+            .dashboard-half-card .dashboard-approvals-table .approval-row td {
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+                padding: 0.25rem !important;
+                border: 0;
+                font-size: 0.78rem !important;
+            }
+            .dashboard-half-card .dashboard-approvals-table .approval-row td:last-child {
+                grid-column: 1 / -1;
+                justify-content: flex-end;
+                padding-top: 0.4rem !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+            }
+        }
     </style>
 {% if is_htmx_request %}
 </template>
@@ -1217,10 +1494,196 @@
             </div>
 
             <div class="dashboard-layout">
-                <!-- Left Side: Existing Complaints List -->
+                <!-- Left Side: Existing Complaints List (Split for Approvers & Admins) -->
+                {% if is_approver_or_admin %}
+                <div class="dashboard-split-column">
+                    <!-- Upper Half: Existing Complaints -->
+                    <div class="quick-actions-section dashboard-half-card">
+                        <div class="section-header dashboard-compact-header">
+                            <span class="section-header-title">
+                                <i class="fas fa-list" style="color: var(--primary-color);"></i>
+                                {% translate "Existing Complaints" %}
+                            </span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <a href="{% url 'complaint_list' %}" class="btn-subtle" title="{% translate "View all complaints" %}">
+                                    {% translate "View All" %} <i class="fas fa-arrow-right" style="font-size: 0.7rem;"></i>
+                                </a>
+                                {% if can_create_complaint %}
+                                <a href="{% url 'add_complaint' %}" class="btn btn-primary btn-compact" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 6px; text-decoration: none; color: white;">
+                                    <i class="fas fa-plus"></i> {% translate "Add" %}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if recent_complaints %}
+                        <div class="table-container dashboard-table-scroll">
+                            <table class="table dashboard-complaints-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 35px; text-align: center;">#</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 85px;">{% translate "Date" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 125px;">{% translate "ID" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 90px;">{% translate "By" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 130px;">{% translate "Vehicle" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 80px;">{% translate "Type" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 85px;">{% translate "Status" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 75px; text-align: center;">{% translate "Actions" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for complaint in recent_complaints %}
+                                    <tr class="complaint-row" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.2s ease; cursor: pointer;" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')">
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center; font-weight: bold; color: var(--primary-color);">{{ forloop.counter }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; white-space: nowrap; color: var(--dark-text);">{{ complaint.date|date:"Y-m-d" }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; font-weight: bold; color: var(--dark-text);">{{ complaint.complaint_id }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; color: var(--dark-text);">{{ complaint.person.name|default:"N/A" }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; color: var(--dark-text);">{{ complaint.brand.name|default:"" }} {{ complaint.model.name|default:"N/A" }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; color: var(--dark-text);">{{ complaint.get_complaint_type_display }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; white-space: nowrap;">
+                                            <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">
+                                                {{ complaint.get_workflow_status_display }}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center;" onclick="event.stopPropagation();">
+                                            <button type="button" class="btn-view dashboard-view-button" style="padding: 0.25rem 0.55rem; font-size: 0.74rem;" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" aria-label="View complaint {{ complaint.complaint_id }}">
+                                                <i class="fas fa-eye"></i> {% translate "View" %}
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Collapsible Details Sub-row -->
+                                    <tr class="complaint-details-row" id="details-{{ complaint.complaint_id }}" style="display: none; background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+                                        <td colspan="8" style="padding: 1rem; cursor: default;" onclick="event.stopPropagation();">
+                                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                                <div>
+                                                    <h4 style="color: var(--primary-color); margin: 0 0 0.4rem 0; font-size: 0.8rem; text-transform: uppercase;">{% translate "General Info" %}</h4>
+                                                    <div style="font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.3rem; color: var(--dark-text-secondary);">
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Complaint ID:" %}</strong> {{ complaint.complaint_id }}</div>
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Type:" %}</strong> {{ complaint.get_complaint_type_display }}</div>
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Channel:" %}</strong> {{ complaint.channel.name|default:"N/A" }}</div>
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Priority:" %}</strong> <span style="font-weight: bold; color: {% if complaint.priority == 'top' %}#ef4444{% elif complaint.priority == 'medium' %}#f59e0b{% else %}#3b82f6{% endif %};">{{ complaint.priority|upper }}</span></div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h4 style="color: var(--primary-color); margin: 0 0 0.4rem 0; font-size: 0.8rem; text-transform: uppercase;">{% translate "Vehicle & SKU" %}</h4>
+                                                    <div style="font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.3rem; color: var(--dark-text-secondary);">
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Vehicle:" %}</strong> {{ complaint.brand.name }} {{ complaint.model.name }} {{ complaint.sub_model.name|default:"" }} ({{ complaint.year.year_start }}-{{ complaint.year.year_end }})</div>
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Layout Code:" %}</strong> <code style="background: rgba(255,255,255,0.08); padding: 0.1rem 0.3rem; border-radius: 4px; color: var(--dark-text);">{{ complaint.year.layout_code }}</code></div>
+                                                        <div><strong style="color: var(--dark-text);">{% translate "SKU:" %}</strong> {{ complaint.sku.code }} - {{ complaint.sku.description }}</div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h4 style="color: var(--primary-color); margin: 0 0 0.4rem 0; font-size: 0.8rem; text-transform: uppercase;">{% translate "Workflow Status" %}</h4>
+                                                    <div style="font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.3rem; color: var(--dark-text-secondary);">
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Status:" %}</strong> <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}">{{ complaint.get_workflow_status_display }}</span></div>
+                                                        {% if complaint.assigned_factory_executive %}
+                                                        <div><strong style="color: var(--dark-text);">{% translate "Factory Executive:" %}</strong> {{ complaint.assigned_factory_executive.get_full_name|default:complaint.assigned_factory_executive.username }}</div>
+                                                        {% endif %}
+                                                        <div style="margin-top: 0.4rem;">
+                                                            <a href="{% url 'complaint_list' %}?search={{ complaint.complaint_id }}" class="btn btn-primary" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none; border-radius: 4px; background: var(--primary-color); color: white; border: none; cursor: pointer;">
+                                                                <i class="fas fa-external-link-alt"></i> {% translate "Go to workflow page" %}
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-dashboard-state">
+                            <i class="fas fa-inbox" style="font-size: 1.5rem; color: var(--dark-text-secondary); margin-bottom: 0.35rem; opacity: 0.6;"></i>
+                            <div>{% translate "No complaints available yet." %}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Lower Half: Pending Approvals -->
+                    <div class="quick-actions-section dashboard-half-card">
+                        <div class="section-header dashboard-compact-header">
+                            <span class="section-header-title">
+                                <i class="fas fa-clipboard-check" style="color: #3b82f6;"></i>
+                                {% translate "Pending Approvals" %}
+                                {% if pending_approvals_total %}
+                                <span class="header-badge-count">{{ pending_approvals_total }}</span>
+                                {% endif %}
+                            </span>
+                            <a href="{% url 'approvals_list' %}" class="btn-subtle" title="{% translate "Open Approvals Workspace" %}">
+                                {% translate "Workspace" %} <i class="fas fa-arrow-right" style="font-size: 0.7rem;"></i>
+                            </a>
+                        </div>
+
+                        {% if pending_approvals_list %}
+                        <div class="table-container dashboard-table-scroll">
+                            <table class="table dashboard-approvals-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 35px; text-align: center;">#</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 85px;">{% translate "Date" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 125px;">{% translate "ID" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 110px;">{% translate "Stage" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 80px;">{% translate "Role" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 130px;">{% translate "Vehicle" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 75px;">{% translate "Priority" %}</th>
+                                        <th style="padding: 0.55rem 0.75rem; font-size: 0.78rem; color: var(--dark-text-secondary); width: 80px; text-align: center;">{% translate "Action" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for approval in pending_approvals_list %}
+                                    <tr class="approval-row" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.2s ease;">
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center; font-weight: bold; color: #3b82f6;">{{ forloop.counter }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; white-space: nowrap; color: var(--dark-text);">{{ approval.created_at|date:"Y-m-d" }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; font-weight: bold;">
+                                            <a href="{% url 'complaint_list' %}?search={{ approval.complaint.complaint_id }}" style="color: var(--dark-text); text-decoration: none;">
+                                                {{ approval.complaint.complaint_id }}
+                                            </a>
+                                        </td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem;">
+                                            {% if approval.review_stage == 'reconsideration' %}
+                                            <span class="stage-pill reconsideration">{% translate "Reconsideration" %}</span>
+                                            {% elif approval.review_stage == 'verification' %}
+                                            <span class="stage-pill verification">{% translate "Verification" %}</span>
+                                            {% else %}
+                                            <span class="stage-pill initial">{% translate "Initial Approval" %}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem;">
+                                            <span class="role-tag">{{ approval.get_approver_role_display|default:approval.approver_role|upper }}</span>
+                                        </td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; color: var(--dark-text);">
+                                            {{ approval.complaint.brand.name|default:"" }} {{ approval.complaint.model.name|default:"N/A" }}
+                                        </td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem;">
+                                            <span style="font-weight: 700; font-size: 0.72rem; color: {% if approval.complaint.priority == 'top' or approval.complaint.factory_priority == 'top' %}#ef4444{% elif approval.complaint.priority == 'medium' or approval.complaint.factory_priority == 'medium' %}#f59e0b{% else %}#3b82f6{% endif %};">
+                                                {{ approval.complaint.factory_priority|default:approval.complaint.priority|upper }}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center;">
+                                            <a href="{% url 'approval_review' approval.id %}" class="btn-view dashboard-view-button" style="text-decoration: none; padding: 0.25rem 0.55rem; font-size: 0.74rem;">
+                                                <i class="fas fa-check-circle"></i> {% translate "Review" %}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-dashboard-state">
+                            <i class="fas fa-check-double" style="font-size: 1.5rem; color: var(--success-color); margin-bottom: 0.35rem; opacity: 0.75;"></i>
+                            <div>{% translate "No pending approvals requiring your action." %}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
                 <div class="quick-actions-section" style="background: var(--dark-surface); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1.25rem; box-shadow: var(--shadow); width: 100%;">
                     <div class="section-header" style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.75rem;">
-                        <span style="font-size: 1.1rem; font-weight: 600; color: var(--dark-text); display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1rem; font-weight: 600; color: var(--dark-text); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-list" style="color: var(--primary-color);"></i>
                             {% translate "Existing Complaints" %}
                         </span>
@@ -1325,6 +1788,7 @@
                     </div>
                     {% endif %}
                 </div>
+                {% endif %}
 
                 <!-- Right Side: Stats -->
                 <div class="stats-sidebar-section">

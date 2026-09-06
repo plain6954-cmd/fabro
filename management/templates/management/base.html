@@ -1,10 +1,18 @@
 {% load static i18n %}
-<link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+<link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
 <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
 <script src="{% url 'javascript-catalog' %}"></script>
-<script src="{% static 'js/fabro-i18n.js' %}?v=20260903-django-i18n"></script>
+<script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
+<script>
+    document.documentElement.dir = 'ltr';
+    document.documentElement.setAttribute('dir', 'ltr');
+</script>
 <style>
+        html, body, .navbar, .dashboard-layout, #app-content {
+            direction: ltr !important;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -90,16 +98,18 @@
 
         .navbar {
             background: transparent;
-            padding: 0.85rem clamp(1rem, 2.5vw, 2.25rem);
-            display: grid;
-            grid-template-columns: minmax(180px, 1fr) minmax(0, auto) minmax(180px, 1fr);
+            padding: 0.75rem clamp(0.75rem, 2vw, 1.75rem);
+            display: flex;
             align-items: center;
-            gap: clamp(0.65rem, 1.4vw, 1.1rem);
+            justify-content: space-between;
+            gap: clamp(0.5rem, 1.2vw, 1.25rem);
             box-shadow: none;
             border-bottom: 1px solid transparent;
             position: sticky;
             top: 0;
             z-index: 1000;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         body.light-mode .navbar {
@@ -115,10 +125,10 @@
             font-weight: 700;
             color: var(--primary-color);
             text-decoration: none;
-            justify-self: start;
+            flex-shrink: 0;
             min-width: 0;
-            min-height: 58px;
-            padding: 0.28rem 0.7rem;
+            min-height: 52px;
+            padding: 0.25rem 0.65rem;
             border-radius: 999px;
             background: rgba(18, 18, 20, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.065);
@@ -132,8 +142,9 @@
         }
 
         .nav-brand-logo {
-            width: clamp(12.4rem, 14vw, 15.8rem);
-            height: 3.6rem;
+            width: auto;
+            max-width: clamp(9rem, 11vw, 13rem);
+            height: 3.2rem;
             object-fit: contain;
             display: block;
         }
@@ -141,15 +152,16 @@
         .nav-links {
             display: flex;
             align-items: center;
-            justify-self: center;
-            width: max-content;
-            max-width: min(1180px, calc(100vw - 360px));
-            gap: 0.2rem;
-            padding: 0.38rem 0.55rem;
+            margin: 0 auto;
+            max-width: 100%;
+            gap: 0.15rem;
+            padding: 0.32rem 0.48rem;
             border-radius: 999px;
             background: rgba(30, 30, 34, 0.9);
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            flex-shrink: 1;
+            min-width: 0;
         }
 
         body.light-mode .nav-links {
@@ -161,18 +173,19 @@
         .nav-link {
             color: var(--dark-text-secondary);
             text-decoration: none;
-            min-height: 44px;
-            padding: 0.52rem 0.76rem;
+            min-height: 42px;
+            padding: 0.46rem 0.68rem;
             border-radius: 999px;
             font-weight: 500;
-            font-size: 0.875rem;
+            font-size: 0.835rem;
             transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms var(--motion-ease);
             position: relative;
             display: flex;
             align-items: center;
-            gap: 0.38rem;
+            gap: 0.35rem;
             white-space: nowrap;
             touch-action: manipulation;
+            flex-shrink: 0;
         }
 
         .nav-link span {
@@ -210,15 +223,15 @@
         .profile-dropdown {
             position: relative;
             display: inline-block;
-            justify-self: end;
+            flex-shrink: 0;
         }
 
         .profile-trigger {
             display: flex;
             align-items: center;
-            gap: 0.65rem;
-            min-height: 58px;
-            padding: 0.35rem 0.85rem 0.35rem 0.45rem;
+            gap: 0.55rem;
+            min-height: 52px;
+            padding: 0.32rem 0.75rem 0.32rem 0.4rem;
             background: rgba(30, 30, 34, 0.9);
             border-radius: 999px;
             cursor: pointer;
@@ -226,6 +239,7 @@
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             user-select: none;
+            white-space: nowrap;
         }
 
         .profile-trigger:focus-visible {
@@ -674,82 +688,80 @@
             }
         }
 
-        @media (max-width: 1280px) and (min-width: 1041px) {
+        @media (max-width: 1440px) and (min-width: 1141px) {
             .navbar {
-                grid-template-columns: auto minmax(0, auto) auto;
-                justify-content: space-between;
-                gap: 0.65rem;
+                gap: 0.55rem;
+                padding: 0.65rem clamp(0.65rem, 1.5vw, 1.25rem);
             }
 
             .nav-brand-logo {
-                width: clamp(10.2rem, 12vw, 12.25rem);
-                height: 3.35rem;
+                max-width: 10.5rem;
+                height: 2.85rem;
             }
 
             .nav-link {
-                padding: 0.46rem 0.62rem;
-                font-size: 0.82rem;
-                gap: 0.3rem;
+                padding: 0.38rem 0.52rem;
+                font-size: 0.79rem;
+                gap: 0.25rem;
+                min-height: 38px;
             }
 
             .nav-links {
-                width: max-content;
-                max-width: min(980px, calc(100vw - 320px));
-                gap: 0.12rem;
-                padding: 0.32rem 0.45rem;
+                padding: 0.26rem 0.38rem;
+                gap: 0.1rem;
             }
 
             .profile-trigger {
-                padding: 0.35rem 0.75rem 0.35rem 0.45rem;
+                gap: 0.45rem;
+                min-height: 48px;
+                padding: 0.28rem 0.65rem 0.28rem 0.35rem;
+            }
+
+            .profile-trigger > div div:first-child {
+                max-width: 105px !important;
             }
         }
 
-        @media (max-width: 1040px) {
+        @media (max-width: 1140px) and (min-width: 769px) {
             .navbar {
-                grid-template-columns: auto minmax(0, auto) auto;
-                justify-content: space-between;
-                gap: 0.55rem;
+                gap: 0.45rem;
+                padding: 0.55rem 0.75rem;
             }
 
             .nav-brand {
-                min-height: 56px;
-                padding: 0.18rem 0.55rem;
+                min-height: 48px;
+                padding: 0.18rem 0.5rem;
             }
 
             .nav-brand-logo {
-                width: clamp(8.2rem, 14vw, 10.8rem);
-                height: 3rem;
+                max-width: 8.5rem;
+                height: 2.6rem;
             }
 
             .nav-links {
-                max-width: min(560px, 100%);
-                padding: 0.34rem;
+                padding: 0.28rem;
                 gap: 0.08rem;
-                contain: layout paint;
             }
 
             .nav-link {
-                min-width: 50px;
-                min-height: 48px;
+                min-width: 44px;
+                min-height: 42px;
                 justify-content: center;
-                padding: 0.6rem 0.72rem;
+                padding: 0.5rem 0.6rem;
                 gap: 0;
             }
 
             .nav-link span {
-                max-width: 0;
-                opacity: 0;
-                transform: scale(0.92);
-                pointer-events: none;
+                display: none;
             }
 
             .nav-link i {
-                font-size: 1rem;
+                font-size: 0.95rem;
             }
 
             .profile-trigger {
-                min-height: 56px;
-                padding: 0.42rem 0.58rem;
+                min-height: 48px;
+                padding: 0.3rem 0.5rem;
             }
 
             .profile-trigger > div:not(.profile-avatar),
@@ -1069,24 +1081,25 @@
             }
         }
 
-        /* Notification Toast */
+        /* Notification Toast - Highest layer overlapping all windows and cards */
         .toast-stack {
-            position: absolute;
-            top: calc(100% + 0.55rem);
-            right: 0;
-            width: min(20rem, calc(100vw - 1.5rem));
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.45rem;
-            pointer-events: none;
-            z-index: 1003;
+            position: fixed !important;
+            top: 1.25rem !important;
+            right: 1.25rem !important;
+            width: min(22rem, calc(100vw - 2rem)) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            gap: 0.5rem !important;
+            pointer-events: none !important;
+            z-index: 999999999 !important;
         }
 
         .toast-stack.is-fallback {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
+            position: fixed !important;
+            top: 1.25rem !important;
+            right: 1.25rem !important;
+            z-index: 999999999 !important;
         }
 
         .toast {
@@ -1095,27 +1108,32 @@
             max-width: 100%;
             background-color: var(--success-color);
             color: white;
-            padding: 0.65rem 0.8rem;
-            border-radius: 9px;
-            box-shadow: var(--shadow-lg);
-            font-size: 0.82rem;
-            line-height: 1.35;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
+            font-size: 0.85rem;
+            font-weight: 500;
+            line-height: 1.4;
             overflow-wrap: anywhere;
             opacity: 0;
-            transform: translate3d(1rem, -0.3rem, 0);
-            transition: opacity 320ms ease, transform 320ms var(--motion-ease);
+            transform: translate3d(1.5rem, -0.3rem, 0);
+            transition: opacity 300ms ease, transform 300ms var(--motion-ease);
             will-change: opacity, transform;
-            pointer-events: none;
+            pointer-events: auto;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 999999999 !important;
         }
 
         .toast-content {
             display: flex;
-            align-items: flex-start;
-            gap: 0.45rem;
+            align-items: center;
+            gap: 0.55rem;
         }
 
         .toast-content i {
-            margin-top: 0.12rem;
+            font-size: 1.05rem;
             flex: 0 0 auto;
         }
 
@@ -1126,15 +1144,15 @@
 
         .toast.is-hiding {
             opacity: 0;
-            transform: translate3d(1.25rem, 0.45rem, 0);
+            transform: translate3d(1.5rem, 0, 0);
         }
 
         .toast.error {
-            background-color: var(--error-color);
+            background-color: var(--error-color) !important;
         }
 
         .toast.warning {
-            background-color: var(--warning-color);
+            background-color: var(--warning-color) !important;
         }
 
         body::before {
@@ -1794,7 +1812,7 @@
         };
 
         // Toast Notifications
-        const showToast = (message, type = 'success', duration = 4000) => {
+        const showToast = (message, type = 'success', duration = 3000) => {
             let toastStack = document.getElementById('global-toast-stack');
             if (!toastStack) {
                 toastStack = document.createElement('div');
@@ -1823,6 +1841,7 @@
                 setTimeout(() => toast.remove(), 350);
             }, duration + 50);
         };
+        window.showToast = showToast;
 
         const initScrollDynamics = () => {};
 
@@ -2189,7 +2208,7 @@
             <a href="{% url 'car_details' %}" class="nav-link">
             {% endif %}
                 <i class="fas fa-car"></i>
-                <span>{% translate "Vehicles" %}</span>
+                <span>{% translate "Patterns" %}</span>
             </a>
             <a href="{% url 'add_sku' %}" class="nav-link">
                 <i class="fas fa-barcode"></i>

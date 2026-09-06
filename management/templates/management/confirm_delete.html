@@ -1,12 +1,12 @@
 {% load static i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
     <title>{% translate "Delete Complaint" %}</title>
-    <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+    <link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
     <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
     <script src="{% url 'javascript-catalog' %}"></script>
-    <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-django-i18n"></script>
+    <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -102,7 +102,7 @@
 </head>
 <body>
     <h2>{% translate "Are you sure you want to delete this complaint?" %}</h2>
-    <p>{% translate "Complaint Batch Order:" %} <strong>{{ complaint.batch_order }}</strong></p>
+    <p>{% translate "Complaint ID:" %} <strong>{{ complaint.complaint_id }}</strong> | {% translate "Batch No:" %} <strong>{{ complaint.batch_no|default:"-" }}</strong></p>
     <form method="POST">
         {% csrf_token %}
         <button type="submit">{% translate "Yes, delete" %}</button>

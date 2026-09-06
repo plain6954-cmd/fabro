@@ -35,14 +35,15 @@ REPORT_FIELD_LABELS = {
     'series': 'Series',
     'material': 'Material',
     'sku': 'SKU',
+    'serial_no': 'Serial No',
+    'batch_no': 'Batch No',
+    'shipment_order_no': 'Shipment/Order No',
     'brand': 'Brand',
     'model': 'Model',
     'sub_model': 'Sub Model',
     'year': 'Year',
     'priority': 'Reporter Priority',
     'complaint_description': 'Complaint Description',
-    'batch_order': 'Batch Order',
-    'updated_order_no': 'Update Order Number',
 }
 REPORT_EDITABLE_FIELDS = frozenset(REPORT_FIELD_LABELS)
 

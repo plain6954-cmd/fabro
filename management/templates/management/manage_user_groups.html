@@ -13,7 +13,7 @@
         <strong>{{ group.name }}</strong>
         <form method="POST" style="display:inline;">{% csrf_token %}
             <input type="hidden" name="group_id" value="{{ group.id }}">
-            <button type="submit" name="delete_group" onclick="return confirm('Delete group?')">{% translate "Delete" %}</button>
+            <button type="submit" name="delete_group" onclick="return confirm(window.FabroI18n.gettext('Delete group?'))">{% translate "Delete" %}</button>
         </form>
         <form method="POST">{% csrf_token %}
             <input type="hidden" name="group_id" value="{{ group.id }}">
@@ -42,7 +42,7 @@
             <strong>{{ p.name }}</strong> — Pages: {{ p.allowed_pages|join:", " }}
             <form method="POST" style="display:inline;">{% csrf_token %}
                 <input type="hidden" name="priv_id" value="{{ p.id }}">
-                <button type="submit" name="delete_privilege" onclick="return confirm('Delete privilege?')">{% translate "Delete" %}</button>
+                <button type="submit" name="delete_privilege" onclick="return confirm(window.FabroI18n.gettext('Delete privilege?'))">{% translate "Delete" %}</button>
             </form>
         </li>
     {% endfor %}

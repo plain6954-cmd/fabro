@@ -313,6 +313,8 @@
         flex: 1;
         max-width: 460px;
         position: relative;
+        display: flex;
+        align-items: center;
     }
 
     .erp-search-input {
@@ -320,7 +322,7 @@
         background: var(--erp-input-bg);
         border: 1px solid var(--erp-input-border);
         border-radius: 6px;
-        padding: 0.35rem 0.75rem 0.35rem 2rem;
+        padding: 0.35rem 2.2rem 0.35rem 2rem;
         color: var(--erp-text-main);
         font-size: 0.82rem;
         outline: none;
@@ -339,6 +341,32 @@
         transform: translateY(-50%);
         color: var(--erp-text-dim);
         font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .erp-search-clear-btn {
+        position: absolute;
+        right: 0.55rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.08);
+        border: none;
+        border-radius: 50%;
+        color: var(--erp-text-muted);
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        font-size: 0.72rem;
+        padding: 0;
+        transition: all 0.15s ease;
+    }
+
+    .erp-search-clear-btn:hover {
+        background: rgba(255, 255, 255, 0.18);
+        color: var(--erp-text-main);
     }
 
     .erp-subheader-right {
@@ -1268,7 +1296,10 @@
 
                     <div class="erp-search-container">
                         <i class="fas fa-search erp-search-icon"></i>
-                        <input type="search" id="userSearchInput" class="erp-search-input" placeholder="{% translate "Search by name, username, email, phone, role..." %}" oninput="filterUserCards()" autocomplete="off">
+                        <input type="text" id="userSearchInput" class="erp-search-input" placeholder="{% translate "Search by name, username, email, phone, role..." %}" oninput="filterUserCards()" autocomplete="off">
+                        <button type="button" id="clearUserSearchBtn" class="erp-search-clear-btn" onclick="clearUserSearch()" aria-label="{% translate "Clear search" %}" title="{% translate "Clear search" %}">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
 
                     <div class="erp-subheader-right">
@@ -1368,9 +1399,12 @@
                                  data-email="{{ u.email }}"
                                  data-first-name="{{ u.first_name }}"
                                  data-last-name="{{ u.last_name }}"
-                                 data-phone="{{ u.workflow_profile.phone_number }}"
+                                 data-full-name="{{ u.first_name }} {{ u.last_name }}"
+                                 data-phone="{{ u.workflow_profile.phone_number|default:'' }}"
                                  data-role="{% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}{{ u.workflow_profile.approval_role }}{% else %}{{ u.workflow_profile.role }}{% endif %}"
+                                 data-role-display="{% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}{{ u.workflow_profile.approval_role }}{% else %}{{ u.workflow_profile.get_role_display|default:'User' }}{% endif %}"
                                  data-country-id="{{ u.workflow_profile.country_id|default:'' }}"
+                                 data-country-name="{{ u.workflow_profile.country.name|default:'' }}"
                                  data-department="{{ u.workflow_profile.department|default:'' }}"
                                  data-can-factory="{% if u.workflow_profile.can_receive_factory_assignments %}1{% else %}0{% endif %}"
                                  data-is-staff="{% if u.is_staff %}1{% else %}0{% endif %}"
@@ -1954,7 +1988,13 @@
 
     <!-- JavaScript Interactive Logic -->
     <script>
-    window.fabroOnPageLoad(function() {
+    // Faceted Filter State
+    window.erpActiveFilters = {
+        role: 'all',
+        country: 'all'
+    };
+
+    function initAdminPanel() {
         // Restore tab from URL hash, server active_tab, or localStorage
         let initialTab = 'dashboard';
         const serverTab = '{{ active_tab|default:"" }}';
@@ -1973,13 +2013,30 @@
             openEditUserCardById(editUserToReopen);
         }
 
-        const userSearchInput = document.getElementById('userSearchInput');
-        if (userSearchInput && userSearchInput.value) {
-            filterUserCards();
-        }
         restoreUserFilters();
+        filterUserCards();
 
-    });
+        // Auto-dismiss floating ERP toasts after 3 seconds
+        const erpToasts = document.querySelectorAll('.erp-toast');
+        erpToasts.forEach(toast => {
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => {
+                    toast.remove();
+                    const container = document.getElementById('erpToastContainer');
+                    if (container && !container.querySelector('.erp-toast')) {
+                        container.remove();
+                    }
+                }, 400);
+            }, 3000);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAdminPanel);
+    } else {
+        initAdminPanel();
+    }
 
     function dismissErpToast(button) {
         const toast = button.closest('.erp-toast');
@@ -2101,9 +2158,15 @@
         }
     }
 
+    let editUserFeedbackTimer = null;
     function showEditUserFeedback(messages, success) {
         const container = document.getElementById('editUserFeedback');
         if (!container) return;
+
+        if (editUserFeedbackTimer) {
+            clearTimeout(editUserFeedbackTimer);
+            editUserFeedbackTimer = null;
+        }
 
         container.replaceChildren();
         const feedback = document.createElement('span');
@@ -2115,6 +2178,13 @@
         feedback.appendChild(icon);
         feedback.appendChild(document.createTextNode(` ${(messages || []).join(' ')}`));
         container.appendChild(feedback);
+
+        editUserFeedbackTimer = setTimeout(() => {
+            feedback.classList.add('fade-out');
+            setTimeout(() => {
+                feedback.remove();
+            }, 400);
+        }, 3000);
     }
 
     async function resetUserPassword() {
@@ -2195,16 +2265,12 @@
         }
     }
 
-    // Faceted Filter State
-    window.erpActiveFilters = {
-        role: 'all',
-        country: 'all'
-    };
-
     function applyFacetedFilter(type, value, itemEl) {
         window.erpActiveFilters[type] = value;
         const group = itemEl.parentElement;
-        group.querySelectorAll('.erp-filter-item').forEach(el => el.classList.remove('active'));
+        if (group) {
+            group.querySelectorAll('.erp-filter-item').forEach(el => el.classList.remove('active'));
+        }
         itemEl.classList.add('active');
         sessionStorage.setItem('fabroAdminUserFilters', JSON.stringify(window.erpActiveFilters));
         filterUserCards();
@@ -2215,41 +2281,83 @@
             const saved = JSON.parse(sessionStorage.getItem('fabroAdminUserFilters') || '{}');
             Object.entries(saved).forEach(([type, value]) => {
                 const item = document.querySelector(`.erp-filter-item[data-filter-type="${type}"][data-filter-val="${value}"]`);
-                if (item) applyFacetedFilter(type, value, item);
+                if (item) {
+                    window.erpActiveFilters[type] = value;
+                    const group = item.parentElement;
+                    if (group) {
+                        group.querySelectorAll('.erp-filter-item').forEach(el => el.classList.remove('active'));
+                        item.classList.add('active');
+                    }
+                }
             });
         } catch (error) {
             sessionStorage.removeItem('fabroAdminUserFilters');
         }
     }
 
+    function clearUserSearch() {
+        const searchInput = document.getElementById('userSearchInput');
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+        }
+        filterUserCards();
+    }
+
     function filterUserCards() {
         const searchInput = document.getElementById('userSearchInput');
+        const clearBtn = document.getElementById('clearUserSearchBtn');
         if (!searchInput) return;
 
-        const query = (searchInput.value || '').toLowerCase().trim();
+        const rawQuery = (searchInput.value || '').toLowerCase().trim();
+        if (clearBtn) {
+            clearBtn.style.display = rawQuery ? 'inline-flex' : 'none';
+        }
+
+        const queryTokens = rawQuery ? rawQuery.split(/\s+/).filter(Boolean) : [];
         const cards = document.querySelectorAll('.erp-user-card');
         const tableRows = document.querySelectorAll('.erp-user-table-row');
         let visibleCount = 0;
+
+        const activeRole = (window.erpActiveFilters && window.erpActiveFilters.role) || 'all';
+        const activeCountry = (window.erpActiveFilters && window.erpActiveFilters.country) || 'all';
 
         cards.forEach(card => {
             const username = (card.dataset.username || '').toLowerCase();
             const firstName = (card.dataset.firstName || '').toLowerCase();
             const lastName = (card.dataset.lastName || '').toLowerCase();
+            const fullName = (card.dataset.fullName || `${firstName} ${lastName}`).toLowerCase();
             const email = (card.dataset.email || '').toLowerCase();
             const phone = (card.dataset.phone || '').toLowerCase();
-            const role = card.dataset.role || '';
+            const role = (card.dataset.role || '').toLowerCase();
+            const roleDisplay = (card.dataset.roleDisplay || '').toLowerCase();
             const countryId = card.dataset.countryId || '';
+            const countryName = (card.dataset.countryName || '').toLowerCase();
+            const department = (card.dataset.department || '').toLowerCase();
+            const isSuperuser = card.dataset.isSuperuser === '1';
+            const isStaff = card.dataset.isStaff === '1';
 
-            const matchesSearch = !query ||
-                username.includes(query) ||
-                firstName.includes(query) ||
-                lastName.includes(query) ||
-                email.includes(query) ||
-                phone.includes(query) ||
-                role.toLowerCase().includes(query);
+            // Universal search haystack
+            const searchableText = [
+                username,
+                firstName,
+                lastName,
+                fullName,
+                email,
+                phone,
+                role,
+                roleDisplay,
+                countryName,
+                department,
+                isSuperuser ? 'superuser admin' : '',
+                isStaff ? 'staff' : ''
+            ].join(' ');
 
-            const matchesRole = (window.erpActiveFilters.role === 'all') || (role === window.erpActiveFilters.role);
-            const matchesCountry = (window.erpActiveFilters.country === 'all') || (countryId === window.erpActiveFilters.country);
+            const matchesSearch = queryTokens.length === 0 || queryTokens.every(token => searchableText.includes(token));
+
+            const cardRoleRaw = card.dataset.role || '';
+            const matchesRole = (activeRole === 'all') || (cardRoleRaw === activeRole);
+            const matchesCountry = (activeCountry === 'all') || (countryId === activeCountry);
             const isVisible = matchesSearch && matchesRole && matchesCountry;
 
             card.style.display = isVisible ? 'flex' : 'none';

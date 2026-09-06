@@ -1,12 +1,12 @@
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Review {{ complaint.complaint_id }} - Fabro Leather</title>
+    <title>{% blocktranslate with complaint_id=complaint.complaint_id %}Review {{ complaint_id }} - Fabro Leather{% endblocktranslate %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
 {% if is_htmx_request %}</template>{% else %}
@@ -19,8 +19,8 @@
     <main class="workflow-page">
         <header class="workflow-header">
             <div>
-                <h1 class="workflow-title"><i class="fas fa-clipboard-check"></i> {{ approval.approver_role }} {% if approval.review_stage == 'reconsideration' %}Reconsideration{% elif approval.review_stage == 'execution_verification' %}Execution Verification{% else %}Review{% endif %}</h1>
-                <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }} | Approval round {{ approval.approval_round }}</p>
+                <h1 class="workflow-title"><i class="fas fa-clipboard-check"></i> {{ approval.approver_role }} {% if approval.review_stage == 'reconsideration' %}{% translate "Reconsideration" %}{% elif approval.review_stage == 'execution_verification' %}{% translate "Execution Verification" %}{% else %}{% translate "Review" %}{% endif %}</h1>
+                <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }} | {% blocktranslate with round=approval.approval_round %}Approval round {{ round }}{% endblocktranslate %}</p>
             </div>
             <a href="{% url 'approvals_list' %}?stage={% if approval.review_stage == 'execution_verification' %}verification{% else %}plan{% endif %}" class="workflow-btn secondary">
                 <i class="fas fa-arrow-left"></i> {% translate "Approval Inbox" %}
@@ -75,7 +75,7 @@
                                         </a>
                                     {% else %}
                                         <a href="{{ media.url }}" target="_blank" rel="noopener" class="media-thumb">
-                                            <i class="fas fa-play-circle"></i> Media {{ forloop.counter }}
+                                            <i class="fas fa-play-circle"></i> {% blocktranslate with number=forloop.counter %}Media {{ number }}{% endblocktranslate %}
                                         </a>
                                     {% endif %}
                                 {% endif %}
@@ -107,7 +107,7 @@
                     <section class="workflow-panel" style="border-color: rgba(239, 68, 68, 0.55);">
                         <h2 class="workflow-section-title"><i class="fas fa-triangle-exclamation"></i> {% translate "Rejection To Reconsider" %}</h2>
                         <div class="detail-block wide">
-                            <span class="detail-label">Rejected by {{ approval.trigger_approval.approver_role }}</span>
+                            <span class="detail-label">{% blocktranslate with role=approval.trigger_approval.approver_role %}Rejected by {{ role }}{% endblocktranslate %}</span>
                             <span class="detail-value">{{ approval.trigger_approval.comment }}</span>
                         </div>
                         <p class="workflow-subtitle" style="margin-top: 0.85rem;">
@@ -164,7 +164,7 @@
                         <div class="empty-workflow">
                             <i class="fas fa-lock"></i>
                             <strong>{% translate "This approval round is complete" %}</strong>
-                            <p>Your recorded decision is {{ approval.get_status_display }}. Completed rounds are read-only.</p>
+                            <p>{% blocktranslate with decision=approval.get_status_display %}Your recorded decision is {{ decision }}. Completed rounds are read-only.{% endblocktranslate %}</p>
                         </div>
                     {% endif %}
                 </section>

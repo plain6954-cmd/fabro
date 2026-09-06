@@ -166,4 +166,4 @@ This document serves as the authoritative specification for the **FABRO Leather 
 * **Activity Logging:** System changes write to `ActivityLog` (action, object type, user, timestamp).
 * **Audit Edit Logs:** Field-level changes to report fields and approval decisions are preserved in `ComplaintEditLog`.
 * **Timeline Events:** Every workflow transition writes a human-readable event to `ComplaintTimeline`.
-* **Localization:** English is the default interface language. Authenticated users can persistently switch the portal to Arabic or Hindi from the profile dropdown. Arabic uses right-to-left document direction; Arabic and Hindi use language-appropriate system font stacks without changing the established component design.
+* **Localization:** English is the default interface language. Authenticated users can persistently switch the portal to Arabic or Hindi from the profile dropdown. The portal layout remains consistently Left-to-Right (LTR) across all languages; Arabic and Hindi use language-appropriate system font stacks without changing the established component design.

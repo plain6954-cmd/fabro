@@ -7,20 +7,54 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #, python-format
+msgid "%(approved)s of %(total)s required approvers have verified the execution."
+msgstr ""
+
+#, python-format
+msgid "%(count)s active"
+msgstr ""
+
+#, python-format
+msgid "%(count)s file(s) selected"
+msgstr ""
+
+#, python-format
+msgid "%(decided)s/%(total)s reviews"
+msgstr ""
+
+#, python-format
 msgid "%(filename)s — Ready to upload"
+msgstr ""
+
+#, python-format
+msgid "%(media_count)s file"
+msgid_plural "%(media_count)s files"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(media_count)s media file"
+msgid_plural "%(media_count)s media files"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(priority)s priority"
+msgstr ""
+
+#, python-format
+msgid "%(role)s reviews assigned to your account."
 msgstr ""
 
 #, python-format
 msgid "%(username)s was assigned to %(group)s."
 msgstr ""
 
-msgid "&laquo; First"
-msgstr ""
-
-msgid "&times;"
-msgstr ""
-
 msgid "(Required for rejection)"
+msgstr ""
+
+#, python-format
+msgid "+%(count)s more"
 msgstr ""
 
 #, python-format
@@ -81,6 +115,10 @@ msgstr ""
 msgid "Active Sessions"
 msgstr "सक्रिय सत्र"
 
+#, python-format
+msgid "Active Sessions (%(count)s)"
+msgstr ""
+
 msgid "Active Users Online"
 msgstr "ऑनलाइन सक्रिय उपयोगकर्ता"
 
@@ -91,6 +129,9 @@ msgid "Activity"
 msgstr "गतिविधि"
 
 msgid "Activity Logs"
+msgstr ""
+
+msgid "Add"
 msgstr ""
 
 msgid "Add Complaint"
@@ -211,6 +252,10 @@ msgstr ""
 msgid "Approval requests, factory assignments, rework, and closure updates."
 msgstr ""
 
+#, python-format
+msgid "Approval round %(round)s"
+msgstr ""
+
 msgid "Approval stage workspace"
 msgstr ""
 
@@ -232,6 +277,9 @@ msgstr "योजना अनुमोदित करें"
 msgid "Approved"
 msgstr "अनुमोदित"
 
+msgid "Approved & Executing"
+msgstr ""
+
 msgid "Approved Action Plan"
 msgstr ""
 
@@ -241,8 +289,18 @@ msgstr ""
 msgid "Approver"
 msgstr ""
 
+#, python-format
+msgid "Are you sure you want to delete %(name)s?"
+msgstr ""
+
 msgid "Are you sure you want to delete this complaint?"
 msgstr "क्या आप वाकई यह शिकायत हटाना चाहते हैं?"
+
+msgid "Are you sure you want to delete this SKU?"
+msgstr ""
+
+msgid "Are you sure you want to delete this vehicle?"
+msgstr ""
 
 msgid "Are you sure you want to log out?"
 msgstr ""
@@ -329,11 +387,11 @@ msgstr ""
 msgid "CAD"
 msgstr ""
 
-msgid "CAD updated date"
-msgstr "CAD अपडेट तारीख"
-
 msgid "CAD Updated Date"
 msgstr ""
+
+msgid "CAD updated date"
+msgstr "CAD अपडेट तारीख"
 
 msgid "CAD Updated Date cannot be in the future."
 msgstr ""
@@ -512,10 +570,10 @@ msgstr ""
 msgid "Confirm Decision"
 msgstr "निर्णय की पुष्टि करें"
 
-msgid "Confirm New Password"
+msgid "Confirm new password"
 msgstr ""
 
-msgid "Confirm new password"
+msgid "Confirm New Password"
 msgstr ""
 
 msgid "Confirmed Reason"
@@ -567,7 +625,7 @@ msgstr ""
 msgid "CSV file must be 5 MB or smaller."
 msgstr ""
 
-msgid "CSV file with code &amp; description"
+msgid "CSV file with code & description"
 msgstr ""
 
 #, python-format
@@ -587,6 +645,10 @@ msgid "Current Logo:"
 msgstr ""
 
 msgid "Current Password"
+msgstr ""
+
+#, python-format
+msgid "Current round: %(decided)s/%(total)s reviewed"
 msgstr ""
 
 msgid "CURRENT SESSION"
@@ -618,6 +680,12 @@ msgstr "हटाएँ"
 
 msgid "Delete Complaint"
 msgstr "शिकायत हटाएँ"
+
+msgid "Delete group?"
+msgstr ""
+
+msgid "Delete privilege?"
+msgstr ""
 
 msgid "Delete User"
 msgstr "उपयोगकर्ता हटाएँ"
@@ -771,6 +839,10 @@ msgstr ""
 msgid "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round."
 msgstr ""
 
+#, python-format
+msgid "Execute %(complaint_id)s - Fabro Leather"
+msgstr ""
+
 msgid "Execute Approved Action"
 msgstr ""
 
@@ -793,6 +865,9 @@ msgid "Execution submitted to the original approvers for verification."
 msgstr "निष्पादन सत्यापन के लिए मूल अनुमोदकों को भेजा गया।"
 
 msgid "Execution verification"
+msgstr ""
+
+msgid "Execution Verification"
 msgstr ""
 
 msgid "Execution verification decision"
@@ -825,10 +900,10 @@ msgstr "फैक्टरी"
 msgid "Factory action plan"
 msgstr ""
 
-msgid "Factory Complaint"
+msgid "FACTORY COMPLAINT"
 msgstr "फैक्टरी शिकायत"
 
-msgid "FACTORY COMPLAINT"
+msgid "Factory Complaint"
 msgstr "फैक्टरी शिकायत"
 
 msgid "Factory Complaint Registrar"
@@ -849,11 +924,11 @@ msgstr ""
 msgid "Factory Findings"
 msgstr ""
 
-msgid "Factory Priority"
-msgstr "फैक्टरी प्राथमिकता"
-
 msgid "Factory priority"
 msgstr ""
+
+msgid "Factory Priority"
+msgstr "फैक्टरी प्राथमिकता"
 
 msgid "Factory Reason"
 msgstr "फैक्टरी कारण"
@@ -897,6 +972,9 @@ msgstr ""
 
 msgid "Final updates saved. The complaint is now closed."
 msgstr "अंतिम अपडेट सहेजे गए। शिकायत अब बंद है।"
+
+msgid "First"
+msgstr "पहला"
 
 msgid "First Name"
 msgstr "पहला नाम"
@@ -965,6 +1043,9 @@ msgstr ""
 msgid "Initial approval"
 msgstr ""
 
+msgid "Initial Approval"
+msgstr "प्रारंभिक अनुमोदन"
+
 msgid "Inspect complaint in full complaint list"
 msgstr ""
 
@@ -976,6 +1057,10 @@ msgstr ""
 
 msgid "IP Address"
 msgstr "आईपी पता"
+
+#, python-format
+msgid "Joined %(date)s"
+msgstr ""
 
 msgid "Kanban Card View"
 msgstr ""
@@ -999,10 +1084,14 @@ msgstr ""
 msgid "Language"
 msgstr "भाषा"
 
-msgid "Last &raquo;"
-msgstr ""
+msgid "Last"
+msgstr "अंतिम"
 
 msgid "Last Active"
+msgstr ""
+
+#, python-format
+msgid "Last login %(date)s"
 msgstr ""
 
 msgid "Last Name"
@@ -1024,6 +1113,14 @@ msgid "Linked Context:"
 msgstr ""
 
 msgid "List Table View"
+msgstr ""
+
+#, python-format
+msgid "Live Active Sessions (%(count)s)"
+msgstr ""
+
+#, python-format
+msgid "Live Active User Sessions (%(count)s)"
 msgstr ""
 
 msgid "Live Activity Feed"
@@ -1068,7 +1165,7 @@ msgstr "कैटलॉग प्रबंधित करें"
 msgid "Manage Master Settings"
 msgstr "मास्टर सेटिंग्स प्रबंधित करें"
 
-msgid "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities"
+msgid "Manage product SKUs and inventory with inline editing & bulk upload capabilities"
 msgstr ""
 
 msgid "Manage User Groups & Privileges"
@@ -1098,11 +1195,19 @@ msgstr "सामग्री"
 msgid "Material / Series:"
 msgstr ""
 
+#, python-format
+msgid "Material: %(material)s"
+msgstr ""
+
 msgid "MD"
 msgstr ""
 
 msgid "Measurement Country"
 msgstr "मापन देश"
+
+#, python-format
+msgid "Media %(number)s"
+msgstr ""
 
 msgid "Media Files"
 msgstr "मीडिया फ़ाइलें"
@@ -1133,6 +1238,9 @@ msgid "Model Name"
 msgstr "मॉडल नाम"
 
 msgid "Model:"
+msgstr ""
+
+msgid "My Pending Reviews"
 msgstr ""
 
 msgid "Name"
@@ -1216,6 +1324,9 @@ msgstr "अभी कोई संदेश नहीं"
 
 msgid "No notifications yet"
 msgstr ""
+
+msgid "No pending approvals requiring your action."
+msgstr "आपकी कार्रवाई की आवश्यकता वाला कोई लंबित अनुमोदन नहीं है।"
 
 msgid "No recent activities."
 msgstr ""
@@ -1301,6 +1412,9 @@ msgstr ""
 msgid "Open"
 msgstr ""
 
+msgid "Open Approvals Workspace"
+msgstr ""
+
 msgid "Open attached file"
 msgstr "संलग्न फ़ाइल खोलें"
 
@@ -1319,11 +1433,18 @@ msgstr ""
 msgid "or drag and drop"
 msgstr "या खींचकर छोड़ें"
 
+#, python-format
+msgid "Page %(page)s of %(pages)s"
+msgstr ""
+
 msgid "Parallel Review Progress"
 msgstr "समानांतर समीक्षा प्रगति"
 
 msgid "Partially Approved"
 msgstr "आंशिक अनुमोदन"
+
+msgid "Partially Verified"
+msgstr ""
 
 msgid "Password"
 msgstr "पासवर्ड"
@@ -1341,10 +1462,10 @@ msgstr ""
 msgid "Pattern"
 msgstr "पैटर्न"
 
-msgid "PATTERN COMPLAINT"
+msgid "Pattern Complaint"
 msgstr "पैटर्न शिकायत"
 
-msgid "Pattern Complaint"
+msgid "PATTERN COMPLAINT"
 msgstr "पैटर्न शिकायत"
 
 msgid "Pattern Complaint Types"
@@ -1352,6 +1473,9 @@ msgstr ""
 
 msgid "Pending"
 msgstr ""
+
+msgid "Pending Approvals"
+msgstr "लंबित अनुमोदन"
 
 msgid "Pending Final Update"
 msgstr "अंतिम अपडेट लंबित"
@@ -1401,10 +1525,10 @@ msgstr ""
 msgid "Privileges (select multiple):"
 msgstr ""
 
-msgid "Proceed with Action Plan"
+msgid "Proceed With Action Plan"
 msgstr ""
 
-msgid "Proceed With Action Plan"
+msgid "Proceed with Action Plan"
 msgstr ""
 
 msgid "Proceed with Plan"
@@ -1419,10 +1543,10 @@ msgstr "उत्पाद और स्रोत"
 msgid "Production"
 msgstr "उत्पादन"
 
-msgid "PRODUCTION COMPLAINT"
+msgid "Production Complaint"
 msgstr "उत्पादन शिकायत"
 
-msgid "Production Complaint"
+msgid "PRODUCTION COMPLAINT"
 msgstr "उत्पादन शिकायत"
 
 msgid "Production Complaint Types"
@@ -1473,6 +1597,9 @@ msgstr "पढ़ा गया"
 msgid "Ready for execution"
 msgstr ""
 
+msgid "Ready to upload"
+msgstr ""
+
 msgid "Real reason behind defect"
 msgstr ""
 
@@ -1481,6 +1608,9 @@ msgstr ""
 
 msgid "Recent Decisions"
 msgstr ""
+
+msgid "Reconsideration"
+msgstr "पुनर्विचार"
 
 msgid "Reconsideration decision"
 msgstr ""
@@ -1509,6 +1639,10 @@ msgstr ""
 msgid "Rejected"
 msgstr ""
 
+#, python-format
+msgid "Rejected by %(role)s"
+msgstr ""
+
 msgid "Rejection reconsideration"
 msgstr ""
 
@@ -1530,7 +1664,7 @@ msgstr "रिपोर्ट की तारीख"
 msgid "Report status"
 msgstr "रिपोर्ट स्थिति"
 
-msgid "Reported &amp; Source"
+msgid "Reported & Source"
 msgstr ""
 
 msgid "Reported By"
@@ -1538,6 +1672,10 @@ msgstr "रिपोर्टकर्ता"
 
 msgid "Reported by"
 msgstr "रिपोर्टकर्ता"
+
+#, python-format
+msgid "Reported by %(reporter)s"
+msgstr ""
 
 msgid "Request revisions or reject"
 msgstr "संशोधन माँगें या अस्वीकार करें"
@@ -1563,6 +1701,16 @@ msgstr ""
 msgid "Return to Main Portal"
 msgstr ""
 
+msgid "Review"
+msgstr "समीक्षा"
+
+#, python-format
+msgid "Review %(complaint_id)s - Fabro Leather"
+msgstr ""
+
+msgid "Review & Submit Decision"
+msgstr ""
+
 msgid "Review comment"
 msgstr ""
 
@@ -1582,6 +1730,14 @@ msgid "Root cause"
 msgstr "मूल कारण"
 
 #, python-format
+msgid "Round %(number)s"
+msgstr ""
+
+#, python-format
+msgid "Round %(round)s"
+msgstr ""
+
+#, python-format
 msgid "Save %(type)s"
 msgstr ""
 
@@ -1595,6 +1751,10 @@ msgid "Save SKU"
 msgstr ""
 
 msgid "Save Updates And Close Case"
+msgstr ""
+
+#, python-format
+msgid "Saving %(type)s complaint..."
 msgstr ""
 
 #, python-format
@@ -1753,6 +1913,9 @@ msgstr ""
 msgid "Staff"
 msgstr "स्टाफ"
 
+msgid "Stage"
+msgstr "चरण"
+
 msgid "Start"
 msgstr ""
 
@@ -1761,6 +1924,9 @@ msgstr "नीचे संदेश भेजकर बातचीत शु�
 
 msgid "Status"
 msgstr "स्थिति"
+
+msgid "Status:"
+msgstr ""
 
 msgid "Sub-Model"
 msgstr "सब-मॉडल"
@@ -1921,7 +2087,7 @@ msgstr "फ़िल्टर बदलें या शुरू करने �
 msgid "Type"
 msgstr "प्रकार"
 
-msgid "Type &amp; Material"
+msgid "Type & Material"
 msgstr ""
 
 #, python-format
@@ -2089,6 +2255,15 @@ msgstr ""
 msgid "Vehicles"
 msgstr "वाहन"
 
+msgid "Verification"
+msgstr "सत्यापन"
+
+msgid "Verified"
+msgstr ""
+
+msgid "Verify Executed Action"
+msgstr ""
+
 msgid "Verify Executed Action Plan"
 msgstr ""
 
@@ -2097,6 +2272,9 @@ msgstr ""
 
 msgid "View"
 msgstr "देखें"
+
+msgid "View All"
+msgstr ""
 
 msgid "View all complaints"
 msgstr ""
@@ -2125,10 +2303,10 @@ msgstr ""
 msgid "Workflow Role *"
 msgstr "कार्यप्रवाह भूमिका *"
 
-msgid "Workflow status"
+msgid "Workflow Status"
 msgstr ""
 
-msgid "Workflow Status"
+msgid "Workflow status"
 msgstr ""
 
 msgid "Workflow Status:"
@@ -2136,6 +2314,9 @@ msgstr ""
 
 msgid "Workflow updates assigned to you will appear here."
 msgstr ""
+
+msgid "Workspace"
+msgstr "कार्यक्षेत्र"
 
 msgid "Write the proposed action plan from the factory."
 msgstr ""
@@ -2184,6 +2365,10 @@ msgstr "आपका पासवर्ड सफलतापूर्वक ब
 
 msgid "Your profile details have been updated successfully."
 msgstr "आपकी प्रोफ़ाइल जानकारी सफलतापूर्वक अपडेट हुई।"
+
+#, python-format
+msgid "Your recorded decision is %(decision)s. Completed rounds are read-only."
+msgstr ""
 
 msgid "Your rejection was saved. Every other required approver was asked to reconsider the complaint."
 msgstr ""

@@ -1,9 +1,11 @@
 import csv
+import io
 import json
 import logging
 import os
+import re
 import uuid
-from io import TextIOWrapper
+from io import StringIO, TextIOWrapper
 
 from django.contrib import messages
 from django.conf import settings
@@ -63,12 +65,17 @@ from .models import (
     MasterSetting,
     Model,
     Notification,
+    PatternDesignFolder,
+    PatternDesignImage,
     SKU,
     SubModel,
     UserProfile,
     WorkflowRoles,
     WorkflowStatuses,
     YearRange,
+    format_pattern_serial,
+    get_country_letter,
+    get_next_pattern_serial,
 )
 from .services.workflow import (
     REPORT_EDITABLE_FIELDS,
@@ -482,13 +489,19 @@ def car_details(request):
                 }
 
             else:
+                x_code_val = (form.cleaned_data.get("x_code") or "").strip()
+                fitting_conf_val = (form.cleaned_data.get("fitting_confirmation") or "").strip()
+                serial_num_val = (form.cleaned_data.get("serial_number") or "").strip()
                 YearRange.objects.create(
                     sub_model=sub_model,
+                    serial_number=serial_num_val,
                     year_start=year_start,
                     year_end=year_end,
                     number_of_seats=number_of_seats,
                     number_of_doors=number_of_doors,
-                    layout_code=layout_code,
+                    layout_code=layout_code or None,
+                    x_code=x_code_val,
+                    fitting_confirmation=fitting_conf_val,
                     vehicle_country=form.cleaned_data.get("vehicle_country"),
                     measurement_country=form.cleaned_data.get("measurement_country")
                 )
@@ -498,17 +511,23 @@ def car_details(request):
                     object_type="Car",
                     object_name=f"{brand_name} {model_name} {sub_model_name} ({year_start}-{year_end})"
                 )
-                messages.success(request, _('Vehicle added successfully.'))
+                messages.success(request, _('Pattern added successfully.'))
                 return redirect('car_details')
 
     new_search_enabled = True
     scoped_search_enabled = True
 
     # Fetch car data (Optimized via select_related)
-    yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').all()
+    yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').order_by('id')
     if search_query:
-        if search_column == 'layout_code':
-            yr_qs = yr_qs.filter(layout_code__icontains=search_query)
+        if search_column in ('serial_number', 'serial_no', 'serial'):
+            yr_qs = yr_qs.filter(serial_number__icontains=search_query)
+        elif search_column == 'x_code':
+            yr_qs = yr_qs.filter(Q(x_code__icontains=search_query) | Q(layout_code__icontains=search_query))
+        elif search_column == 'fitting_confirmation':
+            yr_qs = yr_qs.filter(fitting_confirmation__icontains=search_query)
+        elif search_column == 'layout_code':
+            yr_qs = yr_qs.filter(Q(layout_code__icontains=search_query) | Q(x_code__icontains=search_query))
         elif search_column == 'brand':
             yr_qs = yr_qs.filter(sub_model__model__brand__name__icontains=search_query)
         elif search_column == 'model':
@@ -521,6 +540,9 @@ def car_details(request):
             yr_qs = yr_qs.filter(measurement_country__name__icontains=search_query)
         else:
             yr_qs = yr_qs.filter(
+                Q(serial_number__icontains=search_query) |
+                Q(x_code__icontains=search_query) |
+                Q(fitting_confirmation__icontains=search_query) |
                 Q(layout_code__icontains=search_query) |
                 Q(sub_model__model__brand__name__icontains=search_query) |
                 Q(sub_model__model__name__icontains=search_query) |
@@ -532,7 +554,12 @@ def car_details(request):
     car_data = []
     for yr in yr_qs:
         car_data.append({
+            "serial_number": yr.serial_number or '',
             "layout_code": yr.layout_code,
+            "x_code": yr.x_code or yr.layout_code or '-',
+            "raw_x_code": yr.x_code or '',
+            "fitting_confirmation": yr.fitting_confirmation or '-',
+            "raw_fitting_confirmation": yr.fitting_confirmation or '',
             "id": yr.id,
             "brand_id": yr.sub_model.model.brand.id if yr.sub_model and yr.sub_model.model and yr.sub_model.model.brand else None,
             "brand": yr.sub_model.model.brand.name if yr.sub_model and yr.sub_model.model and yr.sub_model.model.brand else '',
@@ -541,20 +568,28 @@ def car_details(request):
             "model": yr.sub_model.model.name if yr.sub_model and yr.sub_model.model else '',
             "sub_model_id": yr.sub_model.id if yr.sub_model else None,
             "sub_model": yr.sub_model.name if yr.sub_model else '',
+            "raw_sub_model": yr.sub_model.name if (yr.sub_model and yr.sub_model.name != '-') else '',
             "year_start": yr.year_start,
             "year_end": yr.year_end,
             "seats": yr.number_of_seats,
             "doors": yr.number_of_doors,
             "vehicle_country": yr.vehicle_country.name if yr.vehicle_country else '-',
-            "measurement_country": yr.measurement_country.name if yr.measurement_country else '-'
+            "vehicle_country_id": yr.vehicle_country.id if yr.vehicle_country else None,
+            "measurement_country": yr.measurement_country.name if yr.measurement_country else '-',
+            "measurement_country_id": yr.measurement_country.id if yr.measurement_country else None,
         })
 
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
+
+    can_manage_catalog = _can_manage_catalog(request.user)
+    design_folders = PatternDesignFolder.objects.prefetch_related('images').all()
+    next_serial_number = get_next_pattern_serial()
 
     return render(request, 'management/car_details.html', {
         'form': form,
         'car_data': car_data,
         'countries': countries,
+        'next_serial_number': next_serial_number,
         'show_duplicate_modal': show_duplicate_modal,
         'show_layout_code_error_modal': show_layout_code_error_modal,
         'conflicting_car': conflicting_car,
@@ -563,6 +598,8 @@ def car_details(request):
         'search_by': search_column,
         'new_search_enabled': new_search_enabled,
         'scoped_search_enabled': scoped_search_enabled,
+        'can_manage_catalog': can_manage_catalog,
+        'design_folders': design_folders,
     })
 
 
@@ -572,26 +609,98 @@ def delete_car_detail(request, year_range_id):
     if not _can_manage_catalog(request.user):
         raise PermissionDenied('Only staff users can delete vehicles.')
     year_range = get_object_or_404(YearRange, id=year_range_id)
+    brand_name = year_range.sub_model.model.brand.name if year_range.sub_model else ''
+    model_name = year_range.sub_model.model.name if year_range.sub_model else ''
+    sub_model_name = year_range.sub_model.name if year_range.sub_model else ''
+    year_start = year_range.year_start
+    year_end = year_range.year_end
+
+    year_range.delete()
     messages.success(request, _('Vehicle deleted successfully.'))
     ActivityLog.objects.create(
         user=request.user,
         action="deleted",
         object_type="Car",
-        object_name=f"{year_range.sub_model.model.brand.name} {year_range.sub_model.model.name} {year_range.sub_model.name} ({year_range.year_start}-{year_range.year_end})"
+        object_name=f"{brand_name} {model_name} {sub_model_name} ({year_start}-{year_end})"
     )
-    year_range.delete()
     return redirect('car_details')
+
+
+@login_required
+@require_POST
+def update_fitting_confirmation_api(request, year_range_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({"success": False, "error": _("Permission denied.")}, status=403)
+    
+    year_range = get_object_or_404(YearRange, id=year_range_id)
+    
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    fitting_val = (data.get("fitting_confirmation") or "").strip()
+    
+    # Allowed choices
+    allowed_choices = ['Confirmed', 'Pending', 'Rework', 'Sampling', '']
+    if fitting_val not in allowed_choices:
+        return JsonResponse({"success": False, "error": _("Invalid fitting confirmation value.")}, status=400)
+    
+    year_range.fitting_confirmation = fitting_val
+    year_range.save()
+    
+    brand_name = year_range.sub_model.model.brand.name if year_range.sub_model and year_range.sub_model.model and year_range.sub_model.model.brand else ''
+    model_name = year_range.sub_model.model.name if year_range.sub_model and year_range.sub_model.model else ''
+    
+    ActivityLog.objects.create(
+        user=request.user,
+        action="updated",
+        object_type="Fitting Confirmation",
+        object_name=f"{brand_name} {model_name} -> {fitting_val or 'Cleared'}"
+    )
+    
+    return JsonResponse({
+        "success": True,
+        "id": year_range.id,
+        "fitting_confirmation": fitting_val,
+        "message": _("Fitting confirmation updated successfully.")
+    })
+
+
+@login_required
+def get_next_pattern_serial_api(request):
+    country_id = request.GET.get('country_id')
+    exclude_id = request.GET.get('exclude_id')
+    country = None
+    if country_id:
+        try:
+            country = MasterSetting.objects.filter(category='Country', id=country_id).first()
+        except (ValueError, TypeError):
+            pass
+    try:
+        exclude_id = int(exclude_id) if exclude_id else None
+    except (ValueError, TypeError):
+        exclude_id = None
+
+    next_serial = get_next_pattern_serial(country=country, exclude_id=exclude_id)
+    return JsonResponse({'success': True, 'next_serial': next_serial})
+
 
 @login_required
 def edit_car_detail(request, car_id):
     if not _can_manage_catalog(request.user):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('is_ajax') == '1':
+            return JsonResponse({'success': False, 'error': _('Only staff users can edit vehicles.')}, status=403)
         raise PermissionDenied('Only staff users can edit vehicles.')
     year_range = get_object_or_404(YearRange, id=car_id)
-    existing_logo = year_range.sub_model.model.brand.logo
+    existing_logo = year_range.sub_model.model.brand.logo if (year_range.sub_model and year_range.sub_model.model and year_range.sub_model.model.brand) else None
 
     # Prepopulate form values
     initial_data = {
+        'serial_number': year_range.serial_number,
         'layout_code': year_range.layout_code,
+        'x_code': year_range.x_code,
+        'fitting_confirmation': year_range.fitting_confirmation,
         'brand_name': year_range.sub_model.model.brand.name if year_range.sub_model else '',
         'model_name': year_range.sub_model.model.name if year_range.sub_model else '',
         'sub_model_name': year_range.sub_model.name if year_range.sub_model else '',
@@ -606,27 +715,28 @@ def edit_car_detail(request, car_id):
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
 
     if request.method == "POST":
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('is_ajax') == '1'
         form = CarDetailsForm(request.POST, request.FILES)
         if form.is_valid():
-            layout_code = form.cleaned_data["layout_code"].strip()
+            layout_code = (form.cleaned_data.get("layout_code") or "").strip()
+            x_code = (form.cleaned_data.get("x_code") or "").strip()
+            fitting_confirmation = (form.cleaned_data.get("fitting_confirmation") or "").strip()
             brand_name = form.cleaned_data["brand_name"].strip()
             brand_logo = form.cleaned_data.get("brand_logo")
             model_name = form.cleaned_data["model_name"].strip()
-            sub_model_name = form.cleaned_data["sub_model_name"].strip() or '-'
-            year_start = form.cleaned_data["year_start"]
-            year_end = form.cleaned_data["year_end"]
-            number_of_seats = form.cleaned_data["number_of_seats"]
-            number_of_doors = form.cleaned_data["number_of_doors"]
+            sub_model_name = (form.cleaned_data.get("sub_model_name") or "").strip() or '-'
+            year_start = form.cleaned_data.get("year_start")
+            year_end = form.cleaned_data.get("year_end")
+            number_of_seats = form.cleaned_data.get("number_of_seats")
+            number_of_doors = form.cleaned_data.get("number_of_doors")
 
-            # Check for layout code duplication (excluding current record)
-            if YearRange.objects.filter(layout_code=layout_code).exclude(id=car_id).exists():
-                messages.error(request, _('Layout code already exists. Please use a unique layout code.'))
-                return render(request, 'management/edit_car_detail.html', {
-                    'form': form,
-                    'car_id': car_id,
-                    'existing_logo': existing_logo,
-                    'countries': countries,
-                })
+            # Check for layout code duplication if layout_code provided
+            if layout_code and YearRange.objects.filter(layout_code=layout_code).exclude(id=car_id).exists():
+                err_msg = _('Layout code already exists. Please use a unique layout code.')
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': str(err_msg)}, status=400)
+                messages.error(request, err_msg)
+                return redirect('car_details')
 
             brand, brand_created = Brand.objects.get_or_create(name=brand_name)
             
@@ -647,18 +757,59 @@ def edit_car_detail(request, car_id):
             year_range.year_end = year_end
             year_range.number_of_seats = number_of_seats
             year_range.number_of_doors = number_of_doors
-            year_range.layout_code = layout_code
+            if layout_code:
+                year_range.layout_code = layout_code
+            year_range.x_code = x_code
+            year_range.fitting_confirmation = fitting_confirmation
             year_range.vehicle_country = form.cleaned_data.get("vehicle_country")
             year_range.measurement_country = form.cleaned_data.get("measurement_country")
+            serial_number = (form.cleaned_data.get("serial_number") or "").strip()
+            if serial_number:
+                year_range.serial_number = serial_number
             year_range.save()
 
-            messages.success(request, _('Vehicle updated successfully.'))
             ActivityLog.objects.create(
                 user=request.user,
                 action="updated",
                 object_type="Car",
-                object_name=f"{brand_name} {model_name} {sub_model_name} ({year_start}-{year_end})"
+                object_name=f"{brand_name} {model_name} {sub_model_name} ({year_start or ''}-{year_end or ''})"
             )
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': _('Vehicle updated successfully.'),
+                    'car': {
+                        'id': year_range.id,
+                        'serial_number': year_range.serial_number or '',
+                        'brand': brand.name,
+                        'brand_logo': brand.logo.url if brand.logo else '',
+                        'model': model.name,
+                        'sub_model': year_range.sub_model.name if year_range.sub_model else '',
+                        'raw_sub_model': year_range.sub_model.name if (year_range.sub_model and year_range.sub_model.name != '-') else '',
+                        'year_start': year_range.year_start,
+                        'year_end': year_range.year_end,
+                        'seats': year_range.number_of_seats,
+                        'doors': year_range.number_of_doors,
+                        'x_code': year_range.x_code or '',
+                        'fitting_confirmation': year_range.fitting_confirmation or '',
+                        'vehicle_country': year_range.vehicle_country.name if year_range.vehicle_country else '-',
+                        'vehicle_country_id': year_range.vehicle_country.id if year_range.vehicle_country else None,
+                        'measurement_country': year_range.measurement_country.name if year_range.measurement_country else '-',
+                        'measurement_country_id': year_range.measurement_country.id if year_range.measurement_country else None,
+                    }
+                })
+
+            messages.success(request, _('Vehicle updated successfully.'))
+            return redirect('car_details')
+        else:
+            error_list = []
+            for field, errs in form.errors.items():
+                error_list.append(f"{field}: {', '.join(errs)}")
+            err_msg = _('Failed to update vehicle: ') + '; '.join(error_list)
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': err_msg}, status=400)
+            messages.error(request, err_msg)
             return redirect('car_details')
     else:
         form = CarDetailsForm(initial=initial_data)
@@ -668,6 +819,317 @@ def edit_car_detail(request, car_id):
         'car_id': car_id,
         'existing_logo': existing_logo,
         'countries': countries,
+    })
+
+
+@login_required
+def get_design_folders_api(request):
+    vehicle_id = request.GET.get('vehicle_id')
+    vehicle_info = None
+    direct_images_data = []
+    if vehicle_id:
+        try:
+            yr = YearRange.objects.select_related('sub_model__model__brand').get(id=vehicle_id)
+            brand_name = yr.sub_model.model.brand.name if yr.sub_model and yr.sub_model.model and yr.sub_model.model.brand else ''
+            model_name = yr.sub_model.model.name if yr.sub_model and yr.sub_model.model else ''
+            sub_name = yr.sub_model.name if yr.sub_model and yr.sub_model.name != '-' else ''
+            years = f"{yr.year_start}-{yr.year_end}" if yr.year_start and yr.year_end else ''
+            formatted_name = f"{brand_name} {model_name} {years} {sub_name}".strip()
+            vehicle_info = {
+                'id': yr.id,
+                'name': formatted_name,
+                'brand': brand_name,
+                'model': model_name,
+                'year_range': years,
+                'sub_model': sub_name,
+                'google_drive_url': yr.google_drive_url or '',
+            }
+            folders = PatternDesignFolder.objects.filter(vehicle=yr).prefetch_related('images').all()
+            direct_imgs = PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at')
+            for img in direct_imgs:
+                if img.image:
+                    direct_images_data.append({
+                        'id': img.id,
+                        'url': img.image.url,
+                        'title': img.title or os.path.basename(img.image.name),
+                        'file_size': img.file_size,
+                        'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+                    })
+        except YearRange.DoesNotExist:
+            folders = PatternDesignFolder.objects.none()
+    else:
+        folders = PatternDesignFolder.objects.prefetch_related('images').all()
+
+    data = []
+    for f in folders:
+        previews = [img.image.url for img in f.images.all()[:4] if img.image]
+        data.append({
+            'id': f.id,
+            'name': f.name,
+            'description': f.description,
+            'image_count': f.images.count(),
+            'created_at': f.created_at.strftime('%b %d, %Y'),
+            'preview_images': previews,
+            'vehicle_id': f.vehicle_id,
+        })
+    return JsonResponse({
+        'status': 'success',
+        'folders': data,
+        'direct_images': direct_images_data,
+        'vehicle': vehicle_info
+    })
+
+
+@login_required
+@require_POST
+def create_design_folder_api(request):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    name = (request.POST.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'status': 'error', 'message': _('Folder name is required.')}, status=400)
+    if len(name) > 150:
+        return JsonResponse({'status': 'error', 'message': _('Folder name must be 150 characters or fewer.')}, status=400)
+
+    vehicle_id = request.POST.get('vehicle_id')
+    vehicle = None
+    if vehicle_id:
+        try:
+            vehicle = YearRange.objects.get(id=vehicle_id)
+        except YearRange.DoesNotExist:
+            vehicle = None
+
+    folder = PatternDesignFolder.objects.create(
+        name=name,
+        vehicle=vehicle,
+        created_by=request.user
+    )
+    ActivityLog.objects.create(
+        user=request.user,
+        action='created',
+        object_type='Design Folder',
+        object_name=folder.name,
+    )
+    return JsonResponse({
+        'status': 'success',
+        'folder': {
+            'id': folder.id,
+            'name': folder.name,
+            'description': folder.description,
+            'image_count': 0,
+            'created_at': folder.created_at.strftime('%b %d, %Y'),
+            'preview_images': [],
+            'vehicle_id': folder.vehicle_id,
+        }
+    })
+
+
+@login_required
+def get_design_folder_detail_api(request, folder_id):
+    folder = get_object_or_404(PatternDesignFolder.objects.select_related('vehicle__sub_model__model__brand'), id=folder_id)
+    images = folder.images.all()
+    image_list = []
+    for img in images:
+        if img.image:
+            image_list.append({
+                'id': img.id,
+                'url': img.image.url,
+                'title': img.title or os.path.basename(img.image.name),
+                'file_size': img.file_size,
+                'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+            })
+
+    vehicle_info = None
+    if folder.vehicle:
+        yr = folder.vehicle
+        brand_name = yr.sub_model.model.brand.name if yr.sub_model and yr.sub_model.model and yr.sub_model.model.brand else ''
+        model_name = yr.sub_model.model.name if yr.sub_model and yr.sub_model.model else ''
+        sub_name = yr.sub_model.name if yr.sub_model and yr.sub_model.name != '-' else ''
+        years = f"{yr.year_start}-{yr.year_end}" if yr.year_start and yr.year_end else ''
+        formatted_name = f"{brand_name} {model_name} {years} {sub_name}".strip()
+        vehicle_info = {
+            'id': yr.id,
+            'name': formatted_name,
+        }
+
+    return JsonResponse({
+        'status': 'success',
+        'folder': {
+            'id': folder.id,
+            'name': folder.name,
+            'description': folder.description,
+            'image_count': len(image_list),
+            'created_at': folder.created_at.strftime('%b %d, %Y'),
+            'vehicle_id': folder.vehicle_id,
+            'vehicle': vehicle_info,
+        },
+        'images': image_list,
+    })
+
+
+@login_required
+@require_POST
+def rename_design_folder_api(request, folder_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    folder = get_object_or_404(PatternDesignFolder, id=folder_id)
+    name = (request.POST.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'status': 'error', 'message': _('Folder name is required.')}, status=400)
+    if len(name) > 150:
+        return JsonResponse({'status': 'error', 'message': _('Folder name must be 150 characters or fewer.')}, status=400)
+    folder.name = name
+    folder.save(update_fields=['name', 'updated_at'])
+    return JsonResponse({'status': 'success', 'name': folder.name})
+
+
+@login_required
+@require_POST
+def delete_design_folder_api(request, folder_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    folder = get_object_or_404(PatternDesignFolder, id=folder_id)
+    for img in folder.images.all():
+        if img.image:
+            try:
+                default_storage.delete(img.image.name)
+            except Exception:
+                pass
+    folder_name = folder.name
+    folder.delete()
+    ActivityLog.objects.create(
+        user=request.user,
+        action='deleted',
+        object_type='Design Folder',
+        object_name=folder_name,
+    )
+    return JsonResponse({'status': 'success'})
+
+
+@login_required
+@require_POST
+def upload_design_images_api(request, folder_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    folder = get_object_or_404(PatternDesignFolder, id=folder_id)
+    files = request.FILES.getlist('images')
+    if not files:
+        return JsonResponse({'status': 'error', 'message': _('No files uploaded.')}, status=400)
+
+    allowed_exts = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+    max_size = 30 * 1024 * 1024  # 30MB
+    created_images = []
+
+    for file_obj in files:
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        if ext not in allowed_exts:
+            continue
+        if file_obj.size > max_size:
+            continue
+
+        design_img = PatternDesignImage(
+            folder=folder,
+            image=file_obj,
+            title=file_obj.name,
+            file_size=file_obj.size,
+            uploaded_by=request.user,
+        )
+        design_img.save()
+        created_images.append({
+            'id': design_img.id,
+            'url': design_img.image.url,
+            'title': design_img.title,
+            'file_size': design_img.file_size,
+            'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+        })
+
+    return JsonResponse({
+        'status': 'success',
+        'uploaded_count': len(created_images),
+        'images': created_images,
+        'total_count': folder.images.count(),
+    })
+
+
+@login_required
+@require_POST
+def upload_vehicle_design_images_api(request, vehicle_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    vehicle = get_object_or_404(YearRange, id=vehicle_id)
+    files = request.FILES.getlist('images')
+    if not files:
+        return JsonResponse({'status': 'error', 'message': _('No files uploaded.')}, status=400)
+
+    allowed_exts = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+    max_size = 30 * 1024 * 1024  # 30MB
+    created_images = []
+
+    for file_obj in files:
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        if ext not in allowed_exts:
+            continue
+        if file_obj.size > max_size:
+            continue
+
+        design_img = PatternDesignImage(
+            vehicle=vehicle,
+            folder=None,
+            image=file_obj,
+            title=file_obj.name,
+            file_size=file_obj.size,
+            uploaded_by=request.user,
+        )
+        design_img.save()
+        created_images.append({
+            'id': design_img.id,
+            'url': design_img.image.url,
+            'title': design_img.title,
+            'file_size': design_img.file_size,
+            'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+        })
+
+    return JsonResponse({
+        'status': 'success',
+        'uploaded_count': len(created_images),
+        'images': created_images,
+        'total_count': PatternDesignImage.objects.filter(vehicle=vehicle, folder__isnull=True).count(),
+    })
+
+
+@login_required
+@require_POST
+def update_vehicle_google_drive_api(request, vehicle_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    vehicle = get_object_or_404(YearRange, id=vehicle_id)
+    drive_url = (request.POST.get('google_drive_url') or '').strip()
+    vehicle.google_drive_url = drive_url
+    vehicle.save(update_fields=['google_drive_url'])
+    return JsonResponse({
+        'status': 'success',
+        'google_drive_url': vehicle.google_drive_url
+    })
+
+
+@login_required
+@require_POST
+def delete_design_image_api(request, image_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    img = get_object_or_404(PatternDesignImage, id=image_id)
+    folder_id = img.folder_id
+    vehicle_id = img.vehicle_id
+    if img.image:
+        try:
+            default_storage.delete(img.image.name)
+        except Exception:
+            pass
+    img.delete()
+    remaining = PatternDesignImage.objects.filter(folder_id=folder_id).count() if folder_id else PatternDesignImage.objects.filter(vehicle_id=vehicle_id, folder__isnull=True).count()
+    return JsonResponse({
+        'status': 'success',
+        'remaining_count': remaining
     })
 
 
@@ -1659,7 +2121,9 @@ def approvals_list_view(request):
                 | Q(channel__name__icontains=search_query)
                 | Q(factory_reason__icontains=search_query)
                 | Q(factory_action_plan__icontains=search_query)
-                | Q(batch_order__icontains=search_query)
+                | Q(batch_no__icontains=search_query)
+                | Q(serial_no__icontains=search_query)
+                | Q(shipment_order_no__icontains=search_query)
             )
 
     # Priority filter
@@ -2132,6 +2596,92 @@ def export_complaints(request):
     return response
 
 
+CAR_CSV_HEADER_MAP = {
+    # Brand
+    'brand': 'brand',
+    'brand name': 'brand',
+    'brandname': 'brand',
+    'make': 'brand',
+    # Model
+    'model': 'model',
+    'model name': 'model',
+    'modelname': 'model',
+    # Sub Model
+    'sub model': 'sub_model',
+    'sub_model': 'sub_model',
+    'submodel': 'sub_model',
+    'sub model name': 'sub_model',
+    'submodel name': 'sub_model',
+    'variant': 'sub_model',
+    'trim': 'sub_model',
+    # Year Start
+    'year start': 'year_start',
+    'year_start': 'year_start',
+    'start year': 'year_start',
+    'start_year': 'year_start',
+    'year from': 'year_start',
+    'from year': 'year_start',
+    'from': 'year_start',
+    # Year End
+    'year end': 'year_end',
+    'year_end': 'year_end',
+    'end year': 'year_end',
+    'end_year': 'year_end',
+    'year to': 'year_end',
+    'to year': 'year_end',
+    'to': 'year_end',
+    # Seats
+    'seats': 'number_of_seats',
+    'seat': 'number_of_seats',
+    'number of seats': 'number_of_seats',
+    'number_of_seats': 'number_of_seats',
+    'no of seats': 'number_of_seats',
+    'no. of seats': 'number_of_seats',
+    'seat count': 'number_of_seats',
+    # Doors
+    'doors': 'number_of_doors',
+    'door': 'number_of_doors',
+    'number of doors': 'number_of_doors',
+    'number_of_doors': 'number_of_doors',
+    'no of doors': 'number_of_doors',
+    'no. of doors': 'number_of_doors',
+    'door count': 'number_of_doors',
+    # X / X Code
+    'x': 'x_code',
+    'x code': 'x_code',
+    'x_code': 'x_code',
+    'xcode': 'x_code',
+    'x codes': 'x_code',
+    'x-code': 'x_code',
+    'x-codes': 'x_code',
+    'x no': 'x_code',
+    'x number': 'x_code',
+    # Fitting Confirm / Fitting Confirmation
+    'fitting confirm': 'fitting_confirmation',
+    'fitting confirmation': 'fitting_confirmation',
+    'fitting_confirmation': 'fitting_confirmation',
+    'fitting_confirm': 'fitting_confirmation',
+    'fitting status': 'fitting_confirmation',
+    'fitting': 'fitting_confirmation',
+    # Layout Code
+    'layout code': 'layout_code',
+    'layout_code': 'layout_code',
+    'layout': 'layout_code',
+    'layoutcode': 'layout_code',
+    # Serial Number / #
+    '#': 'serial_number',
+    'sl no': 'serial_number',
+    'sl. no': 'serial_number',
+    'sl no.': 'serial_number',
+    'serial': 'serial_number',
+    'serial no': 'serial_number',
+    'serial no.': 'serial_number',
+    'serial number': 'serial_number',
+    's no': 'serial_number',
+    's.no': 'serial_number',
+}
+
+
 @login_required
 def upload_car_csv(request):
     if not _can_manage_catalog(request.user):
@@ -2139,95 +2689,281 @@ def upload_car_csv(request):
     if request.method == "POST":
         form = UploadCSVForm(request.POST, request.FILES)
         if form.is_valid():
-            required_headers = {
-                'brand', 'model', 'year_start', 'year_end',
-                'number_of_seats', 'number_of_doors', 'layout_code',
-            }
-            new_entries = []
-            duplicates = []
-            invalid_rows = []
-            seen_layout_codes = set()
+            uploaded_file = form.cleaned_data['csv_file']
             try:
+                uploaded_file.seek(0)
+                content_bytes = uploaded_file.read()
+                decoded_text = None
+                for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
+                    try:
+                        decoded_text = content_bytes.decode(encoding)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                if decoded_text is None:
+                    raise ValidationError(_('CSV must use UTF-8 or compatible text encoding.'))
+
+                lines = [l for l in decoded_text.splitlines() if l.strip()]
+                if not lines:
+                    raise ValidationError(_('The uploaded CSV file is empty.'))
+
+                reader = csv.reader(lines)
+                try:
+                    raw_headers = next(reader)
+                except StopIteration:
+                    raise ValidationError(_('The uploaded CSV file is empty.'))
+
+                # Match headers case-insensitively and ignore extra spaces
+                col_to_field = {}
+                for idx, h in enumerate(raw_headers):
+                    norm = re.sub(r'[\s_\-]+', ' ', (h or '').strip().lower())
+                    target_field = CAR_CSV_HEADER_MAP.get(norm)
+                    if target_field:
+                        col_to_field[idx] = target_field
+
+                total_rows = 0
+                new_entries = []
+                duplicates = []
+                invalid_rows = []
+
+                seen_batch_keys = set()
+                seen_layout_codes = set(YearRange.objects.values_list('layout_code', flat=True))
+
                 with transaction.atomic():
-                    for row_number, row in _iter_csv_rows(
-                        form.cleaned_data['csv_file'],
-                        required_headers,
-                    ):
-                        try:
-                            brand_name = row.get('brand', '')
-                            model_name = row.get('model', '')
-                            sub_model_name = row.get('sub_model', '') or '-'
-                            layout_code = row.get('layout_code', '')
-                            if not all([brand_name, model_name, layout_code]):
-                                raise ValueError('brand, model, and layout_code are required')
-                            if any(len(value) > 100 for value in [brand_name, model_name, sub_model_name, layout_code]):
-                                raise ValueError('text values must be 100 characters or fewer')
-                            year_start = _parse_csv_int(row.get('year_start'), 'year_start', 1900, 2100)
-                            year_end = _parse_csv_int(row.get('year_end'), 'year_end', 1900, 2100)
-                            seats = _parse_csv_int(row.get('number_of_seats'), 'number_of_seats', 1, 100)
-                            doors = _parse_csv_int(row.get('number_of_doors'), 'number_of_doors', 1, 20)
-                            if year_start > year_end:
-                                raise ValueError('year_end must be greater than or equal to year_start')
-                        except ValueError as exc:
-                            invalid_rows.append(f'row {row_number}: {exc}')
+                    for row_idx, row in enumerate(reader, start=2):
+                        if not row or not any(cell.strip() for cell in row):
                             continue
 
-                        if layout_code in seen_layout_codes or YearRange.objects.filter(layout_code=layout_code).exists():
-                            duplicates.append(layout_code)
-                            continue
-                        seen_layout_codes.add(layout_code)
+                        total_rows += 1
+                        if total_rows > MAX_CSV_IMPORT_ROWS:
+                            raise ValidationError(
+                                _('CSV files may contain at most %(count)s data rows.') % {'count': MAX_CSV_IMPORT_ROWS}
+                            )
 
-                        brand, brand_created = Brand.objects.get_or_create(name=brand_name)
-                        model, model_created = Model.objects.get_or_create(brand=brand, name=model_name)
-                        sub_model, sub_model_created = SubModel.objects.get_or_create(model=model, name=sub_model_name)
-                        has_overlap = YearRange.objects.filter(
-                            sub_model=sub_model,
-                            year_start__lte=year_end,
-                            year_end__gte=year_start,
-                        ).exists() or any(
-                            pending.sub_model_id == sub_model.id
-                            and pending.year_start <= year_end
-                            and pending.year_end >= year_start
-                            for pending in new_entries
+                        row_data = {}
+                        for col_idx, field_name in col_to_field.items():
+                            if col_idx < len(row):
+                                val = (row[col_idx] or '').strip()
+                                if val.lower() in ('null', 'undefined'):
+                                    val = ''
+                                row_data[field_name] = val
+                            else:
+                                row_data[field_name] = ''
+
+                        brand_name = row_data.get('brand', '')
+                        model_name = row_data.get('model', '')
+                        sub_model_name = row_data.get('sub_model', '')
+                        if sub_model_name.lower() in ('undefined', 'null', 'none', 'n/a', '-'):
+                            sub_model_name = ''
+                        layout_code = row_data.get('layout_code', '')
+                        x_code = row_data.get('x_code', '')
+                        if x_code.lower() in ('undefined', 'null', 'none'):
+                            x_code = ''
+                        fitting_confirmation = row_data.get('fitting_confirmation', '')
+                        if fitting_confirmation.lower() in ('undefined', 'null', 'none'):
+                            fitting_confirmation = ''
+
+                        # Mandatory validation (Brand & Model)
+                        if not brand_name:
+                            invalid_rows.append(f"Row {row_idx}: Brand is required.")
+                            continue
+                        if not model_name:
+                            invalid_rows.append(f"Row {row_idx}: Model is required.")
+                            continue
+                        if len(brand_name) > 100:
+                            invalid_rows.append(f"Row {row_idx}: Brand must be 100 characters or fewer.")
+                            continue
+                        if len(model_name) > 100:
+                            invalid_rows.append(f"Row {row_idx}: Model must be 100 characters or fewer.")
+                            continue
+                        if len(sub_model_name) > 100:
+                            invalid_rows.append(f"Row {row_idx}: Sub-Model must be 100 characters or fewer.")
+                            continue
+                        if len(layout_code) > 100:
+                            invalid_rows.append(f"Row {row_idx}: Layout Code must be 100 characters or fewer.")
+                            continue
+                        if len(x_code) > 100:
+                            invalid_rows.append(f"Row {row_idx}: X-Code must be 100 characters or fewer.")
+                            continue
+                        if len(fitting_confirmation) > 100:
+                            invalid_rows.append(f"Row {row_idx}: Fitting Confirmation must be 100 characters or fewer.")
+                            continue
+
+                        # Convert years, seats and doors to numbers only when valid
+                        year_start_raw = row_data.get('year_start', '')
+                        year_start = None
+                        if year_start_raw:
+                            try:
+                                year_start = int(year_start_raw)
+                                if not (1900 <= year_start <= 2100):
+                                    invalid_rows.append(f"Row {row_idx}: Year Start must be between 1900 and 2100.")
+                                    continue
+                            except (ValueError, TypeError):
+                                invalid_rows.append(f"Row {row_idx}: Year Start must be a valid whole number.")
+                                continue
+
+                        year_end_raw = row_data.get('year_end', '')
+                        year_end = None
+                        if year_end_raw:
+                            try:
+                                year_end = int(year_end_raw)
+                                if not (1900 <= year_end <= 2100):
+                                    invalid_rows.append(f"Row {row_idx}: Year End must be between 1900 and 2100.")
+                                    continue
+                            except (ValueError, TypeError):
+                                invalid_rows.append(f"Row {row_idx}: Year End must be a valid whole number.")
+                                continue
+
+                        if year_start is not None and year_end is not None and year_start > year_end:
+                            invalid_rows.append(f"Row {row_idx}: Year End must be greater than or equal to Year Start.")
+                            continue
+
+                        seats_raw = row_data.get('number_of_seats', '')
+                        seats = None
+                        if seats_raw:
+                            try:
+                                seats = int(seats_raw)
+                                if not (1 <= seats <= 100):
+                                    invalid_rows.append(f"Row {row_idx}: Seats must be between 1 and 100.")
+                                    continue
+                            except (ValueError, TypeError):
+                                invalid_rows.append(f"Row {row_idx}: Seats must be a valid whole number.")
+                                continue
+
+                        doors_raw = row_data.get('number_of_doors', '')
+                        doors = None
+                        if doors_raw:
+                            try:
+                                doors = int(doors_raw)
+                                if not (1 <= doors <= 20):
+                                    invalid_rows.append(f"Row {row_idx}: Doors must be between 1 and 20.")
+                                    continue
+                            except (ValueError, TypeError):
+                                invalid_rows.append(f"Row {row_idx}: Doors must be a valid whole number.")
+                                continue
+
+                        # Prevent duplicate records if the same CSV is uploaded again
+                        batch_key = (
+                            brand_name.strip().casefold(),
+                            model_name.strip().casefold(),
+                            sub_model_name.strip().casefold(),
+                            year_start,
+                            year_end,
+                            x_code.strip().casefold(),
                         )
-                        if has_overlap:
-                            invalid_rows.append(f'row {row_number}: year range overlaps an existing row')
+                        if batch_key in seen_batch_keys:
+                            duplicates.append(f"Row {row_idx}: Duplicate entry in file ({brand_name} {model_name} {sub_model_name})")
                             continue
+
+                        if layout_code and layout_code in seen_layout_codes:
+                            duplicates.append(f"Row {row_idx}: Layout code '{layout_code}' already exists")
+                            continue
+
+                        # Check if matches existing record in DB
+                        existing_brand = Brand.objects.filter(name__iexact=brand_name).first()
+                        existing_model = Model.objects.filter(brand=existing_brand, name__iexact=model_name).first() if existing_brand else None
+                        existing_sub = SubModel.objects.filter(model=existing_model, name__iexact=sub_model_name).first() if existing_model else None
+
+                        if existing_sub:
+                            yr_qs = YearRange.objects.filter(
+                                sub_model=existing_sub,
+                                year_start=year_start,
+                                year_end=year_end,
+                            )
+                            if x_code:
+                                yr_exists = yr_qs.filter(Q(x_code__iexact=x_code) | Q(x_code='')).exists()
+                            else:
+                                yr_exists = yr_qs.exists()
+
+                            if yr_exists:
+                                yr_desc = f"{brand_name} {model_name} {sub_model_name}".strip()
+                                if year_start or year_end:
+                                    yr_desc += f" ({year_start or ''}-{year_end or ''})"
+                                duplicates.append(f"Row {row_idx}: Vehicle record already exists ({yr_desc})")
+                                seen_batch_keys.add(batch_key)
+                                continue
+
+                        # Resolve / create Brand, Model, SubModel (case-insensitive reuse)
+                        brand = existing_brand or Brand.objects.create(name=brand_name)
+                        model = existing_model or Model.objects.create(brand=brand, name=model_name)
+                        sub_model = existing_sub or SubModel.objects.create(model=model, name=sub_model_name)
+
+                        # Assign unique layout_code
+                        if not layout_code:
+                            base = x_code.strip()
+                            if base and base not in seen_layout_codes and not YearRange.objects.filter(layout_code=base).exists():
+                                layout_code = base
+                            else:
+                                layout_code = f"YR-{uuid.uuid4().hex[:8].upper()}"
+                                while layout_code in seen_layout_codes or YearRange.objects.filter(layout_code=layout_code).exists():
+                                    layout_code = f"YR-{uuid.uuid4().hex[:8].upper()}"
+
+                        seen_layout_codes.add(layout_code)
+                        seen_batch_keys.add(batch_key)
+
+                        serial_number_raw = row_data.get('serial_number', '').strip()
+                        serial_number = format_pattern_serial(serial_number_raw) if serial_number_raw else ''
 
                         new_entries.append(YearRange(
                             sub_model=sub_model,
+                            serial_number=serial_number,
                             year_start=year_start,
                             year_end=year_end,
                             number_of_seats=seats,
                             number_of_doors=doors,
                             layout_code=layout_code,
+                            x_code=x_code,
+                            fitting_confirmation=fitting_confirmation,
                         ))
 
-                    YearRange.objects.bulk_create(new_entries)
-                    ActivityLog.objects.create(
-                        user=request.user,
-                        action='uploaded',
-                        object_type='Car CSV',
-                        object_name=f'Uploaded {len(new_entries)} new car records via CSV file',
-                    )
+                    if new_entries:
+                        YearRange.objects.bulk_create(new_entries)
+                        ActivityLog.objects.create(
+                            user=request.user,
+                            action='uploaded',
+                            object_type='Car CSV',
+                            object_name=f'Uploaded {len(new_entries)} new car records via CSV file',
+                        )
+
             except ValidationError as exc:
-                form.add_error('csv_file', exc)
+                err_msg = str(exc.message if hasattr(exc, 'message') else exc)
+                messages.error(request, err_msg)
+                return redirect('car_details')
             except IntegrityError:
                 logger.exception('Vehicle CSV import conflict for user %s', request.user.pk)
-                form.add_error('csv_file', _('The import conflicted with another update. Please retry.'))
-            else:
-                if duplicates:
-                    preview = ', '.join(duplicates[:10])
-                    messages.warning(request, _('Skipped %(count)s duplicate layout codes: %(preview)s') % {'count': len(duplicates), 'preview': preview})
-                if invalid_rows:
-                    preview = '; '.join(invalid_rows[:5])
-                    messages.warning(request, _('Skipped %(count)s invalid rows. %(preview)s') % {'count': len(invalid_rows), 'preview': preview})
-                messages.success(request, ngettext(
-                    'Successfully added %(count)s record.',
-                    'Successfully added %(count)s records.',
-                    len(new_entries),
-                ) % {'count': len(new_entries)})
+                messages.error(request, _('The import conflicted with another database update. Please retry.'))
                 return redirect('car_details')
+
+            imported_count = len(new_entries)
+            duplicates_count = len(duplicates)
+            invalid_count = len(invalid_rows)
+
+            summary_parts = [
+                _("CSV Import Results:"),
+                f"• Total CSV rows: {total_rows}",
+                f"• Successfully imported: {imported_count}",
+                f"• Duplicates skipped: {duplicates_count}",
+                f"• Invalid rows skipped: {invalid_count}",
+            ]
+            summary_text = "\n".join(summary_parts)
+
+            if imported_count > 0 and invalid_count == 0:
+                messages.success(request, summary_text)
+            elif imported_count > 0 and invalid_count > 0:
+                messages.warning(request, summary_text)
+            elif total_rows > 0 and duplicates_count == total_rows:
+                messages.info(request, summary_text)
+            else:
+                messages.error(request, summary_text)
+
+            if invalid_rows:
+                error_header = _("Error reason for each failed row:\n")
+                error_list = "\n".join([f"• {err}" for err in invalid_rows[:30]])
+                if len(invalid_rows) > 30:
+                    error_list += f"\n• ... and {len(invalid_rows) - 30} more failed rows."
+                messages.error(request, error_header + error_list)
+
+            return redirect('car_details')
     else:
         form = UploadCSVForm()
 

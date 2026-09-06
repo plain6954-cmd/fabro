@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -140,7 +140,7 @@
                         toast.classList.add('is-visible');
                         toast.setAttribute('aria-hidden', 'false');
 
-                        // Hover out & fade out after 2.4 seconds
+                        // Hover out & fade out after 3 seconds
                         setTimeout(() => {
                             toast.classList.remove('is-visible');
                             toast.classList.add('is-hiding');
@@ -149,7 +149,7 @@
                                 toast.setAttribute('aria-hidden', 'true');
                                 if (btn) btn.disabled = false;
                             }, 320);
-                        }, 2400);
+                        }, 3000);
                     } else {
                         form.submit();
                     }

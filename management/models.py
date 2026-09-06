@@ -196,21 +196,122 @@ class SubModel(models.Model):
     def __str__(self):
         return self.name
 
+def get_country_letter(country):
+    if not country:
+        return 'S'  # Default Saudi Arabia
+    name = getattr(country, 'name', str(country)).strip()
+    if not name or name == '-':
+        return 'S'
+    clean = name.lower()
+    if clean in ('ksa', 'saudi arabia', 'saudi', 'kingdom of saudi arabia'):
+        return 'S'
+    if clean in ('uae', 'united arab emirates'):
+        return 'U'
+    if clean in ('usa', 'united states', 'united states of america'):
+        return 'U'
+    if clean in ('india',):
+        return 'I'
+    for ch in name:
+        if ch.isalpha():
+            return ch.upper()
+    return 'S'
+
+
+def format_pattern_serial(num, country=None):
+    letter = get_country_letter(country)
+    if isinstance(num, str):
+        val_str = num.strip()
+        if val_str:
+            import re
+            digits = re.findall(r'\d+', val_str)
+            if digits:
+                int_val = int(digits[0])
+                match_letter = re.match(r'^([A-Za-z])', val_str)
+                if match_letter and not country:
+                    letter = match_letter.group(1).upper()
+                return f"{letter}{int_val:04d}"
+    try:
+        int_val = int(num)
+        return f"{letter}{int_val:04d}"
+    except (ValueError, TypeError):
+        return f"{letter}0001"
+
+
+def get_next_pattern_serial(country=None, exclude_id=None):
+    letter = get_country_letter(country)
+    qs = YearRange.objects.filter(serial_number__startswith=letter)
+    if exclude_id:
+        qs = qs.exclude(pk=exclude_id)
+    max_num = 0
+    import re
+    for s in qs.values_list('serial_number', flat=True):
+        digits = re.findall(r'\d+', s)
+        if digits:
+            val = int(digits[0])
+            if val > max_num:
+                max_num = val
+    return f"{letter}{max_num + 1:04d}"
+
+
 class YearRange(models.Model):
     sub_model = models.ForeignKey(SubModel, on_delete=models.CASCADE, related_name="year_ranges")
-    year_start = models.PositiveSmallIntegerField()
-    year_end = models.PositiveSmallIntegerField()
+    serial_number = models.CharField(max_length=50, blank=True, default='', verbose_name=_('Serial Number'))
+    year_start = models.PositiveSmallIntegerField(null=True, blank=True)
+    year_end = models.PositiveSmallIntegerField(null=True, blank=True)
     number_of_seats = models.PositiveSmallIntegerField(null=True, blank=True)
     number_of_doors = models.PositiveSmallIntegerField(null=True, blank=True)
-    layout_code = models.CharField(max_length=100, unique=True)
+    layout_code = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    x_code = models.CharField(max_length=100, blank=True, default='', verbose_name=_('X-Code'))
+    fitting_confirmation = models.CharField(max_length=100, blank=True, default='', verbose_name=_('Fitting Confirmation'))
     vehicle_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_vehicle_country')
     measurement_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_measurement_country')
+    google_drive_url = models.URLField(max_length=500, blank=True, default='', verbose_name=_('Google Drive URL'))
 
     class Meta:
         unique_together = ('sub_model', 'year_start', 'year_end')
 
+    def save(self, *args, **kwargs):
+        country = self.vehicle_country or self.measurement_country
+        expected_letter = get_country_letter(country)
+        clean_serial = (self.serial_number or '').strip()
+
+        needs_auto = False
+        if not clean_serial or clean_serial.lower() in ('auto', '-', 'none', 'null'):
+            needs_auto = True
+        else:
+            import re
+            match = re.match(r'^([A-Za-z])', clean_serial)
+            if not match or match.group(1).upper() != expected_letter:
+                needs_auto = True
+            else:
+                formatted = format_pattern_serial(clean_serial, country)
+                if YearRange.objects.filter(serial_number=formatted).exclude(pk=self.pk).exists():
+                    needs_auto = True
+                else:
+                    self.serial_number = formatted
+
+        if needs_auto:
+            self.serial_number = get_next_pattern_serial(country, exclude_id=self.pk)
+
+        if not self.layout_code:
+            base = (self.x_code or '').strip()
+            if base and not YearRange.objects.filter(layout_code=base).exclude(pk=self.pk).exists():
+                self.layout_code = base
+            else:
+                import uuid
+                self.layout_code = f"YR-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f" {self.year_start} - {self.year_end}"
+        start = self.year_start if self.year_start is not None else ''
+        end = self.year_end if self.year_end is not None else ''
+        if start and end:
+            return f" {start} - {end}"
+        elif start:
+            return f" {start}"
+        elif end:
+            return f" {end}"
+        return ""
     
 class SKU(models.Model):
     code = models.CharField(max_length=100, unique=True)
@@ -395,11 +496,26 @@ class Complaint(models.Model):
     status = models.CharField(max_length=10, choices=[('Open', _('Open')), ('Closed', _('Closed')), ('On Hold', _('On Hold'))], default='Open', db_index=True)
     priority = models.CharField(max_length=10, choices=[('High', _('High')), ('Medium', _('Medium')), ('Low', _('Low'))], default='Medium', db_index=True)
     complaint_description = models.TextField(default="Not Provided")
-    batch_order = models.CharField(max_length=100)
+    serial_no = models.CharField(max_length=100, blank=False, default='')
+    batch_no = models.CharField(max_length=100, blank=True, default='')
+    shipment_order_no = models.CharField(max_length=100, blank=True, null=True, default='')
     justification_from_factory = models.TextField(blank=True, null=True, default="Not Provided")
     action_from_factory = models.TextField(blank=True, null=True,  default="Not Provided")
     cad_date = models.DateField(auto_now_add=False, null=True, blank=True)
     updated_order_no = models.CharField(max_length=100, blank=True, null=True)
+
+    def __init__(self, *args, **kwargs):
+        if 'batch_order' in kwargs and 'batch_no' not in kwargs:
+            kwargs['batch_no'] = kwargs.pop('batch_order')
+        super().__init__(*args, **kwargs)
+
+    @property
+    def batch_order(self):
+        return self.batch_no
+
+    @batch_order.setter
+    def batch_order(self, value):
+        self.batch_no = value
     factory_reason = models.TextField(blank=True, null=True)
     factory_action_plan = models.TextField(blank=True, null=True)
     factory_priority = models.CharField(max_length=10, choices=FactoryPriorities.CHOICES, blank=True)
@@ -679,3 +795,47 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"Chat from {self.sender.username} to {self.recipient.username} at {self.created_at}"
+
+
+class PatternDesignFolder(models.Model):
+    name = models.CharField(max_length=150)
+    description = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    vehicle = models.ForeignKey('YearRange', on_delete=models.CASCADE, null=True, blank=True, related_name='design_folders')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='design_folders')
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def image_count(self):
+        return self.images.count()
+
+    def get_preview_images(self):
+        return self.images.all()[:4]
+
+
+class PatternDesignImage(models.Model):
+    folder = models.ForeignKey(PatternDesignFolder, on_delete=models.CASCADE, null=True, blank=True, related_name='images')
+    vehicle = models.ForeignKey(YearRange, on_delete=models.CASCADE, null=True, blank=True, related_name='direct_design_images')
+    image = models.ImageField(upload_to='pattern_designs/%Y/%m/')
+    title = models.CharField(max_length=255, blank=True, default='')
+    file_size = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_design_images')
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        if self.title:
+            return self.title
+        if self.folder:
+            return f"Design Image {self.pk} in {self.folder.name}"
+        if self.vehicle:
+            return f"Design Image {self.pk} for Vehicle {self.vehicle_id}"
+        return f"Design Image {self.pk}"

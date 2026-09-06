@@ -1,13 +1,13 @@
 {% load static i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <title>{% translate "Logged Out" %}</title>
-    <link href="{% static 'css/fabro-global.css' %}?v=20260831-language-menu" rel="stylesheet">
+    <link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
     <script>window.FABRO_LANGUAGE = '{{ LANGUAGE_CODE|default:"en"|escapejs }}';</script>
     <script src="{% url 'javascript-catalog' %}"></script>
-    <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-django-i18n"></script>
+    <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
     <style>
         body {
             background-color: #121214;

@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -560,7 +560,7 @@
                                                 {% csrf_token %}
                                                 <button type="submit" class="action-btn delete"
                                                         title="Delete {{ setting.name }}"
-                                                        onclick="return confirm('Are you sure you want to delete &quot;{{ setting.name|escapejs }}&quot;?');">
+                                                        onclick="return confirm(window.FabroI18n.interpolate(window.FabroI18n.gettext('Are you sure you want to delete %(name)s?'), {name: '{{ setting.name|escapejs }}'}));">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>

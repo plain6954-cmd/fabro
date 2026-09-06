@@ -31,7 +31,7 @@ test('master settings supports add, edit modal and delete', async ({ page }) => 
   await diagnostics.assertClean();
 });
 
-test('master settings translates its controls and built-in values', async ({ page }) => {
+test('master settings translates interface controls but preserves database values', async ({ page }) => {
   await page.goto(routes.master);
 
   try {
@@ -47,7 +47,7 @@ test('master settings translates its controls and built-in values', async ({ pag
     await expect(addSettingForm.getByText('الفئة', { exact: true })).toBeVisible();
     await expect(addSettingForm.getByText('الاسم', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'إضافة الإعداد' })).toBeVisible();
-    await expect(page.getByText('واتساب', { exact: true })).toBeVisible();
+    await expect(page.getByText('WhatsApp', { exact: true })).toBeVisible();
   } finally {
     if (!page.isClosed()) {
       await page.locator('.profile-trigger').click();

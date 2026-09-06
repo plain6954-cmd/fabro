@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -842,7 +842,7 @@
                     <i class="fas fa-barcode"></i>
                     {% translate "SKU Management" %}
                 </h1>
-                <p class="page-subtitle" style="margin-bottom: 0;">{% translate "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities" %}</p>
+                <p class="page-subtitle" style="margin-bottom: 0;">{% translate "Manage product SKUs and inventory with inline editing & bulk upload capabilities" %}</p>
             </div>
             <div class="header-actions" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
                 {% if can_manage_catalog %}
@@ -921,7 +921,7 @@
                                 <i class="fas fa-cloud-upload-alt"></i>
                             </div>
                             <div class="file-upload-text" style="font-size: 0.85rem; color: var(--dark-text);">
-                                <strong>{% translate "Click to upload" %}</strong> {% translate "or drag and drop" %}<br>{% translate "CSV file with code &amp; description" %}
+                                <strong>{% translate "Click to upload" %}</strong> {% translate "or drag and drop" %}<br>{% translate "CSV file with code & description" %}
                             </div>
                             {{ upload_form.csv_file }}
                         </div>
@@ -1028,7 +1028,7 @@
                                         <form method="post" action="{% url 'delete_sku' sku.id %}" style="display:inline;">
                                             {% csrf_token %}
                                             <button type="submit" class="action-btn delete" title="{% translate "Delete" %}"
-                                                    onclick="return confirm('Are you sure you want to delete this SKU?');">
+                                                    onclick="return confirm(window.FabroI18n.gettext('Are you sure you want to delete this SKU?'));">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -1079,15 +1079,15 @@
                 {% if page_obj and page_obj.has_other_pages %}
                 <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "&laquo; First" %}</a>
+                        <a href="?page=1{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">&laquo; {% translate "First" %}</a>
                         <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "Prev" %}</a>
                     {% endif %}
 
-                    <span style="font-size: 0.875rem; color: var(--dark-text); font-weight: 500; margin: 0 0.5rem;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <span style="font-size: 0.875rem; color: var(--dark-text); font-weight: 500; margin: 0 0.5rem;">{% blocktranslate with page=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
 
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "Next" %}</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "Last &raquo;" %}</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "Last" %} &raquo;</a>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -1487,10 +1487,10 @@
             const searchLabel = document.getElementById('sku-search-field-label');
             const searchOptions = document.querySelectorAll('#sku-search-options .search-option');
             const searchLabels = {
-                code: 'SKU Code',
-                description: 'Description',
-                region: 'Region',
-                all: 'All Fields'
+                code: window.FabroI18n.gettext('SKU Code'),
+                description: window.FabroI18n.gettext('Description'),
+                region: window.FabroI18n.gettext('Region'),
+                all: window.FabroI18n.gettext('All Fields')
             };
 
             function refreshSearchChoice() {
@@ -1542,6 +1542,18 @@
                     setSuggestionsOpen(false);
                 }
             });
+
+            const feedbackMessages = document.querySelectorAll('.feedback-message');
+            if (feedbackMessages.length > 0) {
+                setTimeout(() => {
+                    feedbackMessages.forEach(msg => {
+                        msg.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                        msg.style.opacity = '0';
+                        msg.style.transform = 'translateY(-6px)';
+                        setTimeout(() => msg.remove(), 400);
+                    });
+                }, 3000);
+            }
         });
     </script>
     </div>

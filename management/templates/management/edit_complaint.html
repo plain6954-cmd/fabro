@@ -1,7 +1,7 @@
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -515,20 +515,20 @@
 
     document.getElementById('id_brand').addEventListener('change', function () {
         const brandId = this.value;
-        loadDependentData(`/api/models/${brandId}/`, 'id_model', 'Select Model');
+        loadDependentData(`/api/models/${brandId}/`, 'id_model', window.FabroI18n.gettext('Select Model'));
         document.getElementById('id_sub_model').disabled = true;
         document.getElementById('id_year').disabled = true;
     });
 
     document.getElementById('id_model').addEventListener('change', function () {
         const modelId = this.value;
-        loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
+        loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', window.FabroI18n.gettext('Select Sub-Model (Optional)'));
         document.getElementById('id_year').disabled = true;
     });
 
     document.getElementById('id_sub_model').addEventListener('change', function () {
         const subModelId = this.value;
-        loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', 'Select Year');
+        loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', window.FabroI18n.gettext('Select Year'));
     });
 
 
@@ -543,7 +543,7 @@
                     editComplaintUploadArea.style.borderColor = 'var(--success-color)';
                     editComplaintUploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
                     document.querySelector('.file-upload-text').innerHTML = 
-                        `<strong>${files.length} file(s) selected</strong><br>Ready to upload`;
+                        `<strong>${window.FabroI18n.interpolate(window.FabroI18n.gettext('%(count)s file(s) selected'), {count: files.length})}</strong><br>${window.FabroI18n.gettext('Ready to upload')}`;
                 }
             });
         }

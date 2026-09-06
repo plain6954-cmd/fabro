@@ -48,15 +48,31 @@ def validate_csv_upload(csv_file):
     return csv_file
 
 class CarDetailsForm(forms.Form):
-    layout_code = forms.CharField(label=_("Layout Code"), max_length=100)
+    serial_number = forms.CharField(label=_("Serial Number"), max_length=50, required=False)
+    layout_code = forms.CharField(label=_("Layout Code"), max_length=100, required=False)
+    x_code = forms.CharField(label=_("X-Code"), max_length=100, required=False)
     brand_name = forms.CharField(label=_("Brand Name"), max_length=100)
     brand_logo = forms.ImageField(label=_("Brand Logo"), required=False)
     model_name = forms.CharField(label=_("Model Name"), max_length=100)
     sub_model_name = forms.CharField(label=_("Sub-Model Name"), max_length=100, required=False,)
-    year_start = forms.IntegerField(label=_("Year Start"), min_value=1900, max_value=2100)
-    year_end = forms.IntegerField(label=_("Year End"), min_value=1900, max_value=2100)
-    number_of_seats = forms.IntegerField(label=_("Number of Seats"), min_value=1, max_value=100)
-    number_of_doors = forms.IntegerField(label=_("Number of Doors"), min_value=1, max_value=20)
+    year_start = forms.IntegerField(label=_("Year Start"), min_value=1900, max_value=2100, required=False)
+    year_end = forms.IntegerField(label=_("Year End"), min_value=1900, max_value=2100, required=False)
+    number_of_seats = forms.IntegerField(label=_("Number of Seats"), min_value=1, max_value=100, required=False)
+    number_of_doors = forms.IntegerField(label=_("Number of Doors"), min_value=1, max_value=20, required=False)
+    FITTING_CONFIRMATION_CHOICES = [
+        ('', _('Select Fitting...')),
+        ('Confirmed', _('Confirmed')),
+        ('Pending', _('Pending')),
+        ('Rework', _('Rework')),
+        ('Sampling', _('Sampling')),
+    ]
+
+    fitting_confirmation = forms.CharField(
+        label=_("Fitting Confirmation"),
+        max_length=100,
+        required=False,
+        widget=forms.Select(choices=FITTING_CONFIRMATION_CHOICES, attrs={'class': 'form-select'})
+    )
     vehicle_country = forms.ModelChoiceField(
         label=_("Vehicle Country"),
         queryset=MasterSetting.objects.filter(category='Country'),
@@ -73,6 +89,7 @@ class CarDetailsForm(forms.Form):
     )
     
     widgets = {
+        'serial_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': _('e.g. S0001')}),
         'layout_code': forms.TextInput(attrs={'class': 'form-input'}),
         'brand_name': forms.TextInput(attrs={'class': 'form-input'}),
         'brand_logo': forms.ClearableFileInput(attrs={'class': 'form-input'}),
@@ -82,13 +99,15 @@ class CarDetailsForm(forms.Form):
         'year_end': forms.NumberInput(attrs={'class': 'form-input'}),
         'number_of_seats': forms.NumberInput(attrs={'class': 'form-input'}),
         'number_of_doors': forms.NumberInput(attrs={'class': 'form-input'}),
+        'x_code': forms.TextInput(attrs={'class': 'form-input'}),
+        'fitting_confirmation': forms.Select(choices=FITTING_CONFIRMATION_CHOICES, attrs={'class': 'form-select'}),
         'vehicle_country': forms.Select(attrs={'class': 'form-select'}),
         'measurement_country': forms.Select(attrs={'class': 'form-select'}),
     }
 
     def clean(self):
         cleaned_data = super().clean()
-        for field in ['brand_name', 'model_name', 'sub_model_name', 'layout_code']:
+        for field in ['serial_number', 'brand_name', 'model_name', 'sub_model_name', 'layout_code', 'x_code', 'fitting_confirmation']:
             if field in cleaned_data and isinstance(cleaned_data[field], str):
                 cleaned_data[field] = cleaned_data[field].strip()
         year_start = cleaned_data.get("year_start")
@@ -132,8 +151,9 @@ class ComplaintForm(forms.ModelForm):
         model = Complaint
         fields = [
             'date', 'channel', 'case_sub_category', 'series', 'material',
-            'brand', 'model', 'sub_model', 'year', 'status','priority','sku', 'updated_order_no',
-            'complaint_description', 'batch_order'
+            'brand', 'model', 'sub_model', 'year', 'status', 'priority', 'sku',
+            'serial_no', 'batch_no', 'shipment_order_no',
+            'complaint_description'
         ]
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
@@ -147,18 +167,48 @@ class ComplaintForm(forms.ModelForm):
             'year': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
-            'updated_order_no': forms.TextInput(attrs={'class': 'form-input'}),
             'sku': forms.Select(attrs={'class': 'form-select'}),
+            'serial_no': forms.TextInput(attrs={'class': 'form-input', 'placeholder': _('Enter serial number'), 'required': 'required'}),
+            'batch_no': forms.TextInput(attrs={'class': 'form-input', 'placeholder': _('Enter batch number (optional)')}),
+            'shipment_order_no': forms.TextInput(attrs={'class': 'form-input', 'placeholder': _('Enter shipment or order number (optional)')}),
             'complaint_description': forms.Textarea(attrs={'rows': 3, 'class': 'form-textarea'}),
-            'batch_order': forms.TextInput(attrs={'class': 'form-input'}),
-
         }
+        labels = {
+            'serial_no': _('Serial No'),
+            'batch_no': _('Batch No'),
+            'shipment_order_no': _('Shipment/Order No'),
+        }
+
+    def clean_serial_no(self):
+        val = self.cleaned_data.get('serial_no')
+        if val is not None:
+            val = val.strip()
+        if not val:
+            raise forms.ValidationError(_('Serial No is required.'))
+        return val
+
+    def clean_batch_no(self):
+        val = self.cleaned_data.get('batch_no')
+        return val.strip() if val else ''
+
+    def clean_shipment_order_no(self):
+        val = self.cleaned_data.get('shipment_order_no')
+        return val.strip() if val else ''
+
+    def clean_complaint_description(self):
+        val = self.cleaned_data.get('complaint_description')
+        if val is not None:
+            val = val.strip()
+        if not val or val.lower() == 'not provided':
+            raise forms.ValidationError(_('Complaint description is required.'))
+        return val
 
     def __init__(self, *args, complaint_type=None, **kwargs):
         super().__init__(*args, **kwargs)
         today = date.today()
         if not self.instance.pk:
             self.fields['date'].initial = today
+            self.fields['complaint_description'].initial = ''
         self.fields['date'].disabled = True
         if not self.instance.pk:
             self.fields['status'].initial = 'Open'
@@ -183,14 +233,19 @@ class ComplaintForm(forms.ModelForm):
         self.fields['case_sub_category'].queryset = type_queryset.order_by('name')
         self.fields['case_sub_category'].empty_label = _('Select Type')
 
-        optional_fields = [
-            'channel', 'case_sub_category', 'series', 'material',
-            'brand', 'model', 'sub_model', 'year', 'sku', 'updated_order_no',
-            'complaint_description', 'batch_order'
+        mandatory_fields = [
+            'priority', 'case_sub_category', 'series', 'material',
+            'brand', 'model', 'sub_model', 'year', 'sku',
+            'serial_no', 'complaint_description'
         ]
-        for field_name in optional_fields:
+        for field_name in mandatory_fields:
             if field_name in self.fields:
-                self.fields[field_name].required = False
+                self.fields[field_name].required = True
+
+        self.fields['batch_no'].required = False
+        self.fields['shipment_order_no'].required = False
+        if 'channel' in self.fields:
+            self.fields['channel'].required = False
 
         if 'brand' in self.data:
             try:

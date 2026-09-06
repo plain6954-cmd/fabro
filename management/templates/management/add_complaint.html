@@ -3,7 +3,7 @@
 <template data-fabro-page-head>
 {% else %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
 {% endif %}
     <meta charset="UTF-8">
@@ -131,13 +131,12 @@
         .form-container {
             background: var(--dark-surface);
             border-radius: var(--border-radius);
-            padding: 1rem;
+            padding: 1.25rem;
             box-shadow: var(--shadow);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            display: grid;
-            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(220px, 0.8fr) minmax(220px, 0.8fr);
-            gap: 1rem;
-            align-items: start;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
         }
 
         body.light-mode .form-container {
@@ -146,10 +145,6 @@
         }
 
         .complaint-type-indicator {
-            grid-column: 1 / -1;
-            position: sticky;
-            top: var(--complaint-type-sticky-top, 5.5rem);
-            z-index: 30;
             display: flex;
             align-items: center;
             gap: 0.8rem;
@@ -236,70 +231,60 @@
             color: var(--light-text);
         }
 
-        .form-grid {
-            display: contents;
-        }
-
-        .form-section {
-            background: var(--dark-card);
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            min-height: 0;
-        }
-
-        body.light-mode .form-section {
-            background: var(--light-card);
-            border-color: #f1f5f9;
-        }
-
-        .section-title {
-            font-size: 0.98rem;
-            font-weight: 600;
-            color: var(--primary-color);
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        /* Compact Responsive Grid */
+        .complaint-form-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            align-items: start;
         }
 
         .form-group {
-            margin-bottom: 0.72rem;
-        }
-
-        .form-group:last-child {
             margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
         }
 
         .form-label {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
             font-weight: 600;
             color: var(--dark-text);
             margin-bottom: 0.32rem;
             font-size: 0.78rem;
+            line-height: 1.3;
         }
 
         body.light-mode .form-label {
             color: var(--light-text);
         }
 
+        .required-indicator {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
         .form-input,
         .form-select,
-        .form-textarea {
+        .date-input {
             width: 100%;
-            min-height: 2.45rem;
-            padding: 0.55rem 0.75rem;
+            height: 42px;
+            min-height: 42px;
+            padding: 0.5rem 0.75rem;
             border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             background-color: var(--dark-bg);
             color: var(--dark-text);
             font-size: 0.82rem;
             transition: all 0.2s ease;
+            box-sizing: border-box;
         }
 
         body.light-mode .form-input,
         body.light-mode .form-select,
-        body.light-mode .form-textarea {
+        body.light-mode .date-input {
             background-color: var(--light-surface);
             color: var(--light-text);
             border-color: #e2e8f0;
@@ -307,65 +292,30 @@
 
         .form-input:focus,
         .form-select:focus,
-        .form-textarea:focus {
+        .date-input:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
+        .form-input.is-invalid,
+        .form-select.is-invalid {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        }
+
+        .field-error-message {
+            color: #ef4444;
+            font-size: 0.74rem;
+            font-weight: 600;
+            margin-top: 0.28rem;
+            line-height: 1.25;
+        }
+
         .form-textarea {
-            resize: vertical;
-            min-height: 4.25rem;
-        }
-
-        .basic-info-card {
-            grid-column: 1;
-        }
-
-        .contact-info-card {
-            grid-column: 2;
-        }
-
-        .vehicle-info-card {
-            grid-column: 3;
-        }
-
-        .case-details-card {
-            grid-column: 4;
-        }
-
-        .complaint-details-card {
-            grid-column: 1 / 3;
-            margin-top: -9.35rem;
-            margin-bottom: 0 !important;
-        }
-
-        .media-files-card {
-            grid-column: 3 / 5;
-            margin-bottom: 0 !important;
-        }
-
-        .complaint-details-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem;
-        }
-
-        .complaint-details-grid .full-span {
-            grid-column: 1 / -1;
-        }
-
-        .complaint-details-grid .form-textarea {
-            min-height: 4.1rem;
-        }
-
-        .date-input-wrapper {
-            position: relative;
-        }
-
-        .date-input {
             width: 100%;
-            min-height: 2.45rem;
+            min-height: 110px;
+            height: 140px;
             padding: 0.55rem 0.75rem;
             border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
@@ -373,19 +323,52 @@
             color: var(--dark-text);
             font-size: 0.82rem;
             transition: all 0.2s ease;
-            cursor: pointer;
+            resize: vertical;
+            box-sizing: border-box;
         }
 
-        body.light-mode .date-input {
+        body.light-mode .form-textarea {
             background-color: var(--light-surface);
             color: var(--light-text);
             border-color: #e2e8f0;
         }
 
-        .date-input:focus {
+        .form-textarea:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-subsection-heading {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--dark-text);
+            padding-top: 0.25rem;
+            padding-bottom: 0.35rem;
+            margin-top: 0.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.light-mode .form-subsection-heading {
+            color: var(--light-text);
+            border-bottom-color: #e2e8f0;
+        }
+
+        .form-subsection-heading i {
+            color: var(--primary-color);
+            font-size: 0.95rem;
+        }
+
+        .col-span-half {
+            grid-column: span 2;
+        }
+
+        .date-input-wrapper {
+            position: relative;
         }
 
         .date-icon {
@@ -403,9 +386,10 @@
 
         .file-upload-area {
             border: 2px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            min-height: 8.5rem;
-            padding: 1rem;
+            border-radius: 10px;
+            min-height: 140px;
+            height: 140px;
+            padding: 0.75rem;
             text-align: center;
             transition: all 0.3s ease;
             cursor: pointer;
@@ -415,6 +399,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.85rem;
+            box-sizing: border-box;
         }
 
         body.light-mode .file-upload-area {
@@ -456,11 +441,11 @@
 
         .media-preview-strip {
             display: none;
-            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 0.5rem;
-            max-height: 5.8rem;
+            max-height: 5.5rem;
             overflow: auto;
-            margin-top: 0.7rem;
+            margin-top: 0.5rem;
             padding-right: 0.25rem;
         }
 
@@ -469,36 +454,34 @@
         }
 
         .media-preview-item {
-            min-height: 4rem;
-            border-radius: 8px;
+            min-height: 3.6rem;
+            border-radius: 6px;
             overflow: hidden;
             background: rgba(18, 18, 20, 0.55);
             border: 1px solid rgba(255, 255, 255, 0.08);
             color: var(--dark-text-secondary);
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 0.35rem;
+            padding: 0.3rem;
         }
 
         .media-preview-item img,
         .media-preview-item video {
             width: 100%;
             height: 100%;
-            min-height: 4rem;
+            min-height: 3.6rem;
             object-fit: cover;
         }
 
         .btn-group {
             display: flex;
-            gap: 0.75rem;
+            gap: 0.65rem;
             justify-content: flex-end;
             align-items: center;
-            grid-column: 1 / -1;
-            margin-top: 0;
-            padding-top: 0.85rem;
+            padding-top: 0.75rem;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -507,7 +490,7 @@
         }
 
         .btn {
-            padding: 0.62rem 1.25rem;
+            padding: 0.55rem 1.15rem;
             border-radius: 8px;
             font-weight: 600;
             font-size: 0.82rem;
@@ -516,7 +499,7 @@
             border: none;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
             text-decoration: none;
         }
 
@@ -578,61 +561,47 @@
             color: var(--light-text);
         }
 
-        @media (max-width: 1180px) {
-            .form-container {
+        /* Tablet Breakpoint: 768px – 1199px -> 2-column grid */
+        @media (max-width: 1199px) and (min-width: 768px) {
+            .complaint-form-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 14px;
             }
-
-            .basic-info-card,
-            .contact-info-card,
-            .vehicle-info-card,
-            .case-details-card,
-            .complaint-details-card,
-            .media-files-card {
-                grid-column: auto;
-            }
-
-            .complaint-details-card,
-            .media-files-card,
-            .btn-group {
-                grid-column: 1 / -1;
-            }
-
-            .complaint-details-card {
-                margin-top: 0;
+            .col-span-half {
+                grid-column: span 1;
             }
         }
 
-        @media (max-width: 768px) {
+        /* Mobile Breakpoint: below 768px -> 1-column layout */
+        @media (max-width: 767px) {
             .page-container {
-                padding: 1rem;
+                padding: 0.75rem;
             }
 
             .form-container {
-                grid-template-columns: 1fr;
-                padding: 0.85rem;
-                gap: 0.85rem;
+                padding: 1rem;
+                gap: 0.75rem;
             }
 
-            .complaint-details-grid {
+            .complaint-form-grid {
                 grid-template-columns: 1fr;
+                gap: 12px;
             }
 
-            .complaint-details-grid .full-span {
-                grid-column: auto;
+            .col-span-half {
+                grid-column: span 1;
             }
 
             .file-upload-area {
-                align-items: flex-start;
-                justify-content: flex-start;
-                min-height: 7rem;
+                min-height: 120px;
+                height: 120px;
             }
 
             .btn-group {
                 flex-direction: row;
                 justify-content: center;
                 gap: 0.65rem;
-                padding-block: 1rem 0.25rem;
+                padding-block: 0.75rem 0.25rem;
             }
 
             .btn-group .btn {
@@ -656,49 +625,13 @@
                 grid-auto-flow: row;
                 grid-auto-columns: auto;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                justify-content: stretch;
                 gap: 0.25rem;
-                overflow: visible;
-                border-radius: 14px;
-                scrollbar-width: none;
-            }
-
-            .complaint-type-dock::-webkit-scrollbar {
-                display: none;
             }
 
             .complaint-type-tab {
-                width: 100%;
-                min-width: 0;
-                min-height: 4rem;
-                flex-direction: column;
-                gap: 0.35rem;
-                padding: 0.55rem 0.25rem;
-                border-radius: 10px;
+                min-height: 3.5rem;
+                padding: 0.45rem 0.25rem;
                 font-size: 0.64rem;
-                line-height: 1.15;
-                text-align: center;
-                white-space: normal;
-                overflow-wrap: anywhere;
-            }
-
-            .complaint-type-indicator {
-                gap: 0.65rem;
-                padding: 0.62rem 0.7rem;
-            }
-
-            .complaint-type-indicator-icon {
-                flex-basis: 2.2rem;
-                width: 2.2rem;
-                height: 2.2rem;
-            }
-
-            .complaint-type-indicator-title {
-                font-size: 0.82rem;
-            }
-
-            .complaint-type-indicator-description {
-                font-size: 0.66rem;
             }
         }
     </style>
@@ -765,6 +698,7 @@
             {% endif %}
             <input type="hidden" name="complaint_type" id="id_complaint_type" value="{{ selected_complaint_type }}">
 
+            <input type="hidden" name="status" id="id_status" value="Open">
             <section class="complaint-type-indicator type-{{ selected_complaint_type }}"
                      id="complaint-type-indicator" aria-live="polite" aria-atomic="true">
                 <span class="complaint-type-indicator-icon" aria-hidden="true">
@@ -782,155 +716,130 @@
                 </span>
             </section>
 
-            <div class="form-grid">
-                <!-- Basic Information -->
-                <div class="form-section basic-info-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-info-circle"></i>
-                        {% translate "Basic Information" %}
-                    </h3>
-                    
-                    {% comment %} <div class="form-group">
-                        <label class="form-label">{{ form.complaint_id.label }}</label>
-                        {{ form.complaint_id }}
-                    </div> {% endcomment %}
-                    
-                    <div class="form-group">
-                        <label class="form-label">{% translate "Date" %}</label>
-                        <div class="date-input-wrapper">
-                            <div class="date-input" id="dateInput">
-                                {{ form.date }}
-                                <i class="fas fa-calendar-alt date-icon"></i>
-                            </div>
+            <div class="complaint-form-grid">
+                <!-- Row 1: Date | Priority | Type | Series -->
+                <div class="form-group">
+                    <label class="form-label" for="dateInput">{% translate "Date" %} <span class="required-indicator">*</span></label>
+                    <div class="date-input-wrapper">
+                        <div class="date-input" id="dateInput" tabindex="0">
+                            {{ form.date }}
+                            <i class="fas fa-calendar-alt date-icon"></i>
                         </div>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.status.label }}</label>
-                        {{ form.status }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.priority.label }}</label>
-                        {{ form.priority }}
-                    </div>
                 </div>
 
-                <!-- Contact Information -->
-                <div class="form-section contact-info-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-user"></i>
-                        {% translate "Contact Information" %}
-                    </h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">{{ form.channel.label }}</label>
-                        {{ form.channel }}
-                    </div>
-
+                <div class="form-group">
+                    <label class="form-label" for="id_priority">{{ form.priority.label }} <span class="required-indicator">*</span></label>
+                    {{ form.priority }}
                 </div>
 
-                <!-- Vehicle Information -->
-                <div class="form-section vehicle-info-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-car"></i>
-                        {% translate "Vehicle Information" %}
-                    </h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">{{ form.brand.label }}</label>
-                        {{ form.brand }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.model.label }}</label>
-                        {{ form.model }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.sub_model.label }}</label>
-                        {{ form.sub_model }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.year.label }}</label>
-                        {{ form.year }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{% translate "SKU" %}</label>
-                        {{ form.sku }}
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_case_sub_category">{% translate "Type" %} <span class="required-indicator">*</span></label>
+                    {{ form.case_sub_category }}
                 </div>
-                <div class="form-section case-details-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-clipboard-list"></i>
-                        {% translate "Case Details" %}
-                    </h3>
 
-                    <div class="form-group">
-                        <label class="form-label">{% translate "Type" %}</label>
-                        {{form.case_sub_category}}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.series.label }}</label>
-                        {{ form.series }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.material.label }}</label>
-                        {{ form.material }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{{ form.batch_order.label }}</label>
-                        {{ form.batch_order }}
-                    </div>
-                    
+                <div class="form-group">
+                    <label class="form-label" for="id_series">{{ form.series.label }} <span class="required-indicator">*</span></label>
+                    {{ form.series }}
                 </div>
-            </div>
-            
-            
-                
-            <!-- Description Section -->
-            <div class="form-section complaint-details-card">
-                <h3 class="section-title">
-                    <i class="fas fa-file-alt"></i>
-                    {% translate "Complaint Details" %}
-                </h3>
 
-                <div class="complaint-details-grid">
-                    <div class="form-group full-span">
-                        <label class="form-label">{{ form.complaint_description.label }}</label>
-                        {{ form.complaint_description }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">{% translate "Update Order #" %}</label>
-                        {{ form.updated_order_no }}
-                    </div>
+                <!-- Row 2: Brand | Model | Sub-model | Year -->
+                <div class="form-group">
+                    <label class="form-label" for="id_brand">{{ form.brand.label }} <span class="required-indicator">*</span></label>
+                    {{ form.brand }}
                 </div>
-            </div>
 
-            <!-- Media Upload Section -->
-            <div class="form-section media-files-card">
-                <h3 class="section-title">
-                    <i class="fas fa-images"></i>
-                    {% translate "Media Files" %}
-                </h3>
-                
-                <div class="file-upload-area">
-                    <div class="file-upload-icon">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                    </div>
-                    <div class="file-upload-text">
-                        <strong>{% translate "Click to upload" %}</strong> {% translate "or drag and drop" %}<br>
-                        {% translate "Images and videos (Max 100MB each)" %}
-                    </div>
-                    <input type="file" name="media_files" id="media_files" multiple class="file-input" accept="image/*,video/*">
+                <div class="form-group">
+                    <label class="form-label" for="id_model">{{ form.model.label }} <span class="required-indicator">*</span></label>
+                    {{ form.model }}
                 </div>
-                <div class="media-preview-strip" id="mediaPreviewStrip" aria-live="polite"></div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_sub_model">{{ form.sub_model.label }} <span class="required-indicator">*</span></label>
+                    {{ form.sub_model }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_year">{{ form.year.label }} <span class="required-indicator">*</span></label>
+                    {{ form.year }}
+                </div>
+
+                <!-- Row 3: Material | SKU | Serial No -->
+                <div class="form-group">
+                    <label class="form-label" for="id_material">{{ form.material.label }} <span class="required-indicator">*</span></label>
+                    {{ form.material }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_sku">{% translate "SKU" %} <span class="required-indicator">*</span></label>
+                    {{ form.sku }}
+                </div>
+
+                <div class="form-group" id="serialNoGroup">
+                    <label class="form-label" for="id_serial_no">
+                        {% translate "Serial No" %} <span class="required-indicator">*</span>
+                    </label>
+                    {{ form.serial_no }}
+                    <div class="field-error-message" id="serialNoError" style="display: none;"></div>
+                    {% if form.serial_no.errors %}
+                        <div class="field-error-message">
+                            {{ form.serial_no.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Row 4: Subsection Heading: Complaint Product -->
+                <div class="form-subsection-heading">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>{% translate "Complaint Product" %}</span>
+                </div>
+
+                <!-- Row 5: Batch No (50%) | Shipment/Order No (50%) -->
+                <div class="form-group col-span-half">
+                    <label class="form-label" for="id_batch_no">{% translate "Batch No" %}</label>
+                    {{ form.batch_no }}
+                    {% if form.batch_no.errors %}
+                        <div class="field-error-message">
+                            {{ form.batch_no.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group col-span-half">
+                    <label class="form-label" for="id_shipment_order_no">{% translate "Shipment/Order No" %}</label>
+                    {{ form.shipment_order_no }}
+                    {% if form.shipment_order_no.errors %}
+                        <div class="field-error-message">
+                            {{ form.shipment_order_no.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Row 6: Complaint Description (50%) | Media Files (50%) -->
+                <div class="form-group col-span-half">
+                    <label class="form-label" for="id_complaint_description">{{ form.complaint_description.label }} <span class="required-indicator">*</span></label>
+                    {{ form.complaint_description }}
+                    {% if form.complaint_description.errors %}
+                        <div class="field-error-message">
+                            {{ form.complaint_description.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group col-span-half media-files-group">
+                    <label class="form-label">{% translate "Media Files" %}</label>
+                    <div class="file-upload-area">
+                        <div class="file-upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="file-upload-text">
+                            <strong>{% translate "Click to upload" %}</strong> {% translate "or drag and drop" %}<br>
+                            {% translate "Images and videos (Max 100MB each)" %}
+                        </div>
+                        <input type="file" name="media_files" id="media_files" multiple class="file-input" accept="image/*,video/*">
+                    </div>
+                    <div class="media-preview-strip" id="mediaPreviewStrip" aria-live="polite"></div>
+                </div>
             </div>
 
             <div class="btn-group">
@@ -954,7 +863,7 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner">
             <div class="loading"></div>
-            <p style="margin-top: 1rem;" id="complaint-saving-message">Saving {{ selected_complaint_type }} complaint...</p>
+            <p style="margin-top: 1rem;" id="complaint-saving-message">{% blocktranslate with type=selected_complaint_type %}Saving {{ type }} complaint...{% endblocktranslate %}</p>
         </div>
     </div>
 
@@ -1306,7 +1215,7 @@
                 modelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Model')}</option>`;
                 modelSelect.disabled = true;
             }
-            subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Sub-Model (Optional)')}</option>`;
+            subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Sub-Model')}</option>`;
             subModelSelect.disabled = true;
             yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
             yearSelect.disabled = true;
@@ -1318,9 +1227,9 @@
             const subModelSelect = document.getElementById('id_sub_model');
             const yearSelect = document.getElementById('id_year');
             if (modelId) {
-                loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', window.FabroI18n.gettext('Select Sub-Model (Optional)'));
+                loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', window.FabroI18n.gettext('Select Sub-Model'));
             } else {
-                subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Sub-Model (Optional)')}</option>`;
+                subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Sub-Model')}</option>`;
                 subModelSelect.disabled = true;
             }
             yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
@@ -1407,7 +1316,10 @@
             if (files.length > 6) {
                 const more = document.createElement('div');
                 more.className = 'media-preview-item';
-                more.textContent = `+${files.length - 6} more`;
+                more.textContent = window.FabroI18n.interpolate(
+                    window.FabroI18n.gettext('+%(count)s more'),
+                    {count: files.length - 6}
+                );
                 mediaPreviewStrip.appendChild(more);
             }
 
@@ -1466,9 +1378,52 @@
         });
 
         const clearButton = document.getElementById('clearComplaintForm');
+        const serialNoInput = document.getElementById('id_serial_no');
+        const serialNoError = document.getElementById('serialNoError');
+
+        function validateSerialNo() {
+            if (!serialNoInput) return true;
+            const val = serialNoInput.value.trim();
+            if (!val) {
+                serialNoInput.classList.add('is-invalid');
+                if (serialNoError) {
+                    serialNoError.textContent = window.FabroI18n.gettext('Serial No is required.');
+                    serialNoError.style.display = 'block';
+                }
+                return false;
+            } else {
+                serialNoInput.value = val;
+                serialNoInput.classList.remove('is-invalid');
+                if (serialNoError) {
+                    serialNoError.textContent = '';
+                    serialNoError.style.display = 'none';
+                }
+                return true;
+            }
+        }
+
+        if (serialNoInput) {
+            serialNoInput.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid')) {
+                    validateSerialNo();
+                }
+            });
+            serialNoInput.addEventListener('blur', function() {
+                this.value = this.value.trim();
+                validateSerialNo();
+            });
+        }
+
         if (clearButton) {
             clearButton.addEventListener('click', function() {
                 const selectedComplaintType = document.getElementById('id_complaint_type')?.value;
+                if (serialNoInput) {
+                    serialNoInput.classList.remove('is-invalid');
+                }
+                if (serialNoError) {
+                    serialNoError.textContent = '';
+                    serialNoError.style.display = 'none';
+                }
                 window.setTimeout(() => {
                     syncComplaintTypeRecognition(selectedComplaintType);
                     initDatePicker();
@@ -1497,7 +1452,18 @@
         // Form submission
         const complaintForm = document.getElementById('complaint-form');
         if (complaintForm) {
-            complaintForm.addEventListener('submit', function() {
+            complaintForm.addEventListener('submit', function(e) {
+                if (!validateSerialNo()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    serialNoInput.focus();
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
+                    return false;
+                }
+                serialNoInput.value = serialNoInput.value.trim();
                 document.getElementById('loadingOverlay').style.display = 'flex';
             });
         }

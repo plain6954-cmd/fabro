@@ -2,25 +2,67 @@ msgid ""
 msgstr ""
 "Language: ar\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
 "MIME-Version: 1.0\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, python-format
+msgid "%(approved)s of %(total)s required approvers have verified the execution."
+msgstr ""
+
+#, python-format
+msgid "%(count)s active"
+msgstr ""
+
+#, python-format
+msgid "%(count)s file(s) selected"
+msgstr ""
+
+#, python-format
+msgid "%(decided)s/%(total)s reviews"
+msgstr ""
 
 #, python-format
 msgid "%(filename)s — Ready to upload"
 msgstr ""
 
 #, python-format
+msgid "%(media_count)s file"
+msgid_plural "%(media_count)s files"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#, python-format
+msgid "%(media_count)s media file"
+msgid_plural "%(media_count)s media files"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#, python-format
+msgid "%(priority)s priority"
+msgstr ""
+
+#, python-format
+msgid "%(role)s reviews assigned to your account."
+msgstr ""
+
+#, python-format
 msgid "%(username)s was assigned to %(group)s."
 msgstr ""
 
-msgid "&laquo; First"
-msgstr ""
-
-msgid "&times;"
-msgstr ""
-
 msgid "(Required for rejection)"
+msgstr ""
+
+#, python-format
+msgid "+%(count)s more"
 msgstr ""
 
 #, python-format
@@ -81,6 +123,10 @@ msgstr ""
 msgid "Active Sessions"
 msgstr "الجلسات النشطة"
 
+#, python-format
+msgid "Active Sessions (%(count)s)"
+msgstr ""
+
 msgid "Active Users Online"
 msgstr "المستخدمون النشطون الآن"
 
@@ -91,6 +137,9 @@ msgid "Activity"
 msgstr "النشاط"
 
 msgid "Activity Logs"
+msgstr ""
+
+msgid "Add"
 msgstr ""
 
 msgid "Add Complaint"
@@ -211,6 +260,10 @@ msgstr ""
 msgid "Approval requests, factory assignments, rework, and closure updates."
 msgstr ""
 
+#, python-format
+msgid "Approval round %(round)s"
+msgstr ""
+
 msgid "Approval stage workspace"
 msgstr ""
 
@@ -232,6 +285,9 @@ msgstr "الموافقة على الخطة"
 msgid "Approved"
 msgstr "موافق عليها"
 
+msgid "Approved & Executing"
+msgstr ""
+
 msgid "Approved Action Plan"
 msgstr ""
 
@@ -241,8 +297,18 @@ msgstr ""
 msgid "Approver"
 msgstr ""
 
+#, python-format
+msgid "Are you sure you want to delete %(name)s?"
+msgstr ""
+
 msgid "Are you sure you want to delete this complaint?"
 msgstr "هل أنت متأكد أنك تريد حذف هذه الشكوى؟"
+
+msgid "Are you sure you want to delete this SKU?"
+msgstr ""
+
+msgid "Are you sure you want to delete this vehicle?"
+msgstr ""
 
 msgid "Are you sure you want to log out?"
 msgstr ""
@@ -329,11 +395,11 @@ msgstr ""
 msgid "CAD"
 msgstr ""
 
-msgid "CAD updated date"
-msgstr "تاريخ تحديث CAD"
-
 msgid "CAD Updated Date"
 msgstr ""
+
+msgid "CAD updated date"
+msgstr "تاريخ تحديث CAD"
 
 msgid "CAD Updated Date cannot be in the future."
 msgstr ""
@@ -512,10 +578,10 @@ msgstr ""
 msgid "Confirm Decision"
 msgstr "تأكيد القرار"
 
-msgid "Confirm New Password"
+msgid "Confirm new password"
 msgstr ""
 
-msgid "Confirm new password"
+msgid "Confirm New Password"
 msgstr ""
 
 msgid "Confirmed Reason"
@@ -567,7 +633,7 @@ msgstr ""
 msgid "CSV file must be 5 MB or smaller."
 msgstr ""
 
-msgid "CSV file with code &amp; description"
+msgid "CSV file with code & description"
 msgstr ""
 
 #, python-format
@@ -587,6 +653,10 @@ msgid "Current Logo:"
 msgstr ""
 
 msgid "Current Password"
+msgstr ""
+
+#, python-format
+msgid "Current round: %(decided)s/%(total)s reviewed"
 msgstr ""
 
 msgid "CURRENT SESSION"
@@ -618,6 +688,12 @@ msgstr "حذف"
 
 msgid "Delete Complaint"
 msgstr "حذف الشكوى"
+
+msgid "Delete group?"
+msgstr ""
+
+msgid "Delete privilege?"
+msgstr ""
 
 msgid "Delete User"
 msgstr "حذف المستخدم"
@@ -771,6 +847,10 @@ msgstr ""
 msgid "Every required review is complete. Update the factory findings using all comments below, then submit a new approval round."
 msgstr ""
 
+#, python-format
+msgid "Execute %(complaint_id)s - Fabro Leather"
+msgstr ""
+
 msgid "Execute Approved Action"
 msgstr ""
 
@@ -793,6 +873,9 @@ msgid "Execution submitted to the original approvers for verification."
 msgstr "تم إرسال التنفيذ إلى الموافقين الأصليين للتحقق."
 
 msgid "Execution verification"
+msgstr ""
+
+msgid "Execution Verification"
 msgstr ""
 
 msgid "Execution verification decision"
@@ -825,10 +908,10 @@ msgstr "المصنع"
 msgid "Factory action plan"
 msgstr ""
 
-msgid "Factory Complaint"
+msgid "FACTORY COMPLAINT"
 msgstr "شكوى المصنع"
 
-msgid "FACTORY COMPLAINT"
+msgid "Factory Complaint"
 msgstr "شكوى المصنع"
 
 msgid "Factory Complaint Registrar"
@@ -849,11 +932,11 @@ msgstr ""
 msgid "Factory Findings"
 msgstr ""
 
-msgid "Factory Priority"
-msgstr "أولوية المصنع"
-
 msgid "Factory priority"
 msgstr ""
+
+msgid "Factory Priority"
+msgstr "أولوية المصنع"
 
 msgid "Factory Reason"
 msgstr "سبب المصنع"
@@ -897,6 +980,9 @@ msgstr ""
 
 msgid "Final updates saved. The complaint is now closed."
 msgstr "تم حفظ التحديثات النهائية. الشكوى مغلقة الآن."
+
+msgid "First"
+msgstr "الأول"
 
 msgid "First Name"
 msgstr "الاسم الأول"
@@ -965,6 +1051,9 @@ msgstr ""
 msgid "Initial approval"
 msgstr ""
 
+msgid "Initial Approval"
+msgstr "الموافقة الأولية"
+
 msgid "Inspect complaint in full complaint list"
 msgstr ""
 
@@ -976,6 +1065,10 @@ msgstr ""
 
 msgid "IP Address"
 msgstr "عنوان IP"
+
+#, python-format
+msgid "Joined %(date)s"
+msgstr ""
 
 msgid "Kanban Card View"
 msgstr ""
@@ -999,10 +1092,14 @@ msgstr ""
 msgid "Language"
 msgstr "اللغة"
 
-msgid "Last &raquo;"
-msgstr ""
+msgid "Last"
+msgstr "الأخير"
 
 msgid "Last Active"
+msgstr ""
+
+#, python-format
+msgid "Last login %(date)s"
 msgstr ""
 
 msgid "Last Name"
@@ -1024,6 +1121,14 @@ msgid "Linked Context:"
 msgstr ""
 
 msgid "List Table View"
+msgstr ""
+
+#, python-format
+msgid "Live Active Sessions (%(count)s)"
+msgstr ""
+
+#, python-format
+msgid "Live Active User Sessions (%(count)s)"
 msgstr ""
 
 msgid "Live Activity Feed"
@@ -1068,7 +1173,7 @@ msgstr "إدارة الدليل"
 msgid "Manage Master Settings"
 msgstr "إدارة الإعدادات الرئيسية"
 
-msgid "Manage product SKUs and inventory with inline editing &amp; bulk upload capabilities"
+msgid "Manage product SKUs and inventory with inline editing & bulk upload capabilities"
 msgstr ""
 
 msgid "Manage User Groups & Privileges"
@@ -1098,11 +1203,19 @@ msgstr "المادة"
 msgid "Material / Series:"
 msgstr ""
 
+#, python-format
+msgid "Material: %(material)s"
+msgstr ""
+
 msgid "MD"
 msgstr ""
 
 msgid "Measurement Country"
 msgstr "دولة القياس"
+
+#, python-format
+msgid "Media %(number)s"
+msgstr ""
 
 msgid "Media Files"
 msgstr "ملفات الوسائط"
@@ -1133,6 +1246,9 @@ msgid "Model Name"
 msgstr "اسم الطراز"
 
 msgid "Model:"
+msgstr ""
+
+msgid "My Pending Reviews"
 msgstr ""
 
 msgid "Name"
@@ -1216,6 +1332,9 @@ msgstr "لا توجد رسائل بعد"
 
 msgid "No notifications yet"
 msgstr ""
+
+msgid "No pending approvals requiring your action."
+msgstr "لا توجد موافقات معلقة تتطلب اتخاذ إجراء."
 
 msgid "No recent activities."
 msgstr ""
@@ -1301,6 +1420,9 @@ msgstr ""
 msgid "Open"
 msgstr ""
 
+msgid "Open Approvals Workspace"
+msgstr ""
+
 msgid "Open attached file"
 msgstr "فتح الملف المرفق"
 
@@ -1319,11 +1441,18 @@ msgstr ""
 msgid "or drag and drop"
 msgstr "أو اسحب وأفلت"
 
+#, python-format
+msgid "Page %(page)s of %(pages)s"
+msgstr ""
+
 msgid "Parallel Review Progress"
 msgstr "تقدم المراجعة المتوازية"
 
 msgid "Partially Approved"
 msgstr "موافق عليها جزئياً"
+
+msgid "Partially Verified"
+msgstr ""
 
 msgid "Password"
 msgstr "كلمة المرور"
@@ -1341,10 +1470,10 @@ msgstr ""
 msgid "Pattern"
 msgstr "النمط"
 
-msgid "PATTERN COMPLAINT"
+msgid "Pattern Complaint"
 msgstr "شكوى النمط"
 
-msgid "Pattern Complaint"
+msgid "PATTERN COMPLAINT"
 msgstr "شكوى النمط"
 
 msgid "Pattern Complaint Types"
@@ -1352,6 +1481,9 @@ msgstr ""
 
 msgid "Pending"
 msgstr ""
+
+msgid "Pending Approvals"
+msgstr "الموافقات المعلقة"
 
 msgid "Pending Final Update"
 msgstr "بانتظار التحديث النهائي"
@@ -1401,10 +1533,10 @@ msgstr ""
 msgid "Privileges (select multiple):"
 msgstr ""
 
-msgid "Proceed with Action Plan"
+msgid "Proceed With Action Plan"
 msgstr ""
 
-msgid "Proceed With Action Plan"
+msgid "Proceed with Action Plan"
 msgstr ""
 
 msgid "Proceed with Plan"
@@ -1419,10 +1551,10 @@ msgstr "المنتج والمصدر"
 msgid "Production"
 msgstr "الإنتاج"
 
-msgid "PRODUCTION COMPLAINT"
+msgid "Production Complaint"
 msgstr "شكوى الإنتاج"
 
-msgid "Production Complaint"
+msgid "PRODUCTION COMPLAINT"
 msgstr "شكوى الإنتاج"
 
 msgid "Production Complaint Types"
@@ -1473,6 +1605,9 @@ msgstr "مقروء"
 msgid "Ready for execution"
 msgstr ""
 
+msgid "Ready to upload"
+msgstr ""
+
 msgid "Real reason behind defect"
 msgstr ""
 
@@ -1481,6 +1616,9 @@ msgstr ""
 
 msgid "Recent Decisions"
 msgstr ""
+
+msgid "Reconsideration"
+msgstr "إعادة النظر"
 
 msgid "Reconsideration decision"
 msgstr ""
@@ -1509,6 +1647,10 @@ msgstr ""
 msgid "Rejected"
 msgstr ""
 
+#, python-format
+msgid "Rejected by %(role)s"
+msgstr ""
+
 msgid "Rejection reconsideration"
 msgstr ""
 
@@ -1530,7 +1672,7 @@ msgstr "تاريخ البلاغ"
 msgid "Report status"
 msgstr "حالة البلاغ"
 
-msgid "Reported &amp; Source"
+msgid "Reported & Source"
 msgstr ""
 
 msgid "Reported By"
@@ -1538,6 +1680,10 @@ msgstr "أبلغ بواسطة"
 
 msgid "Reported by"
 msgstr "أبلغ بواسطة"
+
+#, python-format
+msgid "Reported by %(reporter)s"
+msgstr ""
 
 msgid "Request revisions or reject"
 msgstr "اطلب تعديلات أو ارفض"
@@ -1563,6 +1709,16 @@ msgstr ""
 msgid "Return to Main Portal"
 msgstr ""
 
+msgid "Review"
+msgstr "مراجعة"
+
+#, python-format
+msgid "Review %(complaint_id)s - Fabro Leather"
+msgstr ""
+
+msgid "Review & Submit Decision"
+msgstr ""
+
 msgid "Review comment"
 msgstr ""
 
@@ -1582,6 +1738,14 @@ msgid "Root cause"
 msgstr "السبب الجذري"
 
 #, python-format
+msgid "Round %(number)s"
+msgstr ""
+
+#, python-format
+msgid "Round %(round)s"
+msgstr ""
+
+#, python-format
 msgid "Save %(type)s"
 msgstr ""
 
@@ -1595,6 +1759,10 @@ msgid "Save SKU"
 msgstr ""
 
 msgid "Save Updates And Close Case"
+msgstr ""
+
+#, python-format
+msgid "Saving %(type)s complaint..."
 msgstr ""
 
 #, python-format
@@ -1753,6 +1921,9 @@ msgstr ""
 msgid "Staff"
 msgstr "موظف"
 
+msgid "Stage"
+msgstr "المرحلة"
+
 msgid "Start"
 msgstr ""
 
@@ -1761,6 +1932,9 @@ msgstr "ابدأ المحادثة بإرسال رسالة أدناه."
 
 msgid "Status"
 msgstr "الحالة"
+
+msgid "Status:"
+msgstr ""
 
 msgid "Sub-Model"
 msgstr "الطراز الفرعي"
@@ -1812,6 +1986,10 @@ msgid "Successfully added %(count)s record."
 msgid_plural "Successfully added %(count)s records."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 msgid "Superseded"
 msgstr ""
@@ -1845,6 +2023,10 @@ msgid "Terminated %(count)s active session. Only your current session remains ac
 msgid_plural "Terminated %(count)s active sessions. Only your current session remains active."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 msgid "That username is already in use."
 msgstr ""
@@ -1921,7 +2103,7 @@ msgstr "جرّب تعديل عوامل التصفية أو أضف شكوى جد�
 msgid "Type"
 msgstr "النوع"
 
-msgid "Type &amp; Material"
+msgid "Type & Material"
 msgstr ""
 
 #, python-format
@@ -2089,6 +2271,15 @@ msgstr ""
 msgid "Vehicles"
 msgstr "المركبات"
 
+msgid "Verification"
+msgstr "التحقق"
+
+msgid "Verified"
+msgstr ""
+
+msgid "Verify Executed Action"
+msgstr ""
+
 msgid "Verify Executed Action Plan"
 msgstr ""
 
@@ -2097,6 +2288,9 @@ msgstr ""
 
 msgid "View"
 msgstr "عرض"
+
+msgid "View All"
+msgstr ""
 
 msgid "View all complaints"
 msgstr ""
@@ -2125,10 +2319,10 @@ msgstr ""
 msgid "Workflow Role *"
 msgstr "دور سير العمل *"
 
-msgid "Workflow status"
+msgid "Workflow Status"
 msgstr ""
 
-msgid "Workflow Status"
+msgid "Workflow status"
 msgstr ""
 
 msgid "Workflow Status:"
@@ -2136,6 +2330,9 @@ msgstr ""
 
 msgid "Workflow updates assigned to you will appear here."
 msgstr ""
+
+msgid "Workspace"
+msgstr "مساحة العمل"
 
 msgid "Write the proposed action plan from the factory."
 msgstr ""
@@ -2184,6 +2381,10 @@ msgstr "تم تغيير كلمة المرور بنجاح."
 
 msgid "Your profile details have been updated successfully."
 msgstr "تم تحديث تفاصيل ملفك الشخصي بنجاح."
+
+#, python-format
+msgid "Your recorded decision is %(decision)s. Completed rounds are read-only."
+msgstr ""
 
 msgid "Your rejection was saved. Every other required approver was asked to reconsider the complaint."
 msgstr ""
