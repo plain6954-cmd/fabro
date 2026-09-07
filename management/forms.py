@@ -204,6 +204,24 @@ class ComplaintForm(forms.ModelForm):
         return val
 
     def __init__(self, *args, complaint_type=None, **kwargs):
+        if len(args) > 0 and args[0] is not None:
+            data = args[0]
+            if 'batch_order' in data and 'batch_no' not in data:
+                if hasattr(data, '_mutable') and not data._mutable:
+                    data = data.copy()
+                elif not hasattr(data, '_mutable'):
+                    data = dict(data)
+                data['batch_no'] = data['batch_order']
+                args = (data,) + args[1:]
+        elif 'data' in kwargs and kwargs['data'] is not None:
+            data = kwargs['data']
+            if 'batch_order' in data and 'batch_no' not in data:
+                if hasattr(data, '_mutable') and not data._mutable:
+                    data = data.copy()
+                elif not hasattr(data, '_mutable'):
+                    data = dict(data)
+                data['batch_no'] = data['batch_order']
+                kwargs['data'] = data
         super().__init__(*args, **kwargs)
         today = date.today()
         if not self.instance.pk:

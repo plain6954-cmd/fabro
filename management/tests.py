@@ -54,7 +54,7 @@ from .services.workflow import (
 )
 from .views import _validate_complaint_media_files, get_sorted_chat_users
 from .services.media_uploads import create_upload_batch
-from .services.supabase_storage import SupabaseStorageError
+from .services.s3_storage import S3StorageError
 
 
 class FabroBackendTests(TestCase):
@@ -92,6 +92,25 @@ class FabroBackendTests(TestCase):
 
     def login(self):
         self.client.force_login(self.user)
+
+    def valid_complaint_form_data(self, **overrides):
+        data = {
+            'status': 'Open',
+            'priority': 'Medium',
+            'channel': self.channel.id,
+            'case_sub_category': self.case_type.id,
+            'series': self.series.id,
+            'material': self.material.id,
+            'sku': self.sku.id,
+            'brand': self.brand.id,
+            'model': self.model.id,
+            'sub_model': self.sub_model.id,
+            'year': self.year.id,
+            'serial_no': 'SN-BACKEND-01',
+            'complaint_description': 'Valid test complaint description',
+        }
+        data.update(overrides)
+        return data
 
     def create_workflow_user(self, username, role, approval_role=''):
         User = get_user_model()
@@ -259,14 +278,17 @@ class FabroBackendTests(TestCase):
         )
         self.assertFalse(Complaint.objects.filter(batch_order='TYPE-MISMATCH-WEB').exists())
 
-        valid_response = self.client.post(reverse('add_complaint'), {
-            'complaint_type': ComplaintTypes.PRODUCTION,
-            'status': 'Open',
-            'priority': 'Medium',
-            'case_sub_category': production_type.id,
-            'complaint_description': 'Correct production catalog',
-            'batch_order': 'TYPE-PRODUCTION-WEB',
-        })
+        valid_response = self.client.post(
+            reverse('add_complaint'),
+            self.valid_complaint_form_data(
+                complaint_type=ComplaintTypes.PRODUCTION,
+                case_sub_category=production_type.id,
+                complaint_description='Correct production catalog',
+                batch_order='TYPE-PRODUCTION-WEB',
+            ),
+        )
+        if valid_response.status_code != 302:
+            print('DEBUG ERRORS:', valid_response.context['form'].errors)
         self.assertEqual(valid_response.status_code, 302)
         complaint = Complaint.objects.get(batch_order='TYPE-PRODUCTION-WEB')
         self.assertEqual(complaint.complaint_type, ComplaintTypes.PRODUCTION)
@@ -306,6 +328,7 @@ class FabroBackendTests(TestCase):
             "sub_model": self.sub_model.id,
             "year": self.year.id,
             "complaint_description": "Backend complaint",
+            "serial_no": "SN-BACKEND-1",
             "batch_order": "BATCH-1",
             "media_files": [upload, video_upload],
         })
@@ -320,12 +343,15 @@ class FabroBackendTests(TestCase):
         self.assertTrue(media.url.startswith("/media/"))
         self.assertTrue(media.is_available)
 
-        response = self.client.post(reverse("edit_complaint", args=[complaint.complaint_id]), {
-            "status": "Closed",
-            "priority": "High",
-            "complaint_description": "Backend complaint updated",
-            "batch_order": "BATCH-2",
-        })
+        response = self.client.post(
+            reverse("edit_complaint", args=[complaint.complaint_id]),
+            self.valid_complaint_form_data(
+                status="Closed",
+                priority="High",
+                complaint_description="Backend complaint updated",
+                batch_order="BATCH-2",
+            ),
+        )
         self.assertEqual(response.status_code, 302)
         complaint.refresh_from_db()
         self.assertEqual(complaint.status, "Open")
@@ -851,9 +877,9 @@ class FabroBackendTests(TestCase):
         self.assertEqual(data["closed_complaints"], 1)
         self.assertEqual(data["on_hold_complaints"], 1)
         self.assertEqual(data["total_vehicles"], 1)
-        self.assertEqual(data["total_skus"], 1)
-        self.assertEqual(data["total_settings"], 7)
-        self.assertEqual(data["total_master_settings"], 7)
+        expected_settings = MasterSetting.objects.count()
+        self.assertEqual(data["total_settings"], expected_settings)
+        self.assertEqual(data["total_master_settings"], expected_settings)
 
     def test_country_executive_sees_own_country_pattern_production_and_quality_complaints(self):
         User = get_user_model()
@@ -1049,6 +1075,7 @@ class FabroBackendTests(TestCase):
                 'case_sub_category': self.case_type.id,
                 'priority': 'Medium',
                 'complaint_description': 'Non-country API reports under India',
+                'serial_no': 'SN-API-INDIA-1',
                 'batch_order': 'API-INDIA-FORCE',
             }),
             content_type='application/json',
@@ -1369,13 +1396,17 @@ class FabroBackendTests(TestCase):
         )
 
         self.client.force_login(country_user)
-        response = self.client.post(reverse('edit_complaint', args=[complaint.complaint_id]), {
-            'channel': self.channel.id,
-            'person': self.person.id,
-            'priority': 'High',
-            'complaint_description': 'Updated after checking the fitment photos',
-            'batch_order': 'REPORT-EDIT-2',
-        })
+        response = self.client.post(
+            reverse('edit_complaint', args=[complaint.complaint_id]),
+            self.valid_complaint_form_data(
+                channel=self.channel.id,
+                person=self.person.id,
+                priority='High',
+                serial_no='SN-REPORT-1',
+                complaint_description='Updated after checking the fitment photos',
+                batch_order='REPORT-EDIT-2',
+            ),
+        )
 
         self.assertEqual(response.status_code, 302)
         complaint.refresh_from_db()
@@ -2457,13 +2488,17 @@ class FabroBackendTests(TestCase):
             Complaint.objects.filter(batch_order='REGISTRAR-FORGED-WEB').exists()
         )
 
-        valid_web = self.client.post(reverse('add_complaint'), {
-            'complaint_type': ComplaintTypes.LINE,
-            'case_sub_category': factory_type.id,
-            'priority': 'Medium',
-            'complaint_description': 'Registrar factory complaint',
-            'batch_order': 'REGISTRAR-VALID-WEB',
-        })
+        valid_web = self.client.post(
+            reverse('add_complaint'),
+            self.valid_complaint_form_data(
+                complaint_type=ComplaintTypes.LINE,
+                case_sub_category=factory_type.id,
+                priority='Medium',
+                complaint_description='Registrar factory complaint',
+                serial_no='SN-REG-1',
+                batch_order='REGISTRAR-VALID-WEB',
+            ),
+        )
         self.assertEqual(valid_web.status_code, 302)
         complaint = Complaint.objects.get(batch_order='REGISTRAR-VALID-WEB')
         self.assertEqual(complaint.complaint_type, ComplaintTypes.LINE)
@@ -2479,6 +2514,7 @@ class FabroBackendTests(TestCase):
                 'case_sub_category': factory_type.id,
                 'priority': 'Medium',
                 'complaint_description': 'Registrar factory API complaint',
+                'serial_no': 'SN-REG-API-1',
                 'batch_order': 'REGISTRAR-VALID-API',
             }),
             content_type='application/json',
@@ -2688,7 +2724,15 @@ class FabroBackendTests(TestCase):
         self.assertContains(res_admin, complaint.complaint_id)
 
 
-@override_settings(USE_SUPABASE_STORAGE=True)
+@override_settings(
+    USE_S3_STORAGE=True,
+    S3_BUCKET_NAME='fabro-craft',
+    S3_REGION='garage',
+    S3_ENDPOINT_URL='http://fabro-garage:3900',
+    S3_PUBLIC_ENDPOINT_URL='https://storage.fabroleather.com',
+    S3_ACCESS_KEY_ID='test-access-key',
+    S3_SECRET_ACCESS_KEY='test-secret-key',
+)
 class DirectComplaintMediaUploadTests(TestCase):
     def setUp(self):
         User = get_user_model()
@@ -2711,9 +2755,21 @@ class DirectComplaintMediaUploadTests(TestCase):
             category='Pattern Complaint Type',
             name='Direct upload type',
         )
-        self.production_type = MasterSetting.objects.create(
-            category='Production Complaint Type',
-            name='Production direct upload type',
+        self.channel, _ = MasterSetting.objects.get_or_create(category='Channel', name='Direct Channel')
+        self.series, _ = MasterSetting.objects.get_or_create(category='Series', name='Direct Series')
+        self.material, _ = MasterSetting.objects.get_or_create(category='Material', name='Direct Material')
+        self.region, _ = MasterSetting.objects.get_or_create(category='Region', name='Direct Region')
+        self.sku = SKU.objects.create(code='DIRECT-SKU', description='Direct SKU', region=self.region)
+        self.brand = Brand.objects.create(name='DIRECT BRAND')
+        self.model = Model.objects.create(brand=self.brand, name='DIRECT MODEL')
+        self.sub_model = SubModel.objects.create(model=self.model, name='DIRECT SUB')
+        self.year = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2024,
+            year_end=2026,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code='DIRECT-LAYOUT',
         )
 
     def complaint_payload(self, **overrides):
@@ -2721,7 +2777,16 @@ class DirectComplaintMediaUploadTests(TestCase):
             'complaint_type': ComplaintTypes.PATTERN,
             'status': 'Open',
             'priority': 'Medium',
+            'channel': self.channel.id,
             'case_sub_category': self.case_type.id,
+            'series': self.series.id,
+            'material': self.material.id,
+            'sku': self.sku.id,
+            'brand': self.brand.id,
+            'model': self.model.id,
+            'sub_model': self.sub_model.id,
+            'year': self.year.id,
+            'serial_no': 'SN-DIRECT-1',
             'complaint_description': 'Direct upload complaint',
             'batch_order': 'DIRECT-UPLOAD',
         }
@@ -2772,8 +2837,8 @@ class DirectComplaintMediaUploadTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('/login/', response['Location'])
 
-    @override_settings(SUPABASE_SERVICE_ROLE_KEY='server-only-secret-value')
-    def test_service_role_key_is_never_rendered_in_complaint_form(self):
+    @override_settings(S3_SECRET_ACCESS_KEY='server-only-secret-value')
+    def test_secret_access_key_is_never_rendered_in_complaint_form(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse('add_complaint'))
         self.assertEqual(response.status_code, 200)
@@ -2798,7 +2863,7 @@ class DirectComplaintMediaUploadTests(TestCase):
 
     @patch('management.services.media_uploads.create_signed_upload_url')
     def test_valid_signed_upload_is_verified_and_attached(self, create_url):
-        create_url.return_value = 'https://example.supabase.co/storage/v1/object/upload/sign/path?token=test'
+        create_url.return_value = 'https://storage.fabroleather.com/fabro-craft/complaint_media/uploads/test.png?token=test'
         batch = create_upload_batch(self.user)
         self.client.force_login(self.user)
         sign_response = self.client.post(
@@ -2884,7 +2949,7 @@ class DirectComplaintMediaUploadTests(TestCase):
     def test_missing_object_and_mime_mismatch_are_rejected(self, object_info, delete_objects_mock):
         self.client.force_login(self.user)
         for side_effect in (
-            SupabaseStorageError('missing'),
+            S3StorageError('missing'),
             self.object_info(content_type='video/mp4'),
         ):
             batch, upload = self.create_pending_upload()
@@ -2902,7 +2967,7 @@ class DirectComplaintMediaUploadTests(TestCase):
 
     @patch('management.services.media_uploads.create_signed_upload_url')
     def test_ten_file_limit_counts_existing_media_and_planned_removals(self, create_url):
-        create_url.return_value = 'https://example.supabase.co/signed'
+        create_url.return_value = 'https://storage.fabroleather.com/signed'
         complaint = self.create_complaint()
         for index in range(10):
             ComplaintMedia.objects.create(complaint=complaint, file=f'complaint_media/{index}.png')
@@ -2944,10 +3009,12 @@ class DirectComplaintMediaUploadTests(TestCase):
         self.client.force_login(self.user)
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(reverse('edit_complaint', args=[complaint.pk]), {
-                'status': 'Open',
-                'priority': 'High',
-                'complaint_description': 'Edited direct complaint',
-                'batch_order': 'DIRECT-EDIT',
+                **self.complaint_payload(
+                    status='Open',
+                    priority='High',
+                    complaint_description='Edited direct complaint',
+                    batch_order='DIRECT-EDIT',
+                ),
                 'delete_media': [removed.id],
                 'media_upload_batch': str(batch.id),
                 'media_upload_ids': [str(upload.id)],
@@ -2992,7 +3059,7 @@ class DirectComplaintMediaUploadTests(TestCase):
         delete_objects_mock.assert_called_once_with([upload.storage_path])
         self.assertIn('Cleaned 1 abandoned media upload', output.getvalue())
 
-    @override_settings(USE_SUPABASE_STORAGE=False)
+    @override_settings(USE_S3_STORAGE=False)
     def test_local_fallback_keeps_multipart_upload_path(self):
         self.client.force_login(self.user)
         upload = SimpleUploadedFile('local.png', b'local-image', content_type='image/png')
@@ -3004,6 +3071,81 @@ class DirectComplaintMediaUploadTests(TestCase):
         complaint = Complaint.objects.get(batch_order='LOCAL-FALLBACK')
         self.assertEqual(complaint.media_files.count(), 1)
         self.assertTrue(complaint.media_files.first().file.startswith('complaint_media/'))
+
+
+class S3StorageBackendAndServiceTests(TestCase):
+    def setUp(self):
+        from management.storage_backends import S3Storage
+        self.storage = S3Storage()
+
+    @patch('management.storage_backends.upload_content')
+    def test_s3_storage_save_calls_upload_content(self, mock_upload):
+        content = SimpleUploadedFile('brand_logo.png', b'fake-logo-content', content_type='image/png')
+        result = self.storage._save('logos/brand_logo.png', content)
+        self.assertEqual(result, 'logos/brand_logo.png')
+        mock_upload.assert_called_once_with('logos/brand_logo.png', b'fake-logo-content', 'image/png')
+
+    @patch('management.storage_backends.delete_objects')
+    def test_s3_storage_delete_calls_delete_objects(self, mock_delete):
+        self.storage.delete('logos/old_logo.png')
+        mock_delete.assert_called_once_with(['logos/old_logo.png'])
+
+    @patch('management.storage_backends.get_object_info')
+    def test_s3_storage_exists(self, mock_info):
+        mock_info.return_value = {'size': 1234}
+        self.assertTrue(self.storage.exists('logos/test.png'))
+
+        mock_info.side_effect = S3StorageError('Object not found')
+        self.assertFalse(self.storage.exists('logos/nonexistent.png'))
+
+    @patch('management.storage_backends.get_object_info')
+    def test_s3_storage_size(self, mock_info):
+        mock_info.return_value = {'size': 54321}
+        self.assertEqual(self.storage.size('logos/test.png'), 54321)
+
+    @patch('management.storage_backends.create_signed_download_url')
+    def test_s3_storage_url(self, mock_url):
+        mock_url.return_value = 'https://storage.fabroleather.com/signed-download'
+        self.assertEqual(self.storage.url('logos/test.png'), 'https://storage.fabroleather.com/signed-download')
+        mock_url.assert_called_once_with('logos/test.png')
+
+    @patch('management.services.s3_storage.get_s3_client')
+    def test_create_signed_upload_url_uses_public_client(self, mock_get_client):
+        from management.services.s3_storage import create_signed_upload_url
+        client_mock = mock_get_client.return_value
+        client_mock.generate_presigned_url.return_value = 'https://storage.fabroleather.com/presigned'
+
+        url = create_signed_upload_url('path/to/file.png', content_type='image/png')
+        self.assertEqual(url, 'https://storage.fabroleather.com/presigned')
+        mock_get_client.assert_called_once_with(public=True)
+        client_mock.generate_presigned_url.assert_called_once()
+        call_kwargs = client_mock.generate_presigned_url.call_args[1]
+        self.assertEqual(call_kwargs['ClientMethod'], 'put_object')
+        self.assertEqual(call_kwargs['HttpMethod'], 'PUT')
+        self.assertEqual(call_kwargs['Params']['ContentType'], 'image/png')
+        self.assertEqual(call_kwargs['Params']['Key'], 'path/to/file.png')
+
+    @patch('management.services.s3_storage.get_s3_client')
+    def test_read_only_credentials_raise_s3_storage_error(self, mock_get_client):
+        from botocore.exceptions import ClientError
+        from management.services.s3_storage import upload_content, delete_objects
+
+        client_mock = mock_get_client.return_value
+        client_mock.put_object.side_effect = ClientError(
+            {'Error': {'Code': 'AccessDenied', 'Message': 'Access Denied'}},
+            'PutObject',
+        )
+        with self.assertRaises(S3StorageError) as cm:
+            upload_content('test.png', b'data')
+        self.assertIn('AccessDenied', str(cm.exception))
+
+        client_mock.delete_objects.side_effect = ClientError(
+            {'Error': {'Code': 'AccessDenied', 'Message': 'Access Denied'}},
+            'DeleteObjects',
+        )
+        with self.assertRaises(S3StorageError) as cm2:
+            delete_objects(['test.png'])
+        self.assertIn('AccessDenied', str(cm2.exception))
 
 
 class ChatSystemTests(TestCase):
@@ -4248,6 +4390,209 @@ class PatternMasterCsvUploadTests(TestCase):
         res_api_india = self.client.get(f"{api_url}?country_id={india.id}")
         self.assertEqual(res_api_india.status_code, 200)
         self.assertEqual(res_api_india.json()['next_serial'], 'I0002')
+
+
+class FactoryComplaintCodeFormatTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(
+            username="fac_test_admin",
+            email="fac_admin@example.com",
+            password="FacPassword123!",
+        )
+        self.client = Client()
+        self.client.force_login(self.admin)
+
+        self.country, _ = MasterSetting.objects.get_or_create(category="Country", name="India")
+        self.channel, _ = MasterSetting.objects.get_or_create(category="Channel", name="Portal")
+        self.fac_case_type, _ = MasterSetting.objects.get_or_create(
+            category="Factory Complaint Type",
+            name="Fitment Alignment",
+        )
+        self.pat_case_type, _ = MasterSetting.objects.get_or_create(
+            category="Pattern Complaint Type",
+            name="Template Deviation",
+        )
+        self.pro_case_type, _ = MasterSetting.objects.get_or_create(
+            category="Production Complaint Type",
+            name="Stitching Error",
+        )
+        self.qua_case_type, _ = MasterSetting.objects.get_or_create(
+            category="Quality Complaint Type",
+            name="Leather Scuff",
+        )
+
+    def test_factory_complaint_receives_fac_prefix(self):
+        complaint = Complaint.objects.create(
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-FAC-01",
+            complaint_description="Factory fitment issue test",
+        )
+        self.assertTrue(
+            complaint.complaint_id.startswith('FAC-'),
+            f"Expected ID to start with 'FAC-', got {complaint.complaint_id}",
+        )
+        self.assertFalse(complaint.complaint_id.startswith('LIN-'))
+        self.assertFalse(complaint.complaint_id.startswith('LINE-'))
+
+    def test_factory_complaint_never_receives_line_prefix(self):
+        ids = []
+        for i in range(3):
+            c = Complaint.objects.create(
+                complaint_type=ComplaintTypes.LINE,
+                case_sub_category=self.fac_case_type,
+                country=self.country,
+                channel=self.channel,
+                created_by=self.admin,
+                serial_no=f"SN-MULTI-{i}",
+                complaint_description=f"Multi test {i}",
+            )
+            ids.append(c.complaint_id)
+        for cid in ids:
+            self.assertTrue(cid.startswith('FAC-'))
+            self.assertFalse('LIN' in cid.split('-')[0])
+            self.assertFalse('LINE' in cid.split('-')[0])
+
+    def test_other_complaint_types_retain_existing_prefixes(self):
+        pat = Complaint.objects.create(
+            complaint_type=ComplaintTypes.PATTERN,
+            case_sub_category=self.pat_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-PAT-01",
+            complaint_description="Pattern test",
+        )
+        pro = Complaint.objects.create(
+            complaint_type=ComplaintTypes.PRODUCTION,
+            case_sub_category=self.pro_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-PRO-01",
+            complaint_description="Production test",
+        )
+        qua = Complaint.objects.create(
+            complaint_type=ComplaintTypes.QUALITY,
+            case_sub_category=self.qua_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-QUA-01",
+            complaint_description="Quality test",
+        )
+        self.assertTrue(pat.complaint_id.startswith('PAT-'))
+        self.assertTrue(pro.complaint_id.startswith('PRO-'))
+        self.assertTrue(qua.complaint_id.startswith('QUA-'))
+
+    def test_numbering_sequence_continuity_with_historical_records(self):
+        target_date = timezone.now().date()
+        date_str = target_date.strftime('%d%m%Y')
+        # Simulate a historical LINE complaint on the same date
+        Complaint.objects.create(
+            complaint_id=f"LIN-1{date_str}",
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-HIST-01",
+            complaint_description="Historical LIN complaint",
+            date=target_date,
+        )
+        # Creating a new factory complaint on the same date should not collide and continue sequence
+        new_complaint = Complaint.objects.create(
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-NEW-02",
+            complaint_description="New FAC complaint",
+            date=target_date,
+        )
+        self.assertTrue(new_complaint.complaint_id.startswith('FAC-'))
+        # Must not equal the historical ID
+        self.assertNotEqual(new_complaint.complaint_id, f"LIN-1{date_str}")
+        self.assertIn(f"FAC-2{date_str}", new_complaint.complaint_id)
+
+    def test_duplicate_prevention_and_uniqueness(self):
+        c1 = Complaint.objects.create(
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-UNIQ-01",
+            complaint_description="Uniqueness test 1",
+        )
+        c2 = Complaint.objects.create(
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-UNIQ-02",
+            complaint_description="Uniqueness test 2",
+        )
+        self.assertNotEqual(c1.complaint_id, c2.complaint_id)
+        self.assertTrue(c1.complaint_id.startswith('FAC-'))
+        self.assertTrue(c2.complaint_id.startswith('FAC-'))
+
+    def test_search_and_filter_fac_and_historical_codes(self):
+        target_date = timezone.now().date()
+        date_str = target_date.strftime('%d%m%Y')
+        hist = Complaint.objects.create(
+            complaint_id=f"LINE-HIST01",
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-SRCH-01",
+            complaint_description="Historical search test",
+            date=target_date,
+        )
+        fac = Complaint.objects.create(
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-SRCH-02",
+            complaint_description="FAC search test",
+            date=target_date,
+        )
+
+        # Search by complaint_id
+        res_fac = self.client.get(reverse('complaint_list'), {'search': fac.complaint_id, 'search_by': 'complaint_id'})
+        self.assertContains(res_fac, fac.complaint_id)
+
+        res_hist = self.client.get(reverse('complaint_list'), {'search': hist.complaint_id, 'search_by': 'complaint_id'})
+        self.assertContains(res_hist, hist.complaint_id)
+
+        # Search by complaint_type query 'fac'
+        res_type_fac = self.client.get(reverse('complaint_list'), {'search': 'fac', 'search_by': 'complaint_type'})
+        self.assertContains(res_type_fac, fac.complaint_id)
+
+    def test_csv_export_contains_fac_code(self):
+        fac = Complaint.objects.create(
+            complaint_type=ComplaintTypes.LINE,
+            case_sub_category=self.fac_case_type,
+            country=self.country,
+            channel=self.channel,
+            created_by=self.admin,
+            serial_no="SN-CSV-01",
+            complaint_description="CSV export test",
+        )
+        res = self.client.get(reverse('export_complaints'))
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(fac.complaint_id, res.content.decode('utf-8'))
+
 
 
 

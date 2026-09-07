@@ -3517,11 +3517,7 @@
                 });
             }
 
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', setupSerialCountryAutoUpdate);
-            } else {
-                setupSerialCountryAutoUpdate();
-            }
+            setupSerialCountryAutoUpdate();
 
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && window.activeInlineEditId) {

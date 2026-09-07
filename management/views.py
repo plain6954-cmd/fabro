@@ -115,8 +115,8 @@ from .services.media_uploads import (
     validate_media_metadata,
     verify_pending_uploads,
 )
-from .services.supabase_storage import (
-    SupabaseStorageError,
+from .services.s3_storage import (
+    S3StorageError,
     create_signed_download_url,
 )
 
@@ -221,7 +221,7 @@ def _delete_complaint_media_record(media):
 
 
 def _media_upload_template_context(user, complaint=None):
-    if not settings.USE_SUPABASE_STORAGE:
+    if not settings.USE_S3_STORAGE:
         return {'direct_media_uploads': False, 'media_upload_batch': None}
     batch = create_upload_batch(user, complaint=complaint)
     return {'direct_media_uploads': True, 'media_upload_batch': batch}
@@ -230,7 +230,7 @@ def _media_upload_template_context(user, complaint=None):
 @login_required
 @require_POST
 def complaint_media_signed_upload(request):
-    if not settings.USE_SUPABASE_STORAGE:
+    if not settings.USE_S3_STORAGE:
         return JsonResponse({'error': 'Direct media uploads are disabled.'}, status=400)
     try:
         payload = json.loads(request.body or b'{}')
@@ -274,15 +274,16 @@ def complaint_media_signed_upload(request):
             )
     except ValidationError as exc:
         return JsonResponse({'error': '; '.join(exc.messages)}, status=400)
-    except SupabaseStorageError:
-        logger.exception('Unable to create a Supabase signed upload URL.')
+    except S3StorageError:
+        logger.exception('Unable to create an S3 signed upload URL.')
         return JsonResponse({'error': 'Unable to prepare the media upload.'}, status=502)
 
     return JsonResponse({
         'upload_id': str(upload.id),
         'storage_path': upload.storage_path,
         'signed_url': signed_url,
-        'expires_in': settings.SUPABASE_SIGNED_UPLOAD_TTL_SECONDS,
+        'content_type': upload.expected_content_type,
+        'expires_in': settings.S3_SIGNED_UPLOAD_TTL_SECONDS,
     })
 
 
@@ -308,10 +309,10 @@ def complaint_media_download(request, media_id):
         ),
         pk=media_id,
     )
-    if settings.USE_SUPABASE_STORAGE:
+    if settings.USE_S3_STORAGE:
         try:
             return redirect(create_signed_download_url(media.storage_name))
-        except SupabaseStorageError:
+        except S3StorageError:
             logger.exception('Unable to create a signed media download URL for %s.', media.pk)
             return HttpResponse('Media is temporarily unavailable.', status=503)
     return redirect(default_storage.url(media.storage_name))
@@ -1228,7 +1229,7 @@ def add_complaint(request):
             len(allowed_complaint_types),
             980,
         ),
-        'direct_media_uploads': settings.USE_SUPABASE_STORAGE,
+        'direct_media_uploads': settings.USE_S3_STORAGE,
         'media_upload_batch': None,
     }
     if request.method == 'POST':
@@ -1237,10 +1238,10 @@ def add_complaint(request):
         uploaded_files = request.FILES.getlist('media_files')
         upload_ids = request.POST.getlist('media_upload_ids')
         upload_batch_id = request.POST.get('media_upload_batch')
-        if settings.USE_SUPABASE_STORAGE and uploaded_files:
-            form.add_error(None, _('Complaint media must be uploaded directly to Supabase Storage.'))
+        if settings.USE_S3_STORAGE and uploaded_files:
+            form.add_error(None, _('Complaint media must be uploaded directly to object storage.'))
         try:
-            if not settings.USE_SUPABASE_STORAGE:
+            if not settings.USE_S3_STORAGE:
                 _validate_complaint_media_files(uploaded_files)
         except ValidationError as exc:
             form.add_error(None, exc)
@@ -1264,7 +1265,7 @@ def add_complaint(request):
                 with transaction.atomic():
                     complaint.save()
                     initialize_created_complaint(complaint, request.user)
-                    if settings.USE_SUPABASE_STORAGE:
+                    if settings.USE_S3_STORAGE:
                         batch = get_owned_batch(request.user, upload_batch_id, for_update=True)
                         verified_uploads = verify_pending_uploads(
                             request.user,
@@ -1512,7 +1513,8 @@ def complaint_list(request):
                 value
                 for value, label in ComplaintTypes.CHOICES
                 if trimmed_search_query.lower() in value.lower()
-                or trimmed_search_query.lower() in label.lower()
+                or trimmed_search_query.lower() in str(label).lower()
+                or any(trimmed_search_query.lower() in p.lower() for p in ComplaintTypes.get_prefixes(value))
             ]
             complaints = complaints.filter(
                 Q(complaint_type__icontains=trimmed_search_query)
@@ -1816,10 +1818,10 @@ def edit_complaint(request, complaint_id):
         upload_batch_id = request.POST.get('media_upload_batch')
         media_to_delete = request.POST.getlist('delete_media')
         remaining_media_count = complaint.media_files.exclude(id__in=media_to_delete).count()
-        if settings.USE_SUPABASE_STORAGE and uploaded_files:
-            form.add_error(None, _('Complaint media must be uploaded directly to Supabase Storage.'))
+        if settings.USE_S3_STORAGE and uploaded_files:
+            form.add_error(None, _('Complaint media must be uploaded directly to object storage.'))
         try:
-            if not settings.USE_SUPABASE_STORAGE:
+            if not settings.USE_S3_STORAGE:
                 _validate_complaint_media_files(uploaded_files, existing_count=remaining_media_count)
         except ValidationError as exc:
             form.add_error(None, exc)
@@ -1846,7 +1848,7 @@ def edit_complaint(request, complaint_id):
                     ))
                     removed_media_count = len(removed_media)
 
-                    if settings.USE_SUPABASE_STORAGE:
+                    if settings.USE_S3_STORAGE:
                         batch = get_owned_batch(
                             request.user,
                             upload_batch_id,
@@ -1866,7 +1868,7 @@ def edit_complaint(request, complaint_id):
                     for media in removed_media:
                         _delete_complaint_media_record(media)
 
-                    if settings.USE_SUPABASE_STORAGE:
+                    if settings.USE_S3_STORAGE:
                         attach_verified_uploads(complaint, verified_uploads)
                     else:
                         _save_complaint_media_files(
@@ -1878,7 +1880,7 @@ def edit_complaint(request, complaint_id):
                         complaint,
                         request.user,
                         changes=changes,
-                        media_added=len(upload_ids) if settings.USE_SUPABASE_STORAGE else len(uploaded_files),
+                        media_added=len(upload_ids) if settings.USE_S3_STORAGE else len(uploaded_files),
                         media_removed=removed_media_count,
                     )
                     ActivityLog.objects.create(
@@ -2094,7 +2096,17 @@ def approvals_list_view(request):
         if search_by == 'complaint_id':
             complaints = complaints.filter(complaint_id__icontains=search_query)
         elif search_by == 'complaint_type':
-            complaints = complaints.filter(complaint_type__icontains=search_query)
+            matching_type_values = [
+                value
+                for value, label in ComplaintTypes.CHOICES
+                if search_query.lower() in value.lower()
+                or search_query.lower() in str(label).lower()
+                or any(search_query.lower() in p.lower() for p in ComplaintTypes.get_prefixes(value))
+            ]
+            complaints = complaints.filter(
+                Q(complaint_type__icontains=search_query)
+                | Q(complaint_type__in=matching_type_values)
+            )
         elif search_by == 'priority':
             complaints = complaints.filter(
                 Q(factory_priority__icontains=search_query) | Q(priority__icontains=search_query)
@@ -2112,8 +2124,16 @@ def approvals_list_view(request):
         elif search_by == 'factory_action_plan':
             complaints = complaints.filter(factory_action_plan__icontains=search_query)
         else:
+            matching_type_values = [
+                value
+                for value, label in ComplaintTypes.CHOICES
+                if search_query.lower() in value.lower()
+                or search_query.lower() in str(label).lower()
+                or any(search_query.lower() in p.lower() for p in ComplaintTypes.get_prefixes(value))
+            ]
             complaints = complaints.filter(
                 Q(complaint_id__icontains=search_query)
+                | Q(complaint_type__in=matching_type_values)
                 | Q(brand__name__icontains=search_query)
                 | Q(model__name__icontains=search_query)
                 | Q(sku__code__icontains=search_query)

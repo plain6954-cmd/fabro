@@ -48,17 +48,19 @@
     }
 
     async function uploadDirectly(file, ticket) {
-        const body = new FormData();
-        body.append('cacheControl', '3600');
-        body.append('', file, file.name);
+        const headers = {};
+        const contentType = ticket.content_type || file.type;
+        if (contentType) {
+            headers['Content-Type'] = contentType;
+        }
         const response = await fetch(ticket.signed_url, {
             method: 'PUT',
-            headers: {'x-upsert': 'false'},
-            body,
+            headers,
+            body: file,
         });
         if (!response.ok) {
             const detail = await response.text().catch(() => '');
-            throw new Error(`Supabase rejected ${file.name} (${response.status}). ${detail}`.trim());
+            throw new Error(`Storage rejected ${file.name} (${response.status}). ${detail}`.trim());
         }
     }
 

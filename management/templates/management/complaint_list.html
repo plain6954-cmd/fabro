@@ -720,8 +720,8 @@
             align-items: center;
             justify-content: center;
             gap: 0.32rem;
-            min-width: 3.55rem;
-            width: auto;
+            min-width: 2rem;
+            width: 2rem;
             height: 2rem;
             font-weight: 800;
             white-space: nowrap;
@@ -2580,7 +2580,6 @@
                                 <div class="action-buttons">
                                     <button class="action-btn view" onclick="openModal('{{ complaint.complaint_id }}')" title="{% translate "View Details" %}" aria-label="View complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-eye"></i>
-                                        <span class="action-label">{% translate "View" %}</span>
                                     </button>
                                     <button type="button" class="action-btn chat" onclick="toggleChatUserPopover(event, '{{ complaint.complaint_id }}')" title="Text about Complaint {{ complaint.complaint_id }}" aria-label="Text about complaint {{ complaint.complaint_id }}">
                                         <i class="fas fa-comment-dots"></i>

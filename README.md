@@ -29,7 +29,7 @@ A full-featured Django-based management system built for Fabro Leather to stream
   Dedicated **CHAT** link on the top navigation bar accessible for every user. Features a clean 2-pane layout with a user directory list on the left and active message thread view on the right.
 
 - **📌 Complaint-Linked Direct Messaging**  
-  Initiate a direct text chat about any specific complaint (`PAT-XXXX`, `PRO-XXXX`, `LIN-XXXX`) directly from the **All Complaints** window.
+  Initiate a direct text chat about any specific complaint (`PAT-XXXX`, `PRO-XXXX`, `QUA-XXXX`, `FAC-XXXX`) directly from the **All Complaints** window.
 
 ---
 
@@ -109,45 +109,61 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-## Supabase complaint media
+## S3-Compatible Complaint Media Storage (Garage)
 
-Production complaint attachments use direct browser-to-Supabase uploads. Django
-creates a server-controlled path and a two-hour Supabase signed-upload URL. The
-browser uploads the file directly, then submits only the opaque upload ID to
-Django. Django verifies ownership, path, object metadata, size, MIME type and the
-10-file limit before creating `ComplaintMedia`. Download links are also signed by
-an authenticated Django endpoint, so the bucket can remain private.
+Production complaint attachments use direct browser uploads to our self-hosted, S3-compatible Garage object storage cluster. Django generates a server-controlled path and a presigned S3 PUT URL (valid for 2 hours). The browser uploads the file directly to the public storage endpoint, then submits only the opaque upload ID to Django. Django verifies ownership, storage path, object metadata, size, MIME type, and the 10-file limit before attaching `ComplaintMedia`. Download links are also signed with short-lived presigned GET URLs so the bucket remains completely private with no anonymous read access.
+
+### Production Storage Architecture
+* **Bucket:** `fabro-craft` (private bucket only; no anonymous access).
+* **Provider:** Self-hosted Garage S3-compatible cluster.
+* **Region:** `garage`.
+* **Server/Backend Internal Endpoint:** `http://fabro-garage:3900` (used for `head_object`, `put_object`, `delete_objects`).
+* **Browser/Public Endpoint:** `https://storage.fabroleather.com` (used for presigned upload/download URLs).
+* **Addressing Style:** Path-style (`path`).
+* **Signature Version:** `s3v4`.
+* **Credentials:** Read/Write access keys.
 
 Required production variables:
 
 ```text
-USE_SUPABASE_STORAGE=True
-SUPABASE_URL=https://PROJECT_REF.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=server-only-service-role-key
-SUPABASE_STORAGE_BUCKET=fabro-leather-media
+USE_S3_STORAGE=True
+S3_BUCKET_NAME=fabro-craft
+S3_REGION=garage
+S3_ENDPOINT_URL=http://fabro-garage:3900
+S3_PUBLIC_ENDPOINT_URL=https://storage.fabroleather.com
+S3_ACCESS_KEY_ID=server-access-key-id
+S3_SECRET_ACCESS_KEY=server-secret-access-key
+S3_ADDRESSING_STYLE=path
+S3_SIGNATURE_VERSION=s3v4
+S3_SIGNED_UPLOAD_TTL_SECONDS=7200
+S3_SIGNED_DOWNLOAD_TTL_SECONDS=300
 ```
 
-Optional variables are `SUPABASE_SIGNED_DOWNLOAD_TTL_SECONDS` (default `300`)
-and `SUPABASE_STORAGE_HTTP_TIMEOUT_SECONDS` (default `15`). Never expose the
-service-role key in HTML, JavaScript, Flutter, or a public environment variable.
+### Local Development Storage Configuration
+Local development can display and download production media by connecting to the public endpoint using read-only Garage credentials:
 
-Create a **private** standard Storage bucket whose ID exactly matches
-`SUPABASE_STORAGE_BUCKET`. Configure its maximum file size as 100 MB and allow
-only these MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`,
-`video/mp4`, `video/quicktime`, `video/webm`, `video/x-msvideo`, `video/avi`, and
-`video/x-matroska`. Browser uploads use signed tokens created by the server-side
-service role, so no public or anonymous INSERT policy is required. Do not add a
-policy that lets clients choose arbitrary object paths.
+```text
+USE_S3_STORAGE=True
+S3_BUCKET_NAME=fabro-craft
+S3_REGION=garage
+S3_ENDPOINT_URL=https://storage.fabroleather.com
+S3_PUBLIC_ENDPOINT_URL=https://storage.fabroleather.com
+S3_ACCESS_KEY_ID=development-readonly-access-key-id
+S3_SECRET_ACCESS_KEY=development-readonly-secret-access-key
+S3_ADDRESSING_STYLE=path
+S3_SIGNATURE_VERSION=s3v4
+```
 
-Incomplete uploads expire after two hours. Schedule the following command at
-least hourly in the production scheduler to remove abandoned objects:
+> [!NOTE]
+> Read-only development credentials cannot perform uploads or deletions. If upload or deletion is attempted with read-only credentials, the application raises a clear `S3StorageError` (AccessDenied) rather than silently falling back to local filesystem storage. For local write testing, use a separate dedicated development bucket or write credentials.
+>
+> To run locally with local disk storage (e.g. for offline use or automated E2E tests), set `USE_S3_STORAGE=False`.
+
+Incomplete uploads expire after two hours. Schedule the following cleanup command periodically (e.g. hourly):
 
 ```bash
 python manage.py cleanup_abandoned_media_uploads
 ```
-
-Local development and automated tests retain the existing multipart upload to
-`MEDIA_ROOT` by leaving `USE_SUPABASE_STORAGE=False`.
 
 ---
 

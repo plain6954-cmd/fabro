@@ -63,8 +63,18 @@ class ComplaintTypes:
         PATTERN: 'PAT',
         PRODUCTION: 'PRO',
         QUALITY: 'QUA',
-        LINE: 'LIN',
+        LINE: 'FAC',
     }
+
+    HISTORICAL_PREFIXES = {
+        LINE: ('LIN', 'LINE'),
+    }
+
+    @classmethod
+    def get_prefixes(cls, complaint_type):
+        current = cls.PREFIXES.get(complaint_type)
+        historical = cls.HISTORICAL_PREFIXES.get(complaint_type, ())
+        return (current,) + historical if current else historical
 
 
 COMPLAINT_TYPE_MASTER_CATEGORIES = {
@@ -433,7 +443,30 @@ class UserProfile(models.Model):
         super().save(*args, **kwargs)
 
 
+class ComplaintQuerySet(models.QuerySet):
+    def _remap_kwargs(self, kwargs):
+        new_kwargs = {}
+        for k, v in kwargs.items():
+            if k == 'batch_order':
+                new_kwargs['batch_no'] = v
+            elif k.startswith('batch_order__'):
+                new_kwargs['batch_no__' + k[len('batch_order__'):]] = v
+            else:
+                new_kwargs[k] = v
+        return new_kwargs
+
+    def filter(self, *args, **kwargs):
+        return super().filter(*args, **self._remap_kwargs(kwargs))
+
+    def get(self, *args, **kwargs):
+        return super().get(*args, **self._remap_kwargs(kwargs))
+
+    def exclude(self, *args, **kwargs):
+        return super().exclude(*args, **self._remap_kwargs(kwargs))
+
+
 class Complaint(models.Model):
+    objects = ComplaintQuerySet.as_manager()
     complaint_id = models.CharField(primary_key=True, max_length=20, unique=True, editable=False)
     complaint_type = models.CharField(max_length=20, choices=ComplaintTypes.CHOICES, default=ComplaintTypes.PATTERN, db_index=True)
     workflow_status = models.CharField(max_length=40, choices=WorkflowStatuses.CHOICES, default=WorkflowStatuses.SUBMITTED, db_index=True)
@@ -601,7 +634,7 @@ class ComplaintMedia(models.Model):
             return ''
         if value.startswith(('https://', 'http://')):
             return value
-        if settings.USE_SUPABASE_STORAGE and self.pk:
+        if settings.USE_S3_STORAGE and self.pk:
             return reverse('complaint_media_download', args=[self.pk])
         try:
             return default_storage.url(self.storage_name)
@@ -616,7 +649,7 @@ class ComplaintMedia(models.Model):
         if value.startswith(('https://', 'http://')):
             return True
 
-        if settings.USE_SUPABASE_STORAGE:
+        if settings.USE_S3_STORAGE:
             return True
         media_root = Path(settings.MEDIA_ROOT).resolve()
         candidate = (media_root / self.storage_name).resolve()
@@ -631,7 +664,8 @@ class ComplaintMedia(models.Model):
 
 
 def complaint_media_upload_expiry():
-    return timezone.now() + timedelta(seconds=settings.SUPABASE_SIGNED_UPLOAD_TTL_SECONDS)
+    ttl = getattr(settings, 'S3_SIGNED_UPLOAD_TTL_SECONDS', 7200)
+    return timezone.now() + timedelta(seconds=ttl)
 
 
 class ComplaintMediaUploadBatch(models.Model):
