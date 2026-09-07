@@ -258,23 +258,32 @@
         }
 
         .dashboard-view-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
             min-height: 2rem;
-            padding: 0.34rem 0.58rem !important;
+            min-width: 2rem;
+            padding: 0 !important;
             border: 1px solid #3b82f6 !important;
-            border-radius: 5px !important;
+            border-radius: 6px !important;
             background: #1d4ed8 !important;
             color: #ffffff !important;
-            font-size: 0.72rem !important;
-            font-weight: 750;
-            box-shadow: 0 5px 13px rgba(29, 78, 216, 0.28);
-            transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+            font-size: 0.82rem !important;
+            box-shadow: 0 4px 12px rgba(29, 78, 216, 0.28);
+            transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+            text-decoration: none;
+            cursor: pointer;
+            vertical-align: middle;
         }
 
         .dashboard-view-button:hover,
         .dashboard-view-button:focus-visible {
             background: #2563eb !important;
             border-color: #93c5fd !important;
-            box-shadow: 0 7px 18px rgba(37, 99, 235, 0.38);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.38);
+            transform: translateY(-1px);
         }
 
         .dashboard-view-button:focus-visible {
@@ -1546,8 +1555,8 @@
                                             </span>
                                         </td>
                                         <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center;" onclick="event.stopPropagation();">
-                                            <button type="button" class="btn-view dashboard-view-button" style="padding: 0.25rem 0.55rem; font-size: 0.74rem;" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" aria-label="View complaint {{ complaint.complaint_id }}">
-                                                <i class="fas fa-eye"></i> {% translate "View" %}
+                                            <button type="button" class="btn-view dashboard-view-button" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" title="{% translate "View Details" %}" aria-label="{% translate "View complaint" %} {{ complaint.complaint_id }}">
+                                                <i class="fas fa-eye"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -1663,8 +1672,8 @@
                                             </span>
                                         </td>
                                         <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center;">
-                                            <a href="{% url 'approval_review' approval.id %}" class="btn-view dashboard-view-button" style="text-decoration: none; padding: 0.25rem 0.55rem; font-size: 0.74rem;">
-                                                <i class="fas fa-check-circle"></i> {% translate "Review" %}
+                                            <a href="{% url 'approval_review' approval.id %}" class="btn-view dashboard-view-button" title="{% translate "Review Decision" %}" aria-label="{% translate "Review" %}">
+                                                <i class="fas fa-check-circle"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -1724,8 +1733,8 @@
                                         </span>
                                     </td>
                                     <td style="padding: 0.75rem; font-size: 0.8rem; text-align: center;" onclick="event.stopPropagation();">
-                                        <button type="button" class="btn-view dashboard-view-button" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" aria-label="View complaint {{ complaint.complaint_id }}">
-                                            <i class="fas fa-eye"></i> {% translate "View" %}
+                                        <button type="button" class="btn-view dashboard-view-button" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" title="{% translate "View Details" %}" aria-label="{% translate "View complaint" %} {{ complaint.complaint_id }}">
+                                            <i class="fas fa-eye"></i>
                                         </button>
                                     </td>
                                 </tr>

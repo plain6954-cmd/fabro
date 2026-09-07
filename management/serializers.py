@@ -227,6 +227,12 @@ class ComplaintSerializer(serializers.ModelSerializer):
             return obj.created_by.username
         return obj.person.name if obj.person else ''
 
+    def to_internal_value(self, data):
+        if isinstance(data, dict) and 'batch_order' in data and 'batch_no' not in data:
+            data = data.copy()
+            data['batch_no'] = data['batch_order']
+        return super().to_internal_value(data)
+
     def validate(self, attrs):
         case_type = attrs.get(
             'case_sub_category',

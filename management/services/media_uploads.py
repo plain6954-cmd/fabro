@@ -119,7 +119,7 @@ def create_upload_ticket(user, batch, *, filename, size, content_type, removal_i
         expected_content_type=content_type,
     )
     try:
-        signed_url = create_signed_upload_url(storage_path)
+        signed_url = create_signed_upload_url(storage_path, content_type=content_type)
     except Exception:
         upload.delete()
         raise
@@ -138,7 +138,7 @@ def _object_size_and_type(info):
     try:
         size = int(size)
     except (TypeError, ValueError) as exc:
-        raise ValidationError('S3 storage did not return valid object size metadata.') from exc
+        raise ValidationError('Object storage did not return valid object size metadata.') from exc
     return size, normalize_content_type(content_type)
 
 
@@ -210,7 +210,7 @@ def discard_uploads(user, upload_ids):
     try:
         delete_objects(paths)
     except S3StorageError:
-        logger.warning('Unable to delete pending S3 media uploads.', exc_info=True)
+        logger.warning('Unable to delete pending object storage media uploads.', exc_info=True)
         return 0
     return ComplaintMediaUpload.objects.filter(id__in=[upload.id for upload in uploads]).update(
         status=ComplaintMediaUpload.Status.REJECTED

@@ -419,7 +419,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         </tr>
         <tr>
             <td><strong>File & Media Storage</strong></td>
-            <td>Supabase S3-Compatible Cloud Storage</td>
+            <td>Garage S3-Compatible Object Storage</td>
             <td>Secure presigned upload URLs for complaint media (up to 100 MB per file, max 10 attachments per record).</td>
         </tr>
     </table>
@@ -453,7 +453,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         </tr>
         <tr>
             <td><span class="badge badge-red">Factory Complaint</span></td>
-            <td><code>LIN-YYMMXXXX</code></td>
+            <td><code>FAC-YYMMXXXX</code></td>
             <td>Urgent factory/assembly-line fitment emergencies requiring rapid review.</td>
             <td>Factory Complaint Registrar, Admin</td>
         </tr>

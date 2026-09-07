@@ -282,7 +282,8 @@ def complaint_media_signed_upload(request):
         'upload_id': str(upload.id),
         'storage_path': upload.storage_path,
         'signed_url': signed_url,
-        'expires_in': settings.SUPABASE_SIGNED_UPLOAD_TTL_SECONDS,
+        'content_type': upload.expected_content_type,
+        'expires_in': settings.S3_SIGNED_UPLOAD_TTL_SECONDS,
     })
 
 
@@ -1512,7 +1513,8 @@ def complaint_list(request):
                 value
                 for value, label in ComplaintTypes.CHOICES
                 if trimmed_search_query.lower() in value.lower()
-                or trimmed_search_query.lower() in label.lower()
+                or trimmed_search_query.lower() in str(label).lower()
+                or any(trimmed_search_query.lower() in p.lower() for p in ComplaintTypes.get_prefixes(value))
             ]
             complaints = complaints.filter(
                 Q(complaint_type__icontains=trimmed_search_query)
@@ -2094,7 +2096,17 @@ def approvals_list_view(request):
         if search_by == 'complaint_id':
             complaints = complaints.filter(complaint_id__icontains=search_query)
         elif search_by == 'complaint_type':
-            complaints = complaints.filter(complaint_type__icontains=search_query)
+            matching_type_values = [
+                value
+                for value, label in ComplaintTypes.CHOICES
+                if search_query.lower() in value.lower()
+                or search_query.lower() in str(label).lower()
+                or any(search_query.lower() in p.lower() for p in ComplaintTypes.get_prefixes(value))
+            ]
+            complaints = complaints.filter(
+                Q(complaint_type__icontains=search_query)
+                | Q(complaint_type__in=matching_type_values)
+            )
         elif search_by == 'priority':
             complaints = complaints.filter(
                 Q(factory_priority__icontains=search_query) | Q(priority__icontains=search_query)
@@ -2112,8 +2124,16 @@ def approvals_list_view(request):
         elif search_by == 'factory_action_plan':
             complaints = complaints.filter(factory_action_plan__icontains=search_query)
         else:
+            matching_type_values = [
+                value
+                for value, label in ComplaintTypes.CHOICES
+                if search_query.lower() in value.lower()
+                or search_query.lower() in str(label).lower()
+                or any(search_query.lower() in p.lower() for p in ComplaintTypes.get_prefixes(value))
+            ]
             complaints = complaints.filter(
                 Q(complaint_id__icontains=search_query)
+                | Q(complaint_type__in=matching_type_values)
                 | Q(brand__name__icontains=search_query)
                 | Q(model__name__icontains=search_query)
                 | Q(sku__code__icontains=search_query)

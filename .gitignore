@@ -1,6 +1,7 @@
 node_modules/
 .pnpm-store/
 .env
+.env*
 env/
 .venv/
 __pycache__/

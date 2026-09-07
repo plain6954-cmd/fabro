@@ -84,72 +84,79 @@ INSTALLED_APPS = [
     'simple_history',
 ]
 
-
-# Garage / S3-compatible media storage
-S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', '')
-S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', '')
 S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', '')
 S3_REGION = os.getenv('S3_REGION', 'garage')
-S3_INTERNAL_ENDPOINT = os.getenv('S3_INTERNAL_ENDPOINT', '').rstrip('/')
-S3_PUBLIC_ENDPOINT = os.getenv('S3_PUBLIC_ENDPOINT', '').rstrip('/')
+
+# Canonical S3 settings with backward compatibility for the existing
+# production environment variable names.
+S3_ENDPOINT_URL = (
+    os.getenv('S3_ENDPOINT_URL')
+    or os.getenv('S3_INTERNAL_ENDPOINT')
+    or ''
+).rstrip('/')
+
+S3_PUBLIC_ENDPOINT_URL = (
+    os.getenv('S3_PUBLIC_ENDPOINT_URL')
+    or os.getenv('S3_PUBLIC_ENDPOINT')
+    or ''
+).rstrip('/')
+
+S3_ACCESS_KEY_ID = (
+    os.getenv('S3_ACCESS_KEY_ID')
+    or os.getenv('S3_ACCESS_KEY')
+    or ''
+)
+
+S3_SECRET_ACCESS_KEY = (
+    os.getenv('S3_SECRET_ACCESS_KEY')
+    or os.getenv('S3_SECRET_KEY')
+    or ''
+)
+
+S3_ADDRESSING_STYLE = os.getenv('S3_ADDRESSING_STYLE', 'path')
+S3_SIGNATURE_VERSION = os.getenv('S3_SIGNATURE_VERSION', 's3v4')
+
 S3_SIGNED_UPLOAD_TTL_SECONDS = int(
     os.getenv('S3_SIGNED_UPLOAD_TTL_SECONDS', '7200')
 )
 S3_SIGNED_DOWNLOAD_TTL_SECONDS = int(
     os.getenv('S3_SIGNED_DOWNLOAD_TTL_SECONDS', '300')
 )
+
+# Legacy aliases retained temporarily for older code/config compatibility.
+S3_INTERNAL_ENDPOINT = S3_ENDPOINT_URL
+S3_PUBLIC_ENDPOINT = S3_PUBLIC_ENDPOINT_URL
+S3_ACCESS_KEY = S3_ACCESS_KEY_ID
+S3_SECRET_KEY = S3_SECRET_ACCESS_KEY
+
+S3_REQUIRED_SETTINGS = {
+    'S3_BUCKET_NAME': S3_BUCKET_NAME,
+    'S3_REGION': S3_REGION,
+    'S3_ENDPOINT_URL': S3_ENDPOINT_URL,
+    'S3_PUBLIC_ENDPOINT_URL': S3_PUBLIC_ENDPOINT_URL,
+    'S3_ACCESS_KEY_ID': S3_ACCESS_KEY_ID,
+    'S3_SECRET_ACCESS_KEY': S3_SECRET_ACCESS_KEY,
+}
+S3_STORAGE_CONFIGURED = all(S3_REQUIRED_SETTINGS.values())
 USE_S3_STORAGE = False if E2E_TESTING else env_bool(
     'USE_S3_STORAGE',
     False,
 )
-
-S3_REQUIRED_SETTINGS = {
-    'S3_ACCESS_KEY': S3_ACCESS_KEY,
-    'S3_SECRET_KEY': S3_SECRET_KEY,
-    'S3_BUCKET_NAME': S3_BUCKET_NAME,
-    'S3_INTERNAL_ENDPOINT': S3_INTERNAL_ENDPOINT,
-    'S3_PUBLIC_ENDPOINT': S3_PUBLIC_ENDPOINT,
-}
-
-if USE_S3_STORAGE:
-    missing = [
-        name for name, value in S3_REQUIRED_SETTINGS.items()
-        if not value
-    ]
-    if missing:
-        raise ImproperlyConfigured(
-            'S3 storage is enabled but required settings are missing: '
-            + ', '.join(missing)
-        )
-
-SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')
-SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
-SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', '')
-SUPABASE_STORAGE_REQUIRED_SETTINGS = {
-    'SUPABASE_URL': SUPABASE_URL,
-    'SUPABASE_SERVICE_ROLE_KEY': SUPABASE_SERVICE_ROLE_KEY,
-    'SUPABASE_STORAGE_BUCKET': SUPABASE_STORAGE_BUCKET,
-}
-SUPABASE_STORAGE_CONFIGURED = all(SUPABASE_STORAGE_REQUIRED_SETTINGS.values())
-USE_SUPABASE_STORAGE = False if E2E_TESTING else env_bool(
-    'USE_SUPABASE_STORAGE',
-    not DEBUG,
-)
-if USE_SUPABASE_STORAGE and not SUPABASE_STORAGE_CONFIGURED:
+if USE_S3_STORAGE and not S3_STORAGE_CONFIGURED:
     missing_settings = ', '.join(
-        name for name, value in SUPABASE_STORAGE_REQUIRED_SETTINGS.items() if not value
+        name for name, value in S3_REQUIRED_SETTINGS.items() if not value
     )
     raise ImproperlyConfigured(
-        'Production media storage is enabled but required Supabase settings are missing: '
+        'Production media storage is enabled but required S3 settings are missing: '
         f'{missing_settings}.'
     )
-SUPABASE_SIGNED_UPLOAD_TTL_SECONDS = 2 * 60 * 60
-SUPABASE_SIGNED_DOWNLOAD_TTL_SECONDS = int(
-    os.getenv('SUPABASE_SIGNED_DOWNLOAD_TTL_SECONDS', '300')
-)
-SUPABASE_STORAGE_HTTP_TIMEOUT_SECONDS = int(
-    os.getenv('SUPABASE_STORAGE_HTTP_TIMEOUT_SECONDS', '15')
-)
+
+# Backward compatibility alias
+USE_SUPABASE_STORAGE = USE_S3_STORAGE
+SUPABASE_STORAGE_BUCKET = S3_BUCKET_NAME
+SUPABASE_SIGNED_UPLOAD_TTL_SECONDS = S3_SIGNED_UPLOAD_TTL_SECONDS
+SUPABASE_SIGNED_DOWNLOAD_TTL_SECONDS = S3_SIGNED_DOWNLOAD_TTL_SECONDS
+
 MEDIA_URL = '/media/'
 
 STORAGES = {
@@ -332,13 +339,17 @@ LOGIN_MAX_ATTEMPTS = int(os.getenv('LOGIN_MAX_ATTEMPTS', '8'))
 LOGIN_RATE_WINDOW_SECONDS = int(os.getenv('LOGIN_RATE_WINDOW_SECONDS', '300'))
 LOGIN_LOCKOUT_SECONDS = int(os.getenv('LOGIN_LOCKOUT_SECONDS', '900'))
 
+_s3_connect_src = ' https://storage.fabroleather.com'
+if S3_PUBLIC_ENDPOINT_URL and S3_PUBLIC_ENDPOINT_URL not in _s3_connect_src:
+    _s3_connect_src += f' {S3_PUBLIC_ENDPOINT_URL}'
+
 CONTENT_SECURITY_POLICY = os.getenv(
     'CONTENT_SECURITY_POLICY',
     "default-src 'self'; "
     "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; "
     "script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
     "font-src 'self' data:; img-src 'self' data: blob: https:; "
-    "media-src 'self' blob: https:; connect-src 'self'; worker-src 'self' blob:",
+    f"media-src 'self' blob: https:; connect-src 'self'{_s3_connect_src}; worker-src 'self' blob:",
 )
 
 # Secure defaults become active automatically when DEBUG is disabled.

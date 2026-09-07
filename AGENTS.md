@@ -15,7 +15,7 @@ This document serves as the authoritative specification for the **FABRO Leather 
 * **Database:** PostgreSQL (Supabase host).
 * **REST API:** Django REST Framework (DRF) endpoints in `management/api_views.py` serving the Flutter mobile app in `mobile/`.
 * **Frontend:** Server-rendered HTML5 templates (`management/templates/`) styled with vanilla CSS (dark/light mode support) and JavaScript.
-* **File Storage:** Local filesystem / Supabase Storage for brand logos and complaint media files (up to 100 MB per file, max 10 files per complaint).
+* **File Storage:** Local filesystem / Garage S3-compatible object storage for brand logos and complaint media files (up to 100 MB per file, max 10 files per complaint).
 
 ---
 
@@ -25,7 +25,7 @@ This document serves as the authoritative specification for the **FABRO Leather 
 * **Pattern Complaints (`PAT-YYMMXXXX`):** Dimension mismatches, template issues, or cutting errors.
 * **Production Complaints (`PRO-YYMMXXXX`):** Manufacturing defects, leather material flaws, or stitching errors.
 * **Quality Complaints (`QUA-YYMMXXXX`):** Quality-related complaints using the same report fields and workflow as the existing complaint types.
-* **Factory Complaints (`LIN-YYMMXXXX`, internal code `line`):** Urgent factory/assembly-line fitment issues. The legacy internal code and ID prefix remain stable for compatibility.
+* **Factory Complaints (`FAC-YYMMXXXX`, internal code `line`):** Urgent factory/assembly-line fitment issues. Generates `FAC` prefix codes while retaining backward-compatibility with historical `LIN`/`LINE` codes.
 
 ### 2.2 Workflow Statuses
 1. `submitted`: Initial state upon creation.

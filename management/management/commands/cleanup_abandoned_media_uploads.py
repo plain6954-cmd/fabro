@@ -5,7 +5,7 @@ from management.services.s3_storage import S3StorageError
 
 
 class Command(BaseCommand):
-    help = 'Delete expired, unattached complaint media uploads from S3-compatible object storage.'
+    help = 'Delete expired, unattached complaint media uploads from object storage.'
 
     def handle(self, *args, **options):
         try:
