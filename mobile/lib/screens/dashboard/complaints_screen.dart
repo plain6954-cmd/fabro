@@ -17,31 +17,42 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
   List<dynamic> _allComplaints = [];
   List<dynamic> _filteredComplaints = [];
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+  String? _nextEndpoint;
   String _selectedStatus = 'All';
 
   @override
   void initState() {
     super.initState();
     _fetchComplaints();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading) {
+        _fetchComplaints(reset: false);
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchComplaints() async {
+  Future<void> _fetchComplaints({bool reset = true}) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final response = await _apiService.get('/api/complaints/');
+      final response = await _apiService.get(reset ? '/api/complaints/' : _nextEndpoint!);
       if (response.statusCode == 200) {
         setState(() {
-          _allComplaints = jsonDecode(response.body);
+          final decoded = jsonDecode(response.body);
+          final items = decoded is Map<String, dynamic> ? List<dynamic>.from(decoded['results'] ?? const []) : List<dynamic>.from(decoded);
+          _allComplaints = reset ? items : [..._allComplaints, ...items];
+          _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
           _applyFilters();
           _isLoading = false;
         });
@@ -61,8 +72,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
 
   void _applyFilters() {
     String query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredComplaints = _allComplaints.where((complaint) {
+    _filteredComplaints = _allComplaints.where((complaint) {
         bool matchesSearch = false;
         final id = (complaint['complaint_id'] ?? '').toString().toLowerCase();
         final brand = (complaint['brand_name'] ?? '').toString().toLowerCase();
@@ -83,7 +93,6 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
 
         return matchesSearch && matchesStatus;
       }).toList();
-    });
   }
 
   Color _getStatusColor(String status) {
@@ -205,7 +214,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                       contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    onChanged: (val) => _applyFilters(),
+                    onChanged: (val) => setState(_applyFilters),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -259,6 +268,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                       : _filteredComplaints.isEmpty
                           ? const Center(child: Text('No complaints found.'))
                           : ListView.builder(
+                              controller: _scrollController,
                               itemCount: _filteredComplaints.length,
                               itemBuilder: (context, index) {
                                 final complaint = _filteredComplaints[index];

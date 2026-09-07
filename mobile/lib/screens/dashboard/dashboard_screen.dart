@@ -123,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/fabro-mobile-background.png',
+              'assets/images/fabro-mobile-background.webp',
               fit: BoxFit.cover,
               alignment: Alignment.center,
               errorBuilder: (context, error, stackTrace) => const SizedBox(),

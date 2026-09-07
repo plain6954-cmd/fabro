@@ -17,30 +17,41 @@ class _SkusScreenState extends State<SkusScreen> {
   List<dynamic> _allSkus = [];
   List<dynamic> _filteredSkus = [];
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+  String? _nextEndpoint;
 
   @override
   void initState() {
     super.initState();
     _fetchSkus();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading) {
+        _fetchSkus(reset: false);
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchSkus() async {
+  Future<void> _fetchSkus({bool reset = true}) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final response = await _apiService.get('/api/skus/');
+      final response = await _apiService.get(reset ? '/api/skus/' : _nextEndpoint!);
       if (response.statusCode == 200) {
         setState(() {
-          _allSkus = jsonDecode(response.body);
+          final decoded = jsonDecode(response.body);
+          final items = decoded is Map<String, dynamic> ? List<dynamic>.from(decoded['results'] ?? const []) : List<dynamic>.from(decoded);
+          _allSkus = reset ? items : [..._allSkus, ...items];
+          _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
           _applyFilters();
           _isLoading = false;
         });
@@ -60,15 +71,13 @@ class _SkusScreenState extends State<SkusScreen> {
 
   void _applyFilters() {
     String query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredSkus = _allSkus.where((sku) {
+    _filteredSkus = _allSkus.where((sku) {
         final code = (sku['code'] ?? '').toString().toLowerCase();
         final desc = (sku['description'] ?? '').toString().toLowerCase();
         final region = (sku['region_name'] ?? '').toString().toLowerCase();
 
         return code.contains(query) || desc.contains(query) || region.contains(query);
       }).toList();
-    });
   }
 
   @override
@@ -97,7 +106,7 @@ class _SkusScreenState extends State<SkusScreen> {
                 contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onChanged: (val) => _applyFilters(),
+              onChanged: (val) => setState(_applyFilters),
             ),
           ),
           // List content
@@ -128,6 +137,7 @@ class _SkusScreenState extends State<SkusScreen> {
                       : _filteredSkus.isEmpty
                           ? const Center(child: Text('No SKUs found.'))
                           : ListView.builder(
+                              controller: _scrollController,
                               itemCount: _filteredSkus.length,
                               itemBuilder: (context, index) {
                                 final sku = _filteredSkus[index];

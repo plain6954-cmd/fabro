@@ -31,7 +31,8 @@ class ApiService {
 
   // GET Request
   Future<http.Response> get(String endpoint) async {
-    final url = Uri.parse('${Environment.apiUrl}$endpoint');
+    final parsed = Uri.parse(endpoint);
+    final url = parsed.hasScheme ? parsed : Uri.parse('${Environment.apiUrl}$endpoint');
     final headers = await _getHeaders();
     Object? lastError;
     for (var attempt = 0; attempt < _maxGetAttempts; attempt++) {

@@ -23,4 +23,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/fabro-logo.png
-    - assets/images/fabro-mobile-background.png
+    - assets/images/fabro-mobile-background.webp

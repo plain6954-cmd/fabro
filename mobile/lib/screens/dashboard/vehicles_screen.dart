@@ -17,30 +17,41 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
   List<dynamic> _allVehicles = [];
   List<dynamic> _filteredVehicles = [];
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+  String? _nextEndpoint;
 
   @override
   void initState() {
     super.initState();
     _fetchVehicles();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading) {
+        _fetchVehicles(reset: false);
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchVehicles() async {
+  Future<void> _fetchVehicles({bool reset = true}) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final response = await _apiService.get('/api/vehicles/');
+      final response = await _apiService.get(reset ? '/api/vehicles/' : _nextEndpoint!);
       if (response.statusCode == 200) {
         setState(() {
-          _allVehicles = jsonDecode(response.body);
+          final decoded = jsonDecode(response.body);
+          final items = decoded is Map<String, dynamic> ? List<dynamic>.from(decoded['results'] ?? const []) : List<dynamic>.from(decoded);
+          _allVehicles = reset ? items : [..._allVehicles, ...items];
+          _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
           _applyFilters();
           _isLoading = false;
         });
@@ -60,8 +71,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
 
   void _applyFilters() {
     String query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredVehicles = _allVehicles.where((vehicle) {
+    _filteredVehicles = _allVehicles.where((vehicle) {
         final submodel = (vehicle['sub_model_name'] ?? '').toString().toLowerCase();
         final code = (vehicle['layout_code'] ?? '').toString().toLowerCase();
         final start = (vehicle['year_start'] ?? '').toString();
@@ -72,7 +82,6 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
             start.contains(query) ||
             end.contains(query);
       }).toList();
-    });
   }
 
   @override
@@ -101,7 +110,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                 contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onChanged: (val) => _applyFilters(),
+              onChanged: (val) => setState(_applyFilters),
             ),
           ),
           // List content
@@ -132,6 +141,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                       : _filteredVehicles.isEmpty
                           ? const Center(child: Text('No vehicles found.'))
                           : ListView.builder(
+                              controller: _scrollController,
                               itemCount: _filteredVehicles.length,
                               itemBuilder: (context, index) {
                                 final vehicle = _filteredVehicles[index];
