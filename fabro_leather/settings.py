@@ -389,3 +389,13 @@ REST_FRAMEWORK = {
         'login': os.getenv('API_LOGIN_THROTTLE', '10/minute'),
     },
 }
+
+# Lightweight per-process cache for short-lived UI counters.
+# Keeps navigation badges from hitting the high-latency database on every request.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'fabro-production-cache',
+        'TIMEOUT': 10,
+    }
+}

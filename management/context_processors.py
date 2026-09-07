@@ -1,5 +1,6 @@
 from .models import WorkflowRoles, ChatMessage, Complaint, WorkflowStatuses, ComplaintApproval, DecisionStatuses
 from django.utils.translation import get_language
+from django.core.cache import cache
 from .services.workflow import (
     can_user_create_complaint,
     can_user_manage_catalog,
@@ -21,34 +22,52 @@ def workflow_access(request):
         getattr(profile, 'role', ''),
         'User',
     )
-    unread_chat_count = ChatMessage.objects.filter(recipient=user, is_read=False).count()
-    
+    unread_cache_key = f'nav-unread-chat:{user.pk}'
+    unread_chat_count = cache.get(unread_cache_key)
+    if unread_chat_count is None:
+        unread_chat_count = ChatMessage.objects.filter(
+            recipient=user,
+            is_read=False,
+        ).count()
+        cache.set(unread_cache_key, unread_chat_count, 10)
+
     can_view_approvals_flag = can_user_view_approvals(user)
+
     pending_approvals_count = 0
     if can_view_approvals_flag:
-        if profile and profile.role == WorkflowRoles.APPROVER:
-            pending_approvals_count = ComplaintApproval.objects.filter(
-                approver_user=user,
-                status=DecisionStatuses.PENDING,
-                complaint__workflow_status__in=[
-                    WorkflowStatuses.AWAITING_APPROVAL,
-                    WorkflowStatuses.PARTIALLY_APPROVED,
-                    WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
-                    WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
-                ],
-            ).count()
-        else:
-            pending_approvals_count = visible_complaints_for_user(
-                user,
-                Complaint.objects.filter(
-                    workflow_status__in=[
+        approvals_cache_key = f'nav-pending-approvals:{user.pk}'
+        pending_approvals_count = cache.get(approvals_cache_key)
+
+        if pending_approvals_count is None:
+            if profile and profile.role == WorkflowRoles.APPROVER:
+                pending_approvals_count = ComplaintApproval.objects.filter(
+                    approver_user=user,
+                    status=DecisionStatuses.PENDING,
+                    complaint__workflow_status__in=[
                         WorkflowStatuses.AWAITING_APPROVAL,
                         WorkflowStatuses.PARTIALLY_APPROVED,
                         WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
                         WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
-                    ]
-                )
-            ).count()
+                    ],
+                ).count()
+            else:
+                pending_approvals_count = visible_complaints_for_user(
+                    user,
+                    Complaint.objects.filter(
+                        workflow_status__in=[
+                            WorkflowStatuses.AWAITING_APPROVAL,
+                            WorkflowStatuses.PARTIALLY_APPROVED,
+                            WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
+                            WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
+                        ]
+                    )
+                ).count()
+
+            cache.set(
+                approvals_cache_key,
+                pending_approvals_count,
+                10,
+            )
 
     return {
         'is_htmx_request': is_htmx_request,
