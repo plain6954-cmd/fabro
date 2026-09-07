@@ -98,6 +98,13 @@
                     <p>{% translate "Workflow updates assigned to you will appear here." %}</p>
                 </div>
             {% endif %}
+            {% if page_obj.has_other_pages %}
+            <nav class="pagination" aria-label="{% translate 'Notification pages' %}">
+                {% if page_obj.has_previous %}<a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}">{% translate "Prev" %}</a>{% endif %}
+                <span>{% blocktranslate with page=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
+                {% if page_obj.has_next %}<a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}">{% translate "Next" %}</a>{% endif %}
+            </nav>
+            {% endif %}
         </section>
     </main>
 

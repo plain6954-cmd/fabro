@@ -1,0 +1,18 @@
+{% load i18n %}
+{% for model in brand.models.all %}
+<details style="margin: .75rem 0 0 1rem;">
+    <summary style="cursor:pointer;"><strong>{{ model.name }}</strong> · {{ model.submodels.all|length }} {% translate "submodels" %}</summary>
+    <div style="padding:.5rem 0 .2rem 1rem;">
+        {% for submodel in model.submodels.all %}
+        <details style="margin:.35rem 0;">
+            <summary style="cursor:pointer;">{{ submodel.name }}</summary>
+            <ul style="margin:.35rem 0; padding-left:1.25rem;">
+                {% for year_range in submodel.year_ranges.all %}
+                <li>{{ year_range.year_start }}–{{ year_range.year_end }} · {{ year_range.layout_code }}{% if year_range.number_of_seats %} · {{ year_range.number_of_seats }} {% translate "seats" %}{% endif %}{% if year_range.number_of_doors %} · {{ year_range.number_of_doors }} {% translate "doors" %}{% endif %}</li>
+                {% empty %}<li>{% translate "No year ranges found." %}</li>{% endfor %}
+            </ul>
+        </details>
+        {% empty %}<p>{% translate "No submodels found." %}</p>{% endfor %}
+    </div>
+</details>
+{% empty %}<p>{% translate "No models found." %}</p>{% endfor %}

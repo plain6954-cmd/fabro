@@ -7,639 +7,7 @@
     <title>{% translate "Chat Workspace - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
-    <style>
-        /* Lock Page & Body to 100vh Flex Container */
-        html, body {
-            overflow: hidden !important;
-            height: 100vh !important;
-            height: 100dvh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            box-sizing: border-box !important;
-        }
-
-        .navbar {
-            flex-shrink: 0 !important;
-        }
-
-        .chat-page-wrapper {
-            flex: 1 !important;
-            min-height: 0 !important;
-            width: min(1560px, calc(100% - 1.5rem));
-            margin: 0 auto;
-            padding: 0.25rem 0 0.5rem;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-sizing: border-box;
-        }
-
-        .chat-container {
-            flex: 1;
-            min-height: 0;
-            height: 100%;
-            display: grid;
-            grid-template-columns: 310px 1fr;
-            background: rgba(24, 24, 27, 0.94);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(18px);
-        }
-
-        body.light-mode .chat-container {
-            background: #ffffff;
-            border-color: #e2e8f0;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
-        }
-
-        /* SIDEBAR - USER DIRECTORY */
-        .chat-sidebar {
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(18, 18, 20, 0.7);
-            height: 100%;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        body.light-mode .chat-sidebar {
-            border-right-color: #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .sidebar-header {
-            padding: 1rem 1rem 0.85rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            flex-shrink: 0;
-        }
-
-        body.light-mode .sidebar-header {
-            border-bottom-color: #e2e8f0;
-        }
-
-        .sidebar-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            margin: 0 0 0.65rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--dark-text);
-        }
-
-        body.light-mode .sidebar-title { color: #0f172a; }
-
-        .chat-search-box {
-            position: relative;
-        }
-
-        .chat-search-input {
-            width: 100%;
-            padding: 0.6rem 0.85rem 0.6rem 2.3rem;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-            font-size: 0.84rem;
-            outline: none;
-            transition: border-color 0.15s ease;
-        }
-
-        .chat-search-input:focus {
-            border-color: rgba(239, 68, 68, 0.5);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        body.light-mode .chat-search-input {
-            background: #ffffff;
-            color: #0f172a;
-            border-color: #cbd5e1;
-        }
-
-        .chat-search-icon {
-            position: absolute;
-            left: 0.8rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            font-size: 0.82rem;
-        }
-
-        /* FILTER BUBBLES (ALL & UNREAD) */
-        .chat-filter-bubbles {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            margin-top: 0.65rem;
-        }
-
-        .chat-filter-bubble {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.35rem;
-            padding: 0.32rem 0.82rem;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            color: rgba(255, 255, 255, 0.75);
-            cursor: pointer;
-            transition: all 0.18s ease;
-            user-select: none;
-            outline: none;
-        }
-
-        .chat-filter-bubble:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            border-color: rgba(255, 255, 255, 0.28);
-        }
-
-        .chat-filter-bubble.active {
-            background: rgba(16, 185, 129, 0.18);
-            border-color: #10b981;
-            color: #34d399;
-            font-weight: 700;
-            box-shadow: 0 0 14px rgba(16, 185, 129, 0.2);
-        }
-
-        body.light-mode .chat-filter-bubble {
-            background: #ffffff;
-            border-color: #cbd5e1;
-            color: #475569;
-        }
-
-        body.light-mode .chat-filter-bubble:hover {
-            background: #f1f5f9;
-            color: #0f172a;
-            border-color: #94a3b8;
-        }
-
-        body.light-mode .chat-filter-bubble.active {
-            background: #dcfce7;
-            border-color: #86efac;
-            color: #15803d;
-            box-shadow: none;
-        }
-
-        .bubble-unread-count {
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 0.08rem 0.4rem;
-            border-radius: 999px;
-            background: rgba(16, 185, 129, 0.25);
-            color: currentColor;
-            line-height: 1;
-        }
-
-        body.light-mode .bubble-unread-count {
-            background: rgba(21, 128, 61, 0.15);
-        }
-
-        .chat-user-list {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            padding: 0.5rem;
-        }
-
-        .chat-user-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.7rem 0.85rem;
-            border-radius: 12px;
-            color: inherit;
-            text-decoration: none;
-            transition: all 0.18s ease;
-            margin-bottom: 0.3rem;
-            position: relative;
-            border: 1px solid transparent;
-            cursor: pointer;
-        }
-
-        .chat-user-item:hover {
-            background: rgba(255, 255, 255, 0.04);
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-
-        .chat-user-item.active {
-            background: rgba(239, 35, 42, 0.15);
-            border-color: rgba(239, 35, 42, 0.35);
-        }
-
-        body.light-mode .chat-user-item:hover {
-            background: #f1f5f9;
-            border-color: #e2e8f0;
-        }
-
-        body.light-mode .chat-user-item.active {
-            background: #fee2e2;
-            border-color: #fca5a5;
-        }
-
-        .user-avatar-container {
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .user-avatar {
-            width: 2.6rem;
-            height: 2.6rem;
-            border-radius: 50%;
-            color: #ffffff;
-            display: grid;
-            place-items: center;
-            font-weight: 800;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Role Avatar Color Themes */
-        .avatar-country_executive { background: linear-gradient(135deg, #059669, #10b981); }
-        .avatar-factory_executive { background: linear-gradient(135deg, #d97706, #f59e0b); }
-        .avatar-factory_complaint_registrar { background: linear-gradient(135deg, #2563eb, #3b82f6); }
-        .avatar-approver { background: linear-gradient(135deg, #4f46e5, #6366f1); }
-        .avatar-workflow_admin { background: linear-gradient(135deg, #be123c, #ef4444); }
-        .avatar-factory_viewer { background: linear-gradient(135deg, #475569, #64748b); }
-        .avatar-default { background: linear-gradient(135deg, var(--primary-color), #b91c1c); }
-
-        .status-dot {
-            position: absolute;
-            bottom: 1px;
-            right: 1px;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: #22c55e;
-            border: 2px solid #121214;
-        }
-
-        .user-details {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .user-name-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.4rem;
-            margin-bottom: 0.15rem;
-        }
-
-        .user-name {
-            font-weight: 600;
-            font-size: 0.86rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .user-role-pill {
-            display: inline-block;
-            font-size: 0.68rem;
-            font-weight: 700;
-            padding: 0.1rem 0.42rem;
-            border-radius: 999px;
-            color: rgba(255, 255, 255, 0.78);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        body.light-mode .user-role-pill {
-            color: #475569;
-            background: #e2e8f0;
-        }
-
-        .user-last-msg {
-            font-size: 0.72rem;
-            color: #94a3b8;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        body.light-mode .user-last-msg { color: #64748b; }
-
-        .unread-pill {
-            background: #ef4444;
-            color: #ffffff;
-            font-size: 0.68rem;
-            font-weight: 800;
-            padding: 0.15rem 0.48rem;
-            border-radius: 999px;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
-            flex-shrink: 0;
-        }
-
-        /* MAIN CHAT WORKSPACE */
-        .chat-main {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            min-height: 0;
-            overflow: hidden;
-            background: rgba(12, 12, 14, 0.5);
-        }
-
-        body.light-mode .chat-main { background: #ffffff; }
-
-        .chat-header {
-            padding: 0.9rem 1.25rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(24, 24, 27, 0.75);
-            flex-shrink: 0;
-        }
-
-        body.light-mode .chat-header {
-            border-bottom-color: #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .chat-header-info {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-        }
-
-        .chat-header-title {
-            font-size: 1rem;
-            font-weight: 700;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-        }
-
-        .chat-status-sub {
-            font-size: 0.74rem;
-            color: #22c55e;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            margin-top: 0.12rem;
-        }
-
-        .complaint-context-bar {
-            padding: 0.55rem 1.25rem;
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(220, 38, 38, 0.08));
-            border-bottom: 1px solid rgba(239, 68, 68, 0.28);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.82rem;
-            color: #fca5a5;
-            flex-shrink: 0;
-        }
-
-        body.light-mode .complaint-context-bar {
-            background: #fef2f2;
-            border-bottom-color: #fecaca;
-            color: #991b1b;
-        }
-
-        .context-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-weight: 700;
-        }
-
-        /* MESSAGES PANEL - SINGLE INTERNAL SCROLLBAR */
-        .messages-history {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            padding: 1.1rem 1.35rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.95rem;
-        }
-
-        .msg-group {
-            display: flex;
-            flex-direction: column;
-            max-width: 68%;
-        }
-
-        .msg-group.self {
-            align-self: flex-end;
-            align-items: flex-end;
-        }
-
-        .msg-group.other {
-            align-self: flex-start;
-            align-items: flex-start;
-        }
-
-        .msg-bubble {
-            padding: 0.72rem 1.1rem;
-            border-radius: 14px;
-            font-size: 0.88rem;
-            line-height: 1.46;
-            word-break: break-word;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
-            position: relative;
-        }
-
-        .msg-group.self .msg-bubble {
-            background: linear-gradient(135deg, var(--primary-color), #dc2626);
-            color: #ffffff;
-            border-bottom-right-radius: 3px;
-        }
-
-        .msg-group.other .msg-bubble {
-            background: #27272a;
-            color: #f4f4f5;
-            border-bottom-left-radius: 3px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        body.light-mode .msg-group.other .msg-bubble {
-            background: #f1f5f9;
-            color: #0f172a;
-            border-color: #e2e8f0;
-        }
-
-        .msg-complaint-card {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.28rem 0.6rem;
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.25);
-            color: #fef08a;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-bottom: 0.4rem;
-            text-decoration: none;
-            border: 1px solid rgba(254, 240, 138, 0.3);
-            transition: transform 0.15s ease;
-        }
-
-        .msg-complaint-card:hover {
-            transform: scale(1.02);
-            color: #ffffff;
-        }
-
-        .msg-time {
-            font-size: 0.68rem;
-            color: #94a3b8;
-            margin-top: 0.22rem;
-            padding: 0 0.25rem;
-        }
-
-        /* QUICK PRESETS & INPUT FOOTER - FIXED BOTTOM */
-        .chat-input-footer {
-            padding: 0.65rem 1.25rem 0.75rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(24, 24, 27, 0.88);
-            flex-shrink: 0;
-        }
-
-        body.light-mode .chat-input-footer {
-            border-top-color: #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .preset-chips {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            margin-bottom: 0.4rem;
-            overflow-x: auto;
-            padding-bottom: 0.15rem;
-        }
-
-        .preset-chip {
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 0.25rem 0.58rem;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #cbd5e1;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.15s ease;
-        }
-
-        .preset-chip:hover {
-            background: rgba(239, 35, 42, 0.18);
-            border-color: rgba(239, 35, 42, 0.4);
-            color: #ffffff;
-        }
-
-        body.light-mode .preset-chip {
-            background: #ffffff;
-            border-color: #cbd5e1;
-            color: #475569;
-        }
-
-        body.light-mode .preset-chip:hover {
-            background: #fee2e2;
-            border-color: #fca5a5;
-            color: #991b1b;
-        }
-
-        .chat-input-form {
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-        }
-
-        .chat-textarea {
-            flex: 1;
-            padding: 0.68rem 1rem;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-            font-size: 0.88rem;
-            outline: none;
-            resize: none;
-            height: 42px;
-            font-family: inherit;
-            transition: border-color 0.15s ease;
-        }
-
-        .chat-textarea:focus {
-            border-color: var(--primary-color);
-        }
-
-        body.light-mode .chat-textarea {
-            background: #ffffff;
-            color: #0f172a;
-            border-color: #cbd5e1;
-        }
-
-        .chat-send-btn {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary-color), #dc2626);
-            color: #ffffff;
-            border: none;
-            cursor: pointer;
-            display: grid;
-            place-items: center;
-            font-size: 1rem;
-            transition: all 0.15s ease;
-            flex-shrink: 0;
-            box-shadow: 0 4px 14px rgba(239, 35, 42, 0.3);
-        }
-
-        .chat-send-btn:hover {
-            transform: translateY(-1px) scale(1.03);
-            box-shadow: 0 6px 18px rgba(239, 35, 42, 0.45);
-        }
-
-        .empty-workspace {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #94a3b8;
-            gap: 0.85rem;
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .empty-workspace-icon {
-            width: 4.5rem;
-            height: 4.5rem;
-            border-radius: 50%;
-            background: rgba(239, 35, 42, 0.12);
-            color: var(--primary-color);
-            display: grid;
-            place-items: center;
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
-
-        @media (max-width: 820px) {
-            .chat-container {
-                grid-template-columns: 1fr;
-            }
-            .chat-sidebar.has-selected {
-                display: none;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'management/css/chat.css' %}?v=20260907-perf1">
 </head>
 <body>
     {% include 'management/base.html' %}
@@ -775,8 +143,9 @@
 
                     <!-- MESSAGES HISTORY -->
                     <div class="messages-history" id="messages-history">
+                        <button type="button" id="load-older-messages" class="preset-chip"{% if not chat_has_older %} hidden{% endif %}>{% translate "Load older messages" %}</button>
                         {% for msg in chat_messages %}
-                            <div class="msg-group {% if msg.sender.id == request.user.id %}self{% else %}other{% endif %}">
+                            <div class="msg-group {% if msg.sender.id == request.user.id %}self{% else %}other{% endif %}" data-message-id="{{ msg.id }}">
                                 <div class="msg-bubble">
                                     {% if msg.complaint %}
                                         <a href="{% url 'complaint_list' %}?search={{ msg.complaint.complaint_id }}" class="msg-complaint-card">
@@ -1002,21 +371,38 @@
             }
         }
 
-        async function loadMessagesForUser(userId) {
+        async function loadMessagesForUser(userId, incremental = false, older = false) {
             const messagesHistory = document.getElementById('messages-history');
             if (!messagesHistory) return;
 
             try {
-                if (messagesRequestController) messagesRequestController.abort();
+                if (messagesRequestController && !incremental) messagesRequestController.abort();
                 messagesRequestController = new AbortController();
-                const res = await fetch(`/api/chat/messages/${userId}/`, {
+                const messageNodes = messagesHistory.querySelectorAll('[data-message-id]');
+                const cursorNode = older ? messageNodes[0] : messageNodes[messageNodes.length - 1];
+                const cursor = cursorNode ? cursorNode.dataset.messageId : '';
+                const cursorQuery = cursor ? (older ? `?before_id=${cursor}` : (incremental ? `?after_id=${cursor}` : '')) : '';
+                const res = await fetch(`/api/chat/messages/${userId}/${cursorQuery}`, {
                     signal: messagesRequestController.signal,
                     credentials: 'same-origin',
                 });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.status === 'ok' && String(userId) === String(currentRecipientId)) {
-                        renderAllMessages(data.messages);
+                        if (incremental) {
+                            data.messages.forEach(m => {
+                                if (!messagesHistory.querySelector(`[data-message-id="${m.id}"]`)) {
+                                    messagesHistory.appendChild(buildMessageNode(m));
+                                }
+                            });
+                            if (data.messages.length) scrollToBottom();
+                        } else if (older) {
+                            prependMessages(data.messages);
+                            const button = document.getElementById('load-older-messages');
+                            if (button) button.hidden = !data.has_more;
+                        } else {
+                            renderAllMessages(data.messages, data.has_more);
+                        }
                     }
                 }
             } catch (err) {
@@ -1026,11 +412,14 @@
             }
         }
 
-        function renderAllMessages(msgs) {
+        function renderAllMessages(msgs, hasMore = false) {
             const messagesHistory = document.getElementById('messages-history');
             if (!messagesHistory) return;
 
-            messagesHistory.innerHTML = '';
+            messagesHistory.innerHTML = '<button type="button" id="load-older-messages" class="preset-chip">' + window.FabroI18n.gettext('Load older messages') + '</button>';
+            const olderButton = document.getElementById('load-older-messages');
+            olderButton.hidden = !hasMore;
+            olderButton.addEventListener('click', () => loadMessagesForUser(currentRecipientId, false, true));
 
             if (msgs.length === 0) {
                 messagesHistory.innerHTML = `
@@ -1048,6 +437,7 @@
             msgs.forEach(m => {
                 const grp = document.createElement('div');
                 grp.className = `msg-group ${m.is_self ? 'self' : 'other'}`;
+                grp.dataset.messageId = m.id;
 
                 let complaintCardHtml = '';
                 if (m.complaint_id) {
@@ -1066,6 +456,27 @@
                 messagesHistory.appendChild(grp);
             });
             scrollToBottom();
+        }
+
+        function prependMessages(msgs) {
+            const history = document.getElementById('messages-history');
+            const anchor = history.querySelector('[data-message-id]');
+            msgs.forEach(m => {
+                if (history.querySelector(`[data-message-id="${m.id}"]`)) return;
+                const grp = buildMessageNode(m);
+                history.insertBefore(grp, anchor);
+            });
+        }
+
+        function buildMessageNode(m) {
+            const grp = document.createElement('div');
+            grp.className = `msg-group ${m.is_self ? 'self' : 'other'}`;
+            grp.dataset.messageId = m.id;
+            const complaintCardHtml = m.complaint_id
+                ? `<a href="/complaints/?search=${encodeURIComponent(m.complaint_id)}" class="msg-complaint-card"><i class="fas fa-link"></i> ${escapeHtml(m.complaint_id)}</a><br>`
+                : '';
+            grp.innerHTML = `<div class="msg-bubble">${complaintCardHtml}${escapeHtml(m.message)}</div><div class="msg-time">${escapeHtml(m.created_at)}</div>`;
+            return grp;
         }
 
         function scrollToBottom() {
@@ -1087,8 +498,10 @@
             const recipientIdInput = document.getElementById('recipient-id');
             const complaintIdInput = document.getElementById('complaint-id');
             const sendBtn = document.getElementById('send-btn');
+            const loadOlderButton = document.getElementById('load-older-messages');
 
             scrollToBottom();
+            if (loadOlderButton) loadOlderButton.addEventListener('click', () => loadMessagesForUser(currentRecipientId, false, true));
 
             // Event listener for user item clicks (SPA switching)
             userItems.forEach(item => {
@@ -1167,24 +580,8 @@
                 if (notice) notice.remove();
 
                 const messagesHistory = document.getElementById('messages-history');
-                const grp = document.createElement('div');
-                grp.className = `msg-group ${m.is_self ? 'self' : 'other'}`;
-
-                let complaintCardHtml = '';
-                if (m.complaint_id) {
-                    const complaintId = escapeHtml(m.complaint_id);
-                    complaintCardHtml = `<a href="/complaints/?search=${encodeURIComponent(m.complaint_id)}" class="msg-complaint-card"><i class="fas fa-link"></i> ${complaintId}</a><br>`;
-                }
-
-                grp.innerHTML = `
-                    <div class="msg-bubble">
-                        ${complaintCardHtml}
-                        ${escapeHtml(m.message)}
-                    </div>
-                    <div class="msg-time">${escapeHtml(m.created_at)}</div>
-                `;
-
-                messagesHistory.appendChild(grp);
+                if (messagesHistory.querySelector(`[data-message-id="${m.id}"]`)) return;
+                messagesHistory.appendChild(buildMessageNode(m));
             }
 
             // Update sidebar users list and unread badges dynamically
@@ -1264,19 +661,24 @@
             // Initial filter application
             applyUserFilters();
 
-            // 4. Polling for incoming messages and users order every 3 seconds
-            setInterval(async () => {
+            // Incremental message polling; the user list changes less often.
+            const messagePoll = setInterval(async () => {
                 if (document.hidden || chatPollInProgress) return;
                 chatPollInProgress = true;
                 try {
-                    await Promise.all([
-                        currentRecipientId ? loadMessagesForUser(currentRecipientId) : Promise.resolve(),
-                        refreshUsersList(),
-                    ]);
+                    if (currentRecipientId) await loadMessagesForUser(currentRecipientId, true);
                 } finally {
                     chatPollInProgress = false;
                 }
-            }, 3000);
+            }, 10000);
+            const usersPoll = setInterval(() => {
+                if (!document.hidden) refreshUsersList();
+            }, 30000);
+            document.addEventListener('fabro:before-page-swap', () => {
+                clearInterval(messagePoll);
+                clearInterval(usersPoll);
+                if (messagesRequestController) messagesRequestController.abort();
+            }, { once: true });
         });
     </script>
 </body>
