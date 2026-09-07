@@ -826,6 +826,78 @@
             border: none;
             cursor: pointer;
         }
+
+        /* One-frame SKU workspace: the data area owns the only scrollbar. */
+        .sku-workspace {
+            display: flex;
+            flex-direction: column;
+            height: calc(100dvh - 5.5rem);
+            min-height: 0;
+            overflow: hidden;
+            background: rgba(30, 30, 32, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        body.light-mode .sku-workspace {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+        }
+
+        .sku-workspace .sku-workspace__toolbar {
+            flex: 0 0 auto;
+            margin: 0 0 0.65rem;
+            padding: 0.15rem 0.15rem 0.7rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.light-mode .sku-workspace .sku-workspace__toolbar {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .sku-workspace .table-section {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            padding: 0;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
+        }
+
+        .sku-workspace .table-container {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none;
+            overflow: auto;
+            border-radius: 8px;
+        }
+
+        .sku-workspace .pagination-container {
+            flex: 0 0 auto;
+            margin-top: 0.55rem !important;
+        }
+
+        @media (max-width: 768px) {
+            .sku-workspace {
+                height: calc(100dvh - 5rem);
+                padding: 0.75rem;
+            }
+
+            .sku-workspace .sku-workspace__toolbar {
+                padding-inline: 0;
+            }
+
+            .sku-workspace .table-container {
+                overflow-x: hidden;
+                overflow-y: auto;
+            }
+        }
     </style>
 {% if is_htmx_request %}
 </template>
@@ -835,8 +907,8 @@
     {% include 'management/base.html' %}
 {% endif %}
     <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
-    <div class="page-container">
-        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+    <div class="page-container sku-workspace">
+        <div class="page-header sku-workspace__toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
                 <h1 class="page-title" style="margin-bottom: 0.25rem; justify-content: flex-start;">
                     <i class="fas fa-barcode"></i>
@@ -940,13 +1012,6 @@
 
         <!-- SKU List FIRST -->
         <div class="table-section" data-no-reveal>
-            <div class="table-header">
-                <h2 class="table-title">
-                    <i class="fas fa-list"></i>
-                    Existing SKUs ({% if page_obj %}{{ page_obj.paginator.count }}{% else %}{{ skus.count }}{% endif %})
-                </h2>
-            </div>
-
             <div class="table-container">
                 <table class="table">
                     <thead>
