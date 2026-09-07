@@ -84,6 +84,44 @@ INSTALLED_APPS = [
     'simple_history',
 ]
 
+
+# Garage / S3-compatible media storage
+S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', '')
+S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', '')
+S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', '')
+S3_REGION = os.getenv('S3_REGION', 'garage')
+S3_INTERNAL_ENDPOINT = os.getenv('S3_INTERNAL_ENDPOINT', '').rstrip('/')
+S3_PUBLIC_ENDPOINT = os.getenv('S3_PUBLIC_ENDPOINT', '').rstrip('/')
+S3_SIGNED_UPLOAD_TTL_SECONDS = int(
+    os.getenv('S3_SIGNED_UPLOAD_TTL_SECONDS', '7200')
+)
+S3_SIGNED_DOWNLOAD_TTL_SECONDS = int(
+    os.getenv('S3_SIGNED_DOWNLOAD_TTL_SECONDS', '300')
+)
+USE_S3_STORAGE = False if E2E_TESTING else env_bool(
+    'USE_S3_STORAGE',
+    False,
+)
+
+S3_REQUIRED_SETTINGS = {
+    'S3_ACCESS_KEY': S3_ACCESS_KEY,
+    'S3_SECRET_KEY': S3_SECRET_KEY,
+    'S3_BUCKET_NAME': S3_BUCKET_NAME,
+    'S3_INTERNAL_ENDPOINT': S3_INTERNAL_ENDPOINT,
+    'S3_PUBLIC_ENDPOINT': S3_PUBLIC_ENDPOINT,
+}
+
+if USE_S3_STORAGE:
+    missing = [
+        name for name, value in S3_REQUIRED_SETTINGS.items()
+        if not value
+    ]
+    if missing:
+        raise ImproperlyConfigured(
+            'S3 storage is enabled but required settings are missing: '
+            + ', '.join(missing)
+        )
+
 SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')
 SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
 SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', '')
@@ -117,8 +155,8 @@ MEDIA_URL = '/media/'
 STORAGES = {
     'default': {
         'BACKEND': (
-            'management.storage_backends.SupabaseStorage'
-            if USE_SUPABASE_STORAGE
+            'management.storage_backends.S3Storage'
+            if USE_S3_STORAGE
             else 'django.core.files.storage.FileSystemStorage'
         ),
     },

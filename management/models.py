@@ -601,7 +601,7 @@ class ComplaintMedia(models.Model):
             return ''
         if value.startswith(('https://', 'http://')):
             return value
-        if settings.USE_SUPABASE_STORAGE and self.pk:
+        if settings.USE_S3_STORAGE and self.pk:
             return reverse('complaint_media_download', args=[self.pk])
         try:
             return default_storage.url(self.storage_name)
@@ -616,7 +616,7 @@ class ComplaintMedia(models.Model):
         if value.startswith(('https://', 'http://')):
             return True
 
-        if settings.USE_SUPABASE_STORAGE:
+        if settings.USE_S3_STORAGE:
             return True
         media_root = Path(settings.MEDIA_ROOT).resolve()
         candidate = (media_root / self.storage_name).resolve()

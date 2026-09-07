@@ -14,8 +14,8 @@ from management.models import (
     ComplaintMediaUploadBatch,
 )
 
-from .supabase_storage import (
-    SupabaseStorageError,
+from .s3_storage import (
+    S3StorageError,
     create_signed_upload_url,
     delete_objects,
     get_object_info,
@@ -138,7 +138,7 @@ def _object_size_and_type(info):
     try:
         size = int(size)
     except (TypeError, ValueError) as exc:
-        raise ValidationError('Supabase did not return valid object size metadata.') from exc
+        raise ValidationError('S3 storage did not return valid object size metadata.') from exc
     return size, normalize_content_type(content_type)
 
 
@@ -174,7 +174,7 @@ def verify_pending_uploads(user, batch, upload_ids, *, complaint=None, existing_
 
         try:
             info = get_object_info(upload.storage_path)
-        except SupabaseStorageError as exc:
+        except S3StorageError as exc:
             raise ValidationError(f'{upload.original_name}: uploaded object was not found.') from exc
         actual_size, actual_type = _object_size_and_type(info)
         extension = os.path.splitext(upload.storage_path)[1].lower()
@@ -209,8 +209,8 @@ def discard_uploads(user, upload_ids):
     paths = [upload.storage_path for upload in uploads]
     try:
         delete_objects(paths)
-    except SupabaseStorageError:
-        logger.warning('Unable to delete pending Supabase media uploads.', exc_info=True)
+    except S3StorageError:
+        logger.warning('Unable to delete pending S3 media uploads.', exc_info=True)
         return 0
     return ComplaintMediaUpload.objects.filter(id__in=[upload.id for upload in uploads]).update(
         status=ComplaintMediaUpload.Status.REJECTED

@@ -1,6 +1,6 @@
 from django.core.files.storage import Storage
 
-from .services.supabase_storage import (
+from .services.s3_storage import (
     create_signed_download_url,
     delete_objects,
     get_object_info,
@@ -8,17 +8,16 @@ from .services.supabase_storage import (
 )
 
 
-class SupabaseStorage(Storage):
-    """Django storage adapter for small non-complaint files.
-
-    Complaint attachments use signed browser uploads and never call ``_save`` in
-    production. This adapter keeps ImageField-backed logos/profile photos durable
-    without retaining the previous S3-compatible backend.
-    """
+class S3Storage(Storage):
+    """Django storage adapter backed by Garage/S3."""
 
     def _save(self, name, content):
         content.seek(0)
-        upload_content(name, content.read(), getattr(content, 'content_type', None))
+        upload_content(
+            name,
+            content.read(),
+            getattr(content, "content_type", None),
+        )
         return name
 
     def delete(self, name):
@@ -33,7 +32,7 @@ class SupabaseStorage(Storage):
 
     def size(self, name):
         info = get_object_info(name)
-        return int(info.get('size') or info.get('metadata', {}).get('size') or 0)
+        return int(info.get("size") or 0)
 
     def url(self, name):
         return create_signed_download_url(name)

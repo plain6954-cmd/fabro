@@ -14,7 +14,7 @@ urlpatterns = [
 
 # Serve local media and static files in development.
 if settings.DEBUG:
-    if not settings.USE_SUPABASE_STORAGE:
+    if not settings.USE_S3_STORAGE:
         urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     # Serve from the collected staticfiles folder
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

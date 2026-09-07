@@ -1,0 +1,50 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fabro:production
+    container_name: fabro-web
+    restart: unless-stopped
+
+    env_file:
+      - .env.production
+
+    ports:
+      - "127.0.0.1:18000:8000"
+
+    command:
+      - gunicorn
+      - fabro_leather.wsgi:application
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "4"
+      - --threads
+      - "2"
+      - --timeout
+      - "120"
+      - --access-logfile
+      - "-"
+      - --error-logfile
+      - "-"
+
+    networks:
+      - fabro-infra
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "from urllib.request import Request,urlopen;
+          r=Request('http://127.0.0.1:8000/login/',
+          headers={'X-Forwarded-Proto':'https'});
+          urlopen(r,timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  fabro-infra:
+    external: true
