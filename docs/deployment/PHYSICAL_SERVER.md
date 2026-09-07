@@ -6,7 +6,7 @@ All values in angle brackets are placeholders. Keep the environment file outside
 
 Set `DATABASE_URL` (or the existing split DB variables), retain `sslmode=require`, and set `CONN_MAX_AGE` initially between 60 and 300 seconds. Django enables `CONN_HEALTH_CHECKS`. A Supabase pooler hostname commonly contains `pooler`, but verify the connection mode in the Supabase dashboard without printing the URL or credentials. Size Gunicorn workers and database connections together so their maximum is below the pooler's limit.
 
-Set `CACHE_URL=redis://<REDIS_HOST>:<PORT>/<DB>` to enable shared caching. Optional tuning variables are `CACHE_KEY_PREFIX`, `CACHE_DEFAULT_TIMEOUT`, `BADGE_CACHE_TTL`, `DASHBOARD_CACHE_TTL`, `CATALOG_CACHE_TTL`, `PERFORMANCE_TIMING_ENABLED`, and `SLOW_REQUEST_THRESHOLD_MS`. Leave `CACHE_URL` empty for the local in-memory fallback; tests do not require Redis.
+Set `CACHE_URL=redis://<REDIS_HOST>:<PORT>/<DB>` to enable shared caching. Optional tuning variables are `CACHE_KEY_PREFIX`, `CACHE_DEFAULT_TIMEOUT`, `BADGE_CACHE_TTL`, `DASHBOARD_CACHE_TTL`, `CATALOG_CACHE_TTL`, `PERFORMANCE_TIMING_ENABLED`, `SQL_QUERY_COUNT_ENABLED`, and `SLOW_REQUEST_THRESHOLD_MS`. Leave `CACHE_URL` empty for the local in-memory fallback; tests do not require Redis. Keep SQL query-count logging disabled in production unless diagnosing a bounded incident; it records counts only, never query parameters.
 
 ## Safe update checklist
 
