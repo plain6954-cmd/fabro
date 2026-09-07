@@ -438,10 +438,36 @@
                         </table>
                     </div>
                     {% if page_obj.has_other_pages %}
-                    <nav class="pagination" aria-label="{% translate 'Vehicle pages' %}">
-                        {% if page_obj.has_previous %}<a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}">{% translate "Prev" %}</a>{% endif %}
-                        <span>{% blocktranslate with page=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
-                        {% if page_obj.has_next %}<a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}">{% translate "Next" %}</a>{% endif %}
+                    <nav class="pattern-pagination" aria-label="{% translate 'Vehicle pages' %}">
+                        {% if page_obj.has_previous %}
+                        <a class="pattern-pagination__control pattern-pagination__control--previous" href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Prev' %}">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            <span>{% translate "Prev" %}</span>
+                        </a>
+                        {% else %}
+                        <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            <span>{% translate "Prev" %}</span>
+                        </span>
+                        {% endif %}
+
+                        <span class="pattern-pagination__indicator" aria-current="page">
+                            <span class="pattern-pagination__current">{{ page_obj.number }}</span>
+                            <span class="pattern-pagination__separator" aria-hidden="true">/</span>
+                            <span>{{ page_obj.paginator.num_pages }}</span>
+                        </span>
+
+                        {% if page_obj.has_next %}
+                        <a class="pattern-pagination__control pattern-pagination__control--next" href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Next' %}">
+                            <span>{% translate "Next" %}</span>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </a>
+                        {% else %}
+                        <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
+                            <span>{% translate "Next" %}</span>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </span>
+                        {% endif %}
                     </nav>
                     {% endif %}
                 {% else %}
