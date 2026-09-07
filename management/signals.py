@@ -9,11 +9,35 @@ from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
-from .models import ComplaintMedia, UserProfile
+from .models import (
+    Brand, ChatMessage, Complaint, ComplaintApproval, ComplaintMedia,
+    MasterSetting, Notification, SKU, UserProfile, YearRange,
+)
+from .services.cache_versions import bump_cache_version
 from .security import get_client_ip
 
 
 logger = logging.getLogger(__name__)
+
+
+@receiver(post_save, sender=Complaint)
+@receiver(post_delete, sender=Complaint)
+@receiver(post_save, sender=ComplaintApproval)
+@receiver(post_delete, sender=ComplaintApproval)
+@receiver(post_save, sender=Notification)
+@receiver(post_delete, sender=Notification)
+@receiver(post_save, sender=ChatMessage)
+@receiver(post_delete, sender=ChatMessage)
+@receiver(post_save, sender=Brand)
+@receiver(post_delete, sender=Brand)
+@receiver(post_save, sender=YearRange)
+@receiver(post_delete, sender=YearRange)
+@receiver(post_save, sender=SKU)
+@receiver(post_delete, sender=SKU)
+@receiver(post_save, sender=MasterSetting)
+@receiver(post_delete, sender=MasterSetting)
+def invalidate_performance_caches(sender, **kwargs):
+    bump_cache_version()
 
 @receiver(user_logged_in)
 def capture_login_metadata(sender, request, user, **kwargs):

@@ -5,16 +5,18 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated, SAFE_METHODS
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.authtoken.models import Token
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from django.contrib.auth import authenticate
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Case, When, Value, IntegerField
+from django.db.models import Count, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Q
+from django.core.cache import cache
 from django.utils import timezone
 from .serializers import (
     ApprovalDecisionInputSerializer,
     ComplaintApprovalSerializer,
     ComplaintSerializer,
+    ComplaintListSerializer,
     DashboardStatsSerializer,
     FactoryReviewInputSerializer,
     FinalComplaintUpdateSerializer,
@@ -55,6 +57,7 @@ from .services.workflow import (
     submit_factory_review,
     visible_complaints_for_user,
 )
+from .services.cache_versions import cache_version
 
 
 class IsCatalogAdminOrReadOnly(BasePermission):
@@ -143,19 +146,22 @@ class DashboardAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
         visible_complaints = visible_complaints_for_user(request.user, Complaint.objects.all())
-        complaint_status_counts = dict(
-            visible_complaints.values_list('status').annotate(count=Count('status'))
-        )
-        data = {
-            'total_complaints': sum(complaint_status_counts.values()),
-            'open_complaints': complaint_status_counts.get('Open', 0),
-            'closed_complaints': complaint_status_counts.get('Closed', 0),
-            'on_hold_complaints': complaint_status_counts.get('On Hold', 0),
+        key = f'fabro:api-dashboard:v{cache_version()}:user:{request.user.pk}'
+        data = cache.get(key)
+        if data is None:
+            data = visible_complaints.aggregate(
+                total_complaints=Count('pk'),
+                open_complaints=Count('pk', filter=Q(status='Open')),
+                closed_complaints=Count('pk', filter=Q(status='Closed')),
+                on_hold_complaints=Count('pk', filter=Q(status='On Hold')),
+            )
+            data.update({
             'total_vehicles': YearRange.objects.count(),
             'total_skus': SKU.objects.count(),
             'total_settings': MasterSetting.objects.count(),
             'total_master_settings': MasterSetting.objects.count(),
-        }
+            })
+            cache.set(key, data, settings.DASHBOARD_CACHE_TTL)
         return Response(DashboardStatsSerializer(data).data, status=status.HTTP_200_OK)
 
 from .serializers import SKUSerializer, YearRangeSerializer
@@ -164,6 +170,9 @@ class ComplaintListCreateAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ComplaintSerializer
 
+    def get_serializer_class(self):
+        return ComplaintListSerializer if self.request.method == 'GET' else ComplaintSerializer
+
     def get_queryset(self):
         return visible_complaints_for_user(
             self.request.user,
@@ -171,11 +180,9 @@ class ComplaintListCreateAPIView(ListCreateAPIView):
                 'channel', 'country', 'person', 'case_sub_category',
                 'series', 'material', 'sku', 'brand', 'model', 'sub_model', 'year',
                 'created_by', 'assigned_factory_executive', 'closed_by',
-            ).prefetch_related(
-                'media_files',
-                'approvals__approver_user',
-                'timeline_events__user',
             ).all().annotate(
+                media_count=Count('media_files', distinct=True),
+                approval_count=Count('approvals', distinct=True),
                 sort_weight=Case(
                     When(status='Closed', then=Value(1)),
                     When(workflow_status='closed', then=Value(1)),
@@ -280,28 +287,28 @@ class FactoryReviewAPIView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class ApprovalInboxAPIView(APIView):
+class ApprovalInboxAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = ComplaintApprovalSerializer
 
-    def get(self, request, *args, **kwargs):
-        profile = get_user_profile(request.user)
+    def get_queryset(self):
+        profile = get_user_profile(self.request.user)
         if not profile or profile.role != WorkflowRoles.APPROVER:
             raise PermissionDenied('Only configured approvers can access the approval inbox.')
-
-        approvals = ComplaintApproval.objects.filter(
-            approver_user=request.user,
+        latest_round = ComplaintApproval.objects.filter(
+            complaint_id=OuterRef('complaint_id'),
+            review_stage=OuterRef('review_stage'),
+        ).values('complaint_id').annotate(latest=Max('approval_round')).values('latest')
+        return ComplaintApproval.objects.filter(
+            approver_user=self.request.user,
             complaint__workflow_status__in=[
                 WorkflowStatuses.AWAITING_APPROVAL,
                 WorkflowStatuses.PARTIALLY_APPROVED,
                 WorkflowStatuses.AWAITING_EXECUTION_VERIFICATION,
                 WorkflowStatuses.EXECUTION_PARTIALLY_VERIFIED,
             ],
+            approval_round=Subquery(latest_round[:1]),
         ).select_related('complaint', 'approver_user').order_by('-created_at')
-        current = [
-            approval for approval in approvals
-            if approval.approval_round == approval_progress(approval.complaint)['round']
-        ]
-        return Response(ComplaintApprovalSerializer(current, many=True).data)
 
 
 class ApprovalDecisionAPIView(APIView):
@@ -393,12 +400,12 @@ class ComplaintSubmitExecutionVerificationAPIView(APIView):
         })
 
 
-class NotificationListAPIView(APIView):
+class NotificationListAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
 
-    def get(self, request, *args, **kwargs):
-        notifications = Notification.objects.filter(recipient=request.user).select_related('complaint')[:100]
-        return Response(NotificationSerializer(notifications, many=True).data)
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user).select_related('complaint')
 
 
 class NotificationReadAPIView(APIView):
@@ -426,7 +433,7 @@ class SKURetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
 class VehicleListCreateAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsCatalogAdminOrReadOnly]
     serializer_class = YearRangeSerializer
-    queryset = YearRange.objects.all().order_by('-id')
+    queryset = YearRange.objects.select_related('sub_model__model__brand').all().order_by('-id')
 
 class VehicleRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsCatalogAdminOrReadOnly]

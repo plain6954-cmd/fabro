@@ -1,5 +1,7 @@
 from .models import WorkflowRoles, ChatMessage, Complaint, WorkflowStatuses, ComplaintApproval, DecisionStatuses
 from django.utils.translation import get_language
+from django.conf import settings
+from django.core.cache import cache
 from .services.workflow import (
     can_user_create_complaint,
     can_user_manage_catalog,
@@ -8,6 +10,7 @@ from .services.workflow import (
     is_workflow_admin,
     visible_complaints_for_user,
 )
+from .services.cache_versions import cache_version
 
 
 def workflow_access(request):
@@ -21,11 +24,18 @@ def workflow_access(request):
         getattr(profile, 'role', ''),
         'User',
     )
-    unread_chat_count = ChatMessage.objects.filter(recipient=user, is_read=False).count()
+    supplied = getattr(request, '_fabro_badges', {})
+    badge_key = f'fabro:badges:v{cache_version()}:user:{user.pk}'
+    cached_badges = cache.get(badge_key) or {}
+    unread_chat_count = supplied.get('unread_chat_count', cached_badges.get('unread_chat_count'))
+    if unread_chat_count is None:
+        unread_chat_count = ChatMessage.objects.filter(recipient=user, is_read=False).count()
     
     can_view_approvals_flag = can_user_view_approvals(user)
-    pending_approvals_count = 0
-    if can_view_approvals_flag:
+    pending_approvals_count = supplied.get('pending_approvals_count', cached_badges.get('pending_approvals_count'))
+    if not can_view_approvals_flag:
+        pending_approvals_count = 0
+    elif pending_approvals_count is None:
         if profile and profile.role == WorkflowRoles.APPROVER:
             pending_approvals_count = ComplaintApproval.objects.filter(
                 approver_user=user,
@@ -49,6 +59,10 @@ def workflow_access(request):
                     ]
                 )
             ).count()
+    cache.set(badge_key, {
+        'unread_chat_count': unread_chat_count,
+        'pending_approvals_count': pending_approvals_count,
+    }, settings.BADGE_CACHE_TTL)
 
     return {
         'is_htmx_request': is_htmx_request,

@@ -84,6 +84,34 @@ INSTALLED_APPS = [
     'simple_history',
 ]
 
+# Environment-controlled shared caching. Local development and tests need no
+# external service; production can opt into Django's built-in Redis backend.
+CACHE_URL = os.getenv('CACHE_URL', '').strip()
+CACHE_KEY_PREFIX = os.getenv('CACHE_KEY_PREFIX', 'fabro')
+if CACHE_URL and not E2E_TESTING:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': CACHE_URL,
+            'KEY_PREFIX': CACHE_KEY_PREFIX,
+            'TIMEOUT': int(os.getenv('CACHE_DEFAULT_TIMEOUT', '300')),
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': f'{CACHE_KEY_PREFIX}-local',
+        }
+    }
+
+BADGE_CACHE_TTL = int(os.getenv('BADGE_CACHE_TTL', '15'))
+DASHBOARD_CACHE_TTL = int(os.getenv('DASHBOARD_CACHE_TTL', '45'))
+CATALOG_CACHE_TTL = int(os.getenv('CATALOG_CACHE_TTL', '600'))
+PERFORMANCE_TIMING_ENABLED = env_bool('PERFORMANCE_TIMING_ENABLED', DEBUG)
+SQL_QUERY_COUNT_ENABLED = env_bool('SQL_QUERY_COUNT_ENABLED', False)
+SLOW_REQUEST_THRESHOLD_MS = int(os.getenv('SLOW_REQUEST_THRESHOLD_MS', '750'))
+
 S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', '')
 S3_REGION = os.getenv('S3_REGION', 'garage')
 S3_ENDPOINT_URL = os.getenv('S3_ENDPOINT_URL', '').rstrip('/')
@@ -134,7 +162,7 @@ STORAGES = {
         ),
     },
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage' if not DEBUG else 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage' if not DEBUG else 'django.contrib.staticfiles.storage.StaticFilesStorage',
     },
 }
 WHITENOISE_MANIFEST_STRICT = False
@@ -153,6 +181,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
+    'management.middleware.PerformanceTimingMiddleware',
 ]
 
 ROOT_URLCONF = 'fabro_leather.urls'
@@ -338,6 +367,7 @@ SECURE_HSTS_PRELOAD = not DEBUG
 
 # REST Framework Configurations
 REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'management.pagination.FabroPageNumberPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',

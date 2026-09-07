@@ -18,10 +18,12 @@ from django.contrib.sessions.models import Session
 from rest_framework.authtoken.models import Token
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q, Case, When, Value, IntegerField
+from django.db.models import Count, Q, Case, When, Value, IntegerField, Max, OuterRef, Subquery
 from django.http import HttpResponse, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -119,10 +121,35 @@ from .services.s3_storage import (
     S3StorageError,
     create_signed_download_url,
 )
+from .services.cache_versions import cache_version
 
 
 MAX_CSV_IMPORT_ROWS = 5000
 logger = logging.getLogger(__name__)
+
+
+def _ensure_pattern_thumbnail(design_image):
+    """Create a bounded WebP preview while preserving the original asset."""
+    if design_image.thumbnail:
+        return design_image.thumbnail.url
+    if not design_image.image:
+        return ''
+    try:
+        design_image.image.open('rb')
+        with Image.open(design_image.image) as source:
+            source.seek(0)
+            preview = source.convert('RGB')
+            preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+            output = io.BytesIO()
+            preview.save(output, format='WEBP', quality=82, method=6)
+        stem = os.path.splitext(os.path.basename(design_image.image.name))[0][:80]
+        design_image.thumbnail.save(
+            f'{stem}-{design_image.pk}.webp', ContentFile(output.getvalue()), save=True,
+        )
+        return design_image.thumbnail.url
+    except (OSError, ValueError, UnidentifiedImageError):
+        logger.warning('Unable to generate pattern thumbnail for image %s.', design_image.pk, exc_info=True)
+        return ''
 
 
 def _iter_csv_rows(uploaded_file, required_headers):
@@ -317,30 +344,48 @@ def complaint_media_download(request, media_id):
             return HttpResponse('Media is temporarily unavailable.', status=503)
     return redirect(default_storage.url(media.storage_name))
 
+
+@login_required
+def pattern_design_image_download(request, image_id):
+    design_image = get_object_or_404(PatternDesignImage, pk=image_id)
+    if not design_image.image:
+        return HttpResponse('Image is unavailable.', status=404)
+    return redirect(design_image.image.url)
+
 @login_required
 def index(request):
     # Get dashboard statistics
     visible_complaints = visible_complaints_for_user(request.user, Complaint.objects.all())
     today = now().date()
-    complaint_status_counts = dict(
-        visible_complaints.values_list('status').annotate(count=Count('status'))
-    )
-    complaint_type_counts = dict(
-        visible_complaints.values_list('complaint_type').annotate(count=Count('complaint_type'))
-    )
-    complaints_this_month = visible_complaints.filter(
-        date__year=today.year,
-        date__month=today.month,
-    ).count()
-    resolved_this_month = visible_complaints.filter(
-        status='Closed',
-        closed_at__year=today.year,
-        closed_at__month=today.month,
-    ).count()
-    unread_notifications = list(Notification.objects.filter(
+    summary_key = f'fabro:dashboard:v{cache_version()}:user:{request.user.pk}:{today:%Y%m}'
+    summary = cache.get(summary_key)
+    if summary is None:
+        summary = visible_complaints.aggregate(
+            total_complaints=Count('pk'),
+            open_complaints=Count('pk', filter=Q(status='Open')),
+            closed_complaints=Count('pk', filter=Q(status='Closed')),
+            on_hold_complaints=Count('pk', filter=Q(status='On Hold')),
+            pattern_complaints=Count('pk', filter=Q(complaint_type=ComplaintTypes.PATTERN)),
+            production_complaints=Count('pk', filter=Q(complaint_type=ComplaintTypes.PRODUCTION)),
+            quality_complaints=Count('pk', filter=Q(complaint_type=ComplaintTypes.QUALITY)),
+            line_complaints=Count('pk', filter=Q(complaint_type=ComplaintTypes.LINE)),
+            complaints_this_month=Count('pk', filter=Q(date__year=today.year, date__month=today.month)),
+            resolved_this_month=Count('pk', filter=Q(
+                status='Closed', closed_at__year=today.year, closed_at__month=today.month,
+            )),
+        )
+        summary.update({
+            'total_vehicles': YearRange.objects.count(),
+            'total_skus': SKU.objects.count(),
+            'total_settings': MasterSetting.objects.count(),
+        })
+        cache.set(summary_key, summary, settings.DASHBOARD_CACHE_TTL)
+    unread_notifications_qs = Notification.objects.filter(
         recipient=request.user,
         is_read=False,
-    ).select_related('complaint'))
+    ).select_related('complaint')
+    unread_notification_count = unread_notifications_qs.count()
+    unread_notifications = list(unread_notifications_qs[:4])
     current_profile = get_user_profile(request.user)
     is_approver = bool(current_profile and current_profile.role == WorkflowRoles.APPROVER)
     is_admin = bool(request.user.is_superuser or (current_profile and current_profile.role == WorkflowRoles.ADMIN))
@@ -395,21 +440,9 @@ def index(request):
     complaints_limit = 10 if is_approver_or_admin else 15
 
     context = {
-        'total_complaints': sum(complaint_status_counts.values()),
-        'open_complaints': complaint_status_counts.get('Open', 0),
-        'closed_complaints': complaint_status_counts.get('Closed', 0),
-        'on_hold_complaints': complaint_status_counts.get('On Hold', 0),
-        'pattern_complaints': complaint_type_counts.get(ComplaintTypes.PATTERN, 0),
-        'production_complaints': complaint_type_counts.get(ComplaintTypes.PRODUCTION, 0),
-        'quality_complaints': complaint_type_counts.get(ComplaintTypes.QUALITY, 0),
-        'line_complaints': complaint_type_counts.get(ComplaintTypes.LINE, 0),
-        'complaints_this_month': complaints_this_month,
-        'resolved_this_month': resolved_this_month,
-        'total_vehicles': YearRange.objects.count(),
-        'total_skus': SKU.objects.count(),
-        'total_settings': MasterSetting.objects.count(),
+        **summary,
         'dashboard_notifications': unread_notifications[:4],
-        'unread_notification_count': len(unread_notifications),
+        'unread_notification_count': unread_notification_count,
         'pending_approval_count': pending_approval_count,
         'is_approver_or_admin': is_approver_or_admin,
         'pending_approvals_list': pending_approvals_list,
@@ -425,6 +458,7 @@ def index(request):
             )
         ).order_by('sort_weight', '-date')[:complaints_limit],
     }
+    request._fabro_badges = {'pending_approvals_count': pending_approval_count}
     return render(request, 'management/index.html', context)
 
 
@@ -552,8 +586,10 @@ def car_details(request):
                 Q(measurement_country__name__icontains=search_query)
             )
 
+    vehicle_paginator = Paginator(yr_qs, 50)
+    vehicle_page = vehicle_paginator.get_page(request.GET.get('page'))
     car_data = []
-    for yr in yr_qs:
+    for yr in vehicle_page.object_list:
         car_data.append({
             "serial_number": yr.serial_number or '',
             "layout_code": yr.layout_code,
@@ -583,8 +619,9 @@ def car_details(request):
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
 
     can_manage_catalog = _can_manage_catalog(request.user)
-    design_folders = PatternDesignFolder.objects.prefetch_related('images').all()
     next_serial_number = get_next_pattern_serial()
+    pagination_params = request.GET.copy()
+    pagination_params.pop('page', None)
 
     return render(request, 'management/car_details.html', {
         'form': form,
@@ -600,8 +637,51 @@ def car_details(request):
         'new_search_enabled': new_search_enabled,
         'scoped_search_enabled': scoped_search_enabled,
         'can_manage_catalog': can_manage_catalog,
-        'design_folders': design_folders,
+        'page_obj': vehicle_page,
+        'pagination_querystring': pagination_params.urlencode(),
     })
+
+
+@login_required
+def pattern_vehicle_list_api(request):
+    """Small server-filtered catalogue response for progressive UI consumers."""
+    search = request.GET.get('search', '').strip()[:100]
+    queryset = YearRange.objects.select_related(
+        'sub_model__model__brand', 'vehicle_country', 'measurement_country'
+    ).order_by('id')
+    if search:
+        queryset = queryset.filter(
+            Q(serial_number__icontains=search)
+            | Q(layout_code__icontains=search)
+            | Q(x_code__icontains=search)
+            | Q(sub_model__model__brand__name__icontains=search)
+            | Q(sub_model__model__name__icontains=search)
+            | Q(sub_model__name__icontains=search)
+        )
+    page = Paginator(queryset, 50).get_page(request.GET.get('page'))
+    results = [{
+        'id': vehicle.pk,
+        'serial_number': vehicle.serial_number,
+        'layout_code': vehicle.layout_code,
+        'brand': vehicle.sub_model.model.brand.name,
+        'model': vehicle.sub_model.model.name,
+        'sub_model': vehicle.sub_model.name,
+        'year_start': vehicle.year_start,
+        'year_end': vehicle.year_end,
+    } for vehicle in page.object_list]
+    return JsonResponse({
+        'results': results,
+        'count': page.paginator.count,
+        'page': page.number,
+        'pages': page.paginator.num_pages,
+        'has_next': page.has_next(),
+        'has_previous': page.has_previous(),
+    })
+
+
+@login_required
+def pattern_vehicle_count_api(request):
+    return JsonResponse({'count': YearRange.objects.count()})
 
 
 @login_required
@@ -845,39 +925,61 @@ def get_design_folders_api(request):
                 'sub_model': sub_name,
                 'google_drive_url': yr.google_drive_url or '',
             }
-            folders = PatternDesignFolder.objects.filter(vehicle=yr).prefetch_related('images').all()
-            direct_imgs = PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at')
+            folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(image_total=Count('images'))
+            direct_page = Paginator(
+                PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at'),
+                4,
+            ).get_page(request.GET.get('image_page'))
+            direct_imgs = direct_page.object_list
             for img in direct_imgs:
                 if img.image:
                     direct_images_data.append({
                         'id': img.id,
-                        'url': img.image.url,
+                        'url': _ensure_pattern_thumbnail(img),
+                        'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                         'title': img.title or os.path.basename(img.image.name),
                         'file_size': img.file_size,
                         'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
                     })
         except YearRange.DoesNotExist:
             folders = PatternDesignFolder.objects.none()
+            direct_page = Paginator(PatternDesignImage.objects.none(), 4).get_page(1)
     else:
-        folders = PatternDesignFolder.objects.prefetch_related('images').all()
+        # Keep the legacy unscoped API response for integrations that do not yet
+        # send a vehicle. The Pattern Master itself always supplies vehicle_id
+        # and never calls this endpoint during its initial render.
+        folders = PatternDesignFolder.objects.annotate(image_total=Count('images')).order_by('-created_at', '-pk')
+        direct_page = Paginator(PatternDesignImage.objects.none(), 4).get_page(1)
 
+    folder_page = Paginator(folders, 20).get_page(request.GET.get('folder_page'))
     data = []
-    for f in folders:
-        previews = [img.image.url for img in f.images.all()[:4] if img.image]
+    preview_rows = PatternDesignImage.objects.filter(
+        folder_id__in=[folder.pk for folder in folder_page.object_list]
+    ).order_by('folder_id', '-uploaded_at')
+    previews_by_folder = {}
+    for image in preview_rows:
+        bucket = previews_by_folder.setdefault(image.folder_id, [])
+        if len(bucket) < 4 and image.image:
+            thumbnail_url = _ensure_pattern_thumbnail(image)
+            if thumbnail_url:
+                bucket.append(thumbnail_url)
+    for f in folder_page.object_list:
         data.append({
             'id': f.id,
             'name': f.name,
             'description': f.description,
-            'image_count': f.images.count(),
+            'image_count': f.image_total,
             'created_at': f.created_at.strftime('%b %d, %Y'),
-            'preview_images': previews,
+            'preview_images': previews_by_folder.get(f.pk, []),
             'vehicle_id': f.vehicle_id,
         })
     return JsonResponse({
         'status': 'success',
         'folders': data,
         'direct_images': direct_images_data,
-        'vehicle': vehicle_info
+        'vehicle': vehicle_info,
+        'folder_pagination': {'page': folder_page.number, 'pages': folder_page.paginator.num_pages},
+        'image_pagination': {'page': direct_page.number, 'pages': direct_page.paginator.num_pages},
     })
 
 
@@ -928,13 +1030,14 @@ def create_design_folder_api(request):
 @login_required
 def get_design_folder_detail_api(request, folder_id):
     folder = get_object_or_404(PatternDesignFolder.objects.select_related('vehicle__sub_model__model__brand'), id=folder_id)
-    images = folder.images.all()
+    image_page = Paginator(folder.images.all(), 4).get_page(request.GET.get('page'))
     image_list = []
-    for img in images:
+    for img in image_page.object_list:
         if img.image:
             image_list.append({
                 'id': img.id,
-                'url': img.image.url,
+                'url': _ensure_pattern_thumbnail(img),
+                'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                 'title': img.title or os.path.basename(img.image.name),
                 'file_size': img.file_size,
                 'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
@@ -959,12 +1062,13 @@ def get_design_folder_detail_api(request, folder_id):
             'id': folder.id,
             'name': folder.name,
             'description': folder.description,
-            'image_count': len(image_list),
+            'image_count': folder.images.count(),
             'created_at': folder.created_at.strftime('%b %d, %Y'),
             'vehicle_id': folder.vehicle_id,
             'vehicle': vehicle_info,
         },
         'images': image_list,
+        'pagination': {'page': image_page.number, 'pages': image_page.paginator.num_pages},
     })
 
 
@@ -994,6 +1098,11 @@ def delete_design_folder_api(request, folder_id):
         if img.image:
             try:
                 default_storage.delete(img.image.name)
+            except Exception:
+                pass
+        if img.thumbnail:
+            try:
+                default_storage.delete(img.thumbnail.name)
             except Exception:
                 pass
     folder_name = folder.name
@@ -1036,9 +1145,10 @@ def upload_design_images_api(request, folder_id):
             uploaded_by=request.user,
         )
         design_img.save()
+        thumbnail_url = _ensure_pattern_thumbnail(design_img)
         created_images.append({
             'id': design_img.id,
-            'url': design_img.image.url,
+            'url': thumbnail_url,
             'title': design_img.title,
             'file_size': design_img.file_size,
             'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
@@ -1082,9 +1192,10 @@ def upload_vehicle_design_images_api(request, vehicle_id):
             uploaded_by=request.user,
         )
         design_img.save()
+        thumbnail_url = _ensure_pattern_thumbnail(design_img)
         created_images.append({
             'id': design_img.id,
-            'url': design_img.image.url,
+            'url': thumbnail_url,
             'title': design_img.title,
             'file_size': design_img.file_size,
             'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
@@ -1124,6 +1235,11 @@ def delete_design_image_api(request, image_id):
     if img.image:
         try:
             default_storage.delete(img.image.name)
+        except Exception:
+            pass
+    if img.thumbnail:
+        try:
+            default_storage.delete(img.thumbnail.name)
         except Exception:
             pass
     img.delete()
@@ -1356,6 +1472,7 @@ def get_complaint_type_options(request, complaint_type):
 @login_required
 def get_filtered_skus(request):
     skus = SKU.objects.select_related('region').all().order_by('code')
+    search = request.GET.get('q', '').strip()[:100]
 
     country_id = request.GET.get('country')
     region_id = request.GET.get('region')
@@ -1386,6 +1503,13 @@ def get_filtered_skus(request):
         (Model, request.GET.get('model')),
         (SubModel, request.GET.get('sub_model')),
     )
+    has_vehicle_filter = any(object_id for model_class, object_id in vehicle_lookups) or bool(request.GET.get('year'))
+    if search:
+        if len(search) < 2:
+            return JsonResponse([], safe=False)
+        skus = skus.filter(Q(code__icontains=search) | Q(description__icontains=search))
+    elif not has_vehicle_filter:
+        return JsonResponse([], safe=False)
 
     for model_class, object_id in vehicle_lookups:
         if not object_id:
@@ -1420,7 +1544,7 @@ def get_filtered_skus(request):
             'id': sku.id,
             'name': f"{sku.code} - {sku.description}" if sku.description else sku.code,
         }
-        for sku in skus[:200]
+        for sku in skus[:50]
     ]
     return JsonResponse(data, safe=False)
 
@@ -1435,6 +1559,8 @@ def complaint_list(request):
         'approvals__approver_user',
         'timeline_events__user',
     ).all().annotate(
+        media_count=Count('media_files', distinct=True),
+        approval_count=Count('approvals', distinct=True),
         sort_weight=Case(
             When(status='Closed', then=Value(1)),
             When(workflow_status='closed', then=Value(1)),
@@ -1996,12 +2122,10 @@ def approvals_list_view(request):
         Complaint.objects.select_related(
             'channel', 'country', 'person', 'case_sub_category',
             'series', 'material', 'sku', 'brand', 'model', 'sub_model', 'year',
-            'created_by', 'assigned_factory_executive', 'closed_by',
+            'created_by__workflow_profile__country', 'assigned_factory_executive', 'closed_by',
         ).prefetch_related(
-            'media_files',
-            'approvals__approver_user',
-            'approvals__trigger_approval__approver_user',
-            'timeline_events__user',
+            'approvals__approver_user__workflow_profile__country',
+            'approvals__trigger_approval__approver_user__workflow_profile__country',
         )
     )
 
@@ -2160,11 +2284,16 @@ def approvals_list_view(request):
     if selected_country:
         complaints = complaints.filter(country__id=selected_country)
 
-    complaints = complaints.order_by('-date', '-complaint_id')
+    complaints = complaints.annotate(
+        media_total=Count('media_files', distinct=True),
+    ).order_by('-date', '-complaint_id')
+    approval_page = Paginator(complaints, 20).get_page(request.GET.get('page'))
+    pagination_params = request.GET.copy()
+    pagination_params.pop('page', None)
 
     # Build enriched approval item list
     approval_items = []
-    for complaint in complaints:
+    for complaint in approval_page.object_list:
         prog = approval_progress(complaint, stage_filters)
         my_appr = get_user_current_approval(request.user, complaint, stage_filters)
         can_decide = can_user_decide_approval(request.user, my_appr) if my_appr else False
@@ -2217,7 +2346,7 @@ def approvals_list_view(request):
             'approvals': enhanced_approvals,
             'my_approval': my_appr,
             'can_decide': can_decide,
-            'media_count': complaint.media_files.count(),
+            'media_count': complaint.media_total,
         })
 
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
@@ -2250,6 +2379,8 @@ def approvals_list_view(request):
         'profile': profile,
         'user_role': user_role,
         'workspace_stage': workspace_stage,
+        'page_obj': approval_page,
+        'pagination_querystring': pagination_params.urlencode(),
     })
 
 
@@ -2475,8 +2606,12 @@ def execute_complaint(request, complaint_id):
 def notification_list(request):
     notifications = Notification.objects.filter(
         recipient=request.user,
-    ).select_related('complaint')[:100]
-    return render(request, 'management/notifications.html', {'notifications': notifications})
+    ).select_related('complaint')
+    page = Paginator(notifications, 50).get_page(request.GET.get('page'))
+    return render(request, 'management/notifications.html', {
+        'notifications': page.object_list,
+        'page_obj': page,
+    })
 
 
 @login_required
@@ -3208,11 +3343,15 @@ def admin_panel_view(request):
                 )
                 messages.success(request, _('%(username)s was assigned to %(group)s.') % {'username': user.username, 'group': group.name})
         
-    users = list(User.objects.select_related('workflow_profile__country').all())
-    groups = Group.objects.prefetch_related('permissions__content_type')
-    permissions = Permission.objects.select_related('content_type').all()
-    active_users = get_active_users()
+    section = request.GET.get('section', 'dashboard').strip().lower()
+    if section not in {'dashboard', 'users', 'skus', 'brands', 'master', 'sessions', 'logs'}:
+        section = 'dashboard'
+
+    active_users = get_active_users() if section in {'dashboard', 'users', 'sessions'} else []
     online_user_ids = {entry['user'].pk for entry in active_users}
+    users_qs = User.objects.select_related('workflow_profile__country').order_by('username')
+    users_page = Paginator(users_qs, 25).get_page(request.GET.get('section_page')) if section == 'users' else None
+    users = list(users_page.object_list) if users_page else []
     for listed_user in users:
         listed_user.is_online = listed_user.pk in online_user_ids
 
@@ -3227,17 +3366,31 @@ def admin_panel_view(request):
             *[role for role, label in ApprovalRoles.CHOICES],
         )
     }
-    for listed_user in users:
-        profile = listed_user.workflow_profile
-        role_key = profile.approval_role if profile.role == WorkflowRoles.APPROVER else profile.role
-        role_counts[role_key] = role_counts.get(role_key, 0) + 1
+    if section == 'dashboard':
+        for role, approval_role, count in UserProfile.objects.values_list('role', 'approval_role').annotate(count=Count('pk')):
+            role_key = approval_role if role == WorkflowRoles.APPROVER else role
+            role_counts[role_key] = role_counts.get(role_key, 0) + count
 
     countries = MasterSetting.objects.filter(category='Country').annotate(
         user_count=Count('workflow_users'),
     ).order_by('name')
     resolved_filter = Q(workflow_status=WorkflowStatuses.CLOSED) | Q(status__iexact='closed')
 
-    logs = ActivityLog.objects.select_related('user').order_by('-timestamp')[:20]
+    complaint_stats = Complaint.objects.aggregate(
+        total=Count('pk'),
+        resolved=Count('pk', filter=resolved_filter),
+        in_progress=Count('pk', filter=~resolved_filter),
+    ) if section == 'dashboard' else {'total': 0, 'resolved': 0, 'in_progress': 0}
+    logs_page = Paginator(
+        ActivityLog.objects.select_related('user').order_by('-timestamp'), 50
+    ).get_page(request.GET.get('section_page')) if section == 'logs' else None
+    sku_page = Paginator(
+        SKU.objects.select_related('region').order_by('code'), 50
+    ).get_page(request.GET.get('section_page')) if section == 'skus' else None
+    session_page = Paginator(active_users, 50).get_page(request.GET.get('section_page')) if section == 'sessions' else None
+    vehicle_page = Paginator(Brand.objects.order_by('name'), 50).get_page(
+        request.GET.get('section_page')
+    ) if section == 'brands' else None
 
     return render(request, 'management/admin_panel.html', {
         'user_form': user_form,
@@ -3245,27 +3398,38 @@ def admin_panel_view(request):
         'assign_form': assign_form,
         'active_users': active_users,
         'users': users,
-        'groups': groups,
-        'permissions': permissions,
-        'active_sessions': active_users,
-        'activity_logs': logs,
-        'total_users_count': len(users),
+        'groups': Group.objects.prefetch_related('permissions__content_type') if section == 'users' else [],
+        'permissions': Permission.objects.select_related('content_type').all() if section == 'users' else [],
+        'active_sessions': session_page.object_list if session_page else (active_users if section == 'dashboard' else []),
+        'activity_logs': logs_page.object_list if logs_page else [],
+        'total_users_count': User.objects.count() if section == 'dashboard' else users_qs.count(),
         'active_users_count': len(online_user_ids),
         'active_sessions_count': len(active_users),
-        'total_complaints_count': Complaint.objects.count(),
-        'complaints_resolved_count': Complaint.objects.filter(resolved_filter).count(),
-        'complaints_in_progress_count': Complaint.objects.exclude(resolved_filter).count(),
+        'total_complaints_count': complaint_stats['total'],
+        'complaints_resolved_count': complaint_stats['resolved'],
+        'complaints_in_progress_count': complaint_stats['in_progress'],
         'role_counts': role_counts,
-        'skus': SKU.objects.select_related('region').order_by('code'),
-        'brands': Brand.objects.prefetch_related(
-            'models__submodels__year_ranges'
-        ).order_by('name'),
-        'master_settings': MasterSetting.objects.order_by('category', 'name'),
+        'skus': sku_page.object_list if sku_page else [],
+        'brands': Brand.objects.filter(
+            pk__in=[brand.pk for brand in vehicle_page.object_list]
+        ).annotate(model_total=Count('models')).order_by('name') if vehicle_page else [],
+        'master_settings': MasterSetting.objects.order_by('category', 'name') if section == 'master' else [],
         'workflow_role_choices': WorkflowRoles.CHOICES,
         'approval_role_choices': ApprovalRoles.CHOICES,
         'workflow_countries': countries,
         'edit_user_id': request.GET.get('edit_user', '').strip(),
+        'active_tab': section,
+        'section_page_obj': users_page or sku_page or session_page or vehicle_page or logs_page,
     })
+
+
+@user_passes_test(is_workflow_admin)
+def admin_brand_tree(request, brand_id):
+    brand = get_object_or_404(
+        Brand.objects.prefetch_related('models__submodels__year_ranges'),
+        pk=brand_id,
+    )
+    return render(request, 'management/partials/admin_brand_tree.html', {'brand': brand})
 
 
 @user_passes_test(is_workflow_admin)
@@ -3688,29 +3852,39 @@ def terminate_all_sessions_view(request):
 
 
 def get_sorted_chat_users(current_user):
+    latest_message = ChatMessage.objects.filter(
+        Q(sender_id=OuterRef('pk'), recipient=current_user)
+        | Q(sender=current_user, recipient_id=OuterRef('pk'))
+    ).order_by('-created_at', '-pk')
     user_list = list(
         User.objects.filter(is_active=True)
         .exclude(id=current_user.id)
         .select_related('workflow_profile__country')
-    )
-    conversation_messages = list(
-        ChatMessage.objects.filter(Q(sender=current_user) | Q(recipient=current_user))
-        .select_related('complaint')
-        .order_by('created_at')
-    )
-    unread_counts = {}
-    latest_unread_times = {}
-    last_messages = {}
-    for chat_message in conversation_messages:
-        other_user_id = (
-            chat_message.recipient_id
-            if chat_message.sender_id == current_user.id
-            else chat_message.sender_id
+        .annotate(
+            chat_unread_count=Count(
+                'sent_chat_messages',
+                filter=Q(
+                    sent_chat_messages__recipient=current_user,
+                    sent_chat_messages__is_read=False,
+                ),
+            ),
+            latest_unread_time=Max(
+                'sent_chat_messages__created_at',
+                filter=Q(
+                    sent_chat_messages__recipient=current_user,
+                    sent_chat_messages__is_read=False,
+                ),
+            ),
+            latest_message_id=Subquery(latest_message.values('pk')[:1]),
+            latest_message_time=Subquery(latest_message.values('created_at')[:1]),
         )
-        last_messages[other_user_id] = chat_message
-        if chat_message.recipient_id == current_user.id and not chat_message.is_read:
-            unread_counts[other_user_id] = unread_counts.get(other_user_id, 0) + 1
-            latest_unread_times[other_user_id] = chat_message.created_at
+    )
+    last_messages = {
+        message.pk: message
+        for message in ChatMessage.objects.filter(
+            pk__in=[u.latest_message_id for u in user_list if u.latest_message_id]
+        ).select_related('complaint')
+    }
     raw_users = []
     
     for u in user_list:
@@ -3721,8 +3895,8 @@ def get_sorted_chat_users(current_user):
         role_code = getattr(prof, 'role', '')
         role_label = dict(WorkflowRoles.CHOICES).get(role_code, 'User')
         
-        unread_count = unread_counts.get(u.id, 0)
-        last_msg = last_messages.get(u.id)
+        unread_count = u.chat_unread_count
+        last_msg = last_messages.get(u.latest_message_id)
 
         raw_users.append({
             'user': u,
@@ -3730,9 +3904,9 @@ def get_sorted_chat_users(current_user):
             'role_label': role_label,
             'country_flag_url': getattr(prof, 'country_flag_url', None),
             'unread_count': unread_count,
-            'latest_unread_time': latest_unread_times.get(u.id),
+            'latest_unread_time': u.latest_unread_time,
             'last_message': last_msg,
-            'last_message_time': last_msg.created_at if last_msg else None,
+            'last_message_time': u.latest_message_time,
         })
 
     # Tier 1: Users with unread messages (ordered by latest unread message timestamp descending)
@@ -3773,9 +3947,10 @@ def chat_view(request):
     if selected_user:
         selected_user_profile = get_user_profile(selected_user)
         ChatMessage.objects.filter(sender=selected_user, recipient=request.user, is_read=False).update(is_read=True)
-        chat_messages = ChatMessage.objects.filter(
+        latest_messages = ChatMessage.objects.filter(
             Q(sender=request.user, recipient=selected_user) | Q(sender=selected_user, recipient=request.user)
-        ).select_related('sender', 'recipient', 'complaint').order_by('created_at')
+        ).select_related('sender', 'recipient', 'complaint').order_by('-created_at', '-pk')[:50]
+        chat_messages = list(reversed(list(latest_messages)))
         
         # After marking read for selected user, update unread_count in users_data for clean initial render
         for ud in users_data:
@@ -3799,6 +3974,7 @@ def chat_view(request):
         'selected_role_label': selected_role_label,
         'selected_complaint': selected_complaint,
         'chat_messages': chat_messages,
+        'chat_has_older': len(chat_messages) == 50,
         'default_message': default_message,
         'total_unread_chat_count': total_unread_chat_count,
     })
@@ -3828,12 +4004,24 @@ def chat_users_api(request):
 
 @login_required
 def chat_messages_api(request, user_id):
-    target_user = get_object_or_404(User, id=user_id)
+    target_user = get_object_or_404(User.objects.filter(is_active=True).exclude(id=request.user.id), id=user_id)
     ChatMessage.objects.filter(sender=target_user, recipient=request.user, is_read=False).update(is_read=True)
     
     messages_qs = ChatMessage.objects.filter(
         Q(sender=request.user, recipient=target_user) | Q(sender=target_user, recipient=request.user)
-    ).select_related('sender', 'complaint').order_by('created_at')
+    ).select_related('sender', 'complaint')
+
+    after_id = request.GET.get('after_id', '').strip()
+    before_id = request.GET.get('before_id', '').strip()
+    if after_id.isdigit():
+        messages_qs = messages_qs.filter(pk__gt=int(after_id)).order_by('pk')[:50]
+        has_more = False
+    else:
+        if before_id.isdigit():
+            messages_qs = messages_qs.filter(pk__lt=int(before_id))
+        page = list(messages_qs.order_by('-pk')[:51])
+        has_more = len(page) > 50
+        messages_qs = list(reversed(page[:50]))
     
     data = []
     for m in messages_qs:
@@ -3846,7 +4034,7 @@ def chat_messages_api(request, user_id):
             'complaint_id': m.complaint.complaint_id if m.complaint else None,
             'created_at': m.created_at.strftime('%b %d, %H:%M'),
         })
-    return JsonResponse({'status': 'ok', 'messages': data})
+    return JsonResponse({'status': 'ok', 'messages': data, 'has_more': has_more})
 
 
 @login_required

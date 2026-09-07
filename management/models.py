@@ -560,6 +560,14 @@ class Complaint(models.Model):
     closed_at = models.DateTimeField(null=True, blank=True, db_index=True)
     closed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='closed_complaints')
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['country', 'workflow_status', '-date'], name='idx_cmp_country_flow_date'),
+            models.Index(fields=['assigned_factory_executive', 'workflow_status'], name='idx_cmp_factory_flow'),
+            models.Index(fields=['created_by', '-date'], name='idx_cmp_creator_date'),
+            models.Index(fields=['complaint_type', '-date'], name='idx_cmp_type_date'),
+        ]
+
     def _build_next_complaint_id(self):
         target_date = self.date or timezone.now().date()
         if isinstance(target_date, str):
@@ -744,6 +752,8 @@ class ComplaintApproval(models.Model):
         ordering = ['complaint_id', 'approval_round', 'approver_role']
         indexes = [
             models.Index(fields=['approver_user', 'status'], name='idx_approval_user_status'),
+            models.Index(fields=['approver_user', 'status', 'review_stage'], name='idx_appr_user_state_stage'),
+            models.Index(fields=['complaint', 'approval_round', 'review_stage'], name='idx_appr_cmp_round_stage'),
         ]
 
     def __str__(self):
@@ -825,6 +835,8 @@ class ChatMessage(models.Model):
         indexes = [
             models.Index(fields=['sender', 'recipient', 'created_at'], name='idx_chat_participants_time'),
             models.Index(fields=['recipient', 'is_read'], name='idx_chat_recipient_read'),
+            models.Index(fields=['recipient', 'sender', '-created_at'], name='idx_chat_incoming_time'),
+            models.Index(fields=['recipient', '-created_at'], condition=models.Q(is_read=False), name='idx_chat_unread_time'),
         ]
 
     def __str__(self):
@@ -841,6 +853,7 @@ class PatternDesignFolder(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [models.Index(fields=['vehicle', '-created_at'], name='idx_design_folder_vehicle')]
 
     def __str__(self):
         return self.name
@@ -857,6 +870,7 @@ class PatternDesignImage(models.Model):
     folder = models.ForeignKey(PatternDesignFolder, on_delete=models.CASCADE, null=True, blank=True, related_name='images')
     vehicle = models.ForeignKey(YearRange, on_delete=models.CASCADE, null=True, blank=True, related_name='direct_design_images')
     image = models.ImageField(upload_to='pattern_designs/%Y/%m/')
+    thumbnail = models.ImageField(upload_to='pattern_design_thumbnails/%Y/%m/', blank=True, default='')
     title = models.CharField(max_length=255, blank=True, default='')
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -864,6 +878,9 @@ class PatternDesignImage(models.Model):
 
     class Meta:
         ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['vehicle', 'folder', '-uploaded_at'], name='idx_design_image_vehicle'),
+        ]
 
     def __str__(self):
         if self.title:

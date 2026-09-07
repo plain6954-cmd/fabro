@@ -234,9 +234,12 @@ class ComplaintForm(forms.ModelForm):
         self.fields['model'].queryset = Model.objects.none()
         self.fields['sub_model'].queryset = SubModel.objects.none()
         self.fields['year'].queryset = YearRange.objects.none()
-        self.fields['sku'].queryset = SKU.objects.all()
+        self.fields['sku'].queryset = SKU.objects.none()
         self.fields['sku'].empty_label = _('Select SKU')
         self.fields['sku'].label_from_instance = lambda sku: f"{sku.code} - {sku.description}" if sku.description else sku.code
+        selected_sku_id = self.data.get('sku') if self.is_bound else getattr(self.instance, 'sku_id', None)
+        if selected_sku_id:
+            self.fields['sku'].queryset = SKU.objects.filter(pk=selected_sku_id)
 
         selected_complaint_type = complaint_type or getattr(self.instance, 'complaint_type', None)
         type_category = complaint_type_master_category(selected_complaint_type)

@@ -1,6 +1,11 @@
 from django.conf import settings
 from django.utils.cache import patch_vary_headers
 from django.utils import translation
+from django.db import connection
+import logging
+import time
+
+logger = logging.getLogger('fabro.performance')
 
 
 class SecurityHeadersMiddleware:
@@ -42,4 +47,43 @@ class UserProfileLocaleMiddleware:
             request.LANGUAGE_CODE = language
         response = self.get_response(request)
         patch_vary_headers(response, ('Cookie',))
+        return response
+
+
+class PerformanceTimingMiddleware:
+    """Optional, privacy-safe request timing for diagnostics."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.enabled = getattr(settings, 'PERFORMANCE_TIMING_ENABLED', False)
+        self.slow_ms = getattr(settings, 'SLOW_REQUEST_THRESHOLD_MS', 750)
+        self.count_queries = getattr(settings, 'SQL_QUERY_COUNT_ENABLED', False)
+
+    def __call__(self, request):
+        started = time.perf_counter()
+        query_count = 0
+        if self.count_queries:
+            def count_query(execute, sql, params, many, context):
+                nonlocal query_count
+                query_count += 1
+                return execute(sql, params, many, context)
+            with connection.execute_wrapper(count_query):
+                response = self.get_response(request)
+        else:
+            response = self.get_response(request)
+        duration_ms = (time.perf_counter() - started) * 1000
+        if self.enabled:
+            response['Server-Timing'] = f'app;dur={duration_ms:.1f}'
+            if self.count_queries:
+                response['Server-Timing'] += f', db;desc="queries";dur={query_count}'
+        if self.count_queries:
+            logger.info(
+                'Request SQL count method=%s path=%s status=%s queries=%s',
+                request.method, request.path, response.status_code, query_count,
+            )
+        if duration_ms >= self.slow_ms:
+            logger.warning(
+                'Slow request method=%s path=%s status=%s duration_ms=%.1f',
+                request.method, request.path, response.status_code, duration_ms,
+            )
         return response

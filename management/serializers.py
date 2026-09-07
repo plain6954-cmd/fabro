@@ -289,3 +289,29 @@ class ComplaintSerializer(serializers.ModelSerializer):
             'closed_by',
             'updated_order_no',
         ]
+
+
+class ComplaintListSerializer(serializers.ModelSerializer):
+    """Lean serializer for paginated lists; nested workflow data stays on detail."""
+
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    model_name = serializers.CharField(source='model.name', read_only=True)
+    year_range = serializers.CharField(source='year.__str__', read_only=True)
+    sku_code = serializers.CharField(source='sku.code', read_only=True)
+    country_name = serializers.CharField(source='country.name', read_only=True)
+    channel_name = serializers.CharField(source='channel.name', read_only=True)
+    reported_by_name = serializers.SerializerMethodField()
+    media_count = serializers.IntegerField(read_only=True)
+    approval_count = serializers.IntegerField(read_only=True)
+
+    def get_reported_by_name(self, obj):
+        return obj.created_by.username if obj.created_by_id else (obj.person.name if obj.person_id else '')
+
+    class Meta:
+        model = Complaint
+        fields = [
+            'complaint_id', 'complaint_type', 'workflow_status', 'status', 'priority',
+            'date', 'brand_name', 'model_name', 'year_range', 'sku_code',
+            'country_name', 'channel_name', 'reported_by_name',
+            'complaint_description', 'media_count', 'approval_count',
+        ]
