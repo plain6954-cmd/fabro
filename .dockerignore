@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local databases
+db.sqlite3
+*.sqlite3
+
+# Generated static output
+staticfiles/
+
+# Runtime/user media
+media/complaint_media/
+media/profile_photos/
+.e2e-media/
+
+# Test / development output
+test-results/
+playwright-report/
+scratch/
+debug.log
+*.log
+*.pid
+
+# Node
+node_modules/
+.pnpm-store/
+
+# Flutter generated output
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# IDE / OS
+.vscode/
+.DS_Store
+
+# Deployment/documentation noise
+*.pdf

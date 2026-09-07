@@ -4592,7 +4592,3 @@ class FactoryComplaintCodeFormatTests(TestCase):
         res = self.client.get(reverse('export_complaints'))
         self.assertEqual(res.status_code, 200)
         self.assertIn(fac.complaint_id, res.content.decode('utf-8'))
-
-
-
-

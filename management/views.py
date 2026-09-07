@@ -1592,16 +1592,44 @@ def complaint_list(request):
         search_by = 'complaint_id'
     search_field = allowed_search_fields.get(search_by, 'complaint_id')
 
-    def scoped_ids(field_name):
-        return {
-            str(value) for value in filter_scope.order_by().values_list(field_name, flat=True).distinct()
-            if value is not None
-        }
+    # Load complaint filter metadata once and reuse it for both permission
+    # validation and column-menu generation. This avoids a duplicate DB scan.
+    filter_metadata_rows = list(
+        filter_scope.order_by().values_list(
+            'complaint_id',
+            'brand_id',
+            'brand__name',
+            'model_id',
+            'model__name',
+            'country_id',
+            'channel_id',
+            'case_sub_category_id',
+            'case_sub_category__name',
+            'created_by_id',
+            'created_by__username',
+            'person_id',
+            'person__name',
+            'priority',
+            'workflow_status',
+        )
+    )
 
-    permitted_brand_ids = scoped_ids('brand_id')
-    permitted_country_ids = scoped_ids('country_id')
-    permitted_channel_ids = scoped_ids('channel_id')
-    permitted_person_ids = scoped_ids('created_by_id')
+    permitted_brand_ids = {
+        str(row[1]) for row in filter_metadata_rows
+        if row[1] is not None
+    }
+    permitted_country_ids = {
+        str(row[5]) for row in filter_metadata_rows
+        if row[5] is not None
+    }
+    permitted_channel_ids = {
+        str(row[6]) for row in filter_metadata_rows
+        if row[6] is not None
+    }
+    permitted_person_ids = {
+        str(row[9]) for row in filter_metadata_rows
+        if row[9] is not None
+    }
     selected_brand = request.GET.get('brand', '')
     selected_brand = selected_brand if selected_brand in permitted_brand_ids else ''
     selected_country = request.GET.get('country', '')
@@ -1673,59 +1701,126 @@ def complaint_list(request):
     if selected_complaint_type:
         complaints = complaints.filter(complaint_type=selected_complaint_type)
 
-    # Column-menu values always come from the complete role-authorized queryset,
-    # never from the current page or from complaints hidden from this user.
+    # Column-menu values always come from the complete role-authorized queryset.
+    #
+    # Fetch all column-filter metadata in ONE database round trip and deduplicate
+    # in Python. This preserves the same filter choices while avoiding several
+    # sequential DISTINCT queries over a high-latency PostgreSQL connection.
+    # filter_metadata_rows was already loaded above for permission validation.
+
+    id_values = set()
+    vehicle_labels = {}
+    category_labels = {}
+    reporter_labels = {}
+    present_priorities = set()
+    present_workflow_statuses = set()
+
+    for (
+        complaint_id,
+        brand_id,
+        brand_name,
+        model_id,
+        model_name,
+        country_id,
+        channel_id,
+        category_id,
+        category_name,
+        user_id,
+        username,
+        person_id,
+        person_name,
+        priority,
+        workflow_status,
+    ) in filter_metadata_rows:
+
+        if complaint_id:
+            id_values.add(complaint_id)
+
+        vehicle_value = f'{brand_id or 0}:{model_id or 0}'
+        vehicle_label = f'{brand_name or ""} {model_name or ""}'.strip() or '-'
+        vehicle_labels.setdefault(
+            vehicle_value,
+            (vehicle_label, brand_id, model_id),
+        )
+
+        category_value = str(category_id or 0)
+        category_labels.setdefault(
+            category_value,
+            (category_name or '-', category_id),
+        )
+
+        if user_id:
+            reporter_value = f'u:{user_id}'
+            reporter_labels.setdefault(
+                reporter_value,
+                (username or '-', 'user', user_id),
+            )
+        elif person_id:
+            reporter_value = f'p:{person_id}'
+            reporter_labels.setdefault(
+                reporter_value,
+                (person_name or '-', 'person', person_id),
+            )
+        else:
+            reporter_labels.setdefault(
+                'none',
+                ('-', 'none', None),
+            )
+
+        if priority:
+            present_priorities.add(priority)
+
+        if workflow_status:
+            present_workflow_statuses.add(workflow_status)
+
     id_options = [
         {'value': value, 'label': value}
-        for value in filter_scope.order_by().values_list('complaint_id', flat=True).distinct()
+        for value in sorted(id_values)
     ]
+
     vehicle_options = []
     vehicle_filters = {}
-    for brand_id, brand_name, model_id, model_name in filter_scope.order_by().values_list(
-        'brand_id', 'brand__name', 'model_id', 'model__name'
-    ).distinct():
-        value = f'{brand_id or 0}:{model_id or 0}'
-        label = f'{brand_name or ""} {model_name or ""}'.strip() or '-'
+    for value, (label, brand_id, model_id) in vehicle_labels.items():
         vehicle_options.append({'value': value, 'label': label})
-        vehicle_filters[value] = Q(brand_id=brand_id, model_id=model_id)
+        vehicle_filters[value] = Q(
+            brand_id=brand_id,
+            model_id=model_id,
+        )
     vehicle_options.sort(key=lambda option: option['label'].casefold())
 
     category_options = []
     category_filters = {}
-    for category_id, category_name in filter_scope.order_by().values_list(
-        'case_sub_category_id', 'case_sub_category__name'
-    ).distinct():
-        value = str(category_id or 0)
-        category_options.append({'value': value, 'label': category_name or '-'})
+    for value, (label, category_id) in category_labels.items():
+        category_options.append({'value': value, 'label': label})
         category_filters[value] = Q(case_sub_category_id=category_id)
     category_options.sort(key=lambda option: option['label'].casefold())
 
     reporter_options = []
     reporter_filters = {}
-    reporter_rows = filter_scope.order_by().values_list(
-        'created_by_id', 'created_by__username', 'person_id', 'person__name'
-    ).distinct()
-    for user_id, username, person_id, person_name in reporter_rows:
-        if user_id:
-            value, label, condition = f'u:{user_id}', username, Q(created_by_id=user_id)
-        elif person_id:
-            value, label, condition = f'p:{person_id}', person_name, Q(created_by__isnull=True, person_id=person_id)
+    for value, (label, reporter_type, reporter_id) in reporter_labels.items():
+        reporter_options.append({'value': value, 'label': label})
+
+        if reporter_type == 'user':
+            reporter_filters[value] = Q(created_by_id=reporter_id)
+        elif reporter_type == 'person':
+            reporter_filters[value] = Q(
+                created_by__isnull=True,
+                person_id=reporter_id,
+            )
         else:
-            value, label, condition = 'none', '-', Q(created_by__isnull=True, person__isnull=True)
-        if value not in reporter_filters:
-            reporter_options.append({'value': value, 'label': label or '-'})
-            reporter_filters[value] = condition
+            reporter_filters[value] = Q(
+                created_by__isnull=True,
+                person__isnull=True,
+            )
+
     reporter_options.sort(key=lambda option: option['label'].casefold())
 
-    present_priorities = set(filter_scope.order_by().values_list('priority', flat=True).distinct())
     priority_options = [
         {'value': value, 'label': label}
         for value, label in Complaint._meta.get_field('priority').choices
         if value in present_priorities
     ]
-    present_workflow_statuses = set(
-        filter_scope.order_by().values_list('workflow_status', flat=True).distinct()
-    )
+
     workflow_options = [
         {'value': value, 'label': label}
         for value, label in WorkflowStatuses.CHOICES
@@ -1778,15 +1873,24 @@ def complaint_list(request):
     priorities = ['High', 'Medium', 'Low']
     sku = SKU.objects.values_list('code', flat=True).distinct()[:100]
 
-    # Status Pie Data
-    status_qs = complaints.values('status').annotate(count=Count('status'))
-    status_labels = [entry['status'] for entry in status_qs]
-    status_data = [entry['count'] for entry in status_qs]
+    # Build both complaint charts from one DB round trip.
+    chart_rows = complaints.order_by().values_list(
+        'status',
+        'country__name',
+    )
 
-    # Country Pie Data
-    country_qs = complaints.values('country__name').annotate(count=Count('country'))
-    country_labels = [entry['country__name'] for entry in country_qs]
-    country_data = [entry['count'] for entry in country_qs]
+    status_counts = {}
+    country_counts = {}
+
+    for status_value, country_name in chart_rows:
+        status_counts[status_value] = status_counts.get(status_value, 0) + 1
+        country_counts[country_name] = country_counts.get(country_name, 0) + 1
+
+    status_labels = list(status_counts.keys())
+    status_data = list(status_counts.values())
+
+    country_labels = list(country_counts.keys())
+    country_data = list(country_counts.values())
 
     # Paginate complaints to prevent multi-second DOM rendering and per-row N+1 overhead
     paginator = Paginator(complaints, 25)

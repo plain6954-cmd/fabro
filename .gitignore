@@ -43,3 +43,8 @@ SCREENSHOTS.txt
 FABRO_SCREENSHOTS_REPORT.pdf
 *.pdf
 scratch/
+
+# Production/server environment and local backups
+.env.production
+.env.production.backup-*
+*.backup-*

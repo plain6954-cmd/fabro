@@ -114,14 +114,48 @@ SLOW_REQUEST_THRESHOLD_MS = int(os.getenv('SLOW_REQUEST_THRESHOLD_MS', '750'))
 
 S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', '')
 S3_REGION = os.getenv('S3_REGION', 'garage')
-S3_ENDPOINT_URL = os.getenv('S3_ENDPOINT_URL', '').rstrip('/')
-S3_PUBLIC_ENDPOINT_URL = os.getenv('S3_PUBLIC_ENDPOINT_URL', '').rstrip('/')
-S3_ACCESS_KEY_ID = os.getenv('S3_ACCESS_KEY_ID', '')
-S3_SECRET_ACCESS_KEY = os.getenv('S3_SECRET_ACCESS_KEY', '')
+
+# Canonical S3 settings with backward compatibility for the existing
+# production environment variable names.
+S3_ENDPOINT_URL = (
+    os.getenv('S3_ENDPOINT_URL')
+    or os.getenv('S3_INTERNAL_ENDPOINT')
+    or ''
+).rstrip('/')
+
+S3_PUBLIC_ENDPOINT_URL = (
+    os.getenv('S3_PUBLIC_ENDPOINT_URL')
+    or os.getenv('S3_PUBLIC_ENDPOINT')
+    or ''
+).rstrip('/')
+
+S3_ACCESS_KEY_ID = (
+    os.getenv('S3_ACCESS_KEY_ID')
+    or os.getenv('S3_ACCESS_KEY')
+    or ''
+)
+
+S3_SECRET_ACCESS_KEY = (
+    os.getenv('S3_SECRET_ACCESS_KEY')
+    or os.getenv('S3_SECRET_KEY')
+    or ''
+)
+
 S3_ADDRESSING_STYLE = os.getenv('S3_ADDRESSING_STYLE', 'path')
 S3_SIGNATURE_VERSION = os.getenv('S3_SIGNATURE_VERSION', 's3v4')
-S3_SIGNED_UPLOAD_TTL_SECONDS = int(os.getenv('S3_SIGNED_UPLOAD_TTL_SECONDS', '7200'))
-S3_SIGNED_DOWNLOAD_TTL_SECONDS = int(os.getenv('S3_SIGNED_DOWNLOAD_TTL_SECONDS', '300'))
+
+S3_SIGNED_UPLOAD_TTL_SECONDS = int(
+    os.getenv('S3_SIGNED_UPLOAD_TTL_SECONDS', '7200')
+)
+S3_SIGNED_DOWNLOAD_TTL_SECONDS = int(
+    os.getenv('S3_SIGNED_DOWNLOAD_TTL_SECONDS', '300')
+)
+
+# Legacy aliases retained temporarily for older code/config compatibility.
+S3_INTERNAL_ENDPOINT = S3_ENDPOINT_URL
+S3_PUBLIC_ENDPOINT = S3_PUBLIC_ENDPOINT_URL
+S3_ACCESS_KEY = S3_ACCESS_KEY_ID
+S3_SECRET_KEY = S3_SECRET_ACCESS_KEY
 
 S3_REQUIRED_SETTINGS = {
     'S3_BUCKET_NAME': S3_BUCKET_NAME,
@@ -134,7 +168,7 @@ S3_REQUIRED_SETTINGS = {
 S3_STORAGE_CONFIGURED = all(S3_REQUIRED_SETTINGS.values())
 USE_S3_STORAGE = False if E2E_TESTING else env_bool(
     'USE_S3_STORAGE',
-    not DEBUG,
+    False,
 )
 if USE_S3_STORAGE and not S3_STORAGE_CONFIGURED:
     missing_settings = ', '.join(
@@ -385,3 +419,4 @@ REST_FRAMEWORK = {
         'login': os.getenv('API_LOGIN_THROTTLE', '10/minute'),
     },
 }
+

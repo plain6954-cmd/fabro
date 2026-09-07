@@ -40,6 +40,13 @@ class UserProfileLocaleMiddleware:
         user = getattr(request, 'user', None)
         if user and user.is_authenticated:
             profile = getattr(user, 'workflow_profile', None)
+
+            # Reuse the profile already fetched here throughout this request.
+            # workflow.get_user_profile() checks this attribute first, avoiding
+            # a second database round trip for the same UserProfile.
+            if profile is not None:
+                user._workflow_profile = profile
+
             language = getattr(profile, 'preferred_language', 'en') or 'en'
             if language not in self.supported_languages:
                 language = 'en'
