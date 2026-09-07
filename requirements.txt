@@ -11,9 +11,7 @@ django-appconf==1.1.0
 django-select2==8.4.1
 django-simple-history==3.8.0
 django-widget-tweaks==1.5.0
-numpy==2.2.6
 packaging==25.0
-pandas==2.2.3
 pillow==12.3.0
 pipx==1.7.1
 platformdirs==4.3.8
@@ -28,3 +26,5 @@ urllib3==2.7.0
 userpath==1.9.2
 whitenoise==6.9.0
 python-decouple==3.8.0
+gunicorn==23.0.0
+redis==5.2.1

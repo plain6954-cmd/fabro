@@ -1,0 +1,14 @@
+import multiprocessing
+
+bind = "unix:/run/<SERVICE_NAME>/gunicorn.sock"
+wsgi_app = "fabro_leather.wsgi:application"
+workers = max(2, min(8, multiprocessing.cpu_count() * 2 + 1))
+worker_class = "sync"
+timeout = 120
+graceful_timeout = 30
+keepalive = 5
+max_requests = 2000
+max_requests_jitter = 200
+accesslog = "-"
+errorlog = "-"
+capture_output = True

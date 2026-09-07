@@ -1,0 +1,23 @@
+[Unit]
+Description=FABRO Quality Portal Gunicorn
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=<SERVICE_USER>
+Group=<SERVICE_GROUP>
+WorkingDirectory=<ABSOLUTE_PROJECT_PATH>
+EnvironmentFile=<ABSOLUTE_ENV_FILE_OUTSIDE_GIT>
+RuntimeDirectory=<SERVICE_NAME>
+RuntimeDirectoryMode=0750
+ExecStart=<ABSOLUTE_VENV_PATH>/bin/gunicorn -c <ABSOLUTE_PROJECT_PATH>/docs/deployment/gunicorn.conf.py fabro_leather.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGQUIT
+TimeoutStopSec=45
+PrivateTmp=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
