@@ -1,8 +1,8 @@
 {% load static i18n %}
 <link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
 <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
-<script src="{% url 'javascript-catalog' %}"></script>
-<script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
+<script src="{% url 'javascript-catalog' %}" defer></script>
+<script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2" defer></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
 <script>
     document.documentElement.dir = 'ltr';
@@ -2093,6 +2093,14 @@
                 syncBadge('chat', content.dataset.unreadChatCount);
                 syncBadge('approvals', content.dataset.pendingApprovalsCount);
             };
+
+            document.body.addEventListener('htmx:configRequest', (event) => {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                    || (document.cookie.match(/csrftoken=([^;]+)/) || [])[1];
+                if (csrfToken) {
+                    event.detail.headers['X-CSRFToken'] = csrfToken;
+                }
+            });
 
             document.body.addEventListener('htmx:beforeRequest', (event) => {
                 if (event.detail.elt.matches('a[hx-get]')) {

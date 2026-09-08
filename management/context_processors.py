@@ -19,7 +19,10 @@ def workflow_access(request):
     if not user or not user.is_authenticated:
         return {'is_htmx_request': is_htmx_request}
 
-    profile = get_user_profile(user)
+    profile = getattr(request, '_user_profile', None)
+    if profile is None:
+        profile = get_user_profile(user)
+        request._user_profile = profile
     role_label = dict(WorkflowRoles.CHOICES).get(
         getattr(profile, 'role', ''),
         'User',

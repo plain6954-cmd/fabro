@@ -10,13 +10,121 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Pattern Master - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260907-perf1">
+    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260907-bubble1">
     <style data-fabro-page-asset>
         /* Search Picker styles */
         /* Critical fallback while the versioned page stylesheet is fetched. */
         .search-picker { position: relative; }
         .search-options { display: none; }
         .search-picker.is-open .search-options { display: block; }
+        .col-sort-btn {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            color: inherit;
+            font: inherit;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: color 0.15s ease;
+            text-align: left;
+            user-select: none;
+            outline: none;
+        }
+        .col-sort-btn:hover { color: #ffffff; }
+        body.light-mode .col-sort-btn:hover { color: #0f172a; }
+        .col-sort-icon {
+            font-size: 0.65rem;
+            opacity: 0.35;
+            transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+        }
+        .col-sort-btn:hover .col-sort-icon { opacity: 0.75; }
+        .col-sort-btn.is-sorted .col-sort-icon { opacity: 1; color: var(--primary-color); }
+
+        /* Pagination Bubbles */
+        .pattern-pagination__bubbles {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .pattern-pagination__bubble {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2.1rem;
+            height: 2.1rem;
+            padding: 0 0.45rem;
+            border-radius: 9999px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            text-decoration: none;
+            color: var(--dark-text-secondary, #94a3b8);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 160ms ease;
+            user-select: none;
+        }
+        .pattern-pagination__bubble:hover {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.18);
+            border-color: rgba(220, 38, 38, 0.45);
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
+            transform: translateY(-1px);
+        }
+        .pattern-pagination__bubble:active {
+            transform: translateY(0);
+        }
+        .pattern-pagination__bubble.is-active {
+            background: var(--primary-color, #dc2626);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 2px 10px rgba(220, 38, 38, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            cursor: default;
+            transform: scale(1.05);
+        }
+        .pattern-pagination__ellipsis {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.5rem;
+            color: var(--dark-text-secondary, #94a3b8);
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            opacity: 0.6;
+            user-select: none;
+        }
+        body.light-mode .pattern-pagination__bubble {
+            color: #4b5563;
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        body.light-mode .pattern-pagination__bubble:hover {
+            color: var(--primary-color, #dc2626);
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.35);
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.18);
+        }
+        body.light-mode .pattern-pagination__bubble.is-active {
+            background: var(--primary-color, #dc2626);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: rgba(0, 0, 0, 0.08);
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(220, 38, 38, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        body.light-mode .pattern-pagination__ellipsis {
+            color: #6b7280;
+        }
     </style>
 
 {% if is_htmx_request %}
@@ -119,6 +227,18 @@
             <!-- Vehicle Table Section -->
             <div class="table-section">
                 {% if car_data %}
+                    {% if can_manage_catalog %}
+                    <!-- Dedicated form owners outside table to ensure 100% valid HTML DOM and reliable CSRF token submission -->
+                    <form id="add-vehicle-form" method="POST" action="{% url 'car_details' %}" enctype="multipart/form-data" style="display: none;">
+                        {% csrf_token %}
+                    </form>
+                    {% for car in car_data %}
+                    <form id="edit-vehicle-form-{{ car.id }}" method="POST" action="{% url 'edit_car_detail' car.id %}" enctype="multipart/form-data" onsubmit="saveInlineEdit('{{ car.id }}'); return false;" style="display: none;">
+                        {% csrf_token %}
+                        <input type="hidden" name="layout_code" value="{{ car.layout_code }}">
+                    </form>
+                    {% endfor %}
+                    {% endif %}
                     <div class="table-container">
                         <table class="table">
                             <thead>
@@ -128,7 +248,10 @@
                                     {% if new_search_enabled %}
                                     <th class="col-brand" data-filter-col="2">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%;">
-                                            <span>{% translate "Brand" %}</span>
+                                            <button type="button" class="col-sort-btn" data-sort-key="brand" title="{% translate "Sort by Brand" %}" aria-label="{% translate "Sort by Brand" %}" aria-sort="none">
+                                                <span>{% translate "Brand" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
                                             <div style="display: flex; align-items: center; gap: 0.2rem;">
                                                 <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.72rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                                 <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.72rem;"><i class="fas fa-chevron-down"></i></span>
@@ -137,7 +260,10 @@
                                     </th>
                                     <th class="col-model" data-filter-col="3">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%;">
-                                            <span>{% translate "Model" %}</span>
+                                            <button type="button" class="col-sort-btn" data-sort-key="model" title="{% translate "Sort by Model" %}" aria-label="{% translate "Sort by Model" %}" aria-sort="none">
+                                                <span>{% translate "Model" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
                                             <div style="display: flex; align-items: center; gap: 0.2rem;">
                                                 <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.72rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                                 <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.72rem;"><i class="fas fa-chevron-down"></i></span>
@@ -165,8 +291,18 @@
                                         </div>
                                     </th>
                                     {% else %}
-                                    <th class="col-brand">{% translate "Brand" %}</th>
-                                    <th class="col-model">{% translate "Model" %}</th>
+                                    <th class="col-brand">
+                                        <button type="button" class="col-sort-btn" data-sort-key="brand" title="{% translate "Sort by Brand" %}" aria-label="{% translate "Sort by Brand" %}" aria-sort="none">
+                                            <span>{% translate "Brand" %}</span>
+                                            <i class="fas fa-sort col-sort-icon"></i>
+                                        </button>
+                                    </th>
+                                    <th class="col-model">
+                                        <button type="button" class="col-sort-btn" data-sort-key="model" title="{% translate "Sort by Model" %}" aria-label="{% translate "Sort by Model" %}" aria-sort="none">
+                                            <span>{% translate "Model" %}</span>
+                                            <i class="fas fa-sort col-sort-icon"></i>
+                                        </button>
+                                    </th>
                                     <th class="col-year">{% translate "Year Range" %}</th>
                                     <th class="col-submodel">{% translate "Sub-Model" %}</th>
                                     {% endif %}
@@ -196,7 +332,10 @@
                                     {% if new_search_enabled %}
                                     <th class="col-country col-vehicle-country" data-filter-col="10">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; width: 100%; white-space: nowrap;">
-                                            <span>{% translate "Vehicle Country" %}</span>
+                                            <button type="button" class="col-sort-btn" data-sort-key="vehicle_country" title="{% translate "Sort by Vehicle Country" %}" aria-label="{% translate "Sort by Vehicle Country" %}" aria-sort="none">
+                                                <span>{% translate "Vehicle Country" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
                                             <span class="tooltip-container">
                                                 <i class="fas fa-info-circle info-icon"></i>
                                                 <span class="tooltip-text">{% translate "Where the vehicle is manufactured." %}</span>
@@ -209,7 +348,10 @@
                                     </th>
                                     <th class="col-country col-measurement-country" data-filter-col="11">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; width: 100%; white-space: nowrap;">
-                                            <span>{% translate "Measurement Country" %}</span>
+                                            <button type="button" class="col-sort-btn" data-sort-key="measurement_country" title="{% translate "Sort by Measurement Country" %}" aria-label="{% translate "Sort by Measurement Country" %}" aria-sort="none">
+                                                <span>{% translate "Measurement Country" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
                                             <span class="tooltip-container">
                                                 <i class="fas fa-info-circle info-icon"></i>
                                                 <span class="tooltip-text">{% translate "Where the measurement is taken for this vehicle" %}</span>
@@ -222,18 +364,28 @@
                                     </th>
                                     {% else %}
                                     <th class="col-country">
-                                        {% translate "Vehicle Country" %}
-                                        <span class="tooltip-container">
-                                            <i class="fas fa-info-circle info-icon"></i>
-                                            <span class="tooltip-text">{% translate "Where the vehicle is manufactured." %}</span>
-                                        </span>
+                                        <div style="display: flex; align-items: center; gap: 0.3rem; width: 100%; white-space: nowrap;">
+                                            <button type="button" class="col-sort-btn" data-sort-key="vehicle_country" title="{% translate "Sort by Vehicle Country" %}" aria-label="{% translate "Sort by Vehicle Country" %}" aria-sort="none">
+                                                <span>{% translate "Vehicle Country" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
+                                            <span class="tooltip-container">
+                                                <i class="fas fa-info-circle info-icon"></i>
+                                                <span class="tooltip-text">{% translate "Where the vehicle is manufactured." %}</span>
+                                            </span>
+                                        </div>
                                     </th>
                                     <th class="col-country">
-                                        {% translate "Measurement Country" %}
-                                        <span class="tooltip-container">
-                                            <i class="fas fa-info-circle info-icon"></i>
-                                            <span class="tooltip-text">{% translate "Where the measurement is taken for this vehicle" %}</span>
-                                        </span>
+                                        <div style="display: flex; align-items: center; gap: 0.3rem; width: 100%; white-space: nowrap;">
+                                            <button type="button" class="col-sort-btn" data-sort-key="measurement_country" title="{% translate "Sort by Measurement Country" %}" aria-label="{% translate "Sort by Measurement Country" %}" aria-sort="none">
+                                                <span>{% translate "Measurement Country" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
+                                            <span class="tooltip-container">
+                                                <i class="fas fa-info-circle info-icon"></i>
+                                                <span class="tooltip-text">{% translate "Where the measurement is taken for this vehicle" %}</span>
+                                            </span>
+                                        </div>
                                     </th>
                                     {% endif %}
                                     {% if new_search_enabled or can_manage_catalog %}
@@ -243,11 +395,11 @@
                             </thead>
                             <tbody>
                                 {% if can_manage_catalog %}
-                                <form id="add-vehicle-form" method="POST" enctype="multipart/form-data" style="display: none;">
-                                    {% csrf_token %}
-                                </form>
                                 <tr id="inline-add-row" style="display: none; background-color: rgba(229, 57, 53, 0.05);">
-                                    <td class="col-num"><input type="text" name="serial_number" id="inlineAddSerialNumber" value="{{ next_serial_number }}" class="form-input" placeholder="{% translate "Auto" %}" form="add-vehicle-form" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 62px; font-weight: bold;"></td>
+                                    <td class="col-num">
+                                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" form="add-vehicle-form">
+                                        <input type="text" name="serial_number" id="inlineAddSerialNumber" value="{{ next_serial_number|default:'S0001' }}" class="form-input" placeholder="S0001" form="add-vehicle-form" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 62px; font-weight: bold;">
+                                    </td>
                                     <td class="col-logo">
                                         <div style="position: relative;">
                                             <input type="file" name="brand_logo" id="brandLogoInput" form="add-vehicle-form" style="display: none;" accept="image/*">
@@ -294,9 +446,14 @@
                                         </select>
                                     </td>
                                     <td class="col-actions">
-                                        <button type="submit" form="add-vehicle-form" class="action-btn edit" title="{% translate "Add Vehicle" %}" style="background-color: var(--primary-color); width: 1.85rem; height: 1.85rem; box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);">
-                                            <i class="fas fa-save"></i>
-                                        </button>
+                                        <div class="action-buttons" style="display: flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                                            <button type="submit" form="add-vehicle-form" class="action-btn edit" title="{% translate "Add Vehicle" %}" style="background-color: var(--primary-color); width: 1.85rem; height: 1.85rem; box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);">
+                                                <i class="fas fa-save"></i>
+                                            </button>
+                                            <button type="button" class="action-btn delete cancel-inline-add-btn" onclick="cancelInlineAdd()" title="{% translate "Cancel" %}" style="background-color: #64748b; color: #fff; width: 1.85rem; height: 1.85rem; box-shadow: 0 2px 8px rgba(100, 116, 139, 0.3);">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endif %}
@@ -371,12 +528,11 @@
                                         {% endif %}
                                     </tr>
                                     {% if can_manage_catalog %}
-                                    <form id="edit-vehicle-form-{{ car.id }}" method="POST" action="{% url 'edit_car_detail' car.id %}" enctype="multipart/form-data" onsubmit="saveInlineEdit('{{ car.id }}'); return false;" style="display: none;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="layout_code" value="{{ car.layout_code }}">
-                                    </form>
                                     <tr id="row-edit-{{ car.id }}" class="inline-edit-row" style="display: none; background-color: rgba(245, 158, 11, 0.08);" data-car-id="{{ car.id }}" data-initial-country-id="{{ car.vehicle_country_id|default:'' }}" data-initial-serial="{{ car.serial_number }}">
-                                        <td class="col-num"><input type="text" name="serial_number" value="{{ car.serial_number }}" class="form-input" placeholder="{% translate "Auto" %}" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 62px; font-weight: bold;"></td>
+                                        <td class="col-num">
+                                            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" form="edit-vehicle-form-{{ car.id }}">
+                                            <input type="text" name="serial_number" value="{{ car.serial_number }}" class="form-input" placeholder="{% translate "Auto" %}" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 62px; font-weight: bold;">
+                                        </td>
                                         <td class="col-logo">
                                             <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">
                                                 <input type="file" name="brand_logo" id="brandLogoInput_{{ car.id }}" form="edit-vehicle-form-{{ car.id }}" style="display: none;" accept="image/*" onchange="const lbl=document.getElementById('logoPreviewName_{{ car.id }}'); if(lbl && this.files.length){lbl.textContent=this.files[0].name; lbl.style.display='block';}">
@@ -451,11 +607,19 @@
                         </span>
                         {% endif %}
 
-                        <span class="pattern-pagination__indicator" aria-current="page">
-                            <span class="pattern-pagination__current">{{ page_obj.number }}</span>
-                            <span class="pattern-pagination__separator" aria-hidden="true">/</span>
-                            <span>{{ page_obj.paginator.num_pages }}</span>
-                        </span>
+                        <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
+                            {% for p in pagination_bubbles %}
+                                {% if p == '...' or p == '…' %}
+                                    <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
+                                {% elif p == page_obj.number %}
+                                    <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
+                                {% else %}
+                                    <a class="pattern-pagination__bubble" href="?page={{ p }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
+                                {% endif %}
+                            {% empty %}
+                                <span class="pattern-pagination__bubble is-active" aria-current="page">{{ page_obj.number }}</span>
+                            {% endfor %}
+                        </div>
 
                         {% if page_obj.has_next %}
                         <a class="pattern-pagination__control pattern-pagination__control--next" href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Next' %}">
@@ -1011,6 +1175,19 @@
                 }
             };
 
+            window.cancelInlineAdd = function() {
+                const addRow = document.getElementById('inline-add-row');
+                if (!addRow) return;
+                addRow.style.display = 'none';
+                const form = document.getElementById('add-vehicle-form');
+                if (form) form.reset();
+                const logoPreview = document.getElementById('logoPreviewName');
+                if (logoPreview) {
+                    logoPreview.textContent = '';
+                    logoPreview.style.display = 'none';
+                }
+            };
+
             function escapeHtml(text) {
                 if (text == null) return '';
                 return String(text)
@@ -1057,13 +1234,19 @@
                     }
                 });
                 formData.set('is_ajax', '1');
+                const csrfVal = document.querySelector('[name=csrfmiddlewaretoken]')?.value 
+                    || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+                if (csrfVal && !formData.has('csrfmiddlewaretoken')) {
+                    formData.set('csrfmiddlewaretoken', csrfVal);
+                }
 
                 try {
                     const response = await fetch(form.action, {
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': csrfVal
                         }
                     });
 
@@ -1284,8 +1467,14 @@
             setupSerialCountryAutoUpdate();
 
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && window.activeInlineEditId) {
-                    window.cancelInlineEdit(window.activeInlineEditId);
+                if (e.key === 'Escape') {
+                    if (window.activeInlineEditId) {
+                        window.cancelInlineEdit(window.activeInlineEditId);
+                    }
+                    const addRow = document.getElementById('inline-add-row');
+                    if (addRow && addRow.style.display !== 'none') {
+                        window.cancelInlineAdd();
+                    }
                 } else if (e.key === 'Enter' && e.target && e.target.closest('.inline-edit-row') && e.target.tagName !== 'TEXTAREA') {
                     e.preventDefault();
                     const editRow = e.target.closest('.inline-edit-row');
@@ -1615,6 +1804,139 @@
                     }
                 });
             }
+
+            // -------------------------------------------------------------------------
+            // Table Column Sorting Controller (Brand, Model, Vehicle/Measurement Country)
+            // -------------------------------------------------------------------------
+            let currentSortKey = null;
+            let currentSortDir = 'none'; // 'asc' | 'desc'
+
+            // Stamp initial default serial order index on view rows if not already stamped
+            function ensureInitialIndices(tbodyEl) {
+                if (!tbodyEl) return;
+                const viewRows = tbodyEl.querySelectorAll('tr[id^="row-view-"]');
+                viewRows.forEach((row, idx) => {
+                    if (!row.hasAttribute('data-default-order')) {
+                        row.setAttribute('data-default-order', String(idx));
+                    }
+                });
+            }
+
+            const initialTbody = document.querySelector('.table tbody');
+            if (initialTbody) {
+                ensureInitialIndices(initialTbody);
+            }
+
+            function sortPatternTable(sortKey) {
+                const tbody = document.querySelector('.table tbody');
+                if (!tbody) return;
+
+                ensureInitialIndices(tbody);
+
+                let isResettingToDefault = false;
+
+                // Determine next direction: asc -> desc -> default reset
+                if (currentSortKey === sortKey) {
+                    if (currentSortDir === 'asc') {
+                        currentSortDir = 'desc';
+                    } else if (currentSortDir === 'desc') {
+                        isResettingToDefault = true;
+                        currentSortKey = null;
+                        currentSortDir = 'none';
+                    } else {
+                        currentSortDir = 'asc';
+                    }
+                } else {
+                    currentSortKey = sortKey;
+                    currentSortDir = 'asc';
+                }
+
+                // Update UI button icons & aria attributes
+                document.querySelectorAll('.col-sort-btn').forEach(btn => {
+                    const icon = btn.querySelector('.col-sort-icon');
+                    if (!isResettingToDefault && btn.dataset.sortKey === sortKey) {
+                        btn.classList.add('is-sorted');
+                        btn.setAttribute('aria-sort', currentSortDir === 'asc' ? 'ascending' : 'descending');
+                        if (icon) {
+                            icon.className = currentSortDir === 'asc' ? 'fas fa-arrow-up-a-z col-sort-icon' : 'fas fa-arrow-down-z-a col-sort-icon';
+                        }
+                    } else {
+                        btn.classList.remove('is-sorted');
+                        btn.setAttribute('aria-sort', 'none');
+                        if (icon) {
+                            icon.className = 'fas fa-sort col-sort-icon';
+                        }
+                    }
+                });
+
+                // Gather row units (viewRow + optional editRow)
+                const viewRows = Array.from(tbody.querySelectorAll('tr[id^="row-view-"]'));
+                const rowPairs = viewRows.map(viewRow => {
+                    const carId = viewRow.getAttribute('data-car-id');
+                    const editRow = carId ? document.getElementById('row-edit-' + carId) : null;
+                    const defaultOrder = parseInt(viewRow.getAttribute('data-default-order') || '0', 10);
+                    let cellValue = '';
+                    if (sortKey === 'brand') {
+                        cellValue = viewRow.querySelector('.col-brand')?.textContent?.trim() || '';
+                    } else if (sortKey === 'model') {
+                        cellValue = viewRow.querySelector('.col-model')?.textContent?.trim() || '';
+                    } else if (sortKey === 'vehicle_country') {
+                        cellValue = viewRow.querySelector('.col-vehicle-country')?.textContent?.trim() || '';
+                    } else if (sortKey === 'measurement_country') {
+                        cellValue = viewRow.querySelector('.col-measurement-country')?.textContent?.trim() || '';
+                    }
+                    return { viewRow, editRow, value: cellValue, defaultOrder };
+                });
+
+                // Sort pairs
+                if (isResettingToDefault) {
+                    // 3rd click: Reset to default serial number based order
+                    rowPairs.sort((a, b) => a.defaultOrder - b.defaultOrder);
+                } else {
+                    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+                    rowPairs.sort((a, b) => {
+                        const valA = (a.value === '-' ? '' : a.value);
+                        const valB = (b.value === '-' ? '' : b.value);
+                        if (!valA && valB) return 1;
+                        if (valA && !valB) return -1;
+                        if (!valA && !valB) return 0;
+                        const cmp = collator.compare(valA, valB);
+                        return currentSortDir === 'asc' ? cmp : -cmp;
+                    });
+                }
+
+                // Preserve add-row at the very top of tbody
+                const addRow = document.getElementById('inline-add-row');
+                if (addRow) tbody.appendChild(addRow);
+
+                // Re-append sorted rows in tbody
+                rowPairs.forEach(pair => {
+                    tbody.appendChild(pair.viewRow);
+                    if (pair.editRow) tbody.appendChild(pair.editRow);
+                });
+            }
+
+            // Expose globally
+            window.sortPatternTable = sortPatternTable;
+
+            // Attach listeners to sort buttons
+            document.querySelectorAll('.col-sort-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const sortKey = this.dataset.sortKey;
+                    if (sortKey) {
+                        sortPatternTable(sortKey);
+                    }
+                });
+            });
+
+            // Prevent clicks inside tooltip containers from bubbling
+            document.querySelectorAll('.tooltip-container').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
 
             // -------------------------------------------------------------------------
             // Fitting Confirmation Dropdown Manager (Interactive dropdown pills)

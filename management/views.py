@@ -448,7 +448,8 @@ def index(request):
         'pending_approvals_list': pending_approvals_list,
         'pending_approvals_total': pending_approvals_total,
         'recent_complaints': visible_complaints.select_related(
-            'brand', 'model', 'sub_model', 'year', 'person', 'sku'
+            'brand', 'model', 'sub_model', 'year', 'person', 'sku',
+            'channel', 'assigned_factory_executive', 'material', 'series'
         ).annotate(
             sort_weight=Case(
                 When(status='Closed', then=Value(1)),
@@ -460,6 +461,31 @@ def index(request):
     }
     request._fabro_badges = {'pending_approvals_count': pending_approval_count}
     return render(request, 'management/index.html', context)
+
+
+def _get_pagination_bubbles(current_page, total_pages, on_each_side=2, on_ends=1):
+    """Generate page numbers and ellipsis indicators for pagination bubbles."""
+    if total_pages <= (on_each_side * 2 + on_ends * 2 + 1):
+        return list(range(1, total_pages + 1))
+    pages = set()
+    for p in range(1, on_ends + 1):
+        pages.add(p)
+    for p in range(total_pages - on_ends + 1, total_pages + 1):
+        pages.add(p)
+    for p in range(max(1, current_page - on_each_side), min(total_pages, current_page + on_each_side) + 1):
+        pages.add(p)
+    sorted_pages = sorted(list(pages))
+    result = []
+    prev = None
+    for p in sorted_pages:
+        if prev is not None:
+            if p - prev == 2:
+                result.append(prev + 1)
+            elif p - prev > 2:
+                result.append('...')
+        result.append(p)
+        prev = p
+    return result
 
 
 @login_required
@@ -552,11 +578,25 @@ def car_details(request):
     new_search_enabled = True
     scoped_search_enabled = True
 
-    # Fetch car data (Optimized via select_related)
-    yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').order_by('id')
+    # Fetch car data (Optimized via select_related, ordered newest first)
+    yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').order_by('-id')
     if search_query:
         if search_column in ('serial_number', 'serial_no', 'serial'):
-            yr_qs = yr_qs.filter(serial_number__icontains=search_query)
+            import re
+            m = re.search(r'\d+', search_query)
+            if m:
+                target_rank = int(m.group(0))
+                all_ids = list(YearRange.objects.order_by('-id').values_list('id', flat=True))
+                matched_ids = []
+                for i, y_id in enumerate(all_ids):
+                    rank = i + 1
+                    formatted_rank = f"{rank:04d}"
+                    if str(target_rank) in formatted_rank or search_query.lower() in f"s{formatted_rank}".lower():
+                        matched_ids.append(y_id)
+                stored_matches = list(YearRange.objects.filter(serial_number__icontains=search_query).values_list('id', flat=True))
+                yr_qs = yr_qs.filter(id__in=set(matched_ids) | set(stored_matches))
+            else:
+                yr_qs = yr_qs.filter(serial_number__icontains=search_query)
         elif search_column == 'x_code':
             yr_qs = yr_qs.filter(Q(x_code__icontains=search_query) | Q(layout_code__icontains=search_query))
         elif search_column == 'fitting_confirmation':
@@ -589,9 +629,14 @@ def car_details(request):
     vehicle_paginator = Paginator(yr_qs, 50)
     vehicle_page = vehicle_paginator.get_page(request.GET.get('page'))
     car_data = []
-    for yr in vehicle_page.object_list:
+    start_rank = (vehicle_page.number - 1) * vehicle_paginator.per_page
+    for idx, yr in enumerate(vehicle_page.object_list):
+        rank_number = start_rank + idx + 1
+        country_prefix = yr.serial_number[:1] if (yr.serial_number and yr.serial_number[0].isalpha()) else 'S'
+        display_serial = f"{country_prefix}{rank_number:04d}"
         car_data.append({
-            "serial_number": yr.serial_number or '',
+            "serial_number": display_serial,
+            "stored_serial_number": yr.serial_number or '',
             "layout_code": yr.layout_code,
             "x_code": yr.x_code or yr.layout_code or '-',
             "raw_x_code": yr.x_code or '',
@@ -619,9 +664,15 @@ def car_details(request):
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
 
     can_manage_catalog = _can_manage_catalog(request.user)
-    next_serial_number = get_next_pattern_serial()
+    next_serial_number = "S0001"
     pagination_params = request.GET.copy()
     pagination_params.pop('page', None)
+    pagination_bubbles = _get_pagination_bubbles(
+        vehicle_page.number,
+        vehicle_paginator.num_pages,
+        on_each_side=2,
+        on_ends=1
+    )
 
     return render(request, 'management/car_details.html', {
         'form': form,
@@ -638,6 +689,7 @@ def car_details(request):
         'scoped_search_enabled': scoped_search_enabled,
         'can_manage_catalog': can_manage_catalog,
         'page_obj': vehicle_page,
+        'pagination_bubbles': pagination_bubbles,
         'pagination_querystring': pagination_params.urlencode(),
     })
 
@@ -648,7 +700,7 @@ def pattern_vehicle_list_api(request):
     search = request.GET.get('search', '').strip()[:100]
     queryset = YearRange.objects.select_related(
         'sub_model__model__brand', 'vehicle_country', 'measurement_country'
-    ).order_by('id')
+    ).order_by('-id')
     if search:
         queryset = queryset.filter(
             Q(serial_number__icontains=search)
@@ -661,14 +713,14 @@ def pattern_vehicle_list_api(request):
     page = Paginator(queryset, 50).get_page(request.GET.get('page'))
     results = [{
         'id': vehicle.pk,
-        'serial_number': vehicle.serial_number,
+        'serial_number': f"S{(page.number - 1) * page.paginator.per_page + idx + 1:04d}",
         'layout_code': vehicle.layout_code,
         'brand': vehicle.sub_model.model.brand.name,
         'model': vehicle.sub_model.model.name,
         'sub_model': vehicle.sub_model.name,
         'year_start': vehicle.year_start,
         'year_end': vehicle.year_end,
-    } for vehicle in page.object_list]
+    } for idx, vehicle in enumerate(page.object_list)]
     return JsonResponse({
         'results': results,
         'count': page.paginator.count,
@@ -751,19 +803,15 @@ def update_fitting_confirmation_api(request, year_range_id):
 @login_required
 def get_next_pattern_serial_api(request):
     country_id = request.GET.get('country_id')
-    exclude_id = request.GET.get('exclude_id')
     country = None
     if country_id:
         try:
             country = MasterSetting.objects.filter(category='Country', id=country_id).first()
         except (ValueError, TypeError):
             pass
-    try:
-        exclude_id = int(exclude_id) if exclude_id else None
-    except (ValueError, TypeError):
-        exclude_id = None
 
-    next_serial = get_next_pattern_serial(country=country, exclude_id=exclude_id)
+    letter = get_country_letter(country) if country else 'S'
+    next_serial = f"{letter}0001"
     return JsonResponse({'success': True, 'next_serial': next_serial})
 
 

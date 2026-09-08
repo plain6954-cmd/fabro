@@ -4592,3 +4592,226 @@ class FactoryComplaintCodeFormatTests(TestCase):
         res = self.client.get(reverse('export_complaints'))
         self.assertEqual(res.status_code, 200)
         self.assertIn(fac.complaint_id, res.content.decode('utf-8'))
+
+
+class PatternMasterSortingTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(
+            username="pattern_sort_admin",
+            email="sort_admin@example.com",
+            password="SortAdmin!234",
+        )
+        self.client = Client()
+        self.client.force_login(self.admin)
+
+        self.brand = Brand.objects.create(name="CHEVROLET")
+        self.model = Model.objects.create(brand=self.brand, name="CAPTIVA")
+        self.sub_model = SubModel.objects.create(model=self.model, name="PREMIER")
+        self.year = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2020,
+            year_end=2024,
+            number_of_seats=7,
+            number_of_doors=5,
+            layout_code="CAPTIVA-01",
+        )
+
+    def test_pattern_master_renders_column_sort_buttons(self):
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Check sort buttons exist for Brand, Model, Vehicle Country, and Measurement Country
+        self.assertIn('data-sort-key="brand"', content)
+        self.assertIn('data-sort-key="model"', content)
+        self.assertIn('data-sort-key="vehicle_country"', content)
+        self.assertIn('data-sort-key="measurement_country"', content)
+        self.assertIn('col-sort-btn', content)
+        self.assertIn('sortPatternTable', content)
+
+
+class PatternMasterReversedOrderTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(
+            username="pattern_rev_admin",
+            email="rev_admin@example.com",
+            password="RevAdmin!234",
+        )
+        self.client = Client()
+        self.client.force_login(self.admin)
+
+        self.brand = Brand.objects.create(name="TEST BRAND")
+        self.model = Model.objects.create(brand=self.brand, name="TEST MODEL")
+        self.sub_model = SubModel.objects.create(model=self.model, name="BASE")
+
+        # Create 3 patterns in chronological order
+        self.yr_oldest = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2015,
+            year_end=2018,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="OLD-01",
+        )
+        self.yr_middle = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2019,
+            year_end=2021,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="MID-01",
+        )
+        self.yr_newest = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2022,
+            year_end=2025,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="NEW-01",
+        )
+
+    def test_reversed_order_and_dynamic_serial_numbers(self):
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        car_data = response.context['car_data']
+
+        # Verify car_data has the latest pattern at index 0 with S0001
+        self.assertEqual(car_data[0]['id'], self.yr_newest.id)
+        self.assertEqual(car_data[0]['serial_number'], 'S0001')
+
+        # Verify middle pattern at index 1 with S0002
+        self.assertEqual(car_data[1]['id'], self.yr_middle.id)
+        self.assertEqual(car_data[1]['serial_number'], 'S0002')
+
+        # Verify oldest pattern at index 2 with S0003
+        self.assertEqual(car_data[2]['id'], self.yr_oldest.id)
+        self.assertEqual(car_data[2]['serial_number'], 'S0003')
+
+    def test_new_pattern_creation_shifts_existing_down(self):
+        # Add brand new pattern
+        yr_super_new = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2026,
+            year_end=2027,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="SUPERNEW-01",
+        )
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        car_data = response.context['car_data']
+
+        # The newly added pattern is now #1: S0001
+        self.assertEqual(car_data[0]['id'], yr_super_new.id)
+        self.assertEqual(car_data[0]['serial_number'], 'S0001')
+
+        # Previous newest shifted to S0002
+        self.assertEqual(car_data[1]['id'], self.yr_newest.id)
+        self.assertEqual(car_data[1]['serial_number'], 'S0002')
+
+    def test_cancel_inline_add_button_rendered(self):
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('cancelInlineAdd()', content)
+        self.assertIn('cancel-inline-add-btn', content)
+
+
+class PatternMasterPaginationBubblesTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.admin = User.objects.create_superuser(
+            username="pattern_bubble_admin",
+            email="bubble_admin@example.com",
+            password="BubbleAdmin!234",
+        )
+        cls.brand = Brand.objects.create(name="HYUNDAI")
+        cls.model = Model.objects.create(brand=cls.brand, name="TUCSON")
+        cls.sub_model = SubModel.objects.create(model=cls.model, name="GLS")
+
+        # Create 105 vehicles once so we have 3 pages (50 per page)
+        vehicles = [
+            YearRange(
+                sub_model=cls.sub_model,
+                year_start=1800 + i,
+                year_end=1800 + i,
+                number_of_seats=5,
+                number_of_doors=4,
+                layout_code=f"PGBUBBLE-{i:04d}",
+            )
+            for i in range(1, 106)
+        ]
+        YearRange.objects.bulk_create(vehicles)
+
+    def setUp(self):
+        from django.db import connection
+        connection.close_if_unusable_or_obsolete()
+        self.client = Client()
+        self.client.force_login(self.admin)
+
+    def test_pagination_bubbles_helper_various_ranges(self):
+        from management.views import _get_pagination_bubbles
+        # 5 pages, current page 4 -> all numbers shown
+        self.assertEqual(_get_pagination_bubbles(4, 5), [1, 2, 3, 4, 5])
+
+        # 10 pages, page 1 -> start window with trailing ellipsis
+        self.assertEqual(_get_pagination_bubbles(1, 10), [1, 2, 3, '...', 10])
+
+        # 10 pages, page 10 -> end window with leading ellipsis
+        self.assertEqual(_get_pagination_bubbles(10, 10), [1, '...', 8, 9, 10])
+
+        # 20 pages, page 10 -> middle window with both ellipses
+        self.assertEqual(_get_pagination_bubbles(10, 20), [1, '...', 8, 9, 10, 11, 12, '...', 20])
+
+    def test_car_details_renders_pagination_bubbles(self):
+        response = self.client.get(reverse('car_details') + '?page=2')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('pagination_bubbles', response.context)
+        self.assertEqual(response.context['pagination_bubbles'], [1, 2, 3])
+
+        content = response.content.decode('utf-8')
+        # Active bubble for page 2
+        self.assertIn('class="pattern-pagination__bubble is-active"', content)
+        self.assertIn('>2</span>', content)
+
+        # Inactive clickable bubbles for page 1 and page 3
+        self.assertIn('href="?page=1"', content)
+        self.assertIn('href="?page=3"', content)
+
+        # Flanking Prev and Next buttons are present
+        self.assertIn('pattern-pagination__control--previous', content)
+        self.assertIn('pattern-pagination__control--next', content)
+
+    def test_car_details_pagination_bubbles_preserve_query_params(self):
+        response = self.client.get(reverse('car_details') + '?page=2&search=PGBUBBLE&search_by=layout_code')
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Bubble link for page 1 should include the query parameters
+        self.assertIn('page=1&amp;search=PGBUBBLE&amp;search_by=layout_code', content)
+
+    def test_car_details_forms_contain_csrf_and_valid_dom_structure(self):
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # add-vehicle-form exists and has csrf token
+        self.assertIn('id="add-vehicle-form"', content)
+        self.assertIn('name="csrfmiddlewaretoken"', content)
+
+        # inline-add-row contains explicit CSRF token with form="add-vehicle-form"
+        self.assertIn('form="add-vehicle-form"', content)
+
+        # tbody does NOT contain invalid <form id="add-vehicle-form" child tags
+        tbody_start = content.find('<tbody>')
+        tbody_end = content.find('</tbody>')
+        self.assertNotEqual(tbody_start, -1)
+        self.assertNotEqual(tbody_end, -1)
+        tbody_content = content[tbody_start:tbody_end]
+        self.assertNotIn('<form id="add-vehicle-form"', tbody_content)
+        self.assertNotIn('<form id="edit-vehicle-form-', tbody_content)
+
+
