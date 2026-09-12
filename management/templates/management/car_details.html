@@ -10,8 +10,330 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Pattern Master - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260907-bubble1">
+    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260912-menu-v9">
     <style data-fabro-page-asset>
+        /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
+        @media (max-width: 768px) {
+            html, body {
+                overflow-x: hidden !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+            }
+            .page-container,
+            .table-section,
+            .table-container,
+            .table,
+            .pattern-tab-pane,
+            #tab-pane-pattern-list,
+            .pattern-toolbar,
+            .pattern-toolbar__header,
+            .pattern-toolbar__search-row {
+                overflow-x: hidden !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+            }
+            #tab-pane-pattern-list {
+                display: flex !important;
+                flex-direction: column !important;
+                width: 100% !important;
+            }
+            .search-submit-btn,
+            #search-submit-btn,
+            .search-field-label {
+                display: none !important;
+            }
+            .table-container {
+                overflow-x: hidden !important;
+                overflow-y: visible !important;
+                height: auto !important;
+                max-height: none !important;
+                padding: 0 !important;
+                border: none !important;
+                background: transparent !important;
+            }
+            .table-container > table.table {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                border: none !important;
+                background: transparent !important;
+            }
+            .table-container > table.table > thead {
+                display: none !important;
+            }
+            .table-container > table.table > tbody {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                border: none !important;
+            }
+            .table-container > table.table tr[id^="row-view-"] {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+            }
+            .table-container > table.table tr[id^="row-view-"] > td:not(.mobile-pattern-card-view) {
+                display: none !important;
+            }
+            .table-container > table.table tr[id^="row-view-"] > td.mobile-pattern-card-view {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+                white-space: normal !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                background: transparent !important;
+                overflow: visible !important;
+            }
+            .pattern-mobile-card {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+                padding: 10px 12px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+                overflow: visible !important;
+                white-space: normal !important;
+                position: relative;
+            }
+            .pattern-mobile-card__header {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .pattern-mobile-card__title-wrap {
+                flex: 1 1 auto !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
+            }
+            .pattern-mobile-card__serial-wrap {
+                flex: 0 0 auto !important;
+                margin-left: auto !important;
+            }
+            .pattern-card__summary-grid,
+            .pattern-mobile-card__summary-grid {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                gap: 6px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+            }
+            .pattern-card__summary-item,
+            .pattern-mobile-info-item {
+                min-width: 0 !important;
+                overflow: hidden !important;
+            }
+            .pattern-card__primary-actions,
+            .pattern-mobile-card__controls-row {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+            }
+            .pattern-card__fitting-wrapper,
+            .pattern-mobile-card__fitting {
+                flex: 1 1 auto !important;
+                min-width: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+            }
+            .pattern-card__fitting-wrapper .dropdown-toggle,
+            .pattern-mobile-card__fitting .fitting-dropdown-btn {
+                flex: 1 1 auto !important;
+                max-width: 180px !important;
+                min-width: 0 !important;
+                width: auto !important;
+            }
+            .table-container > table.table tr[id^="row-view-"].has-open-actions-menu,
+            .pattern-mobile-card.has-open-actions-menu {
+                z-index: 1050 !important;
+                position: relative !important;
+            }
+            .pattern-card-actions-wrap,
+            .pattern-mobile-card__actions {
+                position: relative !important;
+                flex: 0 0 auto !important;
+                margin-left: auto !important;
+            }
+            .pattern-card-actions-menu {
+                position: absolute !important;
+                right: 0 !important;
+                top: calc(100% + 6px) !important;
+                width: auto !important;
+                min-width: unset !important;
+                max-width: unset !important;
+                background: #181c24 !important;
+                border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                border-radius: 12px !important;
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+                padding: 4px 6px !important;
+                z-index: 9999 !important;
+                display: none;
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 6px !important;
+                box-sizing: border-box !important;
+                white-space: nowrap !important;
+            }
+            body.light-mode .pattern-card-actions-menu {
+                background: #ffffff !important;
+                border-color: #cbd5e1 !important;
+                box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+            }
+            .pattern-card-actions-menu.opens-upward {
+                top: auto !important;
+                bottom: calc(100% + 6px) !important;
+            }
+            .card-action-item {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 38px !important;
+                height: 38px !important;
+                min-width: 38px !important;
+                min-height: 38px !important;
+                padding: 0 !important;
+                border-radius: 9px !important;
+                border: 1px solid transparent !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                cursor: pointer !important;
+                text-decoration: none !important;
+                box-sizing: border-box !important;
+                transition: transform 120ms ease, background 120ms ease !important;
+            }
+            .card-action-item:hover {
+                transform: scale(1.06) !important;
+            }
+            .card-action-item:active {
+                transform: scale(0.92) !important;
+            }
+            .card-action-item span {
+                display: none !important;
+            }
+            .card-action-item .action-icon {
+                font-size: 0.95rem !important;
+                line-height: 1 !important;
+                text-align: center !important;
+                width: auto !important;
+            }
+            .card-action-item.action-add-complaint {
+                background: rgba(244, 63, 94, 0.12) !important;
+                border-color: rgba(244, 63, 94, 0.28) !important;
+                color: #f43f5e !important;
+            }
+            .card-action-item.action-add-complaint:hover {
+                background: rgba(244, 63, 94, 0.25) !important;
+            }
+            .card-action-item.action-design {
+                background: rgba(129, 140, 248, 0.12) !important;
+                border-color: rgba(129, 140, 248, 0.28) !important;
+                color: #818cf8 !important;
+            }
+            .card-action-item.action-design:hover {
+                background: rgba(129, 140, 248, 0.25) !important;
+            }
+            .card-action-item.action-edit {
+                background: rgba(56, 189, 248, 0.12) !important;
+                border-color: rgba(56, 189, 248, 0.28) !important;
+                color: #38bdf8 !important;
+            }
+            .card-action-item.action-edit:hover {
+                background: rgba(56, 189, 248, 0.25) !important;
+            }
+            .card-action-item.action-delete {
+                background: rgba(239, 68, 68, 0.12) !important;
+                border-color: rgba(239, 68, 68, 0.28) !important;
+                color: #ef4444 !important;
+            }
+            .card-action-item.action-delete:hover {
+                background: rgba(239, 68, 68, 0.25) !important;
+            }
+            .pattern-mobile-card,
+            .mobile-pattern-card-view,
+            .table-container {
+                scrollbar-width: none !important;
+                -ms-overflow-style: none !important;
+            }
+            .pattern-mobile-card::-webkit-scrollbar,
+            .mobile-pattern-card-view::-webkit-scrollbar,
+            .table-container::-webkit-scrollbar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+            }
+            .pattern-mobile-card__logo {
+                width: 44px !important;
+                height: 32px !important;
+                flex: 0 0 44px !important;
+                background: #ffffff !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                border-radius: 8px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                overflow: hidden !important;
+                padding: 3px 5px !important;
+                box-sizing: border-box !important;
+            }
+            body.light-mode .pattern-mobile-card__logo {
+                background: #ffffff !important;
+                border-color: #cbd5e1 !important;
+            }
+            .pattern-mobile-card__logo img {
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: contain !important;
+                display: block !important;
+            }
+            .pattern-mobile-card__no-logo {
+                color: #64748b !important;
+                font-size: 1rem !important;
+                display: flex;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+            .pattern-mobile-card__no-logo[style*="display: none"] {
+                display: none !important;
+            }
+        }
+        .brand-logo-cell {
+            background: #ffffff;
+            border-radius: 4px;
+            padding: 1px 3px;
+            object-fit: contain;
+            box-sizing: border-box;
+        }
+
         /* Search Picker styles */
         /* Critical fallback while the versioned page stylesheet is fetched. */
         .search-picker { position: relative; }
@@ -44,6 +366,21 @@
         }
         .col-sort-btn:hover .col-sort-icon { opacity: 0.75; }
         .col-sort-btn.is-sorted .col-sort-icon { opacity: 1; color: var(--primary-color); }
+
+        /* Top Pagination: hidden on desktop, visible on mobile/tablet */
+        .pattern-pagination--top {
+            display: none !important;
+        }
+        @media (max-width: 991px) {
+            .pattern-pagination--top {
+                display: grid !important;
+                margin-top: 0.15rem !important;
+                margin-bottom: 0.75rem !important;
+                padding: 0.15rem 0.3rem !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+        }
 
         /* Pagination Bubbles */
         .pattern-pagination__bubbles {
@@ -140,31 +477,35 @@
         <div id="tab-pane-pattern-list" class="pattern-tab-pane">
             <!-- Pattern Toolbar: Title on left, controls on right on the same horizontal row -->
             <div class="pattern-toolbar">
-                <h1 class="page-title">
-                    <i class="fas fa-layer-group"></i>
-                    {% translate "Pattern Master" %}
-                </h1>
-                <div class="header-actions">
+                <div class="pattern-toolbar__header">
+                    <h1 class="page-title">
+                        <i class="fas fa-layer-group"></i>
+                        <span>{% translate "Pattern Master" %}</span>
+                    </h1>
                     {% if can_manage_catalog %}
-                    <a href="#" onclick="if(window.innerWidth <= 640 && typeof window.openMobilePatternSheet === 'function'){ window.openMobilePatternSheet('add'); return false; } const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="btn btn-primary icon-btn" title="{% translate "Add New Vehicle" %}" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
-                        <i class="fas fa-plus"></i>
-                    </a>
-                    <form method="post" action="{% url 'upload_car_csv' %}" enctype="multipart/form-data" class="vehicle-csv-upload-form" id="vehicle-csv-upload-form">
-                        {% csrf_token %}
-                        <input type="file" name="csv_file" id="vehicle-csv-file" class="vehicle-csv-file-input"
-                               accept=".csv,text/csv" required
-                               onchange="if (this.files && this.files.length) { this.form.requestSubmit(); }">
-                        <label for="vehicle-csv-file" class="btn btn-success icon-btn vehicle-csv-upload-button"
-                               title="{% translate "Upload Vehicle CSV" %}" aria-label="{% translate "Upload Vehicle CSV" %}" role="button" tabindex="0"
-                               onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.getElementById('vehicle-csv-file').click(); }">
-                            <i class="fas fa-file-csv" aria-hidden="true"></i>
-                        </label>
-                    </form>
+                    <div class="pattern-toolbar__primary-actions">
+                        <a href="#" onclick="if(window.innerWidth <= 768 && typeof window.openMobilePatternSheet === 'function'){ window.openMobilePatternSheet('add'); return false; } const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="btn btn-primary icon-btn pattern-add-btn" title="{% translate "Add New Vehicle" %}" aria-label="{% translate "Add New Vehicle" %}">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                        <form method="post" action="{% url 'upload_car_csv' %}" enctype="multipart/form-data" class="vehicle-csv-upload-form" id="vehicle-csv-upload-form">
+                            {% csrf_token %}
+                            <input type="file" name="csv_file" id="vehicle-csv-file" class="vehicle-csv-file-input"
+                                   accept=".csv,text/csv" required
+                                   onchange="if (this.files && this.files.length) { this.form.requestSubmit(); }">
+                            <label for="vehicle-csv-file" class="btn btn-success icon-btn vehicle-csv-upload-button pattern-csv-btn"
+                                   title="{% translate "Upload Vehicle CSV" %}" aria-label="{% translate "Upload Vehicle CSV" %}" role="button" tabindex="0"
+                                   onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.getElementById('vehicle-csv-file').click(); }">
+                                <i class="fas fa-file-csv" aria-hidden="true"></i>
+                            </label>
+                        </form>
+                    </div>
                     {% endif %}
+                </div>
+                <div class="pattern-toolbar__search-row">
                     <form method="GET" class="header-search-form" id="vehicle-search-form">
                         <input type="hidden" name="search_by" id="vehicle-search-by" value="{{ search_by|default:'all' }}">
                         <div class="search-picker" id="vehicle-search-picker">
-                            <i class="fas fa-search search-leading-icon"></i>
+                            <i class="fas fa-search search-leading-icon" id="searchLeadingIcon" title="{% translate "Search" %}"></i>
                             <input type="text" name="search" id="vehicle-search-input" placeholder="{% translate "Search vehicles..." %}"
                                    value="{{ search_query }}" class="header-search-input" autocomplete="off"
                                    aria-label="{% translate "Search vehicles" %}" aria-describedby="vehicle-search-options-title"
@@ -212,16 +553,30 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary icon-btn" title="{% translate "Search" %}" aria-label="{% translate "Search vehicles" %}">
+                        <button type="submit" class="btn btn-primary icon-btn search-submit-btn" title="{% translate "Search" %}" aria-label="{% translate "Search vehicles" %}">
                             <i class="fas fa-arrow-right"></i>
                         </button>
                         {% if search_query %}
-                        <a href="{% url 'car_details' %}" class="btn btn-danger icon-btn" title="{% translate "Clear Search" %}" aria-label="{% translate "Clear Search" %}">
+                        <a href="{% url 'car_details' %}" class="btn btn-danger icon-btn search-clear-btn" title="{% translate "Clear Search" %}" aria-label="{% translate "Clear Search" %}">
                             <i class="fas fa-times"></i>
                         </a>
                         {% endif %}
                     </form>
+                    <button type="button" class="btn btn-secondary mobile-filters-btn" id="mobileFiltersBtn" aria-label="{% translate "Filters" %}" onclick="openMobileFiltersSheet()">
+                        <i class="fas fa-filter" aria-hidden="true"></i>
+                        <span class="mobile-filters-btn-text">{% translate "Filters" %}</span>
+                        <span class="mobile-filter-badge" id="mobileFilterBadge" style="display: none;">0</span>
+                    </button>
                 </div>
+            </div>
+
+            <!-- Optional Selected Filename/Status Row only when needed -->
+            <div id="csv-selected-status-row" class="csv-selected-status-row" style="display: none;" role="status" aria-live="polite">
+                <i class="fas fa-file-csv csv-status-icon"></i>
+                <span id="csv-selected-filename" class="csv-selected-filename"></span>
+                <span class="csv-uploading-spinner" id="csv-uploading-spinner" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </span>
             </div>
 
             <!-- Vehicle Table Section -->
@@ -239,6 +594,49 @@
                     </form>
                     {% endfor %}
                     {% endif %}
+
+                    {% if page_obj.has_other_pages %}
+                    <nav class="pattern-pagination pattern-pagination--top" aria-label="{% translate 'Vehicle pages (top)' %}">
+                        {% if page_obj.has_previous %}
+                        <a class="pattern-pagination__control pattern-pagination__control--previous" href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Prev' %}">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            <span>{% translate "Prev" %}</span>
+                        </a>
+                        {% else %}
+                        <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            <span>{% translate "Prev" %}</span>
+                        </span>
+                        {% endif %}
+
+                        <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
+                            {% for p in pagination_bubbles %}
+                                {% if p == '...' or p == '…' %}
+                                    <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
+                                {% elif p == page_obj.number %}
+                                    <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
+                                {% else %}
+                                    <a class="pattern-pagination__bubble" href="?page={{ p }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
+                                {% endif %}
+                            {% empty %}
+                                <span class="pattern-pagination__bubble is-active" aria-current="page">{{ page_obj.number }}</span>
+                            {% endfor %}
+                        </div>
+
+                        {% if page_obj.has_next %}
+                        <a class="pattern-pagination__control pattern-pagination__control--next" href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Next' %}">
+                            <span>{% translate "Next" %}</span>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </a>
+                        {% else %}
+                        <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
+                            <span>{% translate "Next" %}</span>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </span>
+                        {% endif %}
+                    </nav>
+                    {% endif %}
+
                     <div class="table-container">
                         <table class="table">
                             <thead>
@@ -462,7 +860,10 @@
                                         <td class="col-num" title="{{ car.serial_number }}"><strong>{{ car.serial_number }}</strong></td>
                                         <td class="col-logo">
                                             {% if car.brand_logo %}
-                                                <img src="{{ car.brand_logo.url }}" class="brand-logo-cell" alt="{{ car.brand }} logo" loading="lazy" decoding="async" width="42" height="28">
+                                                <img src="{{ car.brand_logo.url }}" class="brand-logo-cell" alt="{{ car.brand }} logo" loading="lazy" decoding="async" width="42" height="28" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                <div class="brand-logo-fallback" style="display: none; width: 42px; height: 28px; background: var(--dark-card); border-radius: 3px; align-items: center; justify-content: center; color: var(--dark-text-secondary); font-size: 0.68rem; border: 1px solid rgba(255, 255, 255, 0.08);">
+                                                    -
+                                                </div>
                                             {% else %}
                                                 <div style="width: 42px; height: 28px; background: var(--dark-card); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--dark-text-secondary); font-size: 0.68rem; border: 1px solid rgba(255, 255, 255, 0.08);">
                                                     -
@@ -526,55 +927,48 @@
                                             </div>
                                         </td>
                                         {% endif %}
-                                        <!-- Mobile Card Presentation: Strictly visible on <= 640px via CSS -->
+                                        <!-- Mobile Card Presentation: Strictly visible on <= 768px via CSS -->
                                         <td class="mobile-pattern-card-view" colspan="13">
                                             <div class="pattern-mobile-card">
-                                                <!-- Top Row: Logo + Brand/Model/Year + Serial -->
+                                                <!-- Header: Logo (46x34) + Brand/Model + Serial -->
                                                 <div class="pattern-mobile-card__header">
                                                     <div class="pattern-mobile-card__logo">
                                                         {% if car.brand_logo %}
-                                                            <img src="{{ car.brand_logo.url }}" alt="{{ car.brand }} logo" loading="lazy" width="48" height="32">
+                                                            <img src="{{ car.brand_logo.url }}" alt="{{ car.brand }} logo" loading="lazy" width="46" height="34" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                            <div class="pattern-mobile-card__no-logo" style="display: none;"><i class="fas fa-car" aria-hidden="true"></i></div>
                                                         {% else %}
-                                                            <span class="pattern-mobile-card__no-logo"><i class="fas fa-car"></i></span>
+                                                            <div class="pattern-mobile-card__no-logo"><i class="fas fa-car" aria-hidden="true"></i></div>
                                                         {% endif %}
                                                     </div>
                                                     <div class="pattern-mobile-card__title-wrap">
                                                         <div class="pattern-mobile-card__brand">{{ car.brand }}</div>
-                                                        <div class="pattern-mobile-card__model">{{ car.model }}{% if car.sub_model and car.sub_model != '-' %} <span class="pattern-mobile-card__submodel">{{ car.sub_model }}</span>{% endif %}</div>
-                                                        <div class="pattern-mobile-card__year">
-                                                            <i class="far fa-calendar-alt"></i>
-                                                            {% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %} - {% endif %}{{ car.year_end|default:'' }}{% else %}-{% endif %}
-                                                        </div>
+                                                        <div class="pattern-mobile-card__model">{{ car.model }}</div>
                                                     </div>
                                                     <div class="pattern-mobile-card__serial-wrap">
                                                         <span class="pattern-mobile-card__serial">{{ car.serial_number }}</span>
                                                     </div>
                                                 </div>
 
-                                                <!-- Middle Specs & Chips Row -->
-                                                <div class="pattern-mobile-card__chips">
-                                                    <span class="pattern-mobile-chip">
-                                                        <i class="fas fa-chair"></i> {{ car.seats }} {% translate "Seats" %}
-                                                    </span>
-                                                    <span class="pattern-mobile-chip">
-                                                        <i class="fas fa-door-closed"></i> {{ car.doors }} {% translate "Doors" %}
-                                                    </span>
-                                                    {% if car.x_code and car.x_code != '-' %}
-                                                    <span class="pattern-mobile-chip xcode">
-                                                        <strong>X:</strong> {{ car.x_code }}
-                                                    </span>
-                                                    {% endif %}
-                                                    {% if car.layout_code and car.layout_code != '-' %}
-                                                    <span class="pattern-mobile-chip layout">
-                                                        <i class="fas fa-code"></i> {{ car.layout_code }}
-                                                    </span>
-                                                    {% endif %}
+                                                <!-- Summary Information Grid (Year Range, Sub-Model, X-Code) -->
+                                                <div class="pattern-mobile-card__chips pattern-mobile-card__summary-grid">
+                                                    <div class="pattern-mobile-info-item">
+                                                        <span class="info-item-label">{% translate "Year" %}</span>
+                                                        <span class="info-item-value">{% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}–{% endif %}{{ car.year_end|default:'' }}{% else %}—{% endif %}</span>
+                                                    </div>
+                                                    <div class="pattern-mobile-info-item">
+                                                        <span class="info-item-label">{% translate "Sub-Model" %}</span>
+                                                        <span class="info-item-value" title="{{ car.sub_model|default:'—' }}">{% if car.sub_model and car.sub_model != '-' %}{{ car.sub_model }}{% else %}—{% endif %}</span>
+                                                    </div>
+                                                    <div class="pattern-mobile-info-item">
+                                                        <span class="info-item-label">{% translate "X-Code" %}</span>
+                                                        <span class="info-item-value xcode-val" title="{{ car.x_code|default:'—' }}">{% if car.x_code and car.x_code != '-' %}{{ car.x_code }}{% else %}—{% endif %}</span>
+                                                    </div>
                                                 </div>
 
-                                                <!-- Fitting & Countries Row -->
-                                                <div class="pattern-mobile-card__meta-row">
+                                                <!-- Fitting Confirmation & Actions Row -->
+                                                <div class="pattern-mobile-card__controls-row">
                                                     <div class="pattern-mobile-card__fitting">
-                                                        <span class="meta-label">{% translate "Fitting" %}:</span>
+                                                        <span class="fitting-lead-label">{% translate "Fitting" %}:</span>
                                                         {% if can_manage_catalog %}
                                                             <button type="button" 
                                                                     class="fitting-dropdown-btn fitting-badge {% if 'confirm' in car.fitting_confirmation|lower or 'yes' in car.fitting_confirmation|lower or 'ok' in car.fitting_confirmation|lower %}is-confirmed{% elif 'pending' in car.fitting_confirmation|lower or 'wait' in car.fitting_confirmation|lower %}is-pending{% elif 'rework' in car.fitting_confirmation|lower %}is-rework{% elif 'sampling' in car.fitting_confirmation|lower %}is-sampling{% else %}is-none{% endif %}" 
@@ -590,40 +984,82 @@
                                                             </span>
                                                         {% endif %}
                                                     </div>
-                                                    <div class="pattern-mobile-card__countries">
-                                                        {% if car.vehicle_country and car.vehicle_country != '-' %}
-                                                        <span class="country-pill" title="{% translate "Vehicle Country" %}"><i class="fas fa-globe-asia"></i> {{ car.vehicle_country }}</span>
-                                                        {% endif %}
-                                                        {% if car.measurement_country and car.measurement_country != '-' %}
-                                                        <span class="country-pill measure" title="{% translate "Measurement Country" %}"><i class="fas fa-ruler-combined"></i> {{ car.measurement_country }}</span>
-                                                        {% endif %}
+
+                                                    <!-- Three-dot Actions Button & Popover Menu -->
+                                                    <div class="pattern-mobile-card__actions pattern-card-actions-wrap">
+                                                        <button type="button" class="pattern-card-more-btn" 
+                                                                id="cardActionsBtn-{{ car.id }}"
+                                                                aria-haspopup="true" 
+                                                                aria-expanded="false" 
+                                                                aria-label="{% translate "Vehicle Actions" %}"
+                                                                onclick="toggleCardActionsMenu(event, '{{ car.id }}')">
+                                                            <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                                                        </button>
+                                                        <div class="pattern-card-actions-menu" id="cardActionsMenu-{{ car.id }}" role="menu" aria-labelledby="cardActionsBtn-{{ car.id }}" style="display: none;">
+                                                            {% if new_search_enabled %}
+                                                            <a href="{% url 'add_complaint' %}?brand={{ car.brand_id|default:'' }}&amp;model={{ car.model_id|default:'' }}&amp;sub_model={{ car.sub_model_id|default:'' }}&amp;year={{ car.id }}" 
+                                                               class="card-action-item action-add-complaint" role="menuitem" onclick="closeAllCardActionsMenus()" title="{% translate "Add Complaint" %}" aria-label="{% translate "Add Complaint" %}">
+                                                                <i class="fas fa-plus action-icon"></i>
+                                                                <span>{% translate "Add Complaint" %}</span>
+                                                            </a>
+                                                            {% endif %}
+                                                            <button type="button" class="card-action-item action-design" role="menuitem"
+                                                                    onclick="openVehicleDesignSettings('{{ car.id }}', '{{ car.brand|escapejs }} {{ car.model|escapejs }}{% if car.year_start or car.year_end %} {{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}-{% endif %}{{ car.year_end|default:'' }}{% endif %}{% if car.sub_model and car.sub_model != '-' %} {{ car.sub_model|escapejs }}{% endif %}'); closeAllCardActionsMenus();"
+                                                                    title="{% translate "Design Options" %}" aria-label="{% translate "Design Options" %}">
+                                                                <i class="fas fa-palette action-icon"></i>
+                                                                <span>{% translate "Design Options" %}</span>
+                                                            </button>
+                                                            {% if can_manage_catalog %}
+                                                            <button type="button" class="card-action-item action-edit" role="menuitem"
+                                                                    onclick="openMobilePatternSheet('edit', '{{ car.id }}'); closeAllCardActionsMenus();"
+                                                                    title="{% translate "Edit Vehicle" %}" aria-label="{% translate "Edit Vehicle" %}">
+                                                                <i class="fas fa-edit action-icon"></i>
+                                                                <span>{% translate "Edit Vehicle" %}</span>
+                                                            </button>
+                                                            <form method="post" action="{% url 'delete_car_detail' car.id %}" style="display: contents;">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="card-action-item action-delete" role="menuitem"
+                                                                        onclick="closeAllCardActionsMenus(); return confirm(window.FabroI18n.gettext('Are you sure you want to delete this vehicle?'));"
+                                                                        title="{% translate "Delete" %}" aria-label="{% translate "Delete" %}">
+                                                                    <i class="fas fa-trash action-icon"></i>
+                                                                    <span>{% translate "Delete" %}</span>
+                                                                </button>
+                                                            </form>
+                                                            {% endif %}
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                <!-- Bottom Actions Row -->
-                                                <div class="pattern-mobile-card__actions">
-                                                    {% if new_search_enabled %}
-                                                    <a href="{% url 'add_complaint' %}?brand={{ car.brand_id|default:'' }}&amp;model={{ car.model_id|default:'' }}&amp;sub_model={{ car.sub_model_id|default:'' }}&amp;year={{ car.id }}" class="pattern-mobile-btn add-complaint" title="{% translate "Add Complaint" %}">
-                                                        <i class="fas fa-plus"></i>
-                                                        <span>{% translate "Complaint" %}</span>
-                                                    </a>
-                                                    {% endif %}
-                                                    <button type="button" class="pattern-mobile-btn design-btn" onclick="openVehicleDesignSettings('{{ car.id }}', '{{ car.brand|escapejs }} {{ car.model|escapejs }}{% if car.year_start or car.year_end %} {{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}-{% endif %}{{ car.year_end|default:'' }}{% endif %}{% if car.sub_model and car.sub_model != '-' %} {{ car.sub_model|escapejs }}{% endif %}')" title="{% translate "Design Options" %}">
-                                                        <i class="fas fa-palette"></i>
-                                                        <span>{% translate "Design" %}</span>
+                                                <!-- Progressive Disclosure: Expandable View details -->
+                                                <div class="pattern-mobile-card__details-section">
+                                                    <button type="button" class="pattern-card-details-toggle" 
+                                                            id="cardDetailsToggle-{{ car.id }}"
+                                                            aria-expanded="false" 
+                                                            aria-controls="cardDetails-{{ car.id }}"
+                                                            onclick="toggleCardDetails('{{ car.id }}')">
+                                                        <span class="details-toggle-label">{% translate "View details" %}</span>
+                                                        <i class="fas fa-chevron-down details-toggle-icon" aria-hidden="true"></i>
                                                     </button>
-                                                    {% if can_manage_catalog %}
-                                                    <button type="button" class="pattern-mobile-btn edit-btn" onclick="openMobilePatternSheet('edit', '{{ car.id }}')" title="{% translate "Edit Vehicle" %}">
-                                                        <i class="fas fa-edit"></i>
-                                                        <span>{% translate "Edit" %}</span>
-                                                    </button>
-                                                    <form method="post" action="{% url 'delete_car_detail' car.id %}" style="display:inline; margin: 0;">
-                                                        {% csrf_token %}
-                                                        <button type="submit" class="pattern-mobile-btn delete-btn" title="{% translate "Delete" %}" onclick="return confirm(window.FabroI18n.gettext('Are you sure you want to delete this vehicle?'));">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </form>
-                                                    {% endif %}
+                                                    <div id="cardDetails-{{ car.id }}" class="pattern-card-expanded-details" hidden>
+                                                        <div class="card-details-grid">
+                                                            <div class="card-detail-item">
+                                                                <span class="detail-label">{% translate "Seats" %}</span>
+                                                                <span class="detail-val">{{ car.seats|default_if_none:"—" }}</span>
+                                                            </div>
+                                                            <div class="card-detail-item">
+                                                                <span class="detail-label">{% translate "Doors" %}</span>
+                                                                <span class="detail-val">{{ car.doors|default_if_none:"—" }}</span>
+                                                            </div>
+                                                            <div class="card-detail-item">
+                                                                <span class="detail-label">{% translate "Vehicle Country" %}</span>
+                                                                <span class="detail-val">{% if car.vehicle_country and car.vehicle_country != '-' %}{{ car.vehicle_country }}{% else %}—{% endif %}</span>
+                                                            </div>
+                                                            <div class="card-detail-item">
+                                                                <span class="detail-label">{% translate "Measurement Country" %}</span>
+                                                                <span class="detail-val">{% if car.measurement_country and car.measurement_country != '-' %}{{ car.measurement_country }}{% else %}—{% endif %}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -1168,7 +1604,10 @@
             const pageContainer = document.querySelector('.page-container');
 
             if (tabName === 'pattern-list') {
-                if (paneList) paneList.style.display = 'flex';
+                if (paneList) {
+                    paneList.style.display = 'flex';
+                    paneList.style.flexDirection = 'column';
+                }
                 if (paneDesign) paneDesign.style.display = 'none';
                 if (pageContainer) pageContainer.classList.remove('is-design-tab');
                 try {
@@ -1177,6 +1616,7 @@
                     newUrl.hash = '';
                     history.replaceState(null, '', newUrl.pathname + (newUrl.search ? newUrl.search : ''));
                 } catch(e) {}
+                window.scrollTo({ top: 0, behavior: 'instant' });
             } else if (tabName === 'design-options') {
                 if (paneDesign) paneDesign.style.display = 'block';
                 if (paneList) paneList.style.display = 'none';
@@ -1642,6 +2082,33 @@
                             triggerIcon.parentElement.style.opacity = '0.6';
                         }
                     }
+                });
+
+                // Update mobile filter badge
+                const mobileFilterBadge = document.getElementById('mobileFilterBadge');
+                if (mobileFilterBadge) {
+                    let activeCount = 0;
+                    for (const [colIdx, set] of activeColumnFilters.entries()) {
+                        if (set && set.size > 0) activeCount++;
+                    }
+                    if (activeCount > 0) {
+                        mobileFilterBadge.textContent = activeCount;
+                        mobileFilterBadge.style.display = 'inline-flex';
+                    } else {
+                        mobileFilterBadge.style.display = 'none';
+                    }
+                }
+            }
+
+            window.activeColumnFilters = activeColumnFilters;
+            window.runVehicleFilters = runFilters;
+            window.getCleanCellText = getCleanCellText;
+
+            const leadingSearchIcon = document.getElementById('searchLeadingIcon');
+            if (leadingSearchIcon) {
+                leadingSearchIcon.addEventListener('click', function() {
+                    const form = document.getElementById('vehicle-search-form');
+                    if (form) form.requestSubmit();
                 });
             }
 
@@ -3466,6 +3933,390 @@
             }
         };
 
+        // -------------------------------------------------------------------------
+        // Card Actions Menu Manager (Three-Dot Menu)
+        // -------------------------------------------------------------------------
+        window.closeAllCardActionsMenus = function() {
+            document.querySelectorAll('.pattern-card-actions-menu').forEach(menu => {
+                menu.style.display = 'none';
+                menu.classList.remove('opens-upward');
+                const btn = menu.previousElementSibling;
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            });
+            document.querySelectorAll('tr[id^="row-view-"], .pattern-mobile-card').forEach(el => {
+                el.classList.remove('has-open-actions-menu');
+                el.style.zIndex = '';
+            });
+        };
+
+        window.toggleCardActionsMenu = function(event, carId) {
+            if (event) event.stopPropagation();
+            const menu = document.getElementById('cardActionsMenu-' + carId);
+            const btn = document.getElementById('cardActionsBtn-' + carId);
+            if (!menu || !btn) return;
+
+            const isCurrentlyOpen = menu.style.display === 'flex' || menu.style.display === 'block';
+            window.closeAllCardActionsMenus();
+
+            if (!isCurrentlyOpen) {
+                menu.style.display = 'flex';
+                btn.setAttribute('aria-expanded', 'true');
+
+                const row = btn.closest('tr');
+                if (row) {
+                    row.classList.add('has-open-actions-menu');
+                    row.style.zIndex = '1050';
+                }
+                const card = btn.closest('.pattern-mobile-card');
+                if (card) {
+                    card.classList.add('has-open-actions-menu');
+                    card.style.zIndex = '1050';
+                }
+
+                // Upward opening detection
+                const rect = btn.getBoundingClientRect();
+                const menuHeight = menu.offsetHeight || 190;
+                if (rect.bottom + menuHeight > window.innerHeight - 12) {
+                    menu.classList.add('opens-upward');
+                } else {
+                    menu.classList.remove('opens-upward');
+                }
+            }
+        };
+
+        // -------------------------------------------------------------------------
+        // Expandable Details (Progressive Disclosure)
+        // -------------------------------------------------------------------------
+        window.toggleCardDetails = function(carId) {
+            const details = document.getElementById('cardDetails-' + carId);
+            const toggleBtn = document.getElementById('cardDetailsToggle-' + carId);
+            if (!details || !toggleBtn) return;
+
+            const isHidden = details.hasAttribute('hidden');
+            const labelSpan = toggleBtn.querySelector('.details-toggle-label');
+            const icon = toggleBtn.querySelector('.details-toggle-icon');
+
+            if (isHidden) {
+                details.removeAttribute('hidden');
+                toggleBtn.setAttribute('aria-expanded', 'true');
+                if (labelSpan) labelSpan.textContent = window.FabroI18n.gettext('Hide details');
+                if (icon) icon.style.transform = 'rotate(180deg)';
+            } else {
+                details.setAttribute('hidden', '');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+                if (labelSpan) labelSpan.textContent = window.FabroI18n.gettext('View details');
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        };
+
+        // -------------------------------------------------------------------------
+        // Mobile Filters Bottom Sheet Manager
+        // -------------------------------------------------------------------------
+        let cachedBrandModelMap = null;
+
+        function getVehicleTableData() {
+            const rows = document.querySelectorAll('.table tbody tr');
+            const data = [];
+            const brandSet = new Set();
+            const yearSet = new Set();
+            const subModelSet = new Set();
+            const vCountrySet = new Set();
+            const mCountrySet = new Set();
+            const brandModelMap = new Map();
+
+            rows.forEach(row => {
+                if (row.id === 'inline-add-row' || row.classList.contains('inline-edit-row')) return;
+                const getVal = (colIdx) => window.getCleanCellText ? window.getCleanCellText(row.cells[colIdx]) : (row.cells[colIdx]?.textContent.trim() || '');
+                const brand = getVal(2);
+                const model = getVal(3);
+                const year = getVal(4);
+                const subModel = getVal(5);
+                const xCode = getVal(8);
+                const fitting = getVal(9);
+                const vCountry = getVal(10);
+                const mCountry = getVal(11);
+
+                if (brand) {
+                    brandSet.add(brand);
+                    if (!brandModelMap.has(brand)) brandModelMap.set(brand, new Set());
+                    if (model) brandModelMap.get(brand).add(model);
+                }
+                if (year && year !== '-') yearSet.add(year);
+                if (subModel && subModel !== '-') subModelSet.add(subModel);
+                if (vCountry && vCountry !== '-') vCountrySet.add(vCountry);
+                if (mCountry && mCountry !== '-') mCountrySet.add(mCountry);
+
+                data.push({ brand, model, year, subModel, xCode, fitting, vCountry, mCountry });
+            });
+
+            cachedBrandModelMap = brandModelMap;
+            return {
+                brands: Array.from(brandSet).sort(),
+                years: Array.from(yearSet).sort(),
+                subModels: Array.from(subModelSet).sort(),
+                vCountries: Array.from(vCountrySet).sort(),
+                mCountries: Array.from(mCountrySet).sort(),
+                brandModelMap: brandModelMap
+            };
+        }
+
+        window.openMobileFiltersSheet = function() {
+            const sheet = document.getElementById('mobileFiltersSheet');
+            const backdrop = document.getElementById('mobileFiltersSheetBackdrop');
+            if (!sheet || !backdrop) return;
+
+            const tableMeta = getVehicleTableData();
+            const activeFilters = window.activeColumnFilters || new Map();
+
+            // 1. Search By
+            const searchBySelect = document.getElementById('mfSearchBy');
+            const currentSearchBy = document.getElementById('vehicle-search-by')?.value || 'all';
+            if (searchBySelect) searchBySelect.value = currentSearchBy;
+
+            // 2. Brand
+            const brandSelect = document.getElementById('mfBrand');
+            if (brandSelect) {
+                const currentBrandSet = activeFilters.get(2);
+                const currentBrand = currentBrandSet && currentBrandSet.size > 0 ? Array.from(currentBrandSet)[0] : '';
+                brandSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Brands')}</option>`;
+                tableMeta.brands.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b;
+                    opt.textContent = b;
+                    if (b === currentBrand) opt.selected = true;
+                    brandSelect.appendChild(opt);
+                });
+            }
+
+            // 3. Model (dependent on Brand)
+            window.handleMobileBrandChange(true);
+
+            // 4. Year Range
+            const yearSelect = document.getElementById('mfYear');
+            if (yearSelect) {
+                const currentYearSet = activeFilters.get(4);
+                const currentYear = currentYearSet && currentYearSet.size > 0 ? Array.from(currentYearSet)[0] : '';
+                yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Years')}</option>`;
+                tableMeta.years.forEach(y => {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    if (y === currentYear) opt.selected = true;
+                    yearSelect.appendChild(opt);
+                });
+            }
+
+            // 5. Sub-Model
+            const subModelSelect = document.getElementById('mfSubModel');
+            if (subModelSelect) {
+                const currentSubSet = activeFilters.get(5);
+                const currentSub = currentSubSet && currentSubSet.size > 0 ? Array.from(currentSubSet)[0] : '';
+                subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Sub-Models')}</option>`;
+                tableMeta.subModels.forEach(sm => {
+                    const opt = document.createElement('option');
+                    opt.value = sm;
+                    opt.textContent = sm;
+                    if (sm === currentSub) opt.selected = true;
+                    subModelSelect.appendChild(opt);
+                });
+            }
+
+            // 6. Fitting Confirmation
+            const fittingSelect = document.getElementById('mfFitting');
+            if (fittingSelect) {
+                const currentFittingSet = activeFilters.get(9);
+                const currentFitting = currentFittingSet && currentFittingSet.size > 0 ? Array.from(currentFittingSet)[0] : '';
+                fittingSelect.value = currentFitting || '';
+            }
+
+            // 7. Vehicle Country
+            const vCountrySelect = document.getElementById('mfVehicleCountry');
+            if (vCountrySelect) {
+                const currentVCSet = activeFilters.get(10);
+                const currentVC = currentVCSet && currentVCSet.size > 0 ? Array.from(currentVCSet)[0] : '';
+                vCountrySelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Vehicle Countries')}</option>`;
+                tableMeta.vCountries.forEach(vc => {
+                    const opt = document.createElement('option');
+                    opt.value = vc;
+                    opt.textContent = vc;
+                    if (vc === currentVC) opt.selected = true;
+                    vCountrySelect.appendChild(opt);
+                });
+            }
+
+            // 8. Measurement Country
+            const mCountrySelect = document.getElementById('mfMeasurementCountry');
+            if (mCountrySelect) {
+                const currentMCSet = activeFilters.get(11);
+                const currentMC = currentMCSet && currentMCSet.size > 0 ? Array.from(currentMCSet)[0] : '';
+                mCountrySelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Measurement Countries')}</option>`;
+                tableMeta.mCountries.forEach(mc => {
+                    const opt = document.createElement('option');
+                    opt.value = mc;
+                    opt.textContent = mc;
+                    if (mc === currentMC) opt.selected = true;
+                    mCountrySelect.appendChild(opt);
+                });
+            }
+
+            backdrop.classList.add('is-open');
+            sheet.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.handleMobileBrandChange = function(preserveExisting = false) {
+            const brandSelect = document.getElementById('mfBrand');
+            const modelSelect = document.getElementById('mfModel');
+            if (!modelSelect) return;
+
+            const selectedBrand = brandSelect ? brandSelect.value : '';
+            const activeFilters = window.activeColumnFilters || new Map();
+            const currentModelSet = activeFilters.get(3);
+            const activeModel = currentModelSet && currentModelSet.size > 0 ? Array.from(currentModelSet)[0] : '';
+            const existingVal = preserveExisting ? (modelSelect.value || activeModel) : '';
+
+            let modelList = [];
+            if (cachedBrandModelMap && selectedBrand && cachedBrandModelMap.has(selectedBrand)) {
+                modelList = Array.from(cachedBrandModelMap.get(selectedBrand)).sort();
+            } else if (cachedBrandModelMap) {
+                const allModels = new Set();
+                for (const models of cachedBrandModelMap.values()) {
+                    models.forEach(m => allModels.add(m));
+                }
+                modelList = Array.from(allModels).sort();
+            }
+
+            modelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Models')}</option>`;
+            modelList.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                if (m === existingVal) opt.selected = true;
+                modelSelect.appendChild(opt);
+            });
+        };
+
+        window.closeMobileFiltersSheet = function() {
+            const sheet = document.getElementById('mobileFiltersSheet');
+            const backdrop = document.getElementById('mobileFiltersSheetBackdrop');
+            if (sheet) sheet.classList.remove('is-open');
+            if (backdrop) backdrop.classList.remove('is-open');
+            document.body.style.overflow = '';
+            const btn = document.getElementById('mobileFiltersBtn');
+            if (btn) btn.focus();
+        };
+
+        window.applyMobileFilters = function() {
+            const activeFilters = window.activeColumnFilters || new Map();
+
+            const brandVal = document.getElementById('mfBrand')?.value || '';
+            const modelVal = document.getElementById('mfModel')?.value || '';
+            const yearVal = document.getElementById('mfYear')?.value || '';
+            const subModelVal = document.getElementById('mfSubModel')?.value || '';
+            const fittingVal = document.getElementById('mfFitting')?.value || '';
+            const vCountryVal = document.getElementById('mfVehicleCountry')?.value || '';
+            const mCountryVal = document.getElementById('mfMeasurementCountry')?.value || '';
+            const searchByVal = document.getElementById('mfSearchBy')?.value || 'all';
+
+            // Apply to activeColumnFilters
+            if (brandVal) activeFilters.set(2, new Set([brandVal])); else activeFilters.delete(2);
+            if (modelVal) activeFilters.set(3, new Set([modelVal])); else activeFilters.delete(3);
+            if (yearVal) activeFilters.set(4, new Set([yearVal])); else activeFilters.delete(4);
+            if (subModelVal) activeFilters.set(5, new Set([subModelVal])); else activeFilters.delete(5);
+            if (fittingVal) activeFilters.set(9, new Set([fittingVal])); else activeFilters.delete(9);
+            if (vCountryVal) activeFilters.set(10, new Set([vCountryVal])); else activeFilters.delete(10);
+            if (mCountryVal) activeFilters.set(11, new Set([mCountryVal])); else activeFilters.delete(11);
+
+            // Update search_by
+            const searchByHidden = document.getElementById('vehicle-search-by');
+            const previousSearchBy = searchByHidden ? searchByHidden.value : 'all';
+            if (searchByHidden) searchByHidden.value = searchByVal;
+
+            const searchLabels = {
+                serial_number: window.FabroI18n.gettext('Serial No'),
+                x_code: window.FabroI18n.gettext('X-Code'),
+                fitting_confirmation: window.FabroI18n.gettext('Fitting Confirmation'),
+                brand: window.FabroI18n.gettext('Brand'),
+                model: window.FabroI18n.gettext('Model'),
+                sub_model: window.FabroI18n.gettext('Sub-Model'),
+                vehicle_country: window.FabroI18n.gettext('Vehicle Country'),
+                measurement_country: window.FabroI18n.gettext('Measurement Country'),
+                all: window.FabroI18n.gettext('All Fields')
+            };
+            const searchLabel = document.getElementById('vehicle-search-field-label');
+            if (searchLabel) searchLabel.textContent = searchLabels[searchByVal] || window.FabroI18n.gettext('All Fields');
+
+            window.closeMobileFiltersSheet();
+
+            const searchInput = document.getElementById('vehicle-search-input');
+            const hasSearchQuery = searchInput && searchInput.value.trim().length > 0;
+
+            if (hasSearchQuery && previousSearchBy !== searchByVal) {
+                const searchForm = document.getElementById('vehicle-search-form');
+                if (searchForm) {
+                    searchForm.submit();
+                    return;
+                }
+            }
+
+            if (typeof window.runVehicleFilters === 'function') {
+                window.runVehicleFilters();
+            }
+        };
+
+        window.resetMobileFilters = function() {
+            const activeFilters = window.activeColumnFilters || new Map();
+            [2, 3, 4, 5, 8, 9, 10, 11].forEach(col => activeFilters.delete(col));
+
+            const searchByHidden = document.getElementById('vehicle-search-by');
+            if (searchByHidden) searchByHidden.value = 'all';
+            const searchLabel = document.getElementById('vehicle-search-field-label');
+            if (searchLabel) searchLabel.textContent = window.FabroI18n.gettext('All Fields');
+
+            const badge = document.getElementById('mobileFilterBadge');
+            if (badge) badge.style.display = 'none';
+
+            window.closeMobileFiltersSheet();
+
+            if (typeof window.runVehicleFilters === 'function') {
+                window.runVehicleFilters();
+            }
+        };
+
+        // Close actions menus and filters sheet on Escape or outside click
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.pattern-card-actions-wrap')) {
+                window.closeAllCardActionsMenus();
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                window.closeAllCardActionsMenus();
+                const filterSheet = document.getElementById('mobileFiltersSheet');
+                if (filterSheet && filterSheet.classList.contains('is-open')) {
+                    window.closeMobileFiltersSheet();
+                }
+            }
+        });
+
+        // CSV Selected Status Row updater
+        const csvFileInput = document.getElementById('vehicle-csv-file');
+        const csvStatusRow = document.getElementById('csv-selected-status-row');
+        const csvFilenameSpan = document.getElementById('csv-selected-filename');
+        const csvSpinner = document.getElementById('csv-uploading-spinner');
+        if (csvFileInput && csvStatusRow && csvFilenameSpan) {
+            csvFileInput.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) {
+                    csvFilenameSpan.textContent = this.files[0].name;
+                    csvStatusRow.style.display = 'flex';
+                    if (csvSpinner) csvSpinner.style.display = 'inline-block';
+                } else {
+                    csvStatusRow.style.display = 'none';
+                }
+            });
+        }
+
         // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
@@ -3610,6 +4461,113 @@
         </form>
     </div>
     {% endif %}
+
+    <!-- Mobile Slide-Up Bottom Sheet for Filters -->
+    <div id="mobileFiltersSheetBackdrop" class="mobile-sheet-backdrop" onclick="closeMobileFiltersSheet()"></div>
+    <div id="mobileFiltersSheet" class="mobile-sheet-container" role="dialog" aria-modal="true" aria-labelledby="mobileFiltersSheetTitle">
+        <div class="mobile-sheet-handle-bar" onclick="closeMobileFiltersSheet()">
+            <div class="mobile-sheet-handle"></div>
+        </div>
+        
+        <div class="mobile-sheet-header">
+            <div class="mobile-sheet-title-wrap">
+                <h3 id="mobileFiltersSheetTitle" class="mobile-sheet-title">{% translate "Filter Vehicles" %}</h3>
+                <span id="mobileFiltersSheetSubtitle" class="mobile-sheet-subtitle">{% translate "Select filters to refine vehicle list" %}</span>
+            </div>
+            <button type="button" class="mobile-sheet-close-btn" onclick="closeMobileFiltersSheet()" aria-label="{% translate "Close" %}">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="mobile-sheet-body">
+            <!-- Filter 1: Search Field Choice -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfSearchBy">{% translate "Search Field" %}</label>
+                <select id="mfSearchBy" class="mobile-sheet-select">
+                    <option value="all">{% translate "All Fields" %}</option>
+                    <option value="serial_number">{% translate "Serial No" %}</option>
+                    <option value="x_code">{% translate "X-Code" %}</option>
+                    <option value="fitting_confirmation">{% translate "Fitting Confirmation" %}</option>
+                    <option value="brand">{% translate "Brand" %}</option>
+                    <option value="model">{% translate "Model" %}</option>
+                    <option value="sub_model">{% translate "Sub-Model" %}</option>
+                    <option value="vehicle_country">{% translate "Vehicle Country" %}</option>
+                    <option value="measurement_country">{% translate "Measurement Country" %}</option>
+                </select>
+            </div>
+
+            <!-- Filter 2: Brand -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfBrand">{% translate "Brand" %}</label>
+                <select id="mfBrand" class="mobile-sheet-select" onchange="handleMobileBrandChange()">
+                    <option value="">{% translate "All Brands" %}</option>
+                </select>
+            </div>
+
+            <!-- Filter 3: Model (Dependent on Brand) -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfModel">{% translate "Model" %}</label>
+                <select id="mfModel" class="mobile-sheet-select">
+                    <option value="">{% translate "All Models" %}</option>
+                </select>
+            </div>
+
+            <!-- Filter 4: Year Range -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfYear">{% translate "Year Range" %}</label>
+                <select id="mfYear" class="mobile-sheet-select">
+                    <option value="">{% translate "All Years" %}</option>
+                </select>
+            </div>
+
+            <!-- Filter 5: Sub-Model -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfSubModel">{% translate "Sub-Model" %}</label>
+                <select id="mfSubModel" class="mobile-sheet-select">
+                    <option value="">{% translate "All Sub-Models" %}</option>
+                </select>
+            </div>
+
+            <!-- Filter 6: Fitting Confirmation -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfFitting">{% translate "Fitting Confirmation" %}</label>
+                <select id="mfFitting" class="mobile-sheet-select">
+                    <option value="">{% translate "All Fitting Statuses" %}</option>
+                    <option value="Confirmed">{% translate "Confirmed" %}</option>
+                    <option value="Pending">{% translate "Pending" %}</option>
+                    <option value="Rework">{% translate "Rework" %}</option>
+                    <option value="Sampling">{% translate "Sampling" %}</option>
+                </select>
+            </div>
+
+            <!-- Filter 7: Vehicle Country -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfVehicleCountry">{% translate "Vehicle Country" %}</label>
+                <select id="mfVehicleCountry" class="mobile-sheet-select">
+                    <option value="">{% translate "All Vehicle Countries" %}</option>
+                </select>
+            </div>
+
+            <!-- Filter 8: Measurement Country -->
+            <div class="mobile-sheet-field">
+                <label class="mobile-sheet-label" for="mfMeasurementCountry">{% translate "Measurement Country" %}</label>
+                <select id="mfMeasurementCountry" class="mobile-sheet-select">
+                    <option value="">{% translate "All Measurement Countries" %}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mobile-sheet-footer">
+            <button type="button" class="mobile-sheet-btn cancel" id="mfResetBtn" onclick="resetMobileFilters()">
+                <i class="fas fa-rotate-left"></i>
+                <span>{% translate "Clear Filters" %}</span>
+            </button>
+            <button type="button" class="mobile-sheet-btn submit" id="mfApplyBtn" onclick="applyMobileFilters()">
+                <i class="fas fa-check"></i>
+                <span>{% translate "Apply Filters" %}</span>
+            </button>
+        </div>
+    </div>
     </div>
 {% if not is_htmx_request %}
 </body>

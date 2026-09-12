@@ -4901,5 +4901,40 @@ class MobileResponsiveDesignTests(TestCase):
         self.assertIn('toggleComplaintDetails', content)
         self.assertIn('window.innerWidth <= 768', content)
 
+    def test_pattern_master_mobile_optimized_elements(self):
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
 
+        # Mobile toolbar structure
+        self.assertIn('pattern-toolbar__header', content)
+        self.assertIn('pattern-toolbar__search-row', content)
+        self.assertIn('id="mobileFiltersBtn"', content)
+        self.assertIn('id="mobileFilterBadge"', content)
 
+        # CSV status row
+        self.assertIn('id="csv-selected-status-row"', content)
+        self.assertIn('class="vehicle-csv-file-input"', content)
+
+        # Progressive disclosure card elements
+        self.assertIn('pattern-mobile-card__summary-grid', content)
+        self.assertIn('pattern-card-details-toggle', content)
+        self.assertIn('pattern-card-expanded-details', content)
+        self.assertIn('pattern-card-more-btn', content)
+        self.assertIn('pattern-card-actions-menu', content)
+
+        # Dedicated mobile filters bottom sheet
+        self.assertIn('id="mobileFiltersSheetBackdrop"', content)
+        self.assertIn('id="mobileFiltersSheet"', content)
+        self.assertIn('id="mfSearchBy"', content)
+        self.assertIn('id="mfBrand"', content)
+        self.assertIn('id="mfModel"', content)
+        self.assertIn('id="mfYear"', content)
+        self.assertIn('id="mfSubModel"', content)
+        self.assertIn('id="mfFitting"', content)
+        self.assertIn('id="mfVehicleCountry"', content)
+        self.assertIn('id="mfMeasurementCountry"', content)
+        self.assertIn('openMobileFiltersSheet', content)
+        self.assertIn('closeMobileFiltersSheet', content)
+        self.assertIn('applyMobileFilters', content)
+        self.assertIn('resetMobileFilters', content)

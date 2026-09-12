@@ -26,7 +26,7 @@ if env_path.exists():
                 continue
             if '=' in line:
                 key, val = line.split('=', 1)
-                os.environ.setdefault(key.strip(), val.strip().strip("'\""))
+                os.environ[key.strip()] = val.strip().strip("'\"")
 
 
 def env_bool(name, default=False):
