@@ -11,7 +11,70 @@
     <title>{% translate "Approvals Workspace - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/approvals.css' %}?v=20260907-perf1">
+    <link rel="stylesheet" href="{% static 'management/css/approvals.css' %}?v=20260912-compact5" data-fabro-page-asset>
+    <style data-fabro-page-asset>
+        .workspace-subtitle-mobile { display: none; }
+        .filters-bottom-sheet-backdrop { display: none; }
+        @media (max-width: 768px) {
+            .workspace-subtitle { display: none !important; }
+            .workspace-subtitle-desktop { display: none !important; }
+            .workspace-subtitle-mobile { display: none !important; }
+            .filters-bottom-sheet-backdrop { display: none; }
+            .filters-bottom-sheet-backdrop.is-open { display: flex !important; }
+            .workspace-top-bar {
+                padding: 8px 10px !important;
+                border-radius: 10px !important;
+                gap: 6px !important;
+            }
+            .workspace-title-icon {
+                width: 1.75rem !important;
+                height: 1.75rem !important;
+                font-size: 0.85rem !important;
+                border-radius: 6px !important;
+            }
+            .workspace-heading {
+                font-size: 1.05rem !important;
+                line-height: 1.2 !important;
+                margin: 0 !important;
+            }
+            .stage-selector-tabs .tab-btn {
+                min-height: 32px !important;
+                height: 32px !important;
+                font-size: 0.72rem !important;
+            }
+            .approval-state-tabs .tab-btn {
+                min-height: 30px !important;
+                height: 30px !important;
+                font-size: 0.72rem !important;
+            }
+            .search-picker,
+            .header-search-input,
+            .approvals-search-submit-btn {
+                min-height: 34px !important;
+                height: 34px !important;
+            }
+            .mobile-filters-trigger {
+                min-height: 34px !important;
+                height: 34px !important;
+                min-width: 34px !important;
+                width: 34px !important;
+                padding: 0 !important;
+                position: relative !important;
+            }
+        }
+        @media (min-width: 769px) {
+            .filters-bottom-sheet-backdrop,
+            .filters-bottom-sheet,
+            .filters-sheet-body,
+            .filter-field-group { display: contents !important; }
+            .filters-sheet-header,
+            .filters-sheet-footer,
+            .filter-field-label,
+            .mobile-filters-trigger { display: none !important; }
+            .workspace-subtitle-mobile { display: none !important; }
+            .workspace-subtitle-desktop { display: inline !important; }
+        }
+    </style>
 {% if is_htmx_request %}
 </template>
 {% else %}
@@ -34,9 +97,14 @@
                             {% translate "Approvals Workspace" %}
                         </h1>
                         <p class="workspace-subtitle">
-                            {% if workspace_stage == 'verification' %}Post-execution verification matrix{% else %}Pre-execution action plan approval matrix{% endif %} & reviewer tracker •
-                            <strong>{{ workflow_role_label }}</strong> 
-                            {% if workflow_profile.country %}({{ workflow_profile.country.name }}){% endif %}
+                            <span class="workspace-subtitle-desktop">
+                                {% if workspace_stage == 'verification' %}{% translate "Post-execution verification matrix" %}{% else %}{% translate "Pre-execution action plan approval matrix" %}{% endif %} &amp; {% translate "reviewer tracker" %} •
+                                <strong>{{ workflow_role_label }}</strong> 
+                                {% if workflow_profile.country %}({{ workflow_profile.country.name }}){% endif %}
+                            </span>
+                            <span class="workspace-subtitle-mobile">
+                                {% if workspace_stage == 'verification' %}{% translate "Post-execution verification tracker" %}{% else %}{% translate "Pre-execution approval tracker" %}{% endif %} · {{ workflow_role_label }}{% if workflow_profile.country %} ({{ workflow_profile.country.name }}){% endif %}
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -72,7 +140,7 @@
                 </div>
             </div>
 
-            <div class="filter-tabs" role="navigation" aria-label="{% translate "Approval stage workspace" %}">
+            <div class="filter-tabs stage-selector-tabs" role="navigation" aria-label="{% translate "Approval stage workspace" %}">
                 <a href="?stage=plan&status=active" class="tab-btn {% if workspace_stage == 'plan' %}active{% endif %}">
                     <i class="fas fa-clipboard-list"></i> {% translate "Before Execution" %}
                 </a>
@@ -83,7 +151,7 @@
 
             <!-- CONTROLS & FILTER TABS -->
             <div class="filter-controls-row">
-                <div class="filter-tabs">
+                <div class="filter-tabs approval-state-tabs">
                     <a href="?stage={{ workspace_stage }}&status=active{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
                         <i class="fas fa-hourglass-half"></i> {% translate "Active Pending" %}
                     </a>
@@ -161,36 +229,80 @@
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" title="{% translate "Search" %}" aria-label="{% translate "Search approvals" %}" style="width: 2.5rem; height: 2.5rem; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; cursor: pointer;">
+                    <button type="submit" class="btn btn-primary approvals-search-submit-btn" title="{% translate "Search" %}" aria-label="{% translate "Search approvals" %}">
                         <i class="fas fa-arrow-right"></i>
                     </button>
 
-                    <select name="priority" class="filter-select" onchange="this.form.submit()">
-                        <option value="">{% translate "All Priorities" %}</option>
-                        <option value="top" {% if selected_priority == 'top' %}selected{% endif %}>{% translate "Top Priority" %}</option>
-                        <option value="medium" {% if selected_priority == 'medium' %}selected{% endif %}>{% translate "Medium Priority" %}</option>
-                        <option value="low" {% if selected_priority == 'low' %}selected{% endif %}>{% translate "Low Priority" %}</option>
-                    </select>
+                    <button type="button" class="btn-action-secondary mobile-filters-trigger" id="mobileFiltersTrigger" onclick="openFiltersSheet()" aria-haspopup="dialog" aria-expanded="false" aria-controls="filtersSheet" aria-label="{% translate "Filter approvals" %}" title="{% translate "Filters" %}">
+                        <i class="fas fa-sliders-h"></i>
+                        <span class="filter-count-badge" id="mobileFilterCountBadge" {% if not selected_priority and not selected_type and not selected_country %}style="display: none;"{% endif %}>
+                            {% if selected_priority and selected_type and selected_country %}3{% elif selected_priority and selected_type or selected_priority and selected_country or selected_type and selected_country %}2{% elif selected_priority or selected_type or selected_country %}1{% else %}0{% endif %}
+                        </span>
+                    </button>
 
-                    <select name="type" class="filter-select" onchange="this.form.submit()">
-                        <option value="">{% translate "All Types" %}</option>
-                        <option value="pattern" {% if selected_type == 'pattern' %}selected{% endif %}>{% translate "Pattern" %}</option>
-                        <option value="production" {% if selected_type == 'production' %}selected{% endif %}>{% translate "Production" %}</option>
-                        <option value="quality" {% if selected_type == 'quality' %}selected{% endif %}>{% translate "Quality" %}</option>
-                        <option value="line" {% if selected_type == 'line' %}selected{% endif %}>{% translate "Factory" %}</option>
-                    </select>
+                    <div class="filters-bottom-sheet-backdrop" id="filtersSheetBackdrop" onclick="handleFilterBackdropClick(event)">
+                        <div class="filters-bottom-sheet" id="filtersSheet" role="dialog" aria-modal="true" aria-labelledby="filtersSheetTitle" onclick="event.stopPropagation()">
+                            <div class="filters-sheet-header">
+                                <h3 class="filters-sheet-title" id="filtersSheetTitle">
+                                    <i class="fas fa-sliders-h"></i> {% translate "Filters" %}
+                                </h3>
+                                <button type="button" class="filters-sheet-close" id="filtersSheetCloseBtn" onclick="closeFiltersSheet()" aria-label="{% translate "Close filters" %}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="filters-sheet-body">
+                                <div class="filter-field-group">
+                                    <label class="filter-field-label" for="approvals-filter-priority">
+                                        <i class="fas fa-flag"></i> {% translate "Priority" %}
+                                    </label>
+                                    <select name="priority" id="approvals-filter-priority" class="filter-select" onchange="handleFilterSelectChange(this)">
+                                        <option value="">{% translate "All Priorities" %}</option>
+                                        <option value="top" {% if selected_priority == 'top' %}selected{% endif %}>{% translate "Top Priority" %}</option>
+                                        <option value="medium" {% if selected_priority == 'medium' %}selected{% endif %}>{% translate "Medium Priority" %}</option>
+                                        <option value="low" {% if selected_priority == 'low' %}selected{% endif %}>{% translate "Low Priority" %}</option>
+                                    </select>
+                                </div>
 
-                    {% if countries %}
-                    <select name="country" class="filter-select" onchange="this.form.submit()">
-                        <option value="">{% translate "All Countries" %}</option>
-                        {% for c in countries %}
-                        <option value="{{ c.id }}" {% if selected_country == c.id|stringformat:"i" %}selected{% endif %}>{{ c.name }}</option>
-                        {% endfor %}
-                    </select>
-                    {% endif %}
+                                <div class="filter-field-group">
+                                    <label class="filter-field-label" for="approvals-filter-type">
+                                        <i class="fas fa-tag"></i> {% translate "Complaint Type" %}
+                                    </label>
+                                    <select name="type" id="approvals-filter-type" class="filter-select" onchange="handleFilterSelectChange(this)">
+                                        <option value="">{% translate "All Types" %}</option>
+                                        <option value="pattern" {% if selected_type == 'pattern' %}selected{% endif %}>{% translate "Pattern" %}</option>
+                                        <option value="production" {% if selected_type == 'production' %}selected{% endif %}>{% translate "Production" %}</option>
+                                        <option value="quality" {% if selected_type == 'quality' %}selected{% endif %}>{% translate "Quality" %}</option>
+                                        <option value="line" {% if selected_type == 'line' %}selected{% endif %}>{% translate "Factory" %}</option>
+                                    </select>
+                                </div>
+
+                                {% if countries %}
+                                <div class="filter-field-group">
+                                    <label class="filter-field-label" for="approvals-filter-country">
+                                        <i class="fas fa-globe"></i> {% translate "Country" %}
+                                    </label>
+                                    <select name="country" id="approvals-filter-country" class="filter-select" onchange="handleFilterSelectChange(this)">
+                                        <option value="">{% translate "All Countries" %}</option>
+                                        {% for c in countries %}
+                                        <option value="{{ c.id }}" {% if selected_country == c.id|stringformat:"i" %}selected{% endif %}>{{ c.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="filters-sheet-footer">
+                                <button type="button" class="btn-action-secondary filter-sheet-clear-btn" onclick="clearFiltersSheet()">
+                                    <i class="fas fa-undo"></i> {% translate "Clear filters" %}
+                                </button>
+                                <button type="button" class="btn-action-primary filter-sheet-apply-btn" onclick="applyFiltersSheet()">
+                                    <i class="fas fa-check"></i> {% translate "Apply filters" %}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     {% if search_query or selected_priority or selected_type or selected_country %}
-                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary" title="{% translate "Clear Filters" %}" style="padding: 0.35rem 0.6rem;">
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary desktop-clear-filters-btn" title="{% translate "Clear Filters" %}" style="padding: 0.35rem 0.6rem;">
                         <i class="fas fa-times"></i>
                     </a>
                     {% endif %}
@@ -232,7 +344,7 @@
                             {% endif %}
                         </div>
 
-                        <div style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); display: flex; align-items: center; gap: 0.65rem;">
+                        <div class="card-date-status-block" style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); display: flex; align-items: center; gap: 0.65rem;">
                             <span><i class="fas fa-calendar-alt"></i> {{ item.complaint.date|date:"d M Y" }}</span>
                             <span class="status-pill {{ item.complaint.workflow_status }}">
                                 {{ item.complaint.get_workflow_status_display }}
@@ -586,6 +698,22 @@
                 all: window.FabroI18n.gettext('All Fields')
             };
 
+            function updateFilterBadge() {
+                const p = document.getElementById('approvals-filter-priority');
+                const t = document.getElementById('approvals-filter-type');
+                const c = document.getElementById('approvals-filter-country');
+                let count = 0;
+                if (p && p.value) count++;
+                if (t && t.value) count++;
+                if (c && c.value) count++;
+                const badge = document.getElementById('mobileFilterCountBadge');
+                if (badge) {
+                    badge.textContent = count;
+                    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                }
+            }
+            updateFilterBadge();
+
             function refreshSearchChoice() {
                 if (!searchByInput || !searchLabel) return;
                 const selected = searchByInput.value || 'all';
@@ -635,6 +763,116 @@
                     setSuggestionsOpen(false);
                 }
             });
+        });
+
+        // Mobile Filters Bottom Sheet logic
+        let savedFilterValues = null;
+
+        function handleFilterSelectChange(selectElem) {
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                return;
+            }
+            selectElem.form.submit();
+        }
+
+        function openFiltersSheet() {
+            const backdrop = document.getElementById('filtersSheetBackdrop');
+            const trigger = document.getElementById('mobileFiltersTrigger');
+            const pSelect = document.getElementById('approvals-filter-priority');
+            const tSelect = document.getElementById('approvals-filter-type');
+            const cSelect = document.getElementById('approvals-filter-country');
+
+            if (!backdrop) return;
+
+            savedFilterValues = {
+                priority: pSelect ? pSelect.value : '',
+                type: tSelect ? tSelect.value : '',
+                country: cSelect ? cSelect.value : ''
+            };
+
+            backdrop.classList.add('is-open');
+            if (trigger) {
+                trigger.setAttribute('aria-expanded', 'true');
+            }
+            document.body.classList.add('sheet-open');
+
+            const closeBtn = document.getElementById('filtersSheetCloseBtn');
+            if (closeBtn) {
+                closeBtn.focus();
+            }
+        }
+
+        function closeFiltersSheet(restoreValues = true) {
+            const backdrop = document.getElementById('filtersSheetBackdrop');
+            const trigger = document.getElementById('mobileFiltersTrigger');
+            if (!backdrop || !backdrop.classList.contains('is-open')) return;
+
+            if (restoreValues && savedFilterValues) {
+                const pSelect = document.getElementById('approvals-filter-priority');
+                const tSelect = document.getElementById('approvals-filter-type');
+                const cSelect = document.getElementById('approvals-filter-country');
+                if (pSelect) pSelect.value = savedFilterValues.priority;
+                if (tSelect) tSelect.value = savedFilterValues.type;
+                if (cSelect) cSelect.value = savedFilterValues.country;
+            }
+
+            backdrop.classList.remove('is-open');
+            if (trigger) {
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+            document.body.classList.remove('sheet-open');
+
+            if (trigger) {
+                trigger.focus();
+            }
+        }
+
+        function handleFilterBackdropClick(e) {
+            if (e.target === document.getElementById('filtersSheetBackdrop')) {
+                closeFiltersSheet(true);
+            }
+        }
+
+        function clearFiltersSheet() {
+            const pSelect = document.getElementById('approvals-filter-priority');
+            const tSelect = document.getElementById('approvals-filter-type');
+            const cSelect = document.getElementById('approvals-filter-country');
+            if (pSelect) pSelect.value = '';
+            if (tSelect) tSelect.value = '';
+            if (cSelect) cSelect.value = '';
+            applyFiltersSheet();
+        }
+
+        function applyFiltersSheet() {
+            closeFiltersSheet(false);
+            const form = document.getElementById('approvals-search-form');
+            if (form) {
+                form.submit();
+            }
+        }
+
+        document.addEventListener('keydown', function (e) {
+            const backdrop = document.getElementById('filtersSheetBackdrop');
+            if (backdrop && backdrop.classList.contains('is-open')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeFiltersSheet(true);
+                } else if (e.key === 'Tab') {
+                    const sheet = document.getElementById('filtersSheet');
+                    if (!sheet) return;
+                    const focusables = Array.from(sheet.querySelectorAll('button, select, [tabindex="0"]')).filter(el => !el.disabled && el.offsetParent !== null);
+                    if (focusables.length === 0) return;
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
         });
     </script>
     </div>

@@ -123,6 +123,11 @@
             box-shadow: 0 12px 26px rgba(180, 83, 9, 0.26);
         }
 
+        .complaint-type-tab[data-complaint-type="quality"].is-active {
+            background: #059669;
+            box-shadow: 0 12px 26px rgba(5, 150, 105, 0.26);
+        }
+
         .complaint-type-tab[data-complaint-type="line"].is-active {
             background: #2563eb;
             box-shadow: 0 12px 26px rgba(37, 99, 235, 0.26);
@@ -443,10 +448,10 @@
             display: none;
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 0.5rem;
-            max-height: 5.5rem;
-            overflow: auto;
+            max-height: 8.5rem;
+            overflow-y: auto;
             margin-top: 0.5rem;
-            padding-right: 0.25rem;
+            padding: 0.25rem 0.25rem 0.25rem 0;
         }
 
         .media-preview-strip.has-files {
@@ -454,26 +459,95 @@
         }
 
         .media-preview-item {
-            min-height: 3.6rem;
-            border-radius: 6px;
+            position: relative;
+            min-height: 4.5rem;
+            height: 4.5rem;
+            border-radius: 8px;
             overflow: hidden;
-            background: rgba(18, 18, 20, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(18, 18, 20, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             color: var(--dark-text-secondary);
             font-size: 0.65rem;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 0.3rem;
+            padding: 0.25rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .media-preview-item img,
         .media-preview-item video {
             width: 100%;
             height: 100%;
-            min-height: 3.6rem;
             object-fit: cover;
+            border-radius: 6px;
+            display: block;
+        }
+
+        .media-remove-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(15, 15, 18, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            z-index: 10;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+            transition: all var(--motion-fast) cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .media-remove-btn::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            bottom: -6px;
+            left: -6px;
+            right: -6px;
+        }
+
+        .media-remove-btn:hover,
+        .media-remove-btn:focus-visible {
+            background: #dc2626;
+            border-color: #ef4444;
+            color: #ffffff;
+            transform: scale(1.15);
+            outline: none;
+            box-shadow: 0 3px 8px rgba(220, 38, 38, 0.55);
+        }
+
+        .media-remove-btn:active {
+            transform: scale(0.95);
+        }
+
+        body.light-mode .media-preview-item {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        body.light-mode .media-remove-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.18);
+            color: #374151;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        body.light-mode .media-remove-btn:hover,
+        body.light-mode .media-remove-btn:focus-visible {
+            background: #dc2626;
+            border-color: #ef4444;
+            color: #ffffff;
         }
 
         .btn-group {
@@ -622,16 +696,28 @@
 
             .complaint-type-dock {
                 width: 100%;
+                max-width: 100%;
                 grid-auto-flow: row;
                 grid-auto-columns: auto;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.25rem;
+                gap: 0.35rem;
+                padding: 0.35rem;
+                border-radius: 14px;
+                box-sizing: border-box;
             }
 
             .complaint-type-tab {
-                min-height: 3.5rem;
-                padding: 0.45rem 0.25rem;
-                font-size: 0.64rem;
+                min-height: 2.75rem;
+                padding: 0.5rem 0.4rem;
+                border-radius: 10px;
+                font-size: 0.68rem;
+                gap: 0.35rem;
+                box-sizing: border-box;
+            }
+
+            .complaint-type-dock > .complaint-type-tab:only-child,
+            .complaint-type-dock > .complaint-type-tab:nth-child(3):last-child {
+                grid-column: 1 / -1;
             }
         }
     </style>
@@ -929,12 +1015,20 @@
             const year = String(date.getFullYear()).slice(-2);
             return `${day}-${month}-${year}`;
         }
-        
+
         function formatDateForSubmission(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        }
+
+        if (!window.FabroI18n) {
+            window.FabroI18n = {
+                gettext: (msg) => (typeof window.gettext === 'function' ? window.gettext(msg) : msg),
+                interpolate: (fmt, values) => (typeof window.interpolate === 'function' ? window.interpolate(fmt, values) : fmt),
+                ngettext: (s, p, c) => (c === 1 ? s : p),
+            };
         }
 
         const complaintTypeDefinitions = {
@@ -1288,7 +1382,7 @@
                 return;
             }
 
-            Array.from(files).slice(0, 6).forEach((file) => {
+            Array.from(files).forEach((file, index) => {
                 const item = document.createElement('div');
                 item.className = 'media-preview-item';
 
@@ -1307,23 +1401,37 @@
                     video.dataset.objectUrl = url;
                     item.appendChild(video);
                 } else {
-                    item.textContent = file.name;
+                    const span = document.createElement('span');
+                    span.textContent = file.name;
+                    span.style.padding = '0.2rem';
+                    span.style.wordBreak = 'break-all';
+                    item.appendChild(span);
                 }
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'media-remove-btn';
+                removeBtn.title = window.FabroI18n.gettext('Remove file');
+                removeBtn.setAttribute('aria-label', window.FabroI18n.gettext('Remove file'));
+                removeBtn.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+                removeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeSelectedMediaFile(index);
+                });
+                item.appendChild(removeBtn);
 
                 mediaPreviewStrip.appendChild(item);
             });
 
-            if (files.length > 6) {
-                const more = document.createElement('div');
-                more.className = 'media-preview-item';
-                more.textContent = window.FabroI18n.interpolate(
-                    window.FabroI18n.gettext('+%(count)s more'),
-                    {count: files.length - 6}
-                );
-                mediaPreviewStrip.appendChild(more);
-            }
-
             mediaPreviewStrip.classList.add('has-files');
+        }
+
+        function removeSelectedMediaFile(index) {
+            if (index >= 0 && index < selectedMediaFiles.length) {
+                selectedMediaFiles.splice(index, 1);
+                syncSelectedMediaFiles();
+            }
         }
 
         function mediaFileKey(file) {
@@ -1341,6 +1449,7 @@
                 uploadText.innerHTML =
                     `<strong>${selectedMediaFiles.length} file(s) selected</strong><br>Ready to upload`;
             } else {
+                addComplaintFileInput.value = '';
                 addComplaintUploadArea.style.borderColor = '';
                 addComplaintUploadArea.style.backgroundColor = '';
                 uploadText.innerHTML = defaultUploadText;
@@ -1348,9 +1457,8 @@
             renderMediaPreview(selectedMediaFiles);
         }
 
-        addComplaintFileInput.addEventListener('change', function() {
+        function handleNewMediaFiles(newFiles) {
             const existingKeys = new Set(selectedMediaFiles.map(mediaFileKey));
-            const newFiles = Array.from(this.files);
             let rejectedForSize = false;
 
             newFiles.forEach(file => {
@@ -1375,6 +1483,29 @@
                 ), 'error');
             }
             syncSelectedMediaFiles();
+        }
+
+        addComplaintFileInput.addEventListener('change', function() {
+            handleNewMediaFiles(Array.from(this.files));
+        });
+
+        window.addEventListener('paste', function(e) {
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            if (activeTag === 'textarea' || (activeTag === 'input' && document.activeElement.type !== 'file')) {
+                return;
+            }
+            const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+            if (!items) return;
+            const pastedFiles = [];
+            for (const item of items) {
+                if (item.kind === 'file' && (item.type.startsWith('image/') || item.type.startsWith('video/'))) {
+                    const file = item.getAsFile();
+                    if (file) pastedFiles.push(file);
+                }
+            }
+            if (pastedFiles.length) {
+                handleNewMediaFiles(pastedFiles);
+            }
         });
 
         const clearButton = document.getElementById('clearComplaintForm');

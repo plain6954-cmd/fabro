@@ -192,8 +192,22 @@ class FabroBackendTests(TestCase):
         self.assertContains(default_response, 'FACTORY COMPLAINT')
         self.assertNotContains(default_response, 'LINE COMPLAINT')
         self.assertNotContains(default_response, 'id="id_person"')
-        self.assertNotContains(default_response, 'id="id_country"')
+        self.assertContains(default_response, 'id="mediaPreviewStrip"')
+        self.assertContains(default_response, 'media-remove-btn')
         self.assertContains(default_response, 'https://flagcdn.com/w40/in.png')
+
+        test_complaint = Complaint.objects.create(
+            date=timezone.localdate(),
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            status='Open',
+            priority='Medium',
+            complaint_description='Test complaint for edit media',
+            batch_order='BATCH-EDIT-MEDIA',
+        )
+        edit_response = self.client.get(reverse('edit_complaint', args=[test_complaint.complaint_id]))
+        self.assertContains(edit_response, 'id="mediaPreviewStrip"')
+        self.assertContains(edit_response, 'media-remove-btn')
 
         master_response = self.client.get(reverse('master_settings'))
         self.assertEqual(master_response.status_code, 200)
@@ -1178,16 +1192,19 @@ class FabroBackendTests(TestCase):
         response = self.client.get(reverse('index'))
 
         self.assertEqual(response.context['complaints_this_month'], 2)
-        self.assertEqual(response.context['resolved_this_month'], 1)
-        self.assertContains(response, '<div class="stat-card-compact monthly-stats-card">', html=False)
-        self.assertContains(response, 'This Month')
+        self.assertEqual(response.context['pattern_this_month'], 1)
+        self.assertEqual(response.context['production_this_month'], 1)
+        self.assertEqual(response.context['quality_this_month'], 0)
+        self.assertContains(response, 'monthly-complaint-summary-card')
+        self.assertContains(response, 'Complaints This Month')
+        self.assertNotContains(response, '<div class="stat-icon-compact settings">')
 
         self.client.force_login(self.user)
         admin_response = self.client.get(reverse('index'))
-        self.assertContains(admin_response, reverse('master_settings'))
+        self.assertContains(admin_response, 'monthly-complaint-summary-card')
         self.assertNotContains(
             admin_response,
-            '<div class="stat-card-compact monthly-stats-card">',
+            '<div class="stat-icon-compact settings">',
             html=False,
         )
 
@@ -4813,5 +4830,76 @@ class PatternMasterPaginationBubblesTests(TestCase):
         tbody_content = content[tbody_start:tbody_end]
         self.assertNotIn('<form id="add-vehicle-form"', tbody_content)
         self.assertNotIn('<form id="edit-vehicle-form-', tbody_content)
+
+
+class MobileResponsiveDesignTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        user_model = get_user_model()
+        self.admin_user = user_model.objects.create_superuser(
+            username='admin_mobile_test',
+            email='admin_mobile@test.com',
+            password='testpassword123'
+        )
+        self.client.login(username='admin_mobile_test', password='testpassword123')
+
+        self.brand = Brand.objects.create(name='MobileBrand')
+        self.model = Model.objects.create(name='MobileModel', brand=self.brand)
+        self.sub_model = SubModel.objects.create(name='Standard', model=self.model)
+        self.year = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2021,
+            year_end=2024,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code='MB001',
+            fitting_confirmation='Confirmed'
+        )
+
+    def test_base_html_renders_mobile_bottom_navigation_bar(self):
+        response = self.client.get(reverse('index'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Check mobile bottom nav container is present
+        self.assertIn('<nav class="mobile-bottom-nav"', content)
+        # Check all core tabs
+        self.assertIn(reverse('index'), content)
+        self.assertIn(reverse('complaint_list'), content)
+        self.assertIn(reverse('car_details'), content)
+        self.assertIn(reverse('approvals_list'), content)
+        self.assertIn(reverse('chat_view'), content)
+
+    def test_car_details_renders_mobile_cards_and_slide_up_sheet(self):
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Verify mobile card presentation td is rendered inside row-view
+        self.assertIn('class="mobile-pattern-card-view"', content)
+        self.assertIn('pattern-mobile-card', content)
+        self.assertIn('pattern-mobile-card__header', content)
+        self.assertIn('pattern-mobile-card__chips', content)
+        self.assertIn('pattern-mobile-card__actions', content)
+
+        # Verify slide-up bottom sheet is rendered for mobile
+        self.assertIn('id="mobilePatternSheetBackdrop"', content)
+        self.assertIn('id="mobilePatternSheet"', content)
+        self.assertIn('id="mobilePatternSheetForm"', content)
+        self.assertIn('openMobilePatternSheet', content)
+        self.assertIn('closeMobilePatternSheet', content)
+
+    def test_dashboard_renders_mobile_responsive_elements(self):
+        response = self.client.get(reverse('index'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Check dashboard structure and toggle function
+        self.assertIn('dashboard-layout', content)
+        self.assertIn('stats-sidebar-section', content)
+        self.assertIn('stats-sidebar-list', content)
+        self.assertIn('toggleComplaintDetails', content)
+        self.assertIn('window.innerWidth <= 768', content)
+
 
 

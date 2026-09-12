@@ -11,7 +11,7 @@
     <title>{% translate "Complaint List - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet" data-fabro-page-asset>
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/complaints.css' %}?v=20260907-perf2" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/complaints.css' %}?v=20260912-workflow-serial-nested" data-fabro-page-asset>
 {% if is_htmx_request %}
 </template>
 {% else %}
@@ -259,7 +259,27 @@
                     <tbody>
                         {% for complaint in complaints %}
                         <tr class="complaint-info-row">
-                            <td style="vertical-align: middle;">{{ forloop.counter }}</td>
+                            <td class="serial-cell" style="vertical-align: middle;">
+                                <div class="serial-number-row">
+                                    <span class="serial-label-mobile">#</span>
+                                    <span class="serial-number">{{ forloop.counter }}</span>
+                                </div>
+                                <div class="card-workflow-mobile">
+                                    <div class="journey-column-inline">
+                                        <div class="journey-summary-inline">
+                                            <span class="journey-title-inline">{% translate "Complaint Journey" %}</span>
+                                        </div>
+                                        <div class="journey-track-inline" aria-label="Complaint journey: {{ complaint.get_workflow_status_display }}">
+                                            {% for step in complaint.journey_steps %}
+                                                <div class="journey-step-inline {{ step.state }}" title="{{ step.label }}">
+                                                    <span class="journey-dot" aria-hidden="true"></span>
+                                                    <span class="journey-label-inline">{{ step.label }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="id-date-cell" style="vertical-align: middle;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <span class="complaint-id-badge">{{ complaint.complaint_id }}</span>

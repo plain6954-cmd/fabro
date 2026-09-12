@@ -1,4 +1,5 @@
 import csv
+from datetime import timedelta
 import io
 import json
 import logging
@@ -357,6 +358,9 @@ def index(request):
     # Get dashboard statistics
     visible_complaints = visible_complaints_for_user(request.user, Complaint.objects.all())
     today = now().date()
+    month_from_date = today.replace(day=1).isoformat()
+    next_month_start = (today.replace(day=28) + timedelta(days=4)).replace(day=1)
+    month_to_date = (next_month_start - timedelta(days=1)).isoformat()
     summary_key = f'fabro:dashboard:v{cache_version()}:user:{request.user.pk}:{today:%Y%m}'
     summary = cache.get(summary_key)
     if summary is None:
@@ -373,11 +377,25 @@ def index(request):
             resolved_this_month=Count('pk', filter=Q(
                 status='Closed', closed_at__year=today.year, closed_at__month=today.month,
             )),
+            pattern_this_month=Count('pk', filter=Q(
+                complaint_type=ComplaintTypes.PATTERN, date__year=today.year, date__month=today.month,
+            )),
+            production_this_month=Count('pk', filter=Q(
+                complaint_type=ComplaintTypes.PRODUCTION, date__year=today.year, date__month=today.month,
+            )),
+            quality_this_month=Count('pk', filter=Q(
+                complaint_type=ComplaintTypes.QUALITY, date__year=today.year, date__month=today.month,
+            )),
+            line_this_month=Count('pk', filter=Q(
+                complaint_type=ComplaintTypes.LINE, date__year=today.year, date__month=today.month,
+            )),
         )
         summary.update({
             'total_vehicles': YearRange.objects.count(),
             'total_skus': SKU.objects.count(),
             'total_settings': MasterSetting.objects.count(),
+            'month_from_date': month_from_date,
+            'month_to_date': month_to_date,
         })
         cache.set(summary_key, summary, settings.DASHBOARD_CACHE_TTL)
     unread_notifications_qs = Notification.objects.filter(
@@ -4139,8 +4157,10 @@ def chat_users_api(request):
     total_unread = 0
     for ud in users_data:
         last_msg_str = ""
+        last_msg_text = ""
         if ud['last_message']:
             last_msg_str = ud['last_message'].created_at.strftime('%b %d')
+            last_msg_text = ud['last_message'].message[:60]
         total_unread += ud['unread_count']
         data.append({
             'user_id': ud['user'].id,
@@ -4150,6 +4170,7 @@ def chat_users_api(request):
             'country_flag_url': ud['country_flag_url'] or '',
             'unread_count': ud['unread_count'],
             'last_message_date': last_msg_str,
+            'last_message_text': last_msg_text,
         })
     return JsonResponse({'status': 'ok', 'users': data, 'total_unread': total_unread})
 

@@ -15,14 +15,16 @@
     <main class="chat-page-wrapper">
         <div class="chat-container">
             <!-- LEFT SIDEBAR: USER DIRECTORY -->
-            <aside class="chat-sidebar {% if selected_user %}has-selected{% endif %}">
+            <aside class="chat-sidebar">
                 <div class="sidebar-header">
-                    <h2 class="sidebar-title">
-                        <i class="fas fa-comments" style="color: var(--primary-color);"></i> {% translate "Direct Messages" %}
-                    </h2>
+                    <div class="chat-header-title-row">
+                        <h2 class="sidebar-title">
+                            <i class="fas fa-comments" style="color: var(--primary-color);"></i> {% translate "Chats" %}
+                        </h2>
+                    </div>
                     <div class="chat-search-box">
                         <i class="fas fa-search chat-search-icon"></i>
-                        <input type="text" id="user-search" class="chat-search-input" placeholder="{% translate "Search team member..." %}" autocomplete="off">
+                        <input type="text" id="user-search" class="chat-search-input" placeholder="{% translate "Search or start a new chat" %}" autocomplete="off">
                     </div>
                     <div class="chat-filter-bubbles">
                         <button type="button" class="chat-filter-bubble active" id="filter-all-btn" onclick="setChatFilter('all')">
@@ -53,7 +55,8 @@
                              data-photo-url="{{ ud.photo_url|default:'' }}"
                              data-unread-count="{{ ud.unread_count }}"
                              data-search-username="{{ ud.user.username|lower }}"
-                             data-search-role="{{ ud.role_label|lower }}">
+                             data-search-role="{{ ud.role_label|lower }}"
+                             data-search-snippet="{% if ud.last_message %}{{ ud.last_message.message|lower }}{% endif %}">
                             <div class="user-avatar-container">
                                 <div class="user-avatar avatar-{{ ud.role_code|default:'default' }}">
                                     {% if ud.photo_url %}
@@ -66,20 +69,29 @@
                             </div>
                             <div class="user-details">
                                 <div class="user-name-row">
-                                    <span class="user-name">
-                                        {{ ud.user.username }}
+                                    <div class="user-name-left">
+                                        <span class="user-name">{{ ud.user.username }}</span>
                                         {% if ud.country_flag_url %}
-                                            <img src="{{ ud.country_flag_url }}" style="width: 16px; height: 12px; border-radius: 2px;" alt="Flag">
+                                            <img src="{{ ud.country_flag_url }}" style="width: 16px; height: 11px; border-radius: 2px; flex-shrink: 0;" alt="Flag">
+                                        {% endif %}
+                                        <span class="user-role-pill">{{ ud.role_label }}</span>
+                                    </div>
+                                    {% if ud.last_message %}
+                                        <span class="user-last-time {% if ud.unread_count > 0 %}has-unread{% endif %}">
+                                            {{ ud.last_message.created_at|date:"M d" }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="user-msg-row">
+                                    <span class="user-snippet">
+                                        {% if ud.last_message %}
+                                            {{ ud.last_message.message }}
+                                        {% else %}
+                                            <span style="opacity: 0.6; font-style: italic;">{% translate "Tap to chat" %}</span>
                                         {% endif %}
                                     </span>
                                     {% if ud.unread_count > 0 %}
                                         <span class="unread-pill" id="unread-pill-{{ ud.user.id }}">{{ ud.unread_count }}</span>
-                                    {% endif %}
-                                </div>
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.3rem;">
-                                    <span class="user-role-pill">{{ ud.role_label }}</span>
-                                    {% if ud.last_message %}
-                                        <span class="user-last-msg" style="font-size: 0.68rem; opacity: 0.7;">{{ ud.last_message.created_at|date:"M d" }}</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -98,6 +110,9 @@
                 {% if selected_user %}
                     <header class="chat-header" id="chat-header">
                         <div class="chat-header-info">
+                            <button type="button" class="chat-back-btn" id="chat-back-btn" aria-label="{% translate "Back to chats" %}" onclick="closeMobileChat()">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
                             <div class="user-avatar-container">
                                 <div class="user-avatar avatar-{{ selected_user_profile.role|default:'default' }}" id="header-avatar">
                                     {% if selected_user_profile.photo %}
@@ -242,6 +257,24 @@
             applyUserFilters();
         }
 
+        function openMobileChat() {
+            const container = document.querySelector('.chat-container');
+            if (container) {
+                container.classList.add('mobile-chat-open');
+            }
+        }
+
+        function closeMobileChat() {
+            const container = document.querySelector('.chat-container');
+            if (container) {
+                container.classList.remove('mobile-chat-open');
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.delete('user');
+            url.searchParams.delete('complaint');
+            window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+        }
+
         function applyUserFilters() {
             const userSearch = document.getElementById('user-search');
             const q = userSearch ? userSearch.value.toLowerCase().trim() : '';
@@ -252,9 +285,10 @@
             userItems.forEach(item => {
                 const name = item.getAttribute('data-search-username') || '';
                 const role = item.getAttribute('data-search-role') || '';
+                const snippet = item.getAttribute('data-search-snippet') || '';
                 const unreadCount = parseInt(item.getAttribute('data-unread-count') || '0', 10);
 
-                const matchesSearch = !q || name.includes(q) || role.includes(q);
+                const matchesSearch = !q || name.includes(q) || role.includes(q) || snippet.includes(q);
                 const matchesFilter = (currentChatFilter === 'all') || (unreadCount > 0);
 
                 if (matchesSearch && matchesFilter) {
@@ -276,7 +310,10 @@
 
         // INSTANT SPA CHAT USER SWITCHING WITHOUT PAGE RELOAD
         async function switchChatUser(userId, username, roleLabel, roleCode, flagUrl, photoUrl) {
-            if (!userId || userId === currentRecipientId) return;
+            if (!userId || userId === currentRecipientId) {
+                openMobileChat();
+                return;
+            }
 
             currentRecipientId = userId;
 
@@ -284,7 +321,10 @@
             const newUrl = '/chat/?user=' + userId;
             window.history.pushState(null, '', newUrl);
 
-            // 2. Update Active class in Sidebar
+            // 2. Open mobile view on small devices
+            openMobileChat();
+
+            // 3. Update Active class in Sidebar
             document.querySelectorAll('.chat-user-item').forEach(item => {
                 if (item.getAttribute('data-user-id') === String(userId)) {
                     item.classList.add('active');
@@ -294,11 +334,11 @@
                 }
             });
 
-            // 3. Clear unread badge pill
+            // 4. Clear unread badge pill
             const unreadPill = document.getElementById('unread-pill-' + userId);
             if (unreadPill) unreadPill.remove();
 
-            // 4. Update Workspace Header info
+            // 5. Update Workspace Header info
             const headerAvatar = document.getElementById('header-avatar');
             if (headerAvatar) {
                 headerAvatar.className = 'user-avatar avatar-' + (roleCode || 'default');
@@ -350,7 +390,7 @@
             // Re-apply filter if in unread view
             applyUserFilters();
 
-            // 5. Instantly fetch messages for newly selected user
+            // 6. Instantly fetch messages for newly selected user
             await loadMessagesForUser(userId);
         }
 
@@ -564,6 +604,27 @@
                             clearComplaintContext();
                             appendMessage(res.message);
                             scrollToBottom();
+
+                            // Update active user's snippet & time in sidebar immediately
+                            const activeUserItem = document.querySelector(`.chat-user-item[data-user-id="${recipientId}"]`);
+                            if (activeUserItem) {
+                                const snippetSpan = activeUserItem.querySelector('.user-snippet');
+                                if (snippetSpan) snippetSpan.textContent = msg;
+                                activeUserItem.setAttribute('data-search-snippet', msg.toLowerCase());
+
+                                const nameRow = activeUserItem.querySelector('.user-name-row');
+                                let timeSpan = activeUserItem.querySelector('.user-last-time');
+                                if (!timeSpan && nameRow) {
+                                    timeSpan = document.createElement('span');
+                                    timeSpan.className = 'user-last-time';
+                                    nameRow.appendChild(timeSpan);
+                                }
+                                if (timeSpan) {
+                                    const now = new Date();
+                                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                    timeSpan.textContent = months[now.getMonth()] + ' ' + String(now.getDate()).padStart(2, '0');
+                                }
+                            }
                         } else {
                             alert(res.error || window.FabroI18n.gettext('Failed to send message.'));
                         }
@@ -604,9 +665,12 @@
                             const effectiveUnread = isCurrentActive ? 0 : u.unread_count;
                             totalUnread += effectiveUnread;
                             item.setAttribute('data-unread-count', effectiveUnread);
+                            if (u.last_message_text) {
+                                item.setAttribute('data-search-snippet', u.last_message_text.toLowerCase());
+                            }
 
-                            // Update unread count badge
-                            const nameRow = item.querySelector('.user-name-row');
+                            // Update unread count badge in user-msg-row
+                            const msgRow = item.querySelector('.user-msg-row');
                             let pill = item.querySelector('.unread-pill');
 
                             if (effectiveUnread > 0) {
@@ -614,25 +678,36 @@
                                     pill = document.createElement('span');
                                     pill.className = 'unread-pill';
                                     pill.id = `unread-pill-${u.user_id}`;
-                                    nameRow.appendChild(pill);
+                                    if (msgRow) msgRow.appendChild(pill);
                                 }
                                 pill.textContent = effectiveUnread;
                             } else if (pill) {
                                 pill.remove();
                             }
 
-                            // Update last message date if available
-                            let dateSpan = item.querySelector('.user-last-msg');
+                            // Update last message date in user-name-row
+                            const nameRow = item.querySelector('.user-name-row');
+                            let timeSpan = item.querySelector('.user-last-time');
                             if (u.last_message_date) {
-                                if (!dateSpan) {
-                                    dateSpan = document.createElement('span');
-                                    dateSpan.className = 'user-last-msg';
-                                    dateSpan.style.fontSize = '0.68rem';
-                                    dateSpan.style.opacity = '0.7';
-                                    const detailsRow = item.querySelector('.user-details > div:last-child');
-                                    if (detailsRow) detailsRow.appendChild(dateSpan);
+                                if (!timeSpan && nameRow) {
+                                    timeSpan = document.createElement('span');
+                                    timeSpan.className = 'user-last-time';
+                                    nameRow.appendChild(timeSpan);
                                 }
-                                dateSpan.textContent = u.last_message_date;
+                                if (timeSpan) {
+                                    timeSpan.textContent = u.last_message_date;
+                                    if (effectiveUnread > 0) {
+                                        timeSpan.classList.add('has-unread');
+                                    } else {
+                                        timeSpan.classList.remove('has-unread');
+                                    }
+                                }
+                            }
+
+                            // Update snippet text in user-msg-row
+                            let snippetSpan = item.querySelector('.user-snippet');
+                            if (snippetSpan && u.last_message_text) {
+                                snippetSpan.textContent = u.last_message_text;
                             }
 
                             // If not searching, maintain server sorted order in DOM
@@ -660,6 +735,17 @@
 
             // Initial filter application
             applyUserFilters();
+
+            // Check mobile initial view state
+            const initialUrlParams = new URLSearchParams(window.location.search);
+            const hasExplicitTarget = initialUrlParams.has('user') || initialUrlParams.has('complaint');
+            if (window.innerWidth <= 820) {
+                if (hasExplicitTarget) {
+                    openMobileChat();
+                } else {
+                    closeMobileChat();
+                }
+            }
 
             // Incremental message polling; the user list changes less often.
             const messagePoll = setInterval(async () => {

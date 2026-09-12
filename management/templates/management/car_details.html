@@ -146,7 +146,7 @@
                 </h1>
                 <div class="header-actions">
                     {% if can_manage_catalog %}
-                    <a href="#" onclick="const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="btn btn-primary icon-btn" title="{% translate "Add New Vehicle" %}" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
+                    <a href="#" onclick="if(window.innerWidth <= 640 && typeof window.openMobilePatternSheet === 'function'){ window.openMobilePatternSheet('add'); return false; } const row = document.getElementById('inline-add-row'); if(row) { row.style.display = row.style.display === 'none' ? 'table-row' : 'none'; if(row.style.display === 'table-row') { row.querySelector('input[type=text]')?.focus(); } } return false;" class="btn btn-primary icon-btn" title="{% translate "Add New Vehicle" %}" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
                         <i class="fas fa-plus"></i>
                     </a>
                     <form method="post" action="{% url 'upload_car_csv' %}" enctype="multipart/form-data" class="vehicle-csv-upload-form" id="vehicle-csv-upload-form">
@@ -526,6 +526,107 @@
                                             </div>
                                         </td>
                                         {% endif %}
+                                        <!-- Mobile Card Presentation: Strictly visible on <= 640px via CSS -->
+                                        <td class="mobile-pattern-card-view" colspan="13">
+                                            <div class="pattern-mobile-card">
+                                                <!-- Top Row: Logo + Brand/Model/Year + Serial -->
+                                                <div class="pattern-mobile-card__header">
+                                                    <div class="pattern-mobile-card__logo">
+                                                        {% if car.brand_logo %}
+                                                            <img src="{{ car.brand_logo.url }}" alt="{{ car.brand }} logo" loading="lazy" width="48" height="32">
+                                                        {% else %}
+                                                            <span class="pattern-mobile-card__no-logo"><i class="fas fa-car"></i></span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="pattern-mobile-card__title-wrap">
+                                                        <div class="pattern-mobile-card__brand">{{ car.brand }}</div>
+                                                        <div class="pattern-mobile-card__model">{{ car.model }}{% if car.sub_model and car.sub_model != '-' %} <span class="pattern-mobile-card__submodel">{{ car.sub_model }}</span>{% endif %}</div>
+                                                        <div class="pattern-mobile-card__year">
+                                                            <i class="far fa-calendar-alt"></i>
+                                                            {% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %} - {% endif %}{{ car.year_end|default:'' }}{% else %}-{% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <div class="pattern-mobile-card__serial-wrap">
+                                                        <span class="pattern-mobile-card__serial">{{ car.serial_number }}</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Middle Specs & Chips Row -->
+                                                <div class="pattern-mobile-card__chips">
+                                                    <span class="pattern-mobile-chip">
+                                                        <i class="fas fa-chair"></i> {{ car.seats }} {% translate "Seats" %}
+                                                    </span>
+                                                    <span class="pattern-mobile-chip">
+                                                        <i class="fas fa-door-closed"></i> {{ car.doors }} {% translate "Doors" %}
+                                                    </span>
+                                                    {% if car.x_code and car.x_code != '-' %}
+                                                    <span class="pattern-mobile-chip xcode">
+                                                        <strong>X:</strong> {{ car.x_code }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if car.layout_code and car.layout_code != '-' %}
+                                                    <span class="pattern-mobile-chip layout">
+                                                        <i class="fas fa-code"></i> {{ car.layout_code }}
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Fitting & Countries Row -->
+                                                <div class="pattern-mobile-card__meta-row">
+                                                    <div class="pattern-mobile-card__fitting">
+                                                        <span class="meta-label">{% translate "Fitting" %}:</span>
+                                                        {% if can_manage_catalog %}
+                                                            <button type="button" 
+                                                                    class="fitting-dropdown-btn fitting-badge {% if 'confirm' in car.fitting_confirmation|lower or 'yes' in car.fitting_confirmation|lower or 'ok' in car.fitting_confirmation|lower %}is-confirmed{% elif 'pending' in car.fitting_confirmation|lower or 'wait' in car.fitting_confirmation|lower %}is-pending{% elif 'rework' in car.fitting_confirmation|lower %}is-rework{% elif 'sampling' in car.fitting_confirmation|lower %}is-sampling{% else %}is-none{% endif %}" 
+                                                                    data-id="{{ car.id }}" 
+                                                                    data-current="{% if car.fitting_confirmation and car.fitting_confirmation != '-' %}{{ car.fitting_confirmation }}{% endif %}"
+                                                                    title="{% translate "Change Fitting Confirmation" %}">
+                                                                <span class="fitting-badge-text">{% if car.fitting_confirmation and car.fitting_confirmation != '-' %}{{ car.fitting_confirmation }}{% else %}-{% endif %}</span>
+                                                                <i class="fas fa-caret-down fitting-badge-caret"></i>
+                                                            </button>
+                                                        {% else %}
+                                                            <span class="fitting-badge {% if 'confirm' in car.fitting_confirmation|lower or 'yes' in car.fitting_confirmation|lower or 'ok' in car.fitting_confirmation|lower %}is-confirmed{% elif 'pending' in car.fitting_confirmation|lower or 'wait' in car.fitting_confirmation|lower %}is-pending{% elif 'rework' in car.fitting_confirmation|lower %}is-rework{% elif 'sampling' in car.fitting_confirmation|lower %}is-sampling{% else %}is-none{% endif %}">
+                                                                {% if car.fitting_confirmation and car.fitting_confirmation != '-' %}{{ car.fitting_confirmation }}{% else %}-{% endif %}
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="pattern-mobile-card__countries">
+                                                        {% if car.vehicle_country and car.vehicle_country != '-' %}
+                                                        <span class="country-pill" title="{% translate "Vehicle Country" %}"><i class="fas fa-globe-asia"></i> {{ car.vehicle_country }}</span>
+                                                        {% endif %}
+                                                        {% if car.measurement_country and car.measurement_country != '-' %}
+                                                        <span class="country-pill measure" title="{% translate "Measurement Country" %}"><i class="fas fa-ruler-combined"></i> {{ car.measurement_country }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                <!-- Bottom Actions Row -->
+                                                <div class="pattern-mobile-card__actions">
+                                                    {% if new_search_enabled %}
+                                                    <a href="{% url 'add_complaint' %}?brand={{ car.brand_id|default:'' }}&amp;model={{ car.model_id|default:'' }}&amp;sub_model={{ car.sub_model_id|default:'' }}&amp;year={{ car.id }}" class="pattern-mobile-btn add-complaint" title="{% translate "Add Complaint" %}">
+                                                        <i class="fas fa-plus"></i>
+                                                        <span>{% translate "Complaint" %}</span>
+                                                    </a>
+                                                    {% endif %}
+                                                    <button type="button" class="pattern-mobile-btn design-btn" onclick="openVehicleDesignSettings('{{ car.id }}', '{{ car.brand|escapejs }} {{ car.model|escapejs }}{% if car.year_start or car.year_end %} {{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}-{% endif %}{{ car.year_end|default:'' }}{% endif %}{% if car.sub_model and car.sub_model != '-' %} {{ car.sub_model|escapejs }}{% endif %}')" title="{% translate "Design Options" %}">
+                                                        <i class="fas fa-palette"></i>
+                                                        <span>{% translate "Design" %}</span>
+                                                    </button>
+                                                    {% if can_manage_catalog %}
+                                                    <button type="button" class="pattern-mobile-btn edit-btn" onclick="openMobilePatternSheet('edit', '{{ car.id }}')" title="{% translate "Edit Vehicle" %}">
+                                                        <i class="fas fa-edit"></i>
+                                                        <span>{% translate "Edit" %}</span>
+                                                    </button>
+                                                    <form method="post" action="{% url 'delete_car_detail' car.id %}" style="display:inline; margin: 0;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="pattern-mobile-btn delete-btn" title="{% translate "Delete" %}" onclick="return confirm(window.FabroI18n.gettext('Are you sure you want to delete this vehicle?'));">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
                                     </tr>
                                     {% if can_manage_catalog %}
                                     <tr id="row-edit-{{ car.id }}" class="inline-edit-row" style="display: none; background-color: rgba(245, 158, 11, 0.08);" data-car-id="{{ car.id }}" data-initial-country-id="{{ car.vehicle_country_id|default:'' }}" data-initial-serial="{{ car.serial_number }}">
@@ -1143,6 +1244,10 @@
             window.activeInlineEditId = null;
 
             window.startInlineEdit = function(carId) {
+                if (window.innerWidth <= 640 && typeof window.openMobilePatternSheet === 'function') {
+                    window.openMobilePatternSheet('edit', carId);
+                    return;
+                }
                 if (window.activeInlineEditId && window.activeInlineEditId !== carId) {
                     window.cancelInlineEdit(window.activeInlineEditId);
                 }
@@ -3177,6 +3282,190 @@
             }
         });
 
+        // -------------------------------------------------------------------------
+        // Mobile Slide-up Bottom Sheet Add / Edit Vehicle
+        // -------------------------------------------------------------------------
+        window.openMobilePatternSheet = function(mode, carId) {
+            const sheet = document.getElementById('mobilePatternSheet');
+            const backdrop = document.getElementById('mobilePatternSheetBackdrop');
+            if (!sheet || !backdrop) return;
+
+            const modeInput = document.getElementById('mobileSheetMode');
+            const carIdInput = document.getElementById('mobileSheetCarId');
+            const titleEl = document.getElementById('mobileSheetTitle');
+            const subtitleEl = document.getElementById('mobileSheetSubtitle');
+            const submitText = document.getElementById('msSubmitBtnText');
+            const form = document.getElementById('mobilePatternSheetForm');
+            const logoText = document.getElementById('msLogoLabelText');
+
+            if (form) form.reset();
+            if (logoText) logoText.textContent = window.FabroI18n.gettext('Choose File');
+
+            if (mode === 'add') {
+                if (modeInput) modeInput.value = 'add';
+                if (carIdInput) carIdInput.value = '';
+                if (titleEl) titleEl.textContent = window.FabroI18n.gettext('Add Vehicle Pattern');
+                if (subtitleEl) subtitleEl.textContent = window.FabroI18n.gettext('Fill in vehicle details');
+                if (submitText) submitText.textContent = window.FabroI18n.gettext('Add Vehicle');
+
+                // Pull next serial number if present
+                const nextSerial = document.getElementById('inlineAddSerialNumber')?.value || '{{ next_serial_number|default:"S0001" }}';
+                const serialInput = document.getElementById('msSerialNumber');
+                if (serialInput) serialInput.value = nextSerial;
+            } else if (mode === 'edit' && carId) {
+                if (modeInput) modeInput.value = 'edit';
+                if (carIdInput) carIdInput.value = carId;
+
+                const editRow = document.getElementById('row-edit-' + carId);
+                const getVal = (name) => editRow?.querySelector(`[name="${name}"]`)?.value || '';
+
+                const serialVal = getVal('serial_number');
+                const brandVal = getVal('brand_name');
+                const modelVal = getVal('model_name');
+                const yearStartVal = getVal('year_start');
+                const yearEndVal = getVal('year_end');
+                const subModelVal = getVal('sub_model_name');
+                const seatsVal = getVal('number_of_seats');
+                const doorsVal = getVal('number_of_doors');
+                const xCodeVal = getVal('x_code');
+                const fittingVal = getVal('fitting_confirmation');
+                const vehicleCountryVal = editRow?.getAttribute('data-initial-country-id') || getVal('vehicle_country');
+                const measurementCountryVal = editRow?.querySelector('[name="measurement_country"]')?.value || '';
+                const layoutVal = editRow?.querySelector('[name="layout_code"]')?.value || '';
+
+                if (document.getElementById('msSerialNumber')) document.getElementById('msSerialNumber').value = serialVal;
+                if (document.getElementById('msBrandName')) document.getElementById('msBrandName').value = brandVal;
+                if (document.getElementById('msModelName')) document.getElementById('msModelName').value = modelVal;
+                if (document.getElementById('msYearStart')) document.getElementById('msYearStart').value = yearStartVal;
+                if (document.getElementById('msYearEnd')) document.getElementById('msYearEnd').value = yearEndVal;
+                if (document.getElementById('msSubModelName')) document.getElementById('msSubModelName').value = subModelVal;
+                if (document.getElementById('msSeats')) document.getElementById('msSeats').value = seatsVal;
+                if (document.getElementById('msDoors')) document.getElementById('msDoors').value = doorsVal;
+                if (document.getElementById('msXCode')) document.getElementById('msXCode').value = xCodeVal;
+                if (document.getElementById('msFitting')) document.getElementById('msFitting').value = fittingVal;
+                if (document.getElementById('msVehicleCountry')) document.getElementById('msVehicleCountry').value = vehicleCountryVal;
+                if (document.getElementById('msMeasurementCountry')) document.getElementById('msMeasurementCountry').value = measurementCountryVal;
+                if (document.getElementById('mobileSheetLayoutCode')) document.getElementById('mobileSheetLayoutCode').value = layoutVal;
+
+                if (titleEl) titleEl.textContent = `${window.FabroI18n.gettext('Edit Vehicle')} — ${serialVal}`;
+                if (subtitleEl) subtitleEl.textContent = `${brandVal} ${modelVal}`;
+                if (submitText) submitText.textContent = window.FabroI18n.gettext('Save Changes');
+            }
+
+            backdrop.classList.add('is-open');
+            sheet.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeMobilePatternSheet = function() {
+            const sheet = document.getElementById('mobilePatternSheet');
+            const backdrop = document.getElementById('mobilePatternSheetBackdrop');
+            if (sheet) sheet.classList.remove('is-open');
+            if (backdrop) backdrop.classList.remove('is-open');
+            document.body.style.overflow = '';
+        };
+
+        window.previewMobileSheetLogo = function(input) {
+            const labelText = document.getElementById('msLogoLabelText');
+            if (labelText && input.files && input.files[0]) {
+                labelText.textContent = input.files[0].name;
+            }
+        };
+
+        window.handleMobileSheetSubmit = async function(event) {
+            event.preventDefault();
+            const mode = document.getElementById('mobileSheetMode')?.value || 'add';
+            const carId = document.getElementById('mobileSheetCarId')?.value || '';
+            const submitBtn = document.getElementById('msSubmitBtn');
+            const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + window.FabroI18n.gettext('Saving...');
+            }
+
+            try {
+                if (mode === 'add') {
+                    // Transfer values to desktop inline-add-row inputs
+                    const copyToAdd = (srcId, destName) => {
+                        const val = document.getElementById(srcId)?.value;
+                        const dest = document.querySelector(`#inline-add-row [name="${destName}"]`);
+                        if (dest && val !== undefined) dest.value = val;
+                    };
+
+                    copyToAdd('msSerialNumber', 'serial_number');
+                    copyToAdd('msBrandName', 'brand_name');
+                    copyToAdd('msModelName', 'model_name');
+                    copyToAdd('msYearStart', 'year_start');
+                    copyToAdd('msYearEnd', 'year_end');
+                    copyToAdd('msSubModelName', 'sub_model_name');
+                    copyToAdd('msSeats', 'number_of_seats');
+                    copyToAdd('msDoors', 'number_of_doors');
+                    copyToAdd('msXCode', 'x_code');
+                    copyToAdd('msFitting', 'fitting_confirmation');
+                    copyToAdd('msVehicleCountry', 'vehicle_country');
+                    copyToAdd('msMeasurementCountry', 'measurement_country');
+
+                    // Brand logo file transfer if user selected one in mobile sheet
+                    const msLogoInput = document.getElementById('msBrandLogo');
+                    const desktopLogoInput = document.getElementById('brandLogoInput');
+                    if (msLogoInput && msLogoInput.files && msLogoInput.files[0] && desktopLogoInput) {
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(msLogoInput.files[0]);
+                        desktopLogoInput.files = dataTransfer.files;
+                    }
+
+                    const addForm = document.getElementById('add-vehicle-form');
+                    if (addForm) {
+                        window.closeMobilePatternSheet();
+                        addForm.submit();
+                        return;
+                    }
+                } else if (mode === 'edit' && carId) {
+                    const editRow = document.getElementById('row-edit-' + carId);
+                    if (editRow) {
+                        const copyToEdit = (srcId, destName) => {
+                            const val = document.getElementById(srcId)?.value;
+                            const dest = editRow.querySelector(`[name="${destName}"]`);
+                            if (dest && val !== undefined) dest.value = val;
+                        };
+
+                        copyToEdit('msSerialNumber', 'serial_number');
+                        copyToEdit('msBrandName', 'brand_name');
+                        copyToEdit('msModelName', 'model_name');
+                        copyToEdit('msYearStart', 'year_start');
+                        copyToEdit('msYearEnd', 'year_end');
+                        copyToEdit('msSubModelName', 'sub_model_name');
+                        copyToEdit('msSeats', 'number_of_seats');
+                        copyToEdit('msDoors', 'number_of_doors');
+                        copyToEdit('msXCode', 'x_code');
+                        copyToEdit('msFitting', 'fitting_confirmation');
+                        copyToEdit('msVehicleCountry', 'vehicle_country');
+                        copyToEdit('msMeasurementCountry', 'measurement_country');
+
+                        const msLogoInput = document.getElementById('msBrandLogo');
+                        const editLogoInput = document.getElementById('brandLogoInput_' + carId);
+                        if (msLogoInput && msLogoInput.files && msLogoInput.files[0] && editLogoInput) {
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(msLogoInput.files[0]);
+                            editLogoInput.files = dataTransfer.files;
+                        }
+
+                        window.closeMobilePatternSheet();
+                        await window.saveInlineEdit(carId);
+                    }
+                }
+            } catch (err) {
+                console.error('Error saving pattern from mobile sheet:', err);
+                alert(window.FabroI18n.gettext('Error saving vehicle pattern. Please try again.'));
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                }
+            }
+        };
+
         // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
@@ -3184,6 +3473,143 @@
             }
         }
     </script>
+
+    {% if can_manage_catalog %}
+    <!-- Mobile Slide-Up Bottom Sheet for Add / Edit Vehicle Pattern -->
+    <div id="mobilePatternSheetBackdrop" class="mobile-sheet-backdrop" onclick="closeMobilePatternSheet()"></div>
+    <div id="mobilePatternSheet" class="mobile-sheet-container" role="dialog" aria-modal="true" aria-labelledby="mobileSheetTitle">
+        <div class="mobile-sheet-handle-bar" onclick="closeMobilePatternSheet()">
+            <div class="mobile-sheet-handle"></div>
+        </div>
+        
+        <div class="mobile-sheet-header">
+            <div class="mobile-sheet-title-wrap">
+                <h3 id="mobileSheetTitle" class="mobile-sheet-title">{% translate "Add Vehicle Pattern" %}</h3>
+                <span id="mobileSheetSubtitle" class="mobile-sheet-subtitle">{% translate "Fill in details below" %}</span>
+            </div>
+            <button type="button" class="mobile-sheet-close-btn" onclick="closeMobilePatternSheet()" aria-label="{% translate "Close" %}">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="mobilePatternSheetForm" method="POST" enctype="multipart/form-data" onsubmit="handleMobileSheetSubmit(event)">
+            {% csrf_token %}
+            <input type="hidden" id="mobileSheetMode" value="add">
+            <input type="hidden" id="mobileSheetCarId" value="">
+            <input type="hidden" id="mobileSheetLayoutCode" name="layout_code" value="">
+
+            <div class="mobile-sheet-body">
+                <!-- Row 1: Serial & Brand Logo -->
+                <div class="mobile-sheet-grid-2">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msSerialNumber">{% translate "Serial Number" %}</label>
+                        <input type="text" id="msSerialNumber" name="serial_number" class="mobile-sheet-input" placeholder="S0001" style="font-weight: 700; color: #ef4444;">
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label">{% translate "Brand Logo" %}</label>
+                        <div class="mobile-sheet-file-wrap">
+                            <input type="file" id="msBrandLogo" name="brand_logo" accept="image/*" class="mobile-sheet-file-input" onchange="previewMobileSheetLogo(this)">
+                            <label for="msBrandLogo" class="mobile-sheet-file-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span id="msLogoLabelText">{% translate "Choose File" %}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Brand & Model -->
+                <div class="mobile-sheet-grid-2">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msBrandName">{% translate "Brand Name" %} *</label>
+                        <input type="text" id="msBrandName" name="brand_name" class="mobile-sheet-input" placeholder="e.g. Toyota" required>
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msModelName">{% translate "Model Name" %} *</label>
+                        <input type="text" id="msModelName" name="model_name" class="mobile-sheet-input" placeholder="e.g. Corolla" required>
+                    </div>
+                </div>
+
+                <!-- Row 3: Year Start & Year End -->
+                <div class="mobile-sheet-grid-2">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msYearStart">{% translate "Year Start" %}</label>
+                        <input type="number" id="msYearStart" name="year_start" class="mobile-sheet-input" placeholder="2020" min="1900" max="2100">
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msYearEnd">{% translate "Year End" %}</label>
+                        <input type="number" id="msYearEnd" name="year_end" class="mobile-sheet-input" placeholder="2024" min="1900" max="2100">
+                    </div>
+                </div>
+
+                <!-- Row 4: Sub-Model & Fitting -->
+                <div class="mobile-sheet-grid-2">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msSubModelName">{% translate "Sub-Model" %}</label>
+                        <input type="text" id="msSubModelName" name="sub_model_name" class="mobile-sheet-input" placeholder="e.g. Hybrid / LE">
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msFitting">{% translate "Fitting Status" %}</label>
+                        <select id="msFitting" name="fitting_confirmation" class="mobile-sheet-select">
+                            <option value="">-- {% translate "Select" %} --</option>
+                            <option value="Confirmed">{% translate "Confirmed" %}</option>
+                            <option value="Pending">{% translate "Pending" %}</option>
+                            <option value="Rework">{% translate "Rework" %}</option>
+                            <option value="Sampling">{% translate "Sampling" %}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 5: Seats, Doors, X-Code -->
+                <div class="mobile-sheet-grid-3">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msSeats">{% translate "Seats" %} *</label>
+                        <input type="number" id="msSeats" name="number_of_seats" class="mobile-sheet-input" placeholder="5" min="1" required>
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msDoors">{% translate "Doors" %} *</label>
+                        <input type="number" id="msDoors" name="number_of_doors" class="mobile-sheet-input" placeholder="4" min="1" required>
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msXCode">{% translate "X-Code" %}</label>
+                        <input type="text" id="msXCode" name="x_code" class="mobile-sheet-input" placeholder="X-01">
+                    </div>
+                </div>
+
+                <!-- Row 6: Vehicle Country & Measurement Country -->
+                <div class="mobile-sheet-grid-2">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msVehicleCountry">{% translate "Vehicle Country" %}</label>
+                        <select id="msVehicleCountry" name="vehicle_country" class="mobile-sheet-select">
+                            <option value="">-- {% translate "Select" %} --</option>
+                            {% for country in countries %}
+                                <option value="{{ country.id }}">{{ country.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msMeasurementCountry">{% translate "Measurement Country" %}</label>
+                        <select id="msMeasurementCountry" name="measurement_country" class="mobile-sheet-select">
+                            <option value="">-- {% translate "Select" %} --</option>
+                            {% for country in countries %}
+                                <option value="{{ country.id }}">{{ country.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mobile-sheet-footer">
+                <button type="button" class="mobile-sheet-btn cancel" onclick="closeMobilePatternSheet()">
+                    {% translate "Cancel" %}
+                </button>
+                <button type="submit" id="msSubmitBtn" class="mobile-sheet-btn submit">
+                    <i class="fas fa-check"></i>
+                    <span id="msSubmitBtnText">{% translate "Save Vehicle" %}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
     </div>
 {% if not is_htmx_request %}
 </body>

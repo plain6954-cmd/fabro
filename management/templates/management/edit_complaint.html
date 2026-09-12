@@ -262,6 +262,112 @@
             overflow: hidden;
         }
 
+        .media-preview-strip {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+            max-height: 8.5rem;
+            overflow-y: auto;
+            margin-top: 0.75rem;
+            padding: 0.25rem 0.25rem 0.25rem 0;
+        }
+
+        .media-preview-strip.has-files {
+            display: grid;
+        }
+
+        .media-preview-item {
+            position: relative;
+            min-height: 4.5rem;
+            height: 4.5rem;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(18, 18, 20, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--dark-text-secondary);
+            font-size: 0.65rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0.25rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .media-preview-item img,
+        .media-preview-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+            display: block;
+        }
+
+        .media-remove-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(15, 15, 18, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            z-index: 10;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+            transition: all var(--motion-fast) cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .media-remove-btn::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            bottom: -6px;
+            left: -6px;
+            right: -6px;
+        }
+
+        .media-remove-btn:hover,
+        .media-remove-btn:focus-visible {
+            background: #dc2626;
+            border-color: #ef4444;
+            color: #ffffff;
+            transform: scale(1.15);
+            outline: none;
+            box-shadow: 0 3px 8px rgba(220, 38, 38, 0.55);
+        }
+
+        .media-remove-btn:active {
+            transform: scale(0.95);
+        }
+
+        body.light-mode .media-preview-item {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        body.light-mode .media-remove-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.18);
+            color: #374151;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        body.light-mode .media-remove-btn:hover,
+        body.light-mode .media-remove-btn:focus-visible {
+            background: #dc2626;
+            border-color: #ef4444;
+            color: #ffffff;
+        }
+
         body.light-mode .file-upload-area {
             border-color: #cbd5e1;
         }
@@ -479,6 +585,7 @@
                     </div>
                     <input type="file" name="media_files" id="media_files" multiple class="file-input" accept="image/*,video/*">
                 </div>
+                <div class="media-preview-strip" id="mediaPreviewStrip" aria-live="polite"></div>
             </div>
 
             <div class="btn-group">
@@ -535,16 +642,115 @@
         // File upload handling
         const editComplaintFileInput = document.querySelector('.file-input');
         const editComplaintUploadArea = document.querySelector('.file-upload-area');
+        const editUploadText = document.querySelector('.file-upload-text');
+        const editMediaPreviewStrip = document.getElementById('mediaPreviewStrip');
+        const defaultEditUploadText = editUploadText ? editUploadText.innerHTML : '';
+        const maxMediaFiles = 10;
+        const maxMediaFileSize = 100 * 1024 * 1024;
+        let selectedEditMediaFiles = [];
+
+        function clearEditMediaPreview() {
+            if (!editMediaPreviewStrip) return;
+            editMediaPreviewStrip.querySelectorAll('[data-object-url]').forEach((preview) => {
+                URL.revokeObjectURL(preview.dataset.objectUrl);
+            });
+            editMediaPreviewStrip.innerHTML = '';
+            editMediaPreviewStrip.classList.remove('has-files');
+        }
+
+        function renderEditMediaPreview(files) {
+            clearEditMediaPreview();
+            if (!editMediaPreviewStrip || !files.length) return;
+
+            Array.from(files).forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'media-preview-item';
+
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.alt = file.name;
+                    img.dataset.objectUrl = url;
+                    item.appendChild(img);
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    const url = URL.createObjectURL(file);
+                    video.src = url;
+                    video.muted = true;
+                    video.dataset.objectUrl = url;
+                    item.appendChild(video);
+                } else {
+                    const span = document.createElement('span');
+                    span.textContent = file.name;
+                    span.style.padding = '0.2rem';
+                    span.style.wordBreak = 'break-all';
+                    item.appendChild(span);
+                }
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'media-remove-btn';
+                removeBtn.title = window.FabroI18n.gettext('Remove file');
+                removeBtn.setAttribute('aria-label', window.FabroI18n.gettext('Remove file'));
+                removeBtn.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+                removeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectedEditMediaFiles.splice(index, 1);
+                    syncSelectedEditMediaFiles();
+                });
+                item.appendChild(removeBtn);
+
+                editMediaPreviewStrip.appendChild(item);
+            });
+
+            editMediaPreviewStrip.classList.add('has-files');
+        }
+
+        function syncSelectedEditMediaFiles() {
+            if (!editComplaintFileInput) return;
+            const transfer = new DataTransfer();
+            selectedEditMediaFiles.forEach(file => transfer.items.add(file));
+            editComplaintFileInput.files = transfer.files;
+
+            if (selectedEditMediaFiles.length) {
+                if (editComplaintUploadArea) {
+                    editComplaintUploadArea.style.borderColor = 'var(--success-color)';
+                    editComplaintUploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                }
+                if (editUploadText) {
+                    editUploadText.innerHTML =
+                        `<strong>${window.FabroI18n.interpolate(window.FabroI18n.gettext('%(count)s file(s) selected'), {count: selectedEditMediaFiles.length})}</strong><br>${window.FabroI18n.gettext('Ready to upload')}`;
+                }
+            } else {
+                editComplaintFileInput.value = '';
+                if (editComplaintUploadArea) {
+                    editComplaintUploadArea.style.borderColor = '';
+                    editComplaintUploadArea.style.backgroundColor = '';
+                }
+                if (editUploadText) {
+                    editUploadText.innerHTML = defaultEditUploadText;
+                }
+            }
+            renderEditMediaPreview(selectedEditMediaFiles);
+        }
 
         if (editComplaintFileInput && editComplaintUploadArea) {
             editComplaintFileInput.addEventListener('change', function() {
-                const files = this.files;
-                if (files.length > 0) {
-                    editComplaintUploadArea.style.borderColor = 'var(--success-color)';
-                    editComplaintUploadArea.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                    document.querySelector('.file-upload-text').innerHTML = 
-                        `<strong>${window.FabroI18n.interpolate(window.FabroI18n.gettext('%(count)s file(s) selected'), {count: files.length})}</strong><br>${window.FabroI18n.gettext('Ready to upload')}`;
-                }
+                const existingKeys = new Set(selectedEditMediaFiles.map(f => [f.name, f.size, f.type, f.lastModified].join('::')));
+                const newFiles = Array.from(this.files);
+
+                newFiles.forEach(file => {
+                    if (file.size > maxMediaFileSize) return;
+                    const key = [file.name, file.size, file.type, file.lastModified].join('::');
+                    if (!existingKeys.has(key) && selectedEditMediaFiles.length < maxMediaFiles) {
+                        selectedEditMediaFiles.push(file);
+                        existingKeys.add(key);
+                    }
+                });
+
+                syncSelectedEditMediaFiles();
             });
         }
 

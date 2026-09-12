@@ -1,8 +1,8 @@
 {% load static i18n %}
 <link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
 <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
-<script src="{% url 'javascript-catalog' %}" defer></script>
-<script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2" defer></script>
+<script src="{% url 'javascript-catalog' %}"></script>
+<script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
 <script>
     document.documentElement.dir = 'ltr';
@@ -770,147 +770,178 @@
             }
         }
 
+        .mobile-bottom-nav {
+            display: none !important;
+        }
+
         @media (max-width: 768px) {
             html,
             body {
                 max-width: 100%;
-                overflow-x: clip;
+                overflow-x: hidden !important;
+            }
+
+            body {
+                padding-bottom: calc(4.2rem + env(safe-area-inset-bottom, 0px)) !important;
             }
 
             .navbar {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
-                align-items: center;
-                justify-content: stretch;
-                padding: 0.6rem 0.7rem;
-                gap: 0.45rem 0.65rem;
-                min-height: 0;
-                overflow: visible;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                padding: 0.5rem 0.85rem !important;
+                gap: 0.5rem !important;
+                min-height: 54px !important;
+                overflow: visible !important;
             }
 
-            .navbar::before {
-                display: none;
-            }
-
-            .navbar::after {
-                display: none;
-            }
-
+            .navbar::before,
+            .navbar::after,
             .mobile-menu-toggle {
-                display: none;
+                display: none !important;
             }
 
             .nav-brand {
-                display: flex;
-                grid-column: 1;
-                grid-row: 1;
-                justify-self: start;
-                min-height: 52px;
-                padding: 0.08rem 0.45rem;
+                display: flex !important;
+                align-items: center !important;
+                min-height: 44px !important;
+                padding: 0.12rem 0.5rem !important;
             }
 
             .nav-brand-logo {
-                width: clamp(6.6rem, 24vw, 8.5rem);
-                height: 2.75rem;
-                transform: none;
+                width: auto !important;
+                max-width: clamp(6.5rem, 26vw, 8.5rem) !important;
+                height: 2.35rem !important;
+                transform: none !important;
             }
 
             .nav-links {
-                position: relative;
-                inset: auto;
-                grid-column: 1 / -1;
-                grid-row: 2;
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                justify-content: stretch;
-                width: 100%;
-                max-width: none;
-                overflow-x: auto;
-                overflow-y: hidden;
-                gap: 0.08rem;
-                padding: 0.32rem;
-                border-radius: 999px;
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.045));
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.11);
-                -webkit-backdrop-filter: blur(18px) saturate(135%);
-                backdrop-filter: blur(18px) saturate(135%);
-                scrollbar-width: none;
-                contain: layout paint;
-                animation: none;
+                display: none !important;
             }
 
-            .nav-links::-webkit-scrollbar {
-                display: none;
+            .mobile-bottom-nav {
+                display: flex !important;
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                height: calc(3.8rem + env(safe-area-inset-bottom, 0px)) !important;
+                padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+                background: rgba(18, 18, 20, 0.96) !important;
+                -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+                backdrop-filter: blur(20px) saturate(160%) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+                box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45) !important;
+                z-index: 9999 !important;
+                align-items: center !important;
+                justify-content: space-around !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
             }
 
-            body.light-mode .nav-links {
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(244, 244, 245, 0.5));
-                border-color: rgba(24, 24, 27, 0.12);
-                box-shadow: 0 18px 44px rgba(24, 24, 27, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+            body.light-mode .mobile-bottom-nav {
+                background: rgba(255, 255, 255, 0.96) !important;
+                border-top-color: rgba(0, 0, 0, 0.08) !important;
+                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
             }
 
-            .nav-links.active {
-                display: flex;
+            .mobile-bottom-nav-item {
+                flex: 1 1 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 3px !important;
+                color: #a1a1aa !important;
+                text-decoration: none !important;
+                font-size: 0.68rem !important;
+                font-weight: 500 !important;
+                height: 100% !important;
+                position: relative !important;
+                touch-action: manipulation !important;
+                transition: color 150ms ease, transform 150ms ease !important;
+                -webkit-tap-highlight-color: transparent !important;
+                user-select: none !important;
             }
 
-            .nav-link {
-                width: auto;
-                min-width: 44px;
-                min-height: 46px;
-                flex: 1 0 44px;
-                flex-direction: row;
-                justify-content: center;
-                align-items: center;
-                gap: 0;
-                padding: 0.55rem 0.64rem;
-                border-radius: 999px;
-                font-size: 0.82rem;
+            body.light-mode .mobile-bottom-nav-item {
+                color: #71717a !important;
             }
 
-            .nav-link i {
-                font-size: 1rem;
+            .mobile-bottom-nav-item i {
+                font-size: 1.15rem !important;
+                transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1) !important;
             }
 
-            .nav-link.active {
-                min-width: 54px;
-                background: var(--primary-color);
-                color: #fff;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 28px rgba(0, 0, 0, 0.22);
+            .mobile-bottom-nav-item:hover,
+            .mobile-bottom-nav-item.active {
+                color: #dc2626 !important;
+                font-weight: 600 !important;
             }
 
-            .nav-link.active i {
-                transform: scale(1.08);
+            .mobile-bottom-nav-item.active i {
+                transform: scale(1.12) !important;
+                filter: drop-shadow(0 2px 8px rgba(220, 38, 38, 0.5)) !important;
             }
 
-            body.light-mode .nav-link.active {
-                color: #fff;
-                background: var(--primary-color);
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 12px 26px rgba(24, 24, 27, 0.12);
+            .mobile-bottom-badge {
+                position: absolute !important;
+                top: 4px !important;
+                right: calc(50% - 18px) !important;
+                background: #ef4444 !important;
+                color: #ffffff !important;
+                font-size: 0.62rem !important;
+                font-weight: 800 !important;
+                padding: 1px 5px !important;
+                border-radius: 999px !important;
+                min-width: 16px !important;
+                text-align: center !important;
+                line-height: 14px !important;
+                box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5) !important;
+            }
+
+            .mobile-bottom-badge.amber {
+                background: #f59e0b !important;
+                box-shadow: 0 2px 6px rgba(245, 158, 11, 0.5) !important;
             }
 
             .profile-dropdown {
                 position: relative;
-                grid-column: 2;
-                grid-row: 1;
-                right: auto;
-                top: auto;
-                transform: none;
-                justify-self: end;
+                flex-shrink: 0;
+                margin-left: auto;
             }
 
             .profile-trigger {
-                width: 52px;
-                height: 52px;
-                min-height: 52px;
-                padding: 0.35rem;
-                border-radius: 999px;
+                width: auto !important;
+                height: auto !important;
+                min-height: 42px !important;
+                padding: 0.22rem 0.45rem 0.22rem 0.6rem !important;
+                border-radius: 999px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 0.45rem !important;
+                box-sizing: border-box !important;
+            }
+
+            .profile-country-flag {
+                width: 1.55rem !important;
+                height: 1.15rem !important;
+                object-fit: cover !important;
+                border-radius: 3px !important;
+                flex-shrink: 0 !important;
+            }
+
+            .profile-avatar {
+                width: 2.1rem !important;
+                height: 2.1rem !important;
+                font-size: 0.88rem !important;
+                flex-shrink: 0 !important;
             }
 
             .profile-trigger > div:not(.profile-avatar),
             .profile-trigger .fa-chevron-down {
-                display: none;
+                display: none !important;
             }
 
             .profile-dropdown-content {
@@ -1007,46 +1038,37 @@
 
         @media (max-width: 520px) {
             .navbar {
-                padding: 0.55rem 0.45rem;
+                padding: 0.45rem 0.55rem;
                 gap: 0.32rem;
             }
 
             .nav-brand {
-                min-height: 48px;
+                min-height: 44px;
                 padding: 0.06rem 0.32rem;
             }
 
             .nav-brand-logo {
-                width: clamp(5.2rem, 21vw, 6.3rem);
-                height: 2.45rem;
-            }
-
-            .nav-links {
-                max-width: 100%;
-                padding: 0.26rem;
-                gap: 0.04rem;
-            }
-
-            .nav-link {
-                min-width: 39px;
-                min-height: 42px;
-                padding: 0.46rem 0.5rem;
-            }
-
-            .nav-link.active {
-                min-width: 45px;
+                max-width: clamp(5.5rem, 24vw, 6.8rem);
+                height: 2.15rem;
             }
 
             .profile-trigger {
-                width: 48px;
-                height: 48px;
-                min-height: 48px;
-                padding: 0.28rem;
+                width: auto !important;
+                height: auto !important;
+                min-height: 38px !important;
+                padding: 0.18rem 0.38rem 0.18rem 0.5rem !important;
+                gap: 0.38rem !important;
+            }
+
+            .profile-country-flag {
+                width: 1.4rem !important;
+                height: 1.05rem !important;
             }
 
             .profile-avatar {
-                width: 2.05rem;
-                height: 2.05rem;
+                width: 1.95rem !important;
+                height: 1.95rem !important;
+                font-size: 0.82rem !important;
             }
         }
 
@@ -1806,7 +1828,10 @@
 
         // Logout Function
         const logout = () => {
-            if (confirm(window.FabroI18n.gettext("Are you sure you want to log out?"))) {
+            const logoutMsg = (window.FabroI18n && typeof window.FabroI18n.gettext === 'function')
+                ? window.FabroI18n.gettext("Are you sure you want to log out?")
+                : "Are you sure you want to log out?";
+            if (confirm(logoutMsg)) {
                 document.getElementById('logout-form').submit();
             }
         };
@@ -1970,19 +1995,26 @@
 
             const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
             const navLinks = Array.from(document.querySelectorAll('.nav-links .nav-link'));
+            const bottomNavLinks = Array.from(document.querySelectorAll('.mobile-bottom-nav .mobile-bottom-nav-item'));
+
             const activeLink = navLinks.find((link) => {
+                const linkPath = link.pathname.replace(/\/+$/, '') || '/';
+                return linkPath === currentPath;
+            });
+            const activeBottomLink = bottomNavLinks.find((link) => {
                 const linkPath = link.pathname.replace(/\/+$/, '') || '/';
                 return linkPath === currentPath;
             });
 
             navLinks.forEach((link) => link.classList.toggle('active', link === activeLink));
+            bottomNavLinks.forEach((link) => link.classList.toggle('active', link === activeBottomLink));
 
             const fallbackTitle = document.querySelector('.page-title, .dashboard-title, h1');
             const label = activeLink
                 ? activeLink.textContent.trim()
                 : fallbackTitle
                     ? fallbackTitle.textContent.trim()
-                    : window.FabroI18n.gettext('Dashboard');
+                    : ((window.FabroI18n && typeof window.FabroI18n.gettext === 'function') ? window.FabroI18n.gettext('Dashboard') : 'Dashboard');
 
             navbar.setAttribute('data-active-window', label);
         };
@@ -2071,22 +2103,24 @@
                 }
 
                 const syncBadge = (kind, value) => {
-                    const existing = document.querySelector(`[data-shell-badge="${kind}"]`);
+                    const existings = document.querySelectorAll(`[data-shell-badge="${kind}"]`);
                     const numericValue = Number.parseInt(value || '0', 10) || 0;
                     if (numericValue === 0) {
-                        existing?.remove();
+                        existings.forEach((el) => el.remove());
                         return;
                     }
-                    if (existing) {
-                        existing.textContent = numericValue;
+                    if (existings.length > 0) {
+                        existings.forEach((el) => { el.textContent = numericValue; });
                         return;
                     }
                     const template = document.getElementById(`${kind}-badge-template`);
-                    const destination = document.querySelector(`[data-shell-badge-host="${kind}"]`);
-                    if (template && destination) {
-                        const badge = template.content.firstElementChild.cloneNode(true);
-                        badge.textContent = numericValue;
-                        destination.appendChild(badge);
+                    const destinations = document.querySelectorAll(`[data-shell-badge-host="${kind}"]`);
+                    if (template && destinations.length > 0) {
+                        destinations.forEach((dest) => {
+                            const badge = template.content.firstElementChild.cloneNode(true);
+                            badge.textContent = numericValue;
+                            dest.appendChild(badge);
+                        });
                     }
                 };
 
@@ -2337,4 +2371,40 @@
         <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
             <i class="fas fa-bars"></i>
         </button>
+    </nav>
+
+    <nav class="mobile-bottom-nav" aria-label="{% translate "Mobile Navigation" %}">
+        <a href="{% url 'index' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+            <i class="fas fa-home"></i>
+            <span>{% translate "Dashboard" %}</span>
+        </a>
+        <a href="{% url 'complaint_list' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'complaint_list' or request.resolver_match.url_name == 'view_complaint' %}active{% endif %}">
+            <i class="fas fa-clipboard-list"></i>
+            <span>{% translate "Complaints" %}</span>
+        </a>
+        <a href="{% url 'car_details' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'car_details' %}active{% endif %}">
+            <i class="fas fa-car"></i>
+            <span>{% translate "Patterns" %}</span>
+        </a>
+        {% if can_view_approvals %}
+        <a href="{% url 'approvals_list' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' %}active{% endif %}" data-shell-badge-host="approvals">
+            <i class="fas fa-clipboard-check"></i>
+            <span>{% translate "Approvals" %}</span>
+            {% if pending_approvals_count %}
+            <span class="mobile-bottom-badge amber" data-shell-badge="approvals">{{ pending_approvals_count }}</span>
+            {% endif %}
+        </a>
+        {% elif can_create_complaint %}
+        <a href="{% url 'add_complaint' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'add_complaint' %}active{% endif %}">
+            <i class="fas fa-plus-circle"></i>
+            <span>{% translate "Add" %}</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+            <i class="fas fa-comments"></i>
+            <span>{% translate "Chat" %}</span>
+            {% if unread_chat_count %}
+            <span class="mobile-bottom-badge" data-shell-badge="chat">{{ unread_chat_count }}</span>
+            {% endif %}
+        </a>
     </nav>
