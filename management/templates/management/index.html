@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Dashboard - Fabro Leather" %}</title>
     <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
-    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/dashboard.css' %}?v=20260912-statsgrid2" data-fabro-page-asset>
 {% if is_htmx_request %}
 </template>
@@ -532,6 +532,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         window.fabroOnPageLoad(function () {
             const currentPath = window.location.pathname;
             document.querySelectorAll('.nav-link').forEach(link => {
@@ -563,6 +566,9 @@
                 }
             }
         }
+
+        if (typeof toggleComplaintDetails === 'function') window.toggleComplaintDetails = toggleComplaintDetails;
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

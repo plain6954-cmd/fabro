@@ -9,7 +9,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Complaint List - Fabro Leather" %}</title>
-    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/complaints.css' %}?v=20260912-workflow-serial-nested" data-fabro-page-asset>
 {% if is_htmx_request %}
@@ -640,6 +640,9 @@
 
     {{ column_filter_config|json_script:"complaint-column-filter-config" }}
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         // Modal functions
         function resetComplaintVideo(video) {
             if (!video) return;
@@ -728,11 +731,11 @@
             const complaintPageSignal = complaintPageController.signal;
             window.__fabroComplaintPageController = complaintPageController;
 
-            document.addEventListener('fabro:before-page-swap', function () {
+            pageScope.listen(document, 'fabro:before-page-swap', function () {
                 complaintPageController.abort();
             }, { once: true, signal: complaintPageSignal });
 
-            document.addEventListener('keydown', function(event) {
+            pageScope.listen(document, 'keydown', function(event) {
                 if (event.key === 'Escape') {
                     document.querySelectorAll('.modal.is-open').forEach((modal) => {
                         releaseComplaintVideos(modal);
@@ -849,7 +852,7 @@
                 });
             });
 
-            document.addEventListener('click', function (event) {
+            pageScope.listen(document, 'click', function (event) {
                 if (searchPicker && !searchPicker.contains(event.target)) {
                     setSuggestionsOpen(false);
                 }
@@ -1063,7 +1066,7 @@
             });
 
             // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
+            pageScope.listen(document, 'click', function(e) {
                 if (!e.target.closest('.column-filter-dropdown') && !e.target.closest('.column-filter-trigger')) {
                     document.querySelectorAll('.column-filter-dropdown').forEach(d => {
                         d.style.display = 'none';
@@ -1072,6 +1075,15 @@
                 }
             }, { signal: complaintPageSignal });
         });
+
+        if (typeof resetComplaintVideo === 'function') window.resetComplaintVideo = resetComplaintVideo;
+        if (typeof releaseComplaintVideos === 'function') window.releaseComplaintVideos = releaseComplaintVideos;
+        if (typeof playComplaintVideo === 'function') window.playComplaintVideo = playComplaintVideo;
+        if (typeof openModal === 'function') window.openModal = openModal;
+        if (typeof closeModal === 'function') window.closeModal = closeModal;
+        if (typeof enlargeImage === 'function') window.enlargeImage = enlargeImage;
+        if (typeof closeImageModal === 'function') window.closeImageModal = closeImageModal;
+    })();
     </script>
 
     <!-- Interactive Popover Window for Selecting Chat Recipient -->
@@ -1286,6 +1298,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         var activePopoverComplaintId = '';
 
         function toggleChatUserPopover(e, complaintId) {
@@ -1371,13 +1386,19 @@
                 popoverSearch.addEventListener('input', filterPopoverUsers);
             }
 
-            document.addEventListener('click', (e) => {
+            pageScope.listen(document, 'click', (e) => {
                 const popover = document.getElementById('chat-popover-window');
                 if (popover && popover.style.display === 'block' && !popover.contains(e.target) && !e.target.closest('.action-btn.chat')) {
                     closeChatPopover();
                 }
             }, complaintPageSignal ? { signal: complaintPageSignal } : undefined);
         });
+
+        if (typeof toggleChatUserPopover === 'function') window.toggleChatUserPopover = toggleChatUserPopover;
+        if (typeof closeChatPopover === 'function') window.closeChatPopover = closeChatPopover;
+        if (typeof navigateToUserChat === 'function') window.navigateToUserChat = navigateToUserChat;
+        if (typeof filterPopoverUsers === 'function') window.filterPopoverUsers = filterPopoverUsers;
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

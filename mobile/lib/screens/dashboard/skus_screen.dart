@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../utils/theme.dart';
+import '../../widgets/pagination_footer.dart';
 
 class SkusScreen extends StatefulWidget {
   const SkusScreen({Key? key}) : super(key: key);
@@ -13,6 +14,8 @@ class SkusScreen extends StatefulWidget {
 class _SkusScreenState extends State<SkusScreen> {
   final _apiService = ApiService();
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _requestGeneration = 0;
   String? _error;
   List<dynamic> _allSkus = [];
   List<dynamic> _filteredSkus = [];
@@ -25,7 +28,7 @@ class _SkusScreenState extends State<SkusScreen> {
     super.initState();
     _fetchSkus();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading) {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading && !_isLoadingMore) {
         _fetchSkus(reset: false);
       }
     });
@@ -39,33 +42,41 @@ class _SkusScreenState extends State<SkusScreen> {
   }
 
   Future<void> _fetchSkus({bool reset = true}) async {
+    if (!mounted || (!reset && (_isLoading || _isLoadingMore || _nextEndpoint == null))) return;
+    final generation = ++_requestGeneration;
+    final endpoint = reset ? '/api/skus/' : _nextEndpoint!;
     setState(() {
-      _isLoading = true;
+      _isLoading = reset && _allSkus.isEmpty;
+      _isLoadingMore = !reset;
       _error = null;
     });
-
     try {
-      final response = await _apiService.get(reset ? '/api/skus/' : _nextEndpoint!);
-      if (response.statusCode == 200) {
-        setState(() {
-          final decoded = jsonDecode(response.body);
-          final items = decoded is Map<String, dynamic> ? List<dynamic>.from(decoded['results'] ?? const []) : List<dynamic>.from(decoded);
-          _allSkus = reset ? items : [..._allSkus, ...items];
-          _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
-          _applyFilters();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Failed to load SKUs. Status code: ${response.statusCode}';
-          _isLoading = false;
-        });
+      final response = await _apiService.get(endpoint);
+      if (!mounted || generation != _requestGeneration) return;
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load skus. Status code: ${response.statusCode}');
       }
+      final decoded = jsonDecode(response.body);
+      final items = decoded is Map<String, dynamic>
+          ? List<dynamic>.from(decoded['results'] ?? const [])
+          : List<dynamic>.from(decoded);
+      setState(() {
+        _allSkus = reset ? items : [..._allSkus, ...items];
+        _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
+        _applyFilters();
+      });
     } catch (e) {
+      if (!mounted || generation != _requestGeneration) return;
       setState(() {
         _error = e.toString().replaceAll('Exception:', '').trim();
-        _isLoading = false;
       });
+    } finally {
+      if (mounted && generation == _requestGeneration) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      }
     }
   }
 
@@ -88,7 +99,7 @@ class _SkusScreenState extends State<SkusScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchSkus,
+            onPressed: _isLoadingMore ? null : _fetchSkus,
           ),
         ],
       ),
@@ -115,7 +126,7 @@ class _SkusScreenState extends State<SkusScreen> {
               onRefresh: _fetchSkus,
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _error != null
+                  : _error != null && _allSkus.isEmpty
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(24.0),
@@ -127,7 +138,7 @@ class _SkusScreenState extends State<SkusScreen> {
                                 Text(_error!, textAlign: TextAlign.center),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
-                                  onPressed: _fetchSkus,
+                                  onPressed: _isLoadingMore ? null : _fetchSkus,
                                   child: const Text('Retry'),
                                 ),
                               ],
@@ -138,6 +149,7 @@ class _SkusScreenState extends State<SkusScreen> {
                           ? const Center(child: Text('No SKUs found.'))
                           : ListView.builder(
                               controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: _filteredSkus.length,
                               itemBuilder: (context, index) {
                                 final sku = _filteredSkus[index];
@@ -180,6 +192,12 @@ class _SkusScreenState extends State<SkusScreen> {
                               },
                             ),
             ),
+          ),
+          PaginationFooter(
+            loading: _isLoadingMore,
+            hasMore: _nextEndpoint != null && !_isLoading,
+            error: _error,
+            onLoadMore: () => _fetchSkus(reset: false),
           ),
         ],
       ),

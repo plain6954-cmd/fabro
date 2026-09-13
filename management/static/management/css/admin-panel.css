@@ -29,6 +29,7 @@
         background-color: var(--erp-bg);
         color: var(--erp-text-main);
         height: 100vh;
+        height: 100dvh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -174,6 +175,8 @@
         flex: 1;
         height: calc(100vh - 48px);
         overflow: hidden;
+        min-height: 0;
+        min-width: 0;
     }
 
     /* Left Icon Sidebar */
@@ -227,6 +230,8 @@
     /* Workspace Content Area */
     .erp-workspace {
         flex: 1;
+        min-width: 0;
+        min-height: 0;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -465,7 +470,7 @@
 
     .erp-dash-split-row {
         display: grid;
-        grid-template-columns: 1fr 1.2fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
         gap: 1.25rem;
         flex: 1;
         min-height: 340px;
@@ -1028,3 +1033,46 @@
     ::-webkit-scrollbar-thumb:hover {
         background: #484f58;
     }
+
+/* Preserve usable controls and contain table scrolling on smaller screens. */
+.erp-topbar, .erp-topbar-left, .erp-topbar-right,
+.erp-subheader-left, .erp-dash-card, .erp-table-pane,
+.erp-users-workspace-body, .erp-tab-pane { min-width: 0; }
+.erp-table-pane { overflow-x: auto; }
+.erp-dash-card { overflow-wrap: anywhere; }
+.erp-topbar-nav { min-width: 0; max-width: 100%; overflow-x: auto; }
+.erp-modal-content { max-height: calc(100dvh - 2rem); }
+:where(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--erp-accent);
+    outline-offset: 3px;
+}
+@media (max-width: 1024px) {
+    .erp-dash-split-row { grid-template-columns: minmax(0, 1fr); }
+    .erp-topbar { height: auto; min-height: 48px; flex-wrap: wrap; gap: .5rem; padding: .5rem .75rem; }
+    .erp-topbar-left, .erp-topbar-right { flex-wrap: wrap; gap: .5rem; }
+}
+@media (max-width: 768px) {
+    .erp-topbar-nav { display: none; }
+    .erp-dash-card { overflow-x: auto; }
+    .erp-dash-card .erp-admin-table { min-width: 460px; }
+    .erp-layout-container { flex-direction: column; height: auto; }
+    .erp-icon-sidebar {
+        width: 100%; flex-direction: row; overflow-x: auto;
+        padding: .35rem .5rem; border-right: 0;
+        border-bottom: 1px solid var(--erp-card-border);
+    }
+    .erp-sidebar-btn { flex: 0 0 56px; min-height: 48px; }
+    .erp-action-subheader { height: auto; min-height: 48px; flex-wrap: wrap; padding: .6rem; }
+    .erp-subheader-left { flex-wrap: wrap; }
+    .erp-users-workspace-body { flex-direction: column; min-height: 0; }
+    .erp-filter-pane { width: 100%; max-height: 160px; flex-shrink: 0; }
+    .erp-kanban-grid { grid-template-columns: minmax(0, 1fr); }
+    .erp-form-grid-2 { grid-template-columns: minmax(0, 1fr); }
+    .erp-modal-box { width: calc(100% - 1rem); max-height: calc(100dvh - 1rem); }
+    .erp-stats-grid-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .erp-modal-body input, .erp-modal-body select { font-size: 16px; }
+    .btn-erp-new, .erp-action-subheader button, .erp-modal-footer button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

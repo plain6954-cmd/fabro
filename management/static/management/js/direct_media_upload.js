@@ -82,7 +82,11 @@
 
     form.addEventListener('submit', async function (event) {
         const files = Array.from(fileInput?.files || []);
-        if (!files.length || uploadInProgress) {
+        if (uploadInProgress) {
+            event.preventDefault();
+            return;
+        }
+        if (!files.length || event.defaultPrevented) {
             return;
         }
         event.preventDefault();

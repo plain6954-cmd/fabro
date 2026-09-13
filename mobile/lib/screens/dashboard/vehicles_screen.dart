@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../utils/theme.dart';
+import '../../widgets/pagination_footer.dart';
 
 class VehiclesScreen extends StatefulWidget {
   const VehiclesScreen({Key? key}) : super(key: key);
@@ -13,6 +14,8 @@ class VehiclesScreen extends StatefulWidget {
 class _VehiclesScreenState extends State<VehiclesScreen> {
   final _apiService = ApiService();
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _requestGeneration = 0;
   String? _error;
   List<dynamic> _allVehicles = [];
   List<dynamic> _filteredVehicles = [];
@@ -25,7 +28,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
     super.initState();
     _fetchVehicles();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading) {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading && !_isLoadingMore) {
         _fetchVehicles(reset: false);
       }
     });
@@ -39,33 +42,41 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
   }
 
   Future<void> _fetchVehicles({bool reset = true}) async {
+    if (!mounted || (!reset && (_isLoading || _isLoadingMore || _nextEndpoint == null))) return;
+    final generation = ++_requestGeneration;
+    final endpoint = reset ? '/api/vehicles/' : _nextEndpoint!;
     setState(() {
-      _isLoading = true;
+      _isLoading = reset && _allVehicles.isEmpty;
+      _isLoadingMore = !reset;
       _error = null;
     });
-
     try {
-      final response = await _apiService.get(reset ? '/api/vehicles/' : _nextEndpoint!);
-      if (response.statusCode == 200) {
-        setState(() {
-          final decoded = jsonDecode(response.body);
-          final items = decoded is Map<String, dynamic> ? List<dynamic>.from(decoded['results'] ?? const []) : List<dynamic>.from(decoded);
-          _allVehicles = reset ? items : [..._allVehicles, ...items];
-          _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
-          _applyFilters();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Failed to load vehicles. Status code: ${response.statusCode}';
-          _isLoading = false;
-        });
+      final response = await _apiService.get(endpoint);
+      if (!mounted || generation != _requestGeneration) return;
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load vehicles. Status code: ${response.statusCode}');
       }
+      final decoded = jsonDecode(response.body);
+      final items = decoded is Map<String, dynamic>
+          ? List<dynamic>.from(decoded['results'] ?? const [])
+          : List<dynamic>.from(decoded);
+      setState(() {
+        _allVehicles = reset ? items : [..._allVehicles, ...items];
+        _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
+        _applyFilters();
+      });
     } catch (e) {
+      if (!mounted || generation != _requestGeneration) return;
       setState(() {
         _error = e.toString().replaceAll('Exception:', '').trim();
-        _isLoading = false;
       });
+    } finally {
+      if (mounted && generation == _requestGeneration) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      }
     }
   }
 
@@ -92,7 +103,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchVehicles,
+            onPressed: _isLoadingMore ? null : _fetchVehicles,
           ),
         ],
       ),
@@ -119,7 +130,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
               onRefresh: _fetchVehicles,
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _error != null
+                  : _error != null && _allVehicles.isEmpty
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(24.0),
@@ -131,7 +142,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                                 Text(_error!, textAlign: TextAlign.center),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
-                                  onPressed: _fetchVehicles,
+                                  onPressed: _isLoadingMore ? null : _fetchVehicles,
                                   child: const Text('Retry'),
                                 ),
                               ],
@@ -142,6 +153,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                           ? const Center(child: Text('No vehicles found.'))
                           : ListView.builder(
                               controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: _filteredVehicles.length,
                               itemBuilder: (context, index) {
                                 final vehicle = _filteredVehicles[index];
@@ -187,6 +199,12 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                               },
                             ),
             ),
+          ),
+          PaginationFooter(
+            loading: _isLoadingMore,
+            hasMore: _nextEndpoint != null && !_isLoading,
+            error: _error,
+            onLoadMore: () => _fetchVehicles(reset: false),
           ),
         ],
       ),

@@ -562,6 +562,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         window.currentSelectedDecision = null;
 
         function openDecisionModal(approvalId, complaintId, reviewStage) {
@@ -758,7 +761,7 @@
                 });
             });
 
-            document.addEventListener('click', function (event) {
+            pageScope.listen(document, 'click', function (event) {
                 if (searchPicker && !searchPicker.contains(event.target)) {
                     setSuggestionsOpen(false);
                 }
@@ -851,7 +854,7 @@
             }
         }
 
-        document.addEventListener('keydown', function (e) {
+        pageScope.listen(document, 'keydown', function (e) {
             const backdrop = document.getElementById('filtersSheetBackdrop');
             if (backdrop && backdrop.classList.contains('is-open')) {
                 if (e.key === 'Escape') {
@@ -874,6 +877,11 @@
                 }
             }
         });
+
+        pageScope.onCleanup(() => document.body.classList.remove('sheet-open'));
+
+        Object.assign(window, {openDecisionModal, closeDecisionModal, handleModalOverlayClick, selectDecision, submitQuickDecision, handleFilterSelectChange, openFiltersSheet, closeFiltersSheet, handleFilterBackdropClick, clearFiltersSheet, applyFiltersSheet});
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

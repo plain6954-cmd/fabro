@@ -1184,6 +1184,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         // Inline Add Row toggle
         function toggleInlineAddRow(show) {
             const addRow = document.getElementById('inlineAddRow');
@@ -1535,7 +1538,7 @@
             });
 
             // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
+            pageScope.listen(document, 'click', function(e) {
                 if (!e.target.closest('.column-filter-dropdown') && !e.target.closest('.column-filter-trigger')) {
                     document.querySelectorAll('.column-filter-dropdown').forEach(d => {
                         d.style.display = 'none';
@@ -1602,7 +1605,7 @@
                 });
             });
 
-            document.addEventListener('click', function (event) {
+            pageScope.listen(document, 'click', function (event) {
                 if (searchPicker && !searchPicker.contains(event.target)) {
                     setSuggestionsOpen(false);
                 }
@@ -1620,6 +1623,12 @@
                 }, 3000);
             }
         });
+
+        if (typeof toggleInlineAddRow === 'function') window.toggleInlineAddRow = toggleInlineAddRow;
+        if (typeof toggleInlineEditRow === 'function') window.toggleInlineEditRow = toggleInlineEditRow;
+        if (typeof toggleCsvExpand === 'function') window.toggleCsvExpand = toggleCsvExpand;
+        if (typeof closeDuplicateModal === 'function') window.closeDuplicateModal = closeDuplicateModal;
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

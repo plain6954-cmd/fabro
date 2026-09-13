@@ -361,6 +361,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         // File upload handling
         const dropZone = document.getElementById('dropZone');
         const uploadCsvFileInput = document.getElementById('csvFile');
@@ -434,6 +437,9 @@
                 }, 3000);
             }
         });
+
+        if (typeof updateUploadArea === 'function') window.updateUploadArea = updateUploadArea;
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

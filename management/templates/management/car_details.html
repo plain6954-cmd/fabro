@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Pattern Master - Fabro Leather" %}</title>
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260912-menu-v9">
+    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260912-audit1" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -1588,6 +1588,9 @@
     {% endif %}
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         function closeDuplicateModal() {
             const modal = document.getElementById("duplicateModal");
             if (modal) modal.style.display = "none";
@@ -1637,7 +1640,7 @@
             }
         }
 
-        window.addEventListener('hashchange', function() {
+        pageScope.listen(window, 'hashchange', function() {
             if (window.location.hash === '#design-options') {
                 switchPatternTab('design-options');
             } else {
@@ -1973,7 +1976,7 @@
                 }
 
                 // 2. Inline Edit Rows country change (delegated)
-                document.addEventListener('change', async function(e) {
+                pageScope.listen(document, 'change', async function(e) {
                     if (!e.target) return;
                     const editRow = e.target.closest('.inline-edit-row');
                     if (!editRow) return;
@@ -2011,7 +2014,7 @@
 
             setupSerialCountryAutoUpdate();
 
-            document.addEventListener('keydown', function(e) {
+            pageScope.listen(document, 'keydown', function(e) {
                 if (e.key === 'Escape') {
                     if (window.activeInlineEditId) {
                         window.cancelInlineEdit(window.activeInlineEditId);
@@ -2120,6 +2123,7 @@
                 floatingMenu.className = 'col-filter-dropdown-menu';
                 floatingMenu.style.display = 'none';
                 document.body.appendChild(floatingMenu);
+                pageScope.onCleanup(() => floatingMenu.remove());
             }
 
             let currentColIdx = null;
@@ -2354,7 +2358,7 @@
             });
 
             // Close on click outside
-            document.addEventListener('click', function(e) {
+            pageScope.listen(document, 'click', function(e) {
                 if (floatingMenu && floatingMenu.style.display !== 'none') {
                     if (!floatingMenu.contains(e.target) && !e.target.closest('.column-filter-trigger') && !e.target.closest('.column-filter-clear')) {
                         closeFloatingMenu();
@@ -2363,7 +2367,7 @@
             });
 
             // Close on window resize or table horizontal scroll
-            window.addEventListener('resize', function() {
+            pageScope.listen(window, 'resize', function() {
                 if (floatingMenu && floatingMenu.style.display !== 'none') {
                     closeFloatingMenu();
                 }
@@ -2543,6 +2547,7 @@
                         </div>
                     `;
                     document.body.appendChild(fittingMenu);
+                    pageScope.onCleanup(() => fittingMenu.remove());
                 }
 
                 let activeBtn = null;
@@ -2676,7 +2681,7 @@
                     }
                 });
 
-                document.addEventListener('click', function(e) {
+                pageScope.listen(document, 'click', function(e) {
                     const btn = e.target.closest('.fitting-dropdown-btn');
                     if (btn) {
                         e.stopPropagation();
@@ -2692,11 +2697,11 @@
                     }
                 });
 
-                window.addEventListener('resize', closeFittingMenu);
+                pageScope.listen(window, 'resize', closeFittingMenu);
                 if (tableContainer) {
                     tableContainer.addEventListener('scroll', closeFittingMenu);
                 }
-                document.addEventListener('keydown', function(e) {
+                pageScope.listen(document, 'keydown', function(e) {
                     if (e.key === 'Escape') closeFittingMenu();
                 });
             })();
@@ -2763,7 +2768,7 @@
                 });
             });
 
-            document.addEventListener('click', function (event) {
+            pageScope.listen(document, 'click', function (event) {
                 if (searchPicker && !searchPicker.contains(event.target)) {
                     setSuggestionsOpen(false);
                 }
@@ -3319,7 +3324,7 @@
             }
         }
 
-        document.addEventListener('click', function(e) {
+        pageScope.listen(document, 'click', function(e) {
             const menu = document.getElementById('designAddDropdownMenu');
             const container = document.getElementById('designAddDropdownContainer');
             if (menu && menu.style.display === 'block') {
@@ -3575,7 +3580,7 @@
         }
 
         // Global Paste Listener for Ctrl+V
-        document.addEventListener('paste', function(e) {
+        pageScope.listen(document, 'paste', function(e) {
             const canManage = {% if can_manage_catalog %}true{% else %}false{% endif %};
             if (!canManage) return;
 
@@ -3712,7 +3717,7 @@
         }
 
         // Global Keyboard Handler for Modals & Lightbox
-        document.addEventListener('keydown', function(e) {
+        pageScope.listen(document, 'keydown', function(e) {
             const enlargedModal = document.getElementById('designEnlargedModal');
             const isEnlargedOpen = enlargedModal && enlargedModal.classList.contains('is-open');
 
@@ -4284,13 +4289,13 @@
         };
 
         // Close actions menus and filters sheet on Escape or outside click
-        document.addEventListener('click', function(event) {
+        pageScope.listen(document, 'click', function(event) {
             if (!event.target.closest('.pattern-card-actions-wrap')) {
                 window.closeAllCardActionsMenus();
             }
         });
 
-        document.addEventListener('keydown', function(event) {
+        pageScope.listen(document, 'keydown', function(event) {
             if (event.key === 'Escape') {
                 window.closeAllCardActionsMenus();
                 const filterSheet = document.getElementById('mobileFiltersSheet');
@@ -4317,12 +4322,20 @@
             });
         }
 
+        pageScope.onCleanup(() => {
+            window.closeMobileFiltersSheet();
+            window.closeMobilePatternSheet();
+        });
+
         // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = "none";
             }
         }
+
+        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, handleGoogleDriveClick, openGoogleDriveModal, closeGoogleDriveModal, openCurrentGoogleDriveInNewTab, submitSaveGoogleDrive, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, getVehicleTableData});
+    })();
     </script>
 
     {% if can_manage_catalog %}

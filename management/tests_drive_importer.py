@@ -1,6 +1,8 @@
 import os
 import shutil
 import tempfile
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
@@ -36,6 +38,18 @@ User = get_user_model()
 
 class DriveImporterUnitTests(TestCase):
     def setUp(self):
+        # Importer reports and rollback logs must never use workspace artifacts.
+        temporary_dir = tempfile.TemporaryDirectory(prefix='fabro-import-test-')
+        self.addCleanup(temporary_dir.cleanup)
+        test_root = Path(temporary_dir.name)
+        command_module = 'management.management.commands.import_vehicle_drive_designs'
+        for target, value in (
+            (f'{command_module}.settings', SimpleNamespace(BASE_DIR=test_root)),
+            (f'{command_module}.RUN_LOG_PATH', test_root / 'scratch' / 'import_runs.json'),
+        ):
+            patcher = patch(target, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
         self.brand_chevrolet = Brand.objects.create(name="CHEVROLET")
         self.model_captiva = Model.objects.create(brand=self.brand_chevrolet, name="CAPTIVA")
         self.sub_captiva = SubModel.objects.create(model=self.model_captiva, name="")
@@ -241,7 +255,8 @@ class DriveImporterUnitTests(TestCase):
         initial_images = PatternDesignImage.objects.count()
 
         # Run command with dry run
-        call_command("import_vehicle_drive_designs", "--dry-run")
+        with patch.object(GoogleDriveClient, 'crawl_all', return_value=([], [])):
+            call_command("import_vehicle_drive_designs", "--dry-run")
 
         self.assertEqual(PatternDesignFolder.objects.count(), initial_folders)
         self.assertEqual(PatternDesignImage.objects.count(), initial_images)

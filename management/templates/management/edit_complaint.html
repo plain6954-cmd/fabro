@@ -602,12 +602,15 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
       function loadDependentData(url, targetId, emptyMessage) {
         const targetSelect = document.getElementById(targetId);
         targetSelect.innerHTML = `<option value="">${emptyMessage}</option>`;
         targetSelect.disabled = true;
 
-        fetch(url)
+        pageScope.fetch(url)
             .then(response => response.json())
             .then(data => {
                 data.forEach(item => {
@@ -799,8 +802,14 @@
 
 
 
+
+        if (typeof loadDependentData === 'function') window.loadDependentData = loadDependentData;
+        if (typeof clearEditMediaPreview === 'function') window.clearEditMediaPreview = clearEditMediaPreview;
+        if (typeof renderEditMediaPreview === 'function') window.renderEditMediaPreview = renderEditMediaPreview;
+        if (typeof syncSelectedEditMediaFiles === 'function') window.syncSelectedEditMediaFiles = syncSelectedEditMediaFiles;
+    })();
     </script>
-    <script src="{% static 'management/js/direct_media_upload.js' %}"></script>
+    <script src="{% static 'management/js/direct_media_upload.js' %}?v=20260913-guard1"></script>
     </div>
 {% if not is_htmx_request %}
 </body>

@@ -753,6 +753,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         function togglePasswordVisibility(inputId, btn) {
             const input = document.getElementById(inputId);
             if (!input) return;
@@ -827,6 +830,11 @@
                 }, 3000);
             }
         });
+
+        if (typeof togglePasswordVisibility === 'function') window.togglePasswordVisibility = togglePasswordVisibility;
+        if (typeof handlePhotoUpload === 'function') window.handlePhotoUpload = handlePhotoUpload;
+        if (typeof triggerRemovePhoto === 'function') window.triggerRemovePhoto = triggerRemovePhoto;
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

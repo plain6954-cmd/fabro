@@ -954,6 +954,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         // Date picker functionality
         function initDatePicker() {
             const dateInput = document.getElementById('dateInput');
@@ -1066,7 +1069,7 @@
             complaintTypeRequestController?.abort();
             complaintTypeRequestController = new AbortController();
 
-            fetch(`/api/complaint-types/${encodeURIComponent(complaintType)}/`, {
+            pageScope.fetch(`/api/complaint-types/${encodeURIComponent(complaintType)}/`, {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'same-origin',
                 signal: complaintTypeRequestController.signal,
@@ -1176,8 +1179,8 @@
 
             syncComplaintTypeRecognition(typeInput.value);
             syncComplaintTypeStickyOffset();
-        window.addEventListener('resize', syncComplaintTypeStickyOffset);
-        document.addEventListener('fabro:before-page-swap', function cleanupComplaintPage() {
+        pageScope.listen(window, 'resize', syncComplaintTypeStickyOffset);
+        pageScope.listen(document, 'fabro:before-page-swap', function cleanupComplaintPage() {
             window.removeEventListener('resize', syncComplaintTypeStickyOffset);
         }, { once: true });
             if ('ResizeObserver' in window) {
@@ -1199,7 +1202,7 @@
             targetSelect.innerHTML = `<option value="">${emptyMessage}</option>`;
             targetSelect.disabled = true;
 
-            fetch(url, { signal: requestController.signal })
+            pageScope.fetch(url, { signal: requestController.signal })
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`Dependent data request failed with ${response.status}`);
@@ -1260,7 +1263,7 @@
             skuRequestController?.abort();
             skuRequestController = new AbortController();
 
-            fetch(`{% url 'get_filtered_skus' %}?${params.toString()}`, {
+            pageScope.fetch(`{% url 'get_filtered_skus' %}?${params.toString()}`, {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'same-origin',
                 signal: skuRequestController.signal,
@@ -1489,7 +1492,7 @@
             handleNewMediaFiles(Array.from(this.files));
         });
 
-        window.addEventListener('paste', function(e) {
+        pageScope.listen(window, 'paste', function(e) {
             const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
             if (activeTag === 'textarea' || (activeTag === 'input' && document.activeElement.type !== 'file')) {
                 return;
@@ -1623,8 +1626,28 @@
                 addComplaintLink.classList.add('active');
             }
         });
+
+        if (typeof initDatePicker === 'function') window.initDatePicker = initDatePicker;
+        if (typeof formatDateDisplay === 'function') window.formatDateDisplay = formatDateDisplay;
+        if (typeof formatDateForSubmission === 'function') window.formatDateForSubmission = formatDateForSubmission;
+        if (typeof refreshComplaintTypeOptions === 'function') window.refreshComplaintTypeOptions = refreshComplaintTypeOptions;
+        if (typeof syncComplaintTypeRecognition === 'function') window.syncComplaintTypeRecognition = syncComplaintTypeRecognition;
+        if (typeof syncComplaintTypeStickyOffset === 'function') window.syncComplaintTypeStickyOffset = syncComplaintTypeStickyOffset;
+        if (typeof initComplaintTypeDock === 'function') window.initComplaintTypeDock = initComplaintTypeDock;
+        if (typeof loadDependentData === 'function') window.loadDependentData = loadDependentData;
+        if (typeof resetSkuOptions === 'function') window.resetSkuOptions = resetSkuOptions;
+        if (typeof refreshSkuOptions === 'function') window.refreshSkuOptions = refreshSkuOptions;
+        if (typeof clearDefaultComplaintDescription === 'function') window.clearDefaultComplaintDescription = clearDefaultComplaintDescription;
+        if (typeof clearMediaPreview === 'function') window.clearMediaPreview = clearMediaPreview;
+        if (typeof renderMediaPreview === 'function') window.renderMediaPreview = renderMediaPreview;
+        if (typeof removeSelectedMediaFile === 'function') window.removeSelectedMediaFile = removeSelectedMediaFile;
+        if (typeof mediaFileKey === 'function') window.mediaFileKey = mediaFileKey;
+        if (typeof syncSelectedMediaFiles === 'function') window.syncSelectedMediaFiles = syncSelectedMediaFiles;
+        if (typeof handleNewMediaFiles === 'function') window.handleNewMediaFiles = handleNewMediaFiles;
+        if (typeof validateSerialNo === 'function') window.validateSerialNo = validateSerialNo;
+    })();
     </script>
-    <script src="{% static 'management/js/direct_media_upload.js' %}"></script>
+    <script src="{% static 'management/js/direct_media_upload.js' %}?v=20260913-guard1"></script>
     </div>
 {% if not is_htmx_request %}
 </body>

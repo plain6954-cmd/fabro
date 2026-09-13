@@ -62,10 +62,13 @@ def workflow_access(request):
                     ]
                 )
             ).count()
-    cache.set(badge_key, {
+    badges = {
         'unread_chat_count': unread_chat_count,
         'pending_approvals_count': pending_approvals_count,
-    }, settings.BADGE_CACHE_TTL)
+    }
+    # Do not renew stale values indefinitely on every page visit.
+    if badges != cached_badges:
+        cache.set(badge_key, badges, settings.BADGE_CACHE_TTL)
 
     return {
         'is_htmx_request': is_htmx_request,

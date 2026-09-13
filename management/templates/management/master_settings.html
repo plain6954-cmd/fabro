@@ -621,6 +621,9 @@
     </div>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         // Edit Modal Functions
         function openEditModal(settingId, category, name) {
             document.getElementById('editCategory').value = category;
@@ -668,6 +671,10 @@
         {% if request.method == "POST" and not form.errors %}
             showToast(window.FabroI18n.gettext('Setting updated successfully.'), 'success');
         {% endif %}
+
+        if (typeof openEditModal === 'function') window.openEditModal = openEditModal;
+        if (typeof closeEditModal === 'function') window.closeEditModal = closeEditModal;
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

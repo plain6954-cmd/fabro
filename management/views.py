@@ -35,6 +35,7 @@ from django.utils import translation
 from django.utils.translation import gettext as _, ngettext
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from django.views.decorators.gzip import gzip_page
 from PIL import Image, UnidentifiedImageError
 
 from .forms import (
@@ -354,6 +355,7 @@ def pattern_design_image_download(request, image_id):
     return redirect(design_image.image.url)
 
 @login_required
+@gzip_page
 def index(request):
     # Get dashboard statistics
     visible_complaints = visible_complaints_for_user(request.user, Complaint.objects.all())
@@ -507,6 +509,7 @@ def _get_pagination_bubbles(current_page, total_pages, on_each_side=2, on_ends=1
 
 
 @login_required
+@gzip_page
 def car_details(request):
     search_query = request.GET.get('search', '').strip()
     search_column = (request.GET.get('search_by') or request.GET.get('column', 'all')).strip()
@@ -601,9 +604,9 @@ def car_details(request):
     if search_query:
         if search_column in ('serial_number', 'serial_no', 'serial'):
             import re
-            m = re.search(r'\d+', search_query)
+            m = re.fullmatch(r'[sS]?(\d+)', search_query)
             if m:
-                target_rank = int(m.group(0))
+                target_rank = int(m.group(1))
                 all_ids = list(YearRange.objects.order_by('-id').values_list('id', flat=True))
                 matched_ids = []
                 for i, y_id in enumerate(all_ids):
@@ -828,8 +831,7 @@ def get_next_pattern_serial_api(request):
         except (ValueError, TypeError):
             pass
 
-    letter = get_country_letter(country) if country else 'S'
-    next_serial = f"{letter}0001"
+    next_serial = get_next_pattern_serial(country)
     return JsonResponse({'success': True, 'next_serial': next_serial})
 
 
@@ -1615,6 +1617,7 @@ def get_filtered_skus(request):
     return JsonResponse(data, safe=False)
 
 @login_required
+@gzip_page
 def complaint_list(request):
     authorized_complaints = visible_complaints_for_user(request.user, Complaint.objects.select_related(
         'channel', 'country', 'person', 'case_sub_category',
@@ -2263,6 +2266,7 @@ def factory_review_complaint(request, complaint_id):
 
 
 @login_required
+@gzip_page
 def approvals_list_view(request):
     if not can_user_view_approvals(request.user):
         raise PermissionDenied('Only Country Executives, Approvers, Factory Executives, and Admins can view the Approvals workspace.')
@@ -4110,22 +4114,20 @@ def chat_view(request):
 
     selected_complaint = None
     if complaint_id:
-        selected_complaint = Complaint.objects.filter(complaint_id=complaint_id).first()
+        selected_complaint = visible_complaints_for_user(request.user).select_related(
+            'brand', 'model',
+        ).filter(complaint_id=complaint_id).first()
 
     selected_user_profile = None
     chat_messages = []
     if selected_user:
         selected_user_profile = get_user_profile(selected_user)
-        ChatMessage.objects.filter(sender=selected_user, recipient=request.user, is_read=False).update(is_read=True)
         latest_messages = ChatMessage.objects.filter(
             Q(sender=request.user, recipient=selected_user) | Q(sender=selected_user, recipient=request.user)
         ).select_related('sender', 'recipient', 'complaint').order_by('-created_at', '-pk')[:50]
         chat_messages = list(reversed(list(latest_messages)))
         
-        # After marking read for selected user, update unread_count in users_data for clean initial render
-        for ud in users_data:
-            if ud['user'].id == selected_user.id:
-                ud['unread_count'] = 0
+        # Reading is acknowledged by the message API only once the pane is visible.
 
     selected_role_label = ""
     if selected_user_profile:

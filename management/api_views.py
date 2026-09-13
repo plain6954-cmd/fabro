@@ -9,7 +9,7 @@ from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpda
 from django.contrib.auth import authenticate
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Q
+from django.db.models import Count, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Q, Prefetch
 from django.core.cache import cache
 from django.utils import timezone
 from .serializers import (
@@ -28,6 +28,7 @@ from .serializers import (
 from .models import (
     Complaint,
     ComplaintApproval,
+    ComplaintTimeline,
     ComplaintTypes,
     Notification,
     YearRange,
@@ -155,11 +156,12 @@ class DashboardAPIView(APIView):
                 closed_complaints=Count('pk', filter=Q(status='Closed')),
                 on_hold_complaints=Count('pk', filter=Q(status='On Hold')),
             )
+            total_settings = MasterSetting.objects.count()
             data.update({
             'total_vehicles': YearRange.objects.count(),
             'total_skus': SKU.objects.count(),
-            'total_settings': MasterSetting.objects.count(),
-            'total_master_settings': MasterSetting.objects.count(),
+            'total_settings': total_settings,
+            'total_master_settings': total_settings,
             })
             cache.set(key, data, settings.DASHBOARD_CACHE_TTL)
         return Response(DashboardStatsSerializer(data).data, status=status.HTTP_200_OK)
@@ -225,10 +227,20 @@ class ComplaintRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     lookup_field = 'complaint_id'
 
     def get_queryset(self):
-        return visible_complaints_for_user(self.request.user, Complaint.objects.all())
+        return visible_complaints_for_user(
+            self.request.user,
+            Complaint.objects.select_related(
+                'brand', 'model', 'sub_model', 'year', 'sku', 'channel', 'country',
+                'created_by', 'person', 'case_sub_category', 'series', 'material',
+            ).prefetch_related(
+                'media_files',
+                Prefetch('approvals', queryset=ComplaintApproval.objects.select_related('approver_user')),
+                Prefetch('timeline_events', queryset=ComplaintTimeline.objects.select_related('user')),
+            ),
+        )
 
     def perform_update(self, serializer):
-        complaint = self.get_object()
+        complaint = serializer.instance
         if not can_user_edit_report_step(self.request.user, complaint):
             raise PermissionDenied('You are not allowed to edit this complaint at its current workflow step.')
         tracked_fields = {

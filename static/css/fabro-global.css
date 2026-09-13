@@ -293,6 +293,11 @@ html[lang="ar"] time {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
     html {
         scroll-behavior: auto !important;
     }
@@ -300,4 +305,15 @@ html[lang="ar"] time {
     .language-menu-options {
         transition: none;
     }
+}
+
+:where(a, button, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+    outline: 2px solid var(--primary-color, #dc2626);
+    outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+    .mobile-bottom-nav-item, .mobile-filters-btn, .pattern-card-more-btn,
+    .pattern-card-details-toggle, .mobile-sheet-close-btn { min-height: 44px; }
+    .mobile-sheet-container { max-height: calc(100dvh - 1rem); }
 }

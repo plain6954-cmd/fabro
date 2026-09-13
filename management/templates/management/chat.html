@@ -220,6 +220,12 @@
         let currentChatFilter = 'all';
         let messagesRequestController = null;
         let chatPollInProgress = false;
+        let usersPollInProgress = false;
+
+        function isChatPaneVisible() {
+            return !window.matchMedia('(max-width: 820px)').matches
+                || document.querySelector('.chat-container')?.classList.contains('mobile-chat-open');
+        }
 
         function appendPreset(text) {
             const input = document.getElementById('message-input');
@@ -265,6 +271,7 @@
         }
 
         function closeMobileChat() {
+            if (messagesRequestController) messagesRequestController.abort();
             const container = document.querySelector('.chat-container');
             if (container) {
                 container.classList.remove('mobile-chat-open');
@@ -310,8 +317,10 @@
 
         // INSTANT SPA CHAT USER SWITCHING WITHOUT PAGE RELOAD
         async function switchChatUser(userId, username, roleLabel, roleCode, flagUrl, photoUrl) {
-            if (!userId || userId === currentRecipientId) {
+            if (!userId) return;
+            if (String(userId) === String(currentRecipientId)) {
                 openMobileChat();
+                await loadMessagesForUser(userId, true);
                 return;
             }
 
@@ -413,29 +422,32 @@
 
         async function loadMessagesForUser(userId, incremental = false, older = false) {
             const messagesHistory = document.getElementById('messages-history');
-            if (!messagesHistory) return;
+            if (!messagesHistory || !isChatPaneVisible()) return;
+            if (incremental && messagesRequestController) return;
+            if (messagesRequestController) messagesRequestController.abort();
+            const controller = new AbortController();
+            messagesRequestController = controller;
+            const wasNearBottom = messagesHistory.scrollHeight - messagesHistory.scrollTop - messagesHistory.clientHeight < 100;
 
             try {
-                if (messagesRequestController && !incremental) messagesRequestController.abort();
-                messagesRequestController = new AbortController();
                 const messageNodes = messagesHistory.querySelectorAll('[data-message-id]');
                 const cursorNode = older ? messageNodes[0] : messageNodes[messageNodes.length - 1];
                 const cursor = cursorNode ? cursorNode.dataset.messageId : '';
                 const cursorQuery = cursor ? (older ? `?before_id=${cursor}` : (incremental ? `?after_id=${cursor}` : '')) : '';
                 const res = await fetch(`/api/chat/messages/${userId}/${cursorQuery}`, {
-                    signal: messagesRequestController.signal,
+                    signal: controller.signal,
                     credentials: 'same-origin',
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.status === 'ok' && String(userId) === String(currentRecipientId)) {
+                    if (!controller.signal.aborted && data.status === 'ok' && String(userId) === String(currentRecipientId) && isChatPaneVisible()) {
                         if (incremental) {
                             data.messages.forEach(m => {
                                 if (!messagesHistory.querySelector(`[data-message-id="${m.id}"]`)) {
                                     messagesHistory.appendChild(buildMessageNode(m));
                                 }
                             });
-                            if (data.messages.length) scrollToBottom();
+                            if (data.messages.length && wasNearBottom) scrollToBottom();
                         } else if (older) {
                             prependMessages(data.messages);
                             const button = document.getElementById('load-older-messages');
@@ -449,6 +461,8 @@
                 if (err.name !== 'AbortError') {
                     console.error('Failed to load chat messages:', err);
                 }
+            } finally {
+                if (messagesRequestController === controller) messagesRequestController = null;
             }
         }
 
@@ -581,7 +595,7 @@
                     const recipientId = recipientIdInput ? recipientIdInput.value : '';
                     const complaintId = complaintIdInput ? complaintIdInput.value : '';
 
-                    if (!msg || !recipientId) return;
+                    if (!msg || !recipientId || sendBtn.disabled) return;
 
                     sendBtn.disabled = true;
                     try {
@@ -600,10 +614,12 @@
 
                         const res = await response.json();
                         if (response.ok && res.status === 'ok') {
-                            messageInput.value = '';
-                            clearComplaintContext();
-                            appendMessage(res.message);
-                            scrollToBottom();
+                            if (String(currentRecipientId) === String(recipientId)) {
+                                if (messageInput.value.trim() === msg) messageInput.value = '';
+                                clearComplaintContext();
+                                appendMessage(res.message);
+                                scrollToBottom();
+                            }
 
                             // Update active user's snippet & time in sidebar immediately
                             const activeUserItem = document.querySelector(`.chat-user-item[data-user-id="${recipientId}"]`);
@@ -647,6 +663,8 @@
 
             // Update sidebar users list and unread badges dynamically
             async function refreshUsersList() {
+                if (usersPollInProgress) return;
+                usersPollInProgress = true;
                 try {
                     const res = await fetch('/api/chat/users/');
                     if (!res.ok) return;
@@ -662,7 +680,7 @@
                         const item = document.querySelector(`.chat-user-item[data-user-id="${u.user_id}"]`);
                         if (item) {
                             const isCurrentActive = String(u.user_id) === String(currentRecipientId);
-                            const effectiveUnread = isCurrentActive ? 0 : u.unread_count;
+                            const effectiveUnread = (isChatPaneVisible() && isCurrentActive) ? 0 : u.unread_count;
                             totalUnread += effectiveUnread;
                             item.setAttribute('data-unread-count', effectiveUnread);
                             if (u.last_message_text) {
@@ -730,6 +748,8 @@
                     applyUserFilters();
                 } catch (err) {
                     console.error('Failed to refresh users list:', err);
+                } finally {
+                    usersPollInProgress = false;
                 }
             }
 
@@ -748,8 +768,9 @@
             }
 
             // Incremental message polling; the user list changes less often.
+            if (currentRecipientId && isChatPaneVisible()) loadMessagesForUser(currentRecipientId, true);
             const messagePoll = setInterval(async () => {
-                if (document.hidden || chatPollInProgress) return;
+                if (document.hidden || chatPollInProgress || !isChatPaneVisible()) return;
                 chatPollInProgress = true;
                 try {
                     if (currentRecipientId) await loadMessagesForUser(currentRecipientId, true);

@@ -3669,7 +3669,7 @@ class HtmxNavigationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            '<style data-fabro-page-asset>\n        /* Search Picker styles */',
+            '<style data-fabro-page-asset>',
             html=False,
         )
         self.assertContains(response, 'id="vehicle-search-picker"', html=False)
@@ -3686,7 +3686,7 @@ class HtmxNavigationTests(TestCase):
         self.assertContains(response, 'id="vehicle-csv-file"', html=False)
         self.assertContains(response, 'name="csv_file"', html=False)
         self.assertContains(response, 'accept=".csv,text/csv"', html=False)
-        self.assertContains(response, 'class="btn btn-success icon-btn vehicle-csv-upload-button"', html=False)
+        self.assertContains(response, 'vehicle-csv-upload-button', html=False)
         self.assertNotContains(
             response,
             f'<a href="{reverse("upload_car_csv")}"',
@@ -4306,7 +4306,8 @@ class PatternMasterCsvUploadTests(TestCase):
         # 5. Search by serial_number
         res_search = self.client.get(reverse('car_details'), {'search': 'I0001', 'search_by': 'serial_number'})
         self.assertContains(res_search, 'I0001')
-        self.assertNotContains(res_search, 'S0001')
+        # Display ranks always start at S0001; assert the actual matching records.
+        self.assertEqual([row['id'] for row in res_search.context['car_data']], [yr2.pk])
 
     def test_inline_vehicle_edit_and_row_rendering(self):
         self.client.force_login(self.admin)

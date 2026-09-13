@@ -109,6 +109,9 @@
     </main>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
+
         window.fabroOnPageLoad(() => {
             const form = document.getElementById('mark-all-read-form');
             const toast = document.getElementById('subtle-mark-read-toast');
@@ -121,7 +124,7 @@
 
                 try {
                     const formData = new FormData(form);
-                    const response = await fetch(form.action, {
+                    const response = await pageScope.fetch(form.action, {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -165,6 +168,8 @@
                 }
             });
         });
+
+    })();
     </script>
     </div>
 {% if not is_htmx_request %}

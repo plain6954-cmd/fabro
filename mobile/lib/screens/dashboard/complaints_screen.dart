@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../utils/theme.dart';
+import '../../widgets/pagination_footer.dart';
 
 class ComplaintsScreen extends StatefulWidget {
   const ComplaintsScreen({Key? key}) : super(key: key);
@@ -13,6 +14,8 @@ class ComplaintsScreen extends StatefulWidget {
 class _ComplaintsScreenState extends State<ComplaintsScreen> {
   final _apiService = ApiService();
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _requestGeneration = 0;
   String? _error;
   List<dynamic> _allComplaints = [];
   List<dynamic> _filteredComplaints = [];
@@ -26,7 +29,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
     super.initState();
     _fetchComplaints();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading) {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240 && _nextEndpoint != null && !_isLoading && !_isLoadingMore) {
         _fetchComplaints(reset: false);
       }
     });
@@ -40,33 +43,41 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
   }
 
   Future<void> _fetchComplaints({bool reset = true}) async {
+    if (!mounted || (!reset && (_isLoading || _isLoadingMore || _nextEndpoint == null))) return;
+    final generation = ++_requestGeneration;
+    final endpoint = reset ? '/api/complaints/' : _nextEndpoint!;
     setState(() {
-      _isLoading = true;
+      _isLoading = reset && _allComplaints.isEmpty;
+      _isLoadingMore = !reset;
       _error = null;
     });
-
     try {
-      final response = await _apiService.get(reset ? '/api/complaints/' : _nextEndpoint!);
-      if (response.statusCode == 200) {
-        setState(() {
-          final decoded = jsonDecode(response.body);
-          final items = decoded is Map<String, dynamic> ? List<dynamic>.from(decoded['results'] ?? const []) : List<dynamic>.from(decoded);
-          _allComplaints = reset ? items : [..._allComplaints, ...items];
-          _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
-          _applyFilters();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Failed to load complaints. Status code: ${response.statusCode}';
-          _isLoading = false;
-        });
+      final response = await _apiService.get(endpoint);
+      if (!mounted || generation != _requestGeneration) return;
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load complaints. Status code: ${response.statusCode}');
       }
+      final decoded = jsonDecode(response.body);
+      final items = decoded is Map<String, dynamic>
+          ? List<dynamic>.from(decoded['results'] ?? const [])
+          : List<dynamic>.from(decoded);
+      setState(() {
+        _allComplaints = reset ? items : [..._allComplaints, ...items];
+        _nextEndpoint = decoded is Map<String, dynamic> ? decoded['next'] as String? : null;
+        _applyFilters();
+      });
     } catch (e) {
+      if (!mounted || generation != _requestGeneration) return;
       setState(() {
         _error = e.toString().replaceAll('Exception:', '').trim();
-        _isLoading = false;
       });
+    } finally {
+      if (mounted && generation == _requestGeneration) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      }
     }
   }
 
@@ -193,7 +204,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchComplaints,
+            onPressed: _isLoadingMore ? null : _fetchComplaints,
           ),
         ],
       ),
@@ -246,7 +257,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
               onRefresh: _fetchComplaints,
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _error != null
+                  : _error != null && _allComplaints.isEmpty
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(24.0),
@@ -258,7 +269,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                                 Text(_error!, textAlign: TextAlign.center),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
-                                  onPressed: _fetchComplaints,
+                                  onPressed: _isLoadingMore ? null : _fetchComplaints,
                                   child: const Text('Retry'),
                                 ),
                               ],
@@ -269,6 +280,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                           ? const Center(child: Text('No complaints found.'))
                           : ListView.builder(
                               controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: _filteredComplaints.length,
                               itemBuilder: (context, index) {
                                 final complaint = _filteredComplaints[index];
@@ -333,6 +345,12 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                               },
                             ),
             ),
+          ),
+          PaginationFooter(
+            loading: _isLoadingMore,
+            hasMore: _nextEndpoint != null && !_isLoading,
+            error: _error,
+            onLoadMore: () => _fetchComplaints(reset: false),
           ),
         ],
       ),
