@@ -11,7 +11,7 @@
     <title>{% translate "Pattern Master - Fabro Leather" %}</title>
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260920-col-widths" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260920-no-logo" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -291,40 +291,8 @@
                 width: 0 !important;
                 height: 0 !important;
             }
-            .pattern-mobile-card__logo {
-                width: 44px !important;
-                height: 32px !important;
-                flex: 0 0 44px !important;
-                background: #ffffff !important;
-                border: 1px solid rgba(255, 255, 255, 0.2) !important;
-                border-radius: 8px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                overflow: hidden !important;
-                padding: 3px 5px !important;
-                box-sizing: border-box !important;
-            }
-            body.light-mode .pattern-mobile-card__logo {
-                background: #ffffff !important;
-                border-color: #cbd5e1 !important;
-            }
-            .pattern-mobile-card__logo img {
-                width: 100% !important;
-                height: 100% !important;
-                object-fit: contain !important;
-                display: block !important;
-            }
+            .pattern-mobile-card__logo,
             .pattern-mobile-card__no-logo {
-                color: #64748b !important;
-                font-size: 1rem !important;
-                display: flex;
-                align-items: center !important;
-                justify-content: center !important;
-                width: 100% !important;
-                height: 100% !important;
-            }
-            .pattern-mobile-card__no-logo[style*="display: none"] {
                 display: none !important;
             }
         }
@@ -1474,16 +1442,8 @@
                                         <!-- Mobile Card Presentation: Strictly visible on <= 768px via CSS -->
                                         <td class="mobile-pattern-card-view" colspan="12">
                                             <div class="pattern-mobile-card">
-                                                <!-- Header: Logo (46x34) + Brand/Model + Serial -->
+                                                <!-- Header: Brand/Model + Serial -->
                                                 <div class="pattern-mobile-card__header">
-                                                    <div class="pattern-mobile-card__logo">
-                                                        {% if car.brand_logo %}
-                                                            <img src="{{ car.brand_logo.url }}" alt="{{ car.brand }} logo" loading="lazy" width="46" height="34" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
-                                                            <div class="pattern-mobile-card__no-logo" style="display: none;"><i class="fas fa-car" aria-hidden="true"></i></div>
-                                                        {% else %}
-                                                            <div class="pattern-mobile-card__no-logo"><i class="fas fa-car" aria-hidden="true"></i></div>
-                                                        {% endif %}
-                                                    </div>
                                                     <div class="pattern-mobile-card__title-wrap">
                                                         <div class="pattern-mobile-card__brand">{{ car.brand }}</div>
                                                         <div class="pattern-mobile-card__model">{{ car.model }}</div>

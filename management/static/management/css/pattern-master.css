@@ -3414,44 +3414,8 @@
                 box-sizing: border-box !important;
             }
 
-            .pattern-mobile-card__logo {
-                width: 44px !important;
-                height: 32px !important;
-                flex: 0 0 44px !important;
-                background: #ffffff !important;
-                border: 1px solid rgba(255, 255, 255, 0.2) !important;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                overflow: hidden;
-                padding: 3px 5px !important;
-                box-sizing: border-box !important;
-            }
-
-            body.light-mode .pattern-mobile-card__logo {
-                background: #ffffff !important;
-                border-color: #cbd5e1 !important;
-            }
-
-            .pattern-mobile-card__logo img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-                display: block;
-            }
-
+            .pattern-mobile-card__logo,
             .pattern-mobile-card__no-logo {
-                color: #64748b;
-                font-size: 1rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 100%;
-                height: 100%;
-            }
-
-            .pattern-mobile-card__no-logo[style*="display: none"] {
                 display: none !important;
             }
 
