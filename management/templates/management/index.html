@@ -11,32 +11,7 @@
     <title>{% translate "Dashboard - Fabro Leather" %}</title>
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/dashboard.css' %}?v=20260920-workflow-btn-mobile" data-fabro-page-asset>
-    <style data-fabro-page-asset>
-        @media (max-width: 768px) {
-            .complaint-details-col-workflow {
-                grid-column: 1 / -1 !important;
-            }
-            .complaint-details-workflow-content {
-                display: flex !important;
-                flex-direction: row !important;
-                align-items: flex-end !important;
-                justify-content: space-between !important;
-                gap: 0.75rem !important;
-                flex-wrap: wrap !important;
-            }
-            .complaint-details-workflow-info {
-                flex: 1 1 auto !important;
-                min-width: 160px !important;
-            }
-            .complaint-details-workflow-btn-wrap {
-                margin-top: 0 !important;
-                flex: 0 0 auto !important;
-                margin-left: auto !important;
-                align-self: flex-end !important;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'management/css/dashboard.css' %}?v=20260920-workflow-btn-mobile-2" data-fabro-page-asset>
 {% if is_htmx_request %}
 </template>
 {% else %}

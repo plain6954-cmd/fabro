@@ -4332,7 +4332,8 @@ class PatternMasterCsvUploadTests(TestCase):
         self.assertContains(res, f'id="row-view-{yr.id}"')
         self.assertContains(res, f'id="row-edit-{yr.id}"')
         self.assertContains(res, f'id="edit-vehicle-form-{yr.id}"')
-        self.assertContains(res, f"startInlineEdit('{yr.id}')")
+        self.assertContains(res, 'window.startInlineEdit = function(carId)')
+        self.assertContains(res, f"openMobilePatternSheet('edit', '{yr.id}')")
         self.assertContains(res, f"cancelInlineEdit('{yr.id}')")
 
         # 2. Submit inline edit POST via AJAX to edit_car_detail without page reload
@@ -4695,17 +4696,17 @@ class PatternMasterReversedOrderTests(TestCase):
         self.assertEqual(response.status_code, 200)
         car_data = response.context['car_data']
 
-        # Verify car_data has the latest pattern at index 0 with S0001
+        # The newest pattern is first and keeps its persistent serial number.
         self.assertEqual(car_data[0]['id'], self.yr_newest.id)
-        self.assertEqual(car_data[0]['serial_number'], 'S0001')
+        self.assertEqual(car_data[0]['serial_number'], 'S0003')
 
-        # Verify middle pattern at index 1 with S0002
+        # Older records retain their identifiers instead of being renumbered.
         self.assertEqual(car_data[1]['id'], self.yr_middle.id)
         self.assertEqual(car_data[1]['serial_number'], 'S0002')
 
-        # Verify oldest pattern at index 2 with S0003
+        # The oldest record remains S0001.
         self.assertEqual(car_data[2]['id'], self.yr_oldest.id)
-        self.assertEqual(car_data[2]['serial_number'], 'S0003')
+        self.assertEqual(car_data[2]['serial_number'], 'S0001')
 
     def test_new_pattern_creation_shifts_existing_down(self):
         # Add brand new pattern
@@ -4721,13 +4722,13 @@ class PatternMasterReversedOrderTests(TestCase):
         self.assertEqual(response.status_code, 200)
         car_data = response.context['car_data']
 
-        # The newly added pattern is now #1: S0001
+        # The newly added pattern is first and receives the next stable serial.
         self.assertEqual(car_data[0]['id'], yr_super_new.id)
-        self.assertEqual(car_data[0]['serial_number'], 'S0001')
+        self.assertEqual(car_data[0]['serial_number'], 'S0004')
 
-        # Previous newest shifted to S0002
+        # The previous newest pattern keeps its serial number.
         self.assertEqual(car_data[1]['id'], self.yr_newest.id)
-        self.assertEqual(car_data[1]['serial_number'], 'S0002')
+        self.assertEqual(car_data[1]['serial_number'], 'S0003')
 
     def test_cancel_inline_add_button_rendered(self):
         response = self.client.get(reverse('car_details'))
@@ -4900,7 +4901,8 @@ class MobileResponsiveDesignTests(TestCase):
         self.assertIn('stats-sidebar-section', content)
         self.assertIn('stats-sidebar-list', content)
         self.assertIn('toggleComplaintDetails', content)
-        self.assertIn('window.innerWidth <= 768', content)
+        self.assertIn('management/css/dashboard.css', content)
+        self.assertIn('workflow-btn-mobile-2', content)
 
     def test_pattern_master_mobile_optimized_elements(self):
         response = self.client.get(reverse('car_details'))

@@ -608,19 +608,24 @@ def car_details(request):
     new_search_enabled = True
     scoped_search_enabled = True
 
-    # Fetch car data (Optimized via select_related, ordered by descending serial number so latest is at the top)
-    yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').order_by('-serial_number', '-id')
+    # Serial sequences restart per country, so the primary key is the reliable
+    # cross-country creation order. Keep the newest pattern at the top while
+    # displaying each record's persistent country-prefixed serial number.
+    yr_qs = YearRange.objects.select_related(
+        'sub_model__model__brand', 'vehicle_country', 'measurement_country'
+    ).order_by('-id')
     if search_query:
         if search_column in ('serial_number', 'serial_no', 'serial'):
             import re
-            m = re.fullmatch(r'[a-zA-Z]?(\d+)', search_query)
+            m = re.fullmatch(r'([a-zA-Z]?)(\d+)', search_query)
             if m:
-                target_num = int(m.group(1))
+                prefix = m.group(1).upper()
+                target_num = int(m.group(2))
                 formatted = f"{target_num:04d}"
-                yr_qs = yr_qs.filter(
-                    Q(serial_number__icontains=search_query) |
-                    Q(serial_number__icontains=formatted)
-                )
+                if prefix:
+                    yr_qs = yr_qs.filter(serial_number__iexact=f"{prefix}{formatted}")
+                else:
+                    yr_qs = yr_qs.filter(serial_number__iendswith=formatted)
             else:
                 yr_qs = yr_qs.filter(serial_number__icontains=search_query)
         elif search_column == 'x_code':

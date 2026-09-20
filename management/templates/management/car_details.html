@@ -4568,7 +4568,7 @@
         let cachedBrandModelMap = null;
 
         function getVehicleTableData() {
-            const rows = document.querySelectorAll('.table tbody tr');
+            const rows = document.querySelectorAll('.table tbody tr[id^="row-view-"]');
             const data = [];
             const brandSet = new Set();
             const yearSet = new Set();
@@ -4578,16 +4578,22 @@
             const brandModelMap = new Map();
 
             rows.forEach(row => {
-                if (row.id === 'inline-add-row' || row.classList.contains('inline-edit-row')) return;
-                const getVal = (colIdx) => window.getCleanCellText ? window.getCleanCellText(row.cells[colIdx]) : (row.cells[colIdx]?.textContent.trim() || '');
-                const brand = getVal(1);
-                const model = getVal(2);
-                const year = getVal(3);
-                const subModel = getVal(4);
-                const xCode = getVal(7);
-                const fitting = getVal(8);
-                const vCountry = getVal(9);
-                const mCountry = getVal(10);
+                const getVal = (selector) => {
+                    const cell = row.querySelector(selector);
+                    return window.getCleanCellText
+                        ? window.getCleanCellText(cell)
+                        : (cell?.textContent.trim() || '');
+                };
+                // Resolve by semantic column classes. Numeric indexes became
+                // fragile when selection and mobile-card cells were introduced.
+                const brand = getVal('.col-brand');
+                const model = getVal('.col-model');
+                const year = getVal('.col-year');
+                const subModel = getVal('.col-submodel');
+                const xCode = getVal('.col-xcode');
+                const fitting = getVal('.col-fitting');
+                const vCountry = getVal('.col-vehicle-country');
+                const mCountry = getVal('.col-measurement-country');
 
                 if (brand) {
                     brandSet.add(brand);
