@@ -8,7 +8,137 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/chat.css' %}?v=20260907-perf1">
+    <link rel="stylesheet" href="{% static 'management/css/chat.css' %}?v=20260920-header-input-opt">
+    <style data-fabro-page-asset="chat-opt">
+        .chat-header {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+        .chat-header-info {
+            min-width: 0 !important;
+            flex: 1 1 auto !important;
+            overflow: hidden !important;
+        }
+        .chat-header-user-meta {
+            min-width: 0 !important;
+            flex: 1 1 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            gap: 0.15rem !important;
+            overflow: hidden !important;
+        }
+        .chat-header-title-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+        }
+        .chat-header-title {
+            font-size: 0.98rem !important;
+            font-weight: 700 !important;
+            margin: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+        }
+        #header-username {
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+        #header-flag-wrapper {
+            flex-shrink: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+        }
+        .chat-header-subtitle-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.45rem !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+        }
+        .chat-header-subtitle-row .user-role-pill {
+            max-width: 160px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            font-size: 0.65rem !important;
+            font-weight: 600 !important;
+            padding: 0.08rem 0.42rem !important;
+            flex-shrink: 1 !important;
+        }
+        .preset-chips {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        .preset-chips::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        .chat-textarea {
+            min-height: 44px !important;
+            max-height: 120px !important;
+            height: 44px;
+            padding: 0.62rem 0.85rem !important;
+            line-height: 1.4 !important;
+            font-size: 0.88rem !important;
+            overflow-y: auto !important;
+            box-sizing: border-box !important;
+            resize: none !important;
+        }
+        @media (max-width: 820px) {
+            .chat-header {
+                padding: 0.55rem 0.75rem !important;
+                gap: 0.45rem !important;
+            }
+            .chat-header-info {
+                gap: 0.45rem !important;
+            }
+            .chat-header-subtitle-row .user-role-pill {
+                max-width: 110px !important;
+            }
+            .chat-textarea {
+                min-height: 42px !important;
+                height: 42px;
+                padding: 0.58rem 0.75rem !important;
+                font-size: 0.85rem !important;
+            }
+            .chat-input-footer {
+                padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+            }
+        }
+        @media (max-width: 640px) {
+            .chat-header-action-text {
+                display: none !important;
+            }
+            .chat-header-action-btn {
+                width: 34px !important;
+                height: 34px !important;
+                min-height: 34px !important;
+                padding: 0 !important;
+                border-radius: 8px !important;
+                justify-content: center !important;
+            }
+            .chat-header-action-btn i {
+                font-size: 0.95rem !important;
+                margin: 0 !important;
+            }
+        }
+    </style>
 </head>
 <body>
     {% include 'management/base.html' %}
@@ -124,24 +254,30 @@
                                 </div>
                                 <span class="status-dot"></span>
                             </div>
-                            <div>
-                                <h3 class="chat-header-title">
-                                    <span id="header-username">{{ selected_user.username }}</span>
-                                    <span id="header-flag-wrapper">
-                                        {% if selected_user_profile.country_flag_url %}
-                                            <img src="{{ selected_user_profile.country_flag_url }}" style="width: 18px; height: 13px; border-radius: 2px;" alt="Flag">
-                                        {% endif %}
-                                    </span>
+                            <div class="chat-header-user-meta">
+                                <div class="chat-header-title-row">
+                                    <h3 class="chat-header-title">
+                                        <span id="header-username">{{ selected_user.username }}</span>
+                                        <span id="header-flag-wrapper">
+                                            {% if selected_user_profile.country_flag_url %}
+                                                <img src="{{ selected_user_profile.country_flag_url }}" style="width: 18px; height: 13px; border-radius: 2px;" alt="Flag">
+                                            {% endif %}
+                                        </span>
+                                    </h3>
+                                </div>
+                                <div class="chat-header-subtitle-row">
                                     <span class="user-role-pill" id="header-role">{{ selected_role_label }}</span>
-                                </h3>
-                                <div class="chat-status-sub">
-                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> {% translate "Active Now" %}
+                                    <div class="chat-status-sub">
+                                        <i class="fas fa-circle" style="font-size: 0.45rem;"></i>
+                                        <span>{% translate "Active Now" %}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            <a href="{% url 'complaint_list' %}" class="workflow-btn secondary" style="min-height: 2.2rem; padding: 0.38rem 0.85rem; font-size: 0.78rem;">
-                                <i class="fas fa-list-alt"></i> {% translate "Complaints List" %}
+                        <div class="chat-header-actions">
+                            <a href="{% url 'complaint_list' %}" class="chat-header-action-btn workflow-btn secondary" title="{% translate "Complaints List" %}" aria-label="{% translate "Complaints List" %}">
+                                <i class="fas fa-list-alt"></i>
+                                <span class="chat-header-action-text">{% translate "Complaints List" %}</span>
                             </a>
                         </div>
                     </header>
@@ -195,9 +331,9 @@
                         <form id="chat-form" class="chat-input-form">
                             {% csrf_token %}
                             <input type="hidden" id="recipient-id" value="{{ selected_user.id }}">
-                            <input type="hidden" id="complaint-id" value="{% if selected_complaint %}{{ selected_complaint.complaint_id }}{% endif %}">
                             {% blocktranslate with username=selected_user.username asvar message_placeholder %}Type a message to {{ username }}... (Press Enter to send){% endblocktranslate %}
-                            <textarea id="message-input" class="chat-textarea" placeholder="{{ message_placeholder }}" required>{{ default_message }}</textarea>
+                            {% blocktranslate with username=selected_user.username asvar message_placeholder_mobile %}Type a message to {{ username }}...{% endblocktranslate %}
+                            <textarea id="message-input" class="chat-textarea" placeholder="{{ message_placeholder }}" data-desktop-placeholder="{{ message_placeholder }}" data-mobile-placeholder="{{ message_placeholder_mobile }}" rows="1" required>{{ default_message }}</textarea>
                             <button type="submit" class="chat-send-btn" id="send-btn" title="{% translate "Send Message" %}">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
@@ -228,6 +364,16 @@
                 || document.querySelector('.chat-container')?.classList.contains('mobile-chat-open');
         }
 
+        function autoResizeChatInput(el) {
+            if (!el) return;
+            el.style.height = 'auto';
+            const isMobile = window.innerWidth <= 820;
+            const minH = isMobile ? 42 : 44;
+            const maxH = 120;
+            const targetH = Math.min(Math.max(el.scrollHeight, minH), maxH);
+            el.style.height = targetH + 'px';
+        }
+
         function appendPreset(text) {
             const input = document.getElementById('message-input');
             if (input) {
@@ -236,6 +382,7 @@
                 } else {
                     input.value = text;
                 }
+                autoResizeChatInput(input);
                 input.focus();
             }
         }
@@ -387,10 +534,19 @@
 
             const msgInput = document.getElementById('message-input');
             if (msgInput) {
-                msgInput.placeholder = window.FabroI18n.interpolate(
-                    window.FabroI18n.gettext('Type a message to %(username)s... (Press Enter to send)'),
-                    { username }
-                );
+                const isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    msgInput.placeholder = window.FabroI18n.interpolate(
+                        window.FabroI18n.gettext('Type a message to %(username)s...'),
+                        { username }
+                    );
+                } else {
+                    msgInput.placeholder = window.FabroI18n.interpolate(
+                        window.FabroI18n.gettext('Type a message to %(username)s... (Press Enter to send)'),
+                        { username }
+                    );
+                }
+                autoResizeChatInput(msgInput);
                 msgInput.focus();
             }
 
@@ -577,8 +733,13 @@
                 userSearch.addEventListener('input', applyUserFilters);
             }
 
-            // 2. Enter key submits message
+            // 2. Enter key submits message & auto-resize
             if (messageInput) {
+                if (window.innerWidth <= 768 && messageInput.dataset.mobilePlaceholder) {
+                    messageInput.placeholder = messageInput.dataset.mobilePlaceholder;
+                }
+                messageInput.addEventListener('input', () => autoResizeChatInput(messageInput));
+                autoResizeChatInput(messageInput);
                 messageInput.focus();
                 messageInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -616,7 +777,10 @@
                         const res = await response.json();
                         if (response.ok && res.status === 'ok') {
                             if (String(currentRecipientId) === String(recipientId)) {
-                                if (messageInput.value.trim() === msg) messageInput.value = '';
+                                if (messageInput.value.trim() === msg) {
+                                    messageInput.value = '';
+                                    autoResizeChatInput(messageInput);
+                                }
                                 clearComplaintContext();
                                 appendMessage(res.message);
                                 scrollToBottom();
