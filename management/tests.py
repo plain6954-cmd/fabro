@@ -4653,6 +4653,8 @@ class PatternMasterSortingTests(TestCase):
         self.assertIn('data-sort-key="measurement_country"', content)
         self.assertIn('col-sort-btn', content)
         self.assertIn('sortPatternTable', content)
+        self.assertIn('fa-arrow-up-1-9', content)
+        self.assertIn('fa-arrow-down-9-1', content)
 
 
 class PatternMasterReversedOrderTests(TestCase):

@@ -1187,9 +1187,9 @@
                                         <input type="checkbox" id="patternSelectAll" class="pattern-checkbox" title="{% translate "Select all" %}" aria-label="{% translate "Select all" %}">
                                     </th>
                                     <th class="col-num">
-                                        <button type="button" class="col-sort-btn is-sorted" data-sort-key="serial_number" title="{% translate "Sort by Serial Number" %}" aria-label="{% translate "Sort by Serial Number" %}" aria-sort="descending">
+                                        <button type="button" class="col-sort-btn" data-sort-key="serial_number" title="{% translate "Sort by Serial Number" %}" aria-label="{% translate "Sort by Serial Number" %}" aria-sort="none">
                                             <span>#</span>
-                                            <i class="fas fa-arrow-down-9-1 col-sort-icon"></i>
+                                            <i class="fas fa-sort col-sort-icon"></i>
                                         </button>
                                     </th>
                                     {% if new_search_enabled %}
@@ -2951,7 +2951,11 @@
                         btn.classList.add('is-sorted');
                         btn.setAttribute('aria-sort', currentSortDir === 'asc' ? 'ascending' : 'descending');
                         if (icon) {
-                            icon.className = currentSortDir === 'asc' ? 'fas fa-arrow-up-a-z col-sort-icon' : 'fas fa-arrow-down-z-a col-sort-icon';
+                            if (sortKey === 'serial_number') {
+                                icon.className = currentSortDir === 'asc' ? 'fas fa-arrow-up-1-9 col-sort-icon' : 'fas fa-arrow-down-9-1 col-sort-icon';
+                            } else {
+                                icon.className = currentSortDir === 'asc' ? 'fas fa-arrow-up-a-z col-sort-icon' : 'fas fa-arrow-down-z-a col-sort-icon';
+                            }
                         }
                     } else {
                         btn.classList.remove('is-sorted');
@@ -3000,15 +3004,17 @@
                     });
                 }
 
-                // Preserve add-row at the very top of tbody
-                const addRow = document.getElementById('inline-add-row');
-                if (addRow) tbody.appendChild(addRow);
-
                 // Re-append sorted rows in tbody
                 rowPairs.forEach(pair => {
                     tbody.appendChild(pair.viewRow);
                     if (pair.editRow) tbody.appendChild(pair.editRow);
                 });
+
+                // Preserve add-row at the very top of tbody
+                const addRow = document.getElementById('inline-add-row');
+                if (addRow) {
+                    tbody.insertBefore(addRow, tbody.firstChild);
+                }
             }
 
             // Expose globally
