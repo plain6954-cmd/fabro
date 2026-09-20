@@ -9,9 +9,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Dashboard - Fabro Leather" %}</title>
-    <link rel="icon" type="image/png" href="/static/FABRO__BRAND ICON_FINAL_CMYK.png">
+    {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/dashboard.css' %}?v=20260912-statsgrid2" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/dashboard.css' %}?v=20260919-viewbtn-fix" data-fabro-page-asset>
 {% if is_htmx_request %}
 </template>
 {% else %}
@@ -84,43 +84,6 @@
                                             <button type="button" class="btn-view dashboard-view-button" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" title="{% translate "View Details" %}" aria-label="{% translate "View complaint" %} {{ complaint.complaint_id }}">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                        </td>
-
-                                        <!-- Dedicated Mobile Card View -->
-                                        <td class="mobile-complaint-card-view" colspan="8">
-                                            <div class="dashboard-mobile-card">
-                                                <div class="dmc-top-row">
-                                                    <span class="dmc-id-badge">{{ complaint.complaint_id }}</span>
-                                                    <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}">
-                                                        {{ complaint.get_workflow_status_display }}
-                                                    </span>
-                                                </div>
-                                                <div class="dmc-vehicle-row">
-                                                    <i class="fas fa-car dmc-icon"></i>
-                                                    <span class="dmc-vehicle-name">{{ complaint.brand.name|default:"" }} {{ complaint.model.name|default:"N/A" }}</span>
-                                                    {% if complaint.get_complaint_type_display %}
-                                                    <span class="dmc-type-pill">{{ complaint.get_complaint_type_display }}</span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="dmc-info-grid">
-                                                    <div class="dmc-info-item">
-                                                        <i class="far fa-calendar-alt"></i>
-                                                        <span>{{ complaint.date|date:"Y-m-d" }}</span>
-                                                    </div>
-                                                    <div class="dmc-info-item">
-                                                        <i class="far fa-user"></i>
-                                                        <span>{{ complaint.person.name|default:"N/A" }}</span>
-                                                    </div>
-                                                </div>
-                                                <div class="dmc-bottom-row">
-                                                    <span class="dmc-priority-tag priority-{{ complaint.priority|lower }}">
-                                                        <i class="fas fa-circle" style="font-size: 0.45rem;"></i> {{ complaint.priority|upper }}
-                                                    </span>
-                                                    <span class="dmc-view-toggle">
-                                                        {% translate "View Details" %} <i class="fas fa-chevron-down dmc-chevron"></i>
-                                                    </span>
-                                                </div>
-                                            </div>
                                         </td>
                                     </tr>
 
@@ -239,38 +202,6 @@
                                                 <i class="fas fa-check-circle"></i>
                                             </a>
                                         </td>
-
-                                        <!-- Dedicated Mobile Approval Card View -->
-                                        <td class="mobile-approval-card-view" colspan="8">
-                                            <div class="dashboard-mobile-approval-card">
-                                                <div class="dmac-top-row">
-                                                    <span class="dmac-id-badge">{{ approval.complaint.complaint_id }}</span>
-                                                    {% if approval.review_stage == 'reconsideration' %}
-                                                    <span class="stage-pill reconsideration">{% translate "Reconsideration" %}</span>
-                                                    {% elif approval.review_stage == 'verification' %}
-                                                    <span class="stage-pill verification">{% translate "Verification" %}</span>
-                                                    {% else %}
-                                                    <span class="stage-pill initial">{% translate "Initial Approval" %}</span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="dmac-vehicle-row">
-                                                    <i class="fas fa-car dmc-icon"></i>
-                                                    <span>{{ approval.complaint.brand.name|default:"" }} {{ approval.complaint.model.name|default:"N/A" }}</span>
-                                                </div>
-                                                <div class="dmac-meta-row">
-                                                    <span class="role-tag">{{ approval.get_approver_role_display|default:approval.approver_role|upper }}</span>
-                                                    <span style="font-weight: 700; font-size: 0.74rem; color: {% if approval.complaint.priority == 'top' or approval.complaint.factory_priority == 'top' %}#ef4444{% elif approval.complaint.priority == 'medium' or approval.complaint.factory_priority == 'medium' %}#f59e0b{% else %}#3b82f6{% endif %};">
-                                                        <i class="fas fa-flag" style="font-size: 0.65rem;"></i> {{ approval.complaint.factory_priority|default:approval.complaint.priority|upper }}
-                                                    </span>
-                                                    <span><i class="far fa-calendar-alt"></i> {{ approval.created_at|date:"Y-m-d" }}</span>
-                                                </div>
-                                                <div class="dmac-action-row">
-                                                    <a href="{% url 'approval_review' approval.id %}" class="dmac-review-btn">
-                                                        <i class="fas fa-check-circle"></i> {% translate "Review Decision" %}
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -331,43 +262,6 @@
                                         <button type="button" class="btn-view dashboard-view-button" onclick="toggleComplaintDetails('{{ complaint.complaint_id }}')" title="{% translate "View Details" %}" aria-label="{% translate "View complaint" %} {{ complaint.complaint_id }}">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                    </td>
-
-                                    <!-- Dedicated Mobile Card View -->
-                                    <td class="mobile-complaint-card-view" colspan="8">
-                                        <div class="dashboard-mobile-card">
-                                            <div class="dmc-top-row">
-                                                <span class="dmc-id-badge">{{ complaint.complaint_id }}</span>
-                                                <span class="status-badge dashboard-status workflow-{{ complaint.workflow_status }}">
-                                                    {{ complaint.get_workflow_status_display }}
-                                                </span>
-                                            </div>
-                                            <div class="dmc-vehicle-row">
-                                                <i class="fas fa-car dmc-icon"></i>
-                                                <span class="dmc-vehicle-name">{{ complaint.brand.name|default:"" }} {{ complaint.model.name|default:"N/A" }}</span>
-                                                {% if complaint.get_complaint_type_display %}
-                                                <span class="dmc-type-pill">{{ complaint.get_complaint_type_display }}</span>
-                                                {% endif %}
-                                            </div>
-                                            <div class="dmc-info-grid">
-                                                <div class="dmc-info-item">
-                                                    <i class="far fa-calendar-alt"></i>
-                                                    <span>{{ complaint.date|date:"Y-m-d" }}</span>
-                                                </div>
-                                                <div class="dmc-info-item">
-                                                    <i class="far fa-user"></i>
-                                                    <span>{{ complaint.person.name|default:"N/A" }}</span>
-                                                </div>
-                                            </div>
-                                            <div class="dmc-bottom-row">
-                                                <span class="dmc-priority-tag priority-{{ complaint.priority|lower }}">
-                                                    <i class="fas fa-circle" style="font-size: 0.45rem;"></i> {{ complaint.priority|upper }}
-                                                </span>
-                                                <span class="dmc-view-toggle">
-                                                    {% translate "View Details" %} <i class="fas fa-chevron-down dmc-chevron"></i>
-                                                </span>
-                                            </div>
-                                        </div>
                                     </td>
                                 </tr>
 
@@ -557,8 +451,7 @@
             });
             document.querySelectorAll('.complaint-row').forEach(r => r.classList.remove('is-expanded'));
 
-            const activeDisplay = window.innerWidth <= 768 ? 'block' : 'table-row';
-            detailsRow.style.display = isHidden ? activeDisplay : 'none';
+            detailsRow.style.display = isHidden ? 'table-row' : 'none';
             if (isHidden) {
                 const parentRow = detailsRow.previousElementSibling;
                 if (parentRow && parentRow.classList.contains('complaint-row')) {

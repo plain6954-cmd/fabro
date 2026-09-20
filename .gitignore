@@ -48,3 +48,8 @@ scratch/
 .env.production
 .env.production.backup-*
 *.backup-*
+
+# OS metadata
+.DS_Store
+__MACOSX/
+Thumbs.db

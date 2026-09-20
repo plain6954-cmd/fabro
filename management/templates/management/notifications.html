@@ -9,6 +9,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Notifications - Fabro Leather" %}</title>
+    {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
     <style data-fabro-page-asset>
@@ -77,18 +78,38 @@
             {% if notifications %}
                 <div class="notification-list-page">
                     {% for notification in notifications %}
-                        <a href="{% url 'open_notification' notification.id %}" class="notification-row {% if not notification.is_read %}unread{% endif %}">
-                            <span class="notification-icon">
-                                <i class="fas {% if notification.notification_type == 'approval' %}fa-user-check{% elif notification.notification_type == 'fully_approved' %}fa-flag-checkered{% elif notification.notification_type == 'rework' %}fa-rotate-left{% elif notification.notification_type == 'closed' %}fa-check-circle{% else %}fa-bell{% endif %}"></i>
-                            </span>
-                            <span>
-                                <strong>{{ notification.title }}</strong>
-                                <span>{% if notification.complaint %}{{ notification.complaint.complaint_id }} · {% endif %}{{ notification.message|default:"Workflow update available." }}</span>
-                            </span>
-                            <span class="status-pill {% if notification.is_read %}approved{% else %}pending{% endif %}">
-                                {% if notification.is_read %}Read{% else %}New{% endif %}
-                            </span>
-                        </a>
+                        {% if notification.notification_type == 'pattern_approval' and notification.alteration and notification.alteration.status == 'pending' %}
+                            <div class="notification-row pattern-alteration-row {% if not notification.is_read %}unread{% endif %}" id="notif-row-{{ notification.id }}">
+                                <span class="notification-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                                    <i class="fas fa-shield-halved"></i>
+                                </span>
+                                <span style="flex: 1 1 auto; min-width: 0;">
+                                    <strong>{{ notification.title }}</strong>
+                                    <span style="display: block; font-size: 0.82rem; color: #94a3b8; margin-top: 2px;">{{ notification.message|default:"Pattern master alteration pending approval." }}</span>
+                                </span>
+                                <div class="pattern-alteration-actions" style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;">
+                                    <button type="button" class="workflow-btn" onclick="decidePatternAlteration('{{ notification.alteration.id }}', 'approve', '{{ notification.id }}')" style="background: #10b981; color: #fff; border: none; padding: 0.35rem 0.65rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fas fa-check"></i> {% translate "Approve" %}
+                                    </button>
+                                    <button type="button" class="workflow-btn" onclick="decidePatternAlteration('{{ notification.alteration.id }}', 'reject', '{{ notification.id }}')" style="background: #ef4444; color: #fff; border: none; padding: 0.35rem 0.65rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fas fa-times"></i> {% translate "Reject" %}
+                                    </button>
+                                </div>
+                            </div>
+                        {% else %}
+                            <a href="{% url 'open_notification' notification.id %}" class="notification-row {% if not notification.is_read %}unread{% endif %}">
+                                <span class="notification-icon">
+                                    <i class="fas {% if notification.notification_type == 'approval' %}fa-user-check{% elif notification.notification_type == 'pattern_approval' %}fa-shield-halved{% elif notification.notification_type == 'fully_approved' %}fa-flag-checkered{% elif notification.notification_type == 'rework' %}fa-rotate-left{% elif notification.notification_type == 'closed' %}fa-check-circle{% else %}fa-bell{% endif %}"></i>
+                                </span>
+                                <span>
+                                    <strong>{{ notification.title }}</strong>
+                                    <span>{% if notification.complaint %}{{ notification.complaint.complaint_id }} · {% endif %}{{ notification.message|default:"Workflow update available." }}</span>
+                                </span>
+                                <span class="status-pill {% if notification.is_read %}approved{% else %}pending{% endif %}">
+                                    {% if notification.is_read %}Read{% else %}New{% endif %}
+                                </span>
+                            </a>
+                        {% endif %}
                     {% endfor %}
                 </div>
             {% else %}
@@ -169,6 +190,40 @@
             });
         });
 
+        window.decidePatternAlteration = async function(alterationId, decision, notifId) {
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+                const response = await fetch(`/api/pattern-alterations/${alterationId}/decide/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ decision: decision })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const row = document.getElementById(`notif-row-${notifId}`);
+                    if (row) {
+                        row.classList.remove('unread');
+                        const actionsDiv = row.querySelector('.pattern-alteration-actions');
+                        if (actionsDiv) {
+                            const isApproved = decision === 'approve';
+                            const badgeBg = isApproved ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)';
+                            const badgeColor = isApproved ? '#10b981' : '#ef4444';
+                            const badgeBorder = isApproved ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)';
+                            const label = isApproved ? (window.FabroI18n ? window.FabroI18n.gettext('Approved') : 'Approved') : (window.FabroI18n ? window.FabroI18n.gettext('Rejected') : 'Rejected');
+                            actionsDiv.innerHTML = `<span class="status-pill" style="background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">${label}</span>`;
+                        }
+                    }
+                } else {
+                    alert(data.message || 'Error saving decision');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to submit decision.');
+            }
+        };
     })();
     </script>
     </div>

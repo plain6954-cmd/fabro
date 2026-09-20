@@ -775,9 +775,39 @@ class ComplaintTimeline(models.Model):
         return f"{self.complaint_id} - {self.title}"
 
 
+class PatternAlteration(models.Model):
+    ACTION_CHOICES = [
+        ('update', _('Update Pattern')),
+        ('delete', _('Delete Pattern')),
+        ('bulk_delete', _('Bulk Delete Patterns')),
+    ]
+    STATUS_CHOICES = [
+        ('pending', _('Pending Approval')),
+        ('approved', _('Approved')),
+        ('rejected', _('Rejected')),
+    ]
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pattern_alterations')
+    action_type = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    pattern_ids = models.JSONField(default=list)
+    summary = models.TextField()
+    payload = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_alterations')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.action_type} by {self.requested_by.username} ({self.status})"
+
+
 class Notification(models.Model):
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='workflow_notifications')
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    alteration = models.ForeignKey(PatternAlteration, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     title = models.CharField(max_length=150)
     message = models.TextField(blank=True)
     notification_type = models.CharField(max_length=50, default='workflow')
@@ -808,6 +838,22 @@ class ComplaintEditLog(models.Model):
 
     def __str__(self):
         return f"{self.complaint_id} - {self.field_name}"
+
+
+class PatternEditLog(models.Model):
+    year_range = models.ForeignKey('YearRange', on_delete=models.SET_NULL, null=True, blank=True, related_name='edit_logs')
+    pattern_serial = models.CharField(max_length=50, blank=True, default='')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='pattern_edits')
+    action = models.CharField(max_length=50, default='updated')
+    summary = models.CharField(max_length=255, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Pattern {self.year_range_id} {self.action} by {self.user}"
 
 # Activity Log Model
 

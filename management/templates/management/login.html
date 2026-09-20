@@ -4,8 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% translate "Login - Fabro Leather" %}</title>
-    <link rel="icon" type="image/png" href="{% static 'FABRO__BRAND ICON_FINAL_CMYK.png' %}">
+    <title>{% translate "Login - Fabro Craft" %}</title>
+    {% include 'management/includes/favicons.html' %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
     <script>window.FABRO_LANGUAGE = '{{ LANGUAGE_CODE|default:"en"|escapejs }}';</script>
@@ -19,7 +22,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #121214;
             background-image:
                 radial-gradient(circle, rgba(220, 38, 38, 0.2) 0 1px, transparent 1.7px),
@@ -34,20 +37,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
+            padding: 1.25rem 1rem;
         }
 
         .login-container {
             background:
                 linear-gradient(135deg, rgba(255, 255, 255, 0.09), transparent 42%),
-                rgba(30, 30, 35, 0.76);
-            backdrop-filter: blur(22px) saturate(140%);
+                rgba(26, 26, 31, 0.82);
+            backdrop-filter: blur(24px) saturate(140%);
             border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 20px;
-            padding: 3rem;
+            border-radius: 18px;
+            padding: 2.15rem 2rem 1.6rem;
             width: 100%;
-            max-width: 450px;
-            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            max-width: 385px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
             animation: loginPanelIn 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -59,7 +62,7 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
             background: linear-gradient(90deg, #dc2626, #f43f5e, #f43f5e);
         }
 
@@ -75,70 +78,89 @@
 
         .brand-section {
             text-align: center;
-            margin-bottom: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .brand-icon {
-            width: min(17rem, 82vw);
-            height: 6.5rem;
-            margin: 0 auto 1rem;
+        .brand-icon-top {
+            width: 140px;
+            height: auto;
+            margin: 0 auto 0.7rem;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .brand-icon img {
+        .brand-icon-top img {
             width: 100%;
-            height: 100%;
+            height: auto;
             object-fit: contain;
-            filter: drop-shadow(0 16px 34px rgba(220, 38, 38, 0.28));
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
         }
 
-        .brand-title {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #dc2626, #f43f5e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
+        .brand-craft-logo {
+            width: 205px;
+            height: auto;
+            margin: 0 auto 0.65rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .brand-subtitle {
-            color: #cbd5e1;
-            font-size: 0.875rem;
+        .brand-craft-logo img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 14px rgba(220, 38, 38, 0.35));
+        }
+
+        .brand-tagline {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.825rem;
             font-weight: 400;
+            color: #94a3b8;
+            letter-spacing: 0.02em;
+            margin: 0;
+            line-height: 1.35;
         }
 
         .form-section {
-            margin-bottom: 2rem;
+            margin-bottom: 0;
         }
 
         .form-title {
-            font-size: 1.5rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
             font-weight: 600;
-            color: #f8fafc;
-            margin-bottom: 0.5rem;
+            color: #ffffff;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.3rem;
             text-align: center;
         }
 
         .form-subtitle {
-            color: #cbd5e1;
-            font-size: 0.875rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #94a3b8;
+            font-size: 0.815rem;
+            font-weight: 400;
+            letter-spacing: 0.01em;
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.3rem;
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.9rem;
         }
 
         .form-label {
             display: block;
             font-weight: 600;
-            color: #f8fafc;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+            color: #e2e8f0;
+            margin-bottom: 0.35rem;
+            font-size: 0.785rem;
+            letter-spacing: 0.01em;
         }
 
         .input-wrapper {
@@ -147,58 +169,61 @@
 
         .input-icon {
             position: absolute;
-            left: 1rem;
+            left: 0.85rem;
             top: 50%;
             transform: translateY(-50%);
             color: #64748b;
-            font-size: 1rem;
+            font-size: 0.875rem;
             z-index: 1;
         }
 
         .form-input {
             width: 100%;
-            padding: 0.875rem 1rem 0.875rem 3rem;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.5);
+            padding: 0.65rem 0.85rem 0.65rem 2.4rem;
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.55);
             color: #f8fafc;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
+            font-size: 0.825rem;
+            transition: all 0.25s ease;
             backdrop-filter: blur(10px);
         }
 
         .form-input:focus {
             outline: none;
             border-color: #dc2626;
-            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
-            background: rgba(15, 23, 42, 0.7);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+            background: rgba(15, 23, 42, 0.75);
         }
 
         .form-input::placeholder {
             color: #64748b;
+            font-size: 0.8rem;
         }
 
         .login-btn {
             width: 100%;
-            padding: 0.875rem 1.5rem;
+            padding: 0.68rem 1.25rem;
             background: linear-gradient(135deg, #dc2626, #b91c1c);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 0.825rem;
+            letter-spacing: 0.02em;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
             box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+            margin-top: 0.25rem;
         }
 
         .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(220, 38, 38, 0.48);
+            transform: translateY(-1.5px);
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.45);
         }
 
         .login-btn:active {
@@ -209,10 +234,10 @@
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.3);
             border-radius: 8px;
-            padding: 0.75rem 1rem;
-            margin-top: 1rem;
+            padding: 0.6rem 0.8rem;
+            margin-top: 0.75rem;
             color: #fca5a5;
-            font-size: 0.875rem;
+            font-size: 0.785rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -220,9 +245,10 @@
 
         .footer-text {
             text-align: center;
-            margin-top: 2rem;
+            margin-top: 1.15rem;
             color: #64748b;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+            letter-spacing: 0.02em;
         }
 
         .loading {
@@ -295,16 +321,17 @@
             }
 
             .login-container {
-                padding: 2rem;
-                margin: 1rem;
+                padding: 1.5rem 1.25rem 1.2rem;
+                margin: 0.5rem;
+                max-width: 100%;
             }
 
             .brand-title {
-                font-size: 1.75rem;
+                font-size: 1.2rem;
             }
 
             .form-title {
-                font-size: 1.25rem;
+                font-size: 1.05rem;
             }
         }
     </style>
@@ -317,11 +344,13 @@
 
     <div class="login-container">
         <div class="brand-section">
-            <div class="brand-icon">
-                <img src="{% static 'fabro-logo.png' %}" alt="Fabro Leather Logo">
+            <div class="brand-icon-top">
+                <img src="{% static 'fabro-logo.png' %}" alt="Fabro Logo">
             </div>
-            <h1 class="brand-title">{% translate "Fabro Leather" %}</h1>
-            <p class="brand-subtitle">{% translate "Car Seat Management System" %}</p>
+            <div class="brand-craft-logo">
+                <img src="{% static 'craft-logo-red.svg' %}" alt="CRAFT">
+            </div>
+            <p class="brand-tagline">{% translate "Car Seat Management System" %}</p>
         </div>
 
         <div class="form-section">
@@ -356,8 +385,8 @@
                                placeholder="{% translate "Enter your password" %}"
                                required 
                                autocomplete="current-password"
-                               style="padding-right: 2.8rem;">
-                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.25rem; font-size: 0.95rem; z-index: 2;">
+                               style="padding-right: 2.5rem;">
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.25rem; font-size: 0.85rem; z-index: 2;">
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
@@ -379,7 +408,7 @@
         </div>
 
         <div class="footer-text">
-            {% translate "© 2025 Fabro Leather. All rights reserved." %}
+            {% translate "© 2025 Fabro Leather, All rights reserved." %}
         </div>
     </div>
 

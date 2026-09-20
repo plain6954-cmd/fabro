@@ -268,25 +268,28 @@ class ComplaintForm(forms.ModelForm):
         if 'channel' in self.fields:
             self.fields['channel'].required = False
 
-        if 'brand' in self.data:
+        brand_val = self.data.get('brand') if self.is_bound else self.initial.get('brand')
+        if brand_val:
             try:
-                brand_id = int(self.data.get('brand'))
+                brand_id = int(brand_val)
                 self.fields['model'].queryset = Model.objects.filter(brand_id=brand_id)
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
             self.fields['model'].queryset = Model.objects.filter(brand=self.instance.brand)
-        if 'model' in self.data:
+        model_val = self.data.get('model') if self.is_bound else self.initial.get('model')
+        if model_val:
             try:
-                model_id = int(self.data.get('model'))
+                model_id = int(model_val)
                 self.fields['sub_model'].queryset = SubModel.objects.filter(model_id=model_id)
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
             self.fields['sub_model'].queryset = SubModel.objects.filter(model=self.instance.model)
-        if 'sub_model' in self.data:
+        sub_model_val = self.data.get('sub_model') if self.is_bound else self.initial.get('sub_model')
+        if sub_model_val:
             try:
-                sub_model_id = int(self.data.get('sub_model'))
+                sub_model_id = int(sub_model_val)
                 self.fields['year'].queryset = YearRange.objects.filter(sub_model_id=sub_model_id)
             except (ValueError, TypeError):
                 pass

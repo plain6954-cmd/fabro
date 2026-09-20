@@ -69,8 +69,10 @@ from .models import (
     MasterSetting,
     Model,
     Notification,
+    PatternAlteration,
     PatternDesignFolder,
     PatternDesignImage,
+    PatternEditLog,
     SKU,
     SubModel,
     UserProfile,
@@ -574,7 +576,7 @@ def car_details(request):
                 x_code_val = (form.cleaned_data.get("x_code") or "").strip()
                 fitting_conf_val = (form.cleaned_data.get("fitting_confirmation") or "").strip()
                 serial_num_val = (form.cleaned_data.get("serial_number") or "").strip()
-                YearRange.objects.create(
+                new_yr = YearRange.objects.create(
                     sub_model=sub_model,
                     serial_number=serial_num_val,
                     year_start=year_start,
@@ -586,6 +588,13 @@ def car_details(request):
                     fitting_confirmation=fitting_conf_val,
                     vehicle_country=form.cleaned_data.get("vehicle_country"),
                     measurement_country=form.cleaned_data.get("measurement_country")
+                )
+                PatternEditLog.objects.create(
+                    year_range=new_yr,
+                    pattern_serial=new_yr.serial_number or f"S{new_yr.id:04d}",
+                    user=request.user,
+                    action="created",
+                    summary=f"Pattern created by {request.user.username}",
                 )
                 ActivityLog.objects.create(
                     user=request.user,
@@ -599,23 +608,19 @@ def car_details(request):
     new_search_enabled = True
     scoped_search_enabled = True
 
-    # Fetch car data (Optimized via select_related, ordered newest first)
-    yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').order_by('-id')
+    # Fetch car data (Optimized via select_related, ordered by descending serial number so latest is at the top)
+    yr_qs = YearRange.objects.select_related('sub_model__model__brand', 'vehicle_country', 'measurement_country').order_by('-serial_number', '-id')
     if search_query:
         if search_column in ('serial_number', 'serial_no', 'serial'):
             import re
-            m = re.fullmatch(r'[sS]?(\d+)', search_query)
+            m = re.fullmatch(r'[a-zA-Z]?(\d+)', search_query)
             if m:
-                target_rank = int(m.group(1))
-                all_ids = list(YearRange.objects.order_by('-id').values_list('id', flat=True))
-                matched_ids = []
-                for i, y_id in enumerate(all_ids):
-                    rank = i + 1
-                    formatted_rank = f"{rank:04d}"
-                    if str(target_rank) in formatted_rank or search_query.lower() in f"s{formatted_rank}".lower():
-                        matched_ids.append(y_id)
-                stored_matches = list(YearRange.objects.filter(serial_number__icontains=search_query).values_list('id', flat=True))
-                yr_qs = yr_qs.filter(id__in=set(matched_ids) | set(stored_matches))
+                target_num = int(m.group(1))
+                formatted = f"{target_num:04d}"
+                yr_qs = yr_qs.filter(
+                    Q(serial_number__icontains=search_query) |
+                    Q(serial_number__icontains=formatted)
+                )
             else:
                 yr_qs = yr_qs.filter(serial_number__icontains=search_query)
         elif search_column == 'x_code':
@@ -650,11 +655,8 @@ def car_details(request):
     vehicle_paginator = Paginator(yr_qs, 50)
     vehicle_page = vehicle_paginator.get_page(request.GET.get('page'))
     car_data = []
-    start_rank = (vehicle_page.number - 1) * vehicle_paginator.per_page
-    for idx, yr in enumerate(vehicle_page.object_list):
-        rank_number = start_rank + idx + 1
-        country_prefix = yr.serial_number[:1] if (yr.serial_number and yr.serial_number[0].isalpha()) else 'S'
-        display_serial = f"{country_prefix}{rank_number:04d}"
+    for yr in vehicle_page.object_list:
+        display_serial = yr.serial_number or f"S{yr.id:04d}"
         car_data.append({
             "serial_number": display_serial,
             "stored_serial_number": yr.serial_number or '',
@@ -685,7 +687,7 @@ def car_details(request):
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
 
     can_manage_catalog = _can_manage_catalog(request.user)
-    next_serial_number = "S0001"
+    next_serial_number = get_next_pattern_serial()
     pagination_params = request.GET.copy()
     pagination_params.pop('page', None)
     pagination_bubbles = _get_pagination_bubbles(
@@ -721,7 +723,7 @@ def pattern_vehicle_list_api(request):
     search = request.GET.get('search', '').strip()[:100]
     queryset = YearRange.objects.select_related(
         'sub_model__model__brand', 'vehicle_country', 'measurement_country'
-    ).order_by('-id')
+    ).order_by('-serial_number', '-id')
     if search:
         queryset = queryset.filter(
             Q(serial_number__icontains=search)
@@ -734,7 +736,7 @@ def pattern_vehicle_list_api(request):
     page = Paginator(queryset, 50).get_page(request.GET.get('page'))
     results = [{
         'id': vehicle.pk,
-        'serial_number': f"S{(page.number - 1) * page.paginator.per_page + idx + 1:04d}",
+        'serial_number': vehicle.serial_number or f"S{vehicle.pk:04d}",
         'layout_code': vehicle.layout_code,
         'brand': vehicle.sub_model.model.brand.name,
         'model': vehicle.sub_model.model.name,
@@ -812,6 +814,15 @@ def update_fitting_confirmation_api(request, year_range_id):
         object_type="Fitting Confirmation",
         object_name=f"{brand_name} {model_name} -> {fitting_val or 'Cleared'}"
     )
+
+    PatternEditLog.objects.create(
+        year_range=year_range,
+        pattern_serial=year_range.serial_number or f"S{year_range.id:04d}",
+        user=request.user,
+        action="fitting_updated",
+        summary=f"Fitting confirmation updated to {fitting_val or 'Cleared'}",
+        details={'fitting_confirmation': {'new': fitting_val}}
+    )
     
     return JsonResponse({
         "success": True,
@@ -833,6 +844,197 @@ def get_next_pattern_serial_api(request):
 
     next_serial = get_next_pattern_serial(country)
     return JsonResponse({'success': True, 'next_serial': next_serial})
+
+
+def _notify_approvers_for_pattern_alteration(alteration, actor):
+    """Notify users with approval roles (PM, OM, CAD, ED, MD) about a pattern alteration."""
+    approver_users = User.objects.filter(
+        Q(workflow_profile__role=WorkflowRoles.APPROVER) |
+        Q(workflow_profile__approval_role__in=[
+            ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD
+        ])
+    ).exclude(id=actor.id).distinct()
+
+    if not approver_users.exists():
+        approver_users = User.objects.filter(is_superuser=True).exclude(id=actor.id)
+
+    for user in approver_users:
+        Notification.objects.create(
+            recipient=user,
+            alteration=alteration,
+            notification_type='pattern_approval',
+            title=_('Pattern Master Alteration Request'),
+            message=alteration.summary,
+        )
+
+
+@login_required
+def pattern_logs_api(request, year_range_id):
+    year_range = get_object_or_404(YearRange, id=year_range_id)
+    logs = PatternEditLog.objects.filter(
+        Q(year_range=year_range) | Q(pattern_serial=year_range.serial_number)
+    ).select_related('user').order_by('-created_at')[:50]
+
+    brand = year_range.sub_model.model.brand.name if year_range.sub_model and year_range.sub_model.model and year_range.sub_model.model.brand else ''
+    model = year_range.sub_model.model.name if year_range.sub_model and year_range.sub_model.model else ''
+    years = f"{year_range.year_start or ''}-{year_range.year_end or ''}".strip('-')
+
+    log_data = []
+    for log in logs:
+        user_name = log.user.get_full_name() or log.user.username if log.user else _('System')
+        log_data.append({
+            'id': log.id,
+            'user': user_name,
+            'action': log.action,
+            'summary': log.summary or log.action.capitalize(),
+            'details': log.details,
+            'created_at': log.created_at.strftime('%Y-%m-%d %H:%M'),
+            'date': log.created_at.strftime('%b %d, %Y'),
+            'time': log.created_at.strftime('%H:%M'),
+        })
+    return JsonResponse({
+        'success': True,
+        'serial_number': year_range.serial_number or f"S{year_range.pk:04d}",
+        'pattern_title': f"{brand} {model} {years}".strip(),
+        'logs': log_data,
+    })
+
+
+@login_required
+@require_POST
+def bulk_delete_patterns_api(request):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'success': False, 'error': _('Only staff users can alter patterns.')}, status=403)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    pattern_ids = data.get('pattern_ids', [])
+    if isinstance(pattern_ids, str):
+        try:
+            pattern_ids = json.loads(pattern_ids)
+        except Exception:
+            pattern_ids = [int(p) for p in pattern_ids.split(',') if p.strip().isdigit()]
+
+    pattern_ids = [int(p) for p in pattern_ids if str(p).isdigit()]
+    if not pattern_ids:
+        return JsonResponse({'success': False, 'error': _('No patterns selected.')}, status=400)
+
+    patterns = list(YearRange.objects.filter(id__in=pattern_ids).select_related('sub_model__model__brand'))
+    if not patterns:
+        return JsonResponse({'success': False, 'error': _('Selected patterns not found.')}, status=404)
+
+    pattern_names = []
+    for p in patterns:
+        brand = p.sub_model.model.brand.name if p.sub_model and p.sub_model.model and p.sub_model.model.brand else ''
+        model = p.sub_model.model.name if p.sub_model and p.sub_model.model else ''
+        serial = p.serial_number or f"S{p.id:04d}"
+        pattern_names.append(f"{serial} ({brand} {model})")
+
+    count = len(patterns)
+    summary_text = _("{user} requested deletion of {count} pattern(s): {patterns}").format(
+        user=request.user.get_full_name() or request.user.username,
+        count=count,
+        patterns=", ".join(pattern_names[:5]) + ("..." if count > 5 else "")
+    )
+
+    action_type = 'delete' if count == 1 else 'bulk_delete'
+    alteration = PatternAlteration.objects.create(
+        requested_by=request.user,
+        action_type=action_type,
+        pattern_ids=[p.id for p in patterns],
+        summary=summary_text,
+        payload={'names': pattern_names},
+        status='pending'
+    )
+
+    # Notify all approval roles with Approve/Reject buttons
+    _notify_approvers_for_pattern_alteration(alteration, request.user)
+
+    return JsonResponse({
+        'success': True,
+        'alteration_id': alteration.id,
+        'message': _('Alteration request submitted. Approval notifications sent to approver roles.')
+    })
+
+
+@login_required
+@require_POST
+def decide_pattern_alteration_api(request, alteration_id):
+    profile = getattr(request.user, 'workflow_profile', None)
+    is_approver = request.user.is_superuser or (
+        profile and (
+            profile.role == WorkflowRoles.APPROVER or
+            profile.approval_role in [ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD]
+        )
+    )
+    if not is_approver:
+        return JsonResponse({'success': False, 'error': _('Only approver accounts can decide pattern alterations.')}, status=403)
+
+    alteration = get_object_or_404(PatternAlteration, id=alteration_id)
+    if alteration.status != 'pending':
+        return JsonResponse({'success': False, 'error': _('This alteration has already been decided.')}, status=400)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    decision = (data.get('decision') or data.get('action') or '').strip().lower()
+    if decision not in ('approve', 'reject'):
+        return JsonResponse({'success': False, 'error': _('Invalid decision choice.')}, status=400)
+
+    if decision == 'approve':
+        alteration.status = 'approved'
+        alteration.reviewed_by = request.user
+        alteration.reviewed_at = now()
+        alteration.save()
+
+        # Execute deletion if delete or bulk_delete
+        if alteration.action_type in ('delete', 'bulk_delete'):
+            patterns = list(YearRange.objects.filter(id__in=alteration.pattern_ids).select_related('sub_model__model__brand'))
+            for p in patterns:
+                brand = p.sub_model.model.brand.name if p.sub_model and p.sub_model.model and p.sub_model.model.brand else ''
+                model = p.sub_model.model.name if p.sub_model and p.sub_model.model else ''
+                serial = p.serial_number or f"S{p.id:04d}"
+                PatternEditLog.objects.create(
+                    year_range=None,
+                    pattern_serial=serial,
+                    user=request.user,
+                    action='deleted',
+                    summary=f"{serial} ({brand} {model}) deleted via approval by {request.user.username}",
+                )
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action="deleted",
+                    object_type="Car",
+                    object_name=f"{serial} {brand} {model}"
+                )
+                p.delete()
+
+        Notification.objects.filter(alteration=alteration).update(is_read=True)
+
+        return JsonResponse({
+            'success': True,
+            'status': 'approved',
+            'message': _('Alteration approved and executed successfully.')
+        })
+    else:
+        alteration.status = 'rejected'
+        alteration.reviewed_by = request.user
+        alteration.reviewed_at = now()
+        alteration.rejection_reason = data.get('reason', '')
+        alteration.save()
+
+        Notification.objects.filter(alteration=alteration).update(is_read=True)
+
+        return JsonResponse({
+            'success': True,
+            'status': 'rejected',
+            'message': _('Alteration rejected.')
+        })
 
 
 @login_required
@@ -923,6 +1125,44 @@ def edit_car_detail(request, car_id):
                 object_type="Car",
                 object_name=f"{brand_name} {model_name} {sub_model_name} ({year_start or ''}-{year_end or ''})"
             )
+
+            changes = {}
+            if initial_data.get('brand_name') != brand_name:
+                changes['brand'] = {'old': initial_data.get('brand_name'), 'new': brand_name}
+            if initial_data.get('model_name') != model_name:
+                changes['model'] = {'old': initial_data.get('model_name'), 'new': model_name}
+            if (initial_data.get('sub_model_name') or '') != (sub_model_name or ''):
+                changes['sub_model'] = {'old': initial_data.get('sub_model_name'), 'new': sub_model_name}
+            if initial_data.get('year_start') != year_start or initial_data.get('year_end') != year_end:
+                changes['years'] = {'old': f"{initial_data.get('year_start')}-{initial_data.get('year_end')}", 'new': f"{year_start}-{year_end}"}
+            if (initial_data.get('x_code') or '') != (x_code or ''):
+                changes['x_code'] = {'old': initial_data.get('x_code'), 'new': x_code}
+            if (initial_data.get('fitting_confirmation') or '') != (fitting_confirmation or ''):
+                changes['fitting'] = {'old': initial_data.get('fitting_confirmation'), 'new': fitting_confirmation}
+
+            PatternEditLog.objects.create(
+                year_range=year_range,
+                pattern_serial=year_range.serial_number or f"S{year_range.id:04d}",
+                user=request.user,
+                action="updated",
+                summary=f"Updated by {request.user.username}",
+                details=changes
+            )
+
+            alt = PatternAlteration.objects.create(
+                requested_by=request.user,
+                action_type='update',
+                pattern_ids=[year_range.id],
+                summary=_("{user} updated pattern {serial} ({brand} {model})").format(
+                    user=request.user.get_full_name() or request.user.username,
+                    serial=year_range.serial_number or f"S{year_range.id:04d}",
+                    brand=brand_name,
+                    model=model_name
+                ),
+                payload=changes,
+                status='approved'
+            )
+            _notify_approvers_for_pattern_alteration(alt, request.user)
 
             if is_ajax:
                 return JsonResponse({
@@ -1490,14 +1730,24 @@ def add_complaint(request):
         model_id = request.GET.get('model')
         sub_model_id = request.GET.get('sub_model')
         year_id = request.GET.get('year')
+        if year_id:
+            try:
+                yr = YearRange.objects.select_related('sub_model__model__brand').get(pk=year_id)
+                initial['year'] = yr.id
+                if yr.sub_model:
+                    initial['sub_model'] = yr.sub_model.id
+                    if yr.sub_model.model:
+                        initial['model'] = yr.sub_model.model.id
+                        if yr.sub_model.model.brand:
+                            initial['brand'] = yr.sub_model.model.brand.id
+            except (YearRange.DoesNotExist, ValueError):
+                initial['year'] = year_id
         if brand_id:
             initial['brand'] = brand_id
         if model_id:
             initial['model'] = model_id
         if sub_model_id:
             initial['sub_model'] = sub_model_id
-        if year_id:
-            initial['year'] = year_id
             
         form = ComplaintForm(initial=initial, complaint_type=selected_complaint_type)
         _configure_complaint_form(form, request.user)

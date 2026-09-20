@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{% translate "Logged Out" %}</title>
+    {% include 'management/includes/favicons.html' %}
     <link href="{% static 'css/fabro-global.css' %}?v=20260903-ltr-force-v2" rel="stylesheet">
     <script>window.FABRO_LANGUAGE = '{{ LANGUAGE_CODE|default:"en"|escapejs }}';</script>
     <script src="{% url 'javascript-catalog' %}"></script>

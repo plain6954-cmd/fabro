@@ -4,9 +4,12 @@ from django.views.i18n import JavaScriptCatalog
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.decorators.cache import cache_page
+from django.views.generic import RedirectView
 from .health import health_check
 
 urlpatterns = [
+    path('favicon.ico', RedirectView.as_view(url=settings.STATIC_URL + 'favicon.ico', permanent=True)),
+    path('site.webmanifest', RedirectView.as_view(url=settings.STATIC_URL + 'site.webmanifest', permanent=True)),
     path('health/', health_check, name='health_check'),
     path('jsi18n/', cache_page(86400)(JavaScriptCatalog.as_view()), name='javascript-catalog'),
     path('admin/', admin.site.urls),
