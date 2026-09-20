@@ -532,6 +532,7 @@ def car_details(request):
             sub_model_name = form.cleaned_data["sub_model_name"] or '-'
             year_start = form.cleaned_data["year_start"]
             year_end = form.cleaned_data["year_end"]
+            br = form.cleaned_data.get("br", "")
             number_of_seats = form.cleaned_data["number_of_seats"]
             number_of_doors = form.cleaned_data["number_of_doors"]
 
@@ -581,6 +582,7 @@ def car_details(request):
                     serial_number=serial_num_val,
                     year_start=year_start,
                     year_end=year_end,
+                    br=br,
                     number_of_seats=number_of_seats,
                     number_of_doors=number_of_doors,
                     layout_code=layout_code or None,
@@ -608,12 +610,11 @@ def car_details(request):
     new_search_enabled = True
     scoped_search_enabled = True
 
-    # Serial sequences restart per country, so the primary key is the reliable
-    # cross-country creation order. Keep the newest pattern at the top while
-    # displaying each record's persistent country-prefixed serial number.
+    # Sort by the persistent, zero-padded serial before pagination. Ordering by
+    # creation id makes edited/imported serials appear randomly across pages.
     yr_qs = YearRange.objects.select_related(
         'sub_model__model__brand', 'vehicle_country', 'measurement_country'
-    ).order_by('-id')
+    ).order_by('-serial_number', '-id')
     if search_query:
         if search_column in ('serial_number', 'serial_no', 'serial'):
             import re
@@ -648,6 +649,7 @@ def car_details(request):
             yr_qs = yr_qs.filter(
                 Q(serial_number__icontains=search_query) |
                 Q(x_code__icontains=search_query) |
+                Q(br__icontains=search_query) |
                 Q(fitting_confirmation__icontains=search_query) |
                 Q(layout_code__icontains=search_query) |
                 Q(sub_model__model__brand__name__icontains=search_query) |
@@ -681,6 +683,8 @@ def car_details(request):
             "raw_sub_model": yr.sub_model.name if (yr.sub_model and yr.sub_model.name != '-') else '',
             "year_start": yr.year_start,
             "year_end": yr.year_end,
+            "br": yr.br or '-',
+            "raw_br": yr.br or '',
             "seats": yr.number_of_seats,
             "doors": yr.number_of_doors,
             "vehicle_country": yr.vehicle_country.name if yr.vehicle_country else '-',
@@ -734,6 +738,7 @@ def pattern_vehicle_list_api(request):
             Q(serial_number__icontains=search)
             | Q(layout_code__icontains=search)
             | Q(x_code__icontains=search)
+            | Q(br__icontains=search)
             | Q(sub_model__model__brand__name__icontains=search)
             | Q(sub_model__model__name__icontains=search)
             | Q(sub_model__name__icontains=search)
@@ -748,6 +753,7 @@ def pattern_vehicle_list_api(request):
         'sub_model': vehicle.sub_model.name,
         'year_start': vehicle.year_start,
         'year_end': vehicle.year_end,
+        'br': vehicle.br,
     } for idx, vehicle in enumerate(page.object_list)]
     return JsonResponse({
         'results': results,
@@ -1062,6 +1068,7 @@ def edit_car_detail(request, car_id):
         'sub_model_name': year_range.sub_model.name if year_range.sub_model else '',
         'year_start': year_range.year_start,
         'year_end': year_range.year_end,
+        'br': year_range.br,
         'number_of_seats': year_range.number_of_seats,
         'number_of_doors': year_range.number_of_doors,
         'vehicle_country': year_range.vehicle_country,
@@ -1083,6 +1090,7 @@ def edit_car_detail(request, car_id):
             sub_model_name = (form.cleaned_data.get("sub_model_name") or "").strip() or '-'
             year_start = form.cleaned_data.get("year_start")
             year_end = form.cleaned_data.get("year_end")
+            br = (form.cleaned_data.get("br") or "").strip()
             number_of_seats = form.cleaned_data.get("number_of_seats")
             number_of_doors = form.cleaned_data.get("number_of_doors")
 
@@ -1111,6 +1119,7 @@ def edit_car_detail(request, car_id):
             year_range.sub_model = sub_model
             year_range.year_start = year_start
             year_range.year_end = year_end
+            year_range.br = br
             year_range.number_of_seats = number_of_seats
             year_range.number_of_doors = number_of_doors
             if layout_code:
@@ -1140,6 +1149,8 @@ def edit_car_detail(request, car_id):
                 changes['sub_model'] = {'old': initial_data.get('sub_model_name'), 'new': sub_model_name}
             if initial_data.get('year_start') != year_start or initial_data.get('year_end') != year_end:
                 changes['years'] = {'old': f"{initial_data.get('year_start')}-{initial_data.get('year_end')}", 'new': f"{year_start}-{year_end}"}
+            if (initial_data.get('br') or '') != br:
+                changes['br'] = {'old': initial_data.get('br'), 'new': br}
             if (initial_data.get('x_code') or '') != (x_code or ''):
                 changes['x_code'] = {'old': initial_data.get('x_code'), 'new': x_code}
             if (initial_data.get('fitting_confirmation') or '') != (fitting_confirmation or ''):
@@ -1183,6 +1194,7 @@ def edit_car_detail(request, car_id):
                         'raw_sub_model': year_range.sub_model.name if (year_range.sub_model and year_range.sub_model.name != '-') else '',
                         'year_start': year_range.year_start,
                         'year_end': year_range.year_end,
+                        'br': year_range.br or '',
                         'seats': year_range.number_of_seats,
                         'doors': year_range.number_of_doors,
                         'x_code': year_range.x_code or '',
@@ -3240,6 +3252,8 @@ CAR_CSV_HEADER_MAP = {
     'x-codes': 'x_code',
     'x no': 'x_code',
     'x number': 'x_code',
+    # BR
+    'br': 'br',
     # Fitting Confirm / Fitting Confirmation
     'fitting confirm': 'fitting_confirmation',
     'fitting confirmation': 'fitting_confirmation',
@@ -3344,6 +3358,7 @@ def upload_car_csv(request):
                         if x_code.lower() in ('undefined', 'null', 'none'):
                             x_code = ''
                         fitting_confirmation = row_data.get('fitting_confirmation', '')
+                        br = row_data.get('br', '').strip().upper()
                         if fitting_confirmation.lower() in ('undefined', 'null', 'none'):
                             fitting_confirmation = ''
 
@@ -3368,6 +3383,9 @@ def upload_car_csv(request):
                             continue
                         if len(x_code) > 100:
                             invalid_rows.append(f"Row {row_idx}: X-Code must be 100 characters or fewer.")
+                            continue
+                        if len(br) > 20:
+                            invalid_rows.append(f"Row {row_idx}: BR must be 20 characters or fewer.")
                             continue
                         if len(fitting_confirmation) > 100:
                             invalid_rows.append(f"Row {row_idx}: Fitting Confirmation must be 100 characters or fewer.")
@@ -3497,6 +3515,7 @@ def upload_car_csv(request):
                             number_of_doors=doors,
                             layout_code=layout_code,
                             x_code=x_code,
+                            br=br,
                             fitting_confirmation=fitting_confirmation,
                         ))
 

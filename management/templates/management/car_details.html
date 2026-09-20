@@ -1186,9 +1186,14 @@
                                     <th class="col-select">
                                         <input type="checkbox" id="patternSelectAll" class="pattern-checkbox" title="{% translate "Select all" %}" aria-label="{% translate "Select all" %}">
                                     </th>
-                                    <th class="col-num">#</th>
+                                    <th class="col-num">
+                                        <button type="button" class="col-sort-btn is-sorted" data-sort-key="serial_number" title="{% translate "Sort by Serial Number" %}" aria-label="{% translate "Sort by Serial Number" %}" aria-sort="descending">
+                                            <span>#</span>
+                                            <i class="fas fa-arrow-down-9-1 col-sort-icon"></i>
+                                        </button>
+                                    </th>
                                     {% if new_search_enabled %}
-                                    <th class="col-brand" data-filter-col="1">
+                                    <th class="col-brand" data-filter-col="2">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%;">
                                             <button type="button" class="col-sort-btn" data-sort-key="brand" title="{% translate "Sort by Brand" %}" aria-label="{% translate "Sort by Brand" %}" aria-sort="none">
                                                 <span>{% translate "Brand" %}</span>
@@ -1200,7 +1205,7 @@
                                             </div>
                                         </div>
                                     </th>
-                                    <th class="col-model" data-filter-col="2">
+                                    <th class="col-model" data-filter-col="3">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%;">
                                             <button type="button" class="col-sort-btn" data-sort-key="model" title="{% translate "Sort by Model" %}" aria-label="{% translate "Sort by Model" %}" aria-sort="none">
                                                 <span>{% translate "Model" %}</span>
@@ -1212,7 +1217,7 @@
                                             </div>
                                         </div>
                                     </th>
-                                    <th class="col-year" {% if new_search_enabled %}data-filter-col="3"{% endif %}>
+                                    <th class="col-year" {% if new_search_enabled %}data-filter-col="4"{% endif %}>
                                         <div style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%;">
                                             <span>{% translate "Year Range" %}</span>
                                             {% if new_search_enabled %}
@@ -1223,7 +1228,8 @@
                                             {% endif %}
                                         </div>
                                     </th>
-                                    <th class="col-submodel" data-filter-col="4">
+                                    <th class="col-br">{% translate "BR" %}</th>
+                                    <th class="col-submodel" data-filter-col="6">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%;">
                                             <span>{% translate "Sub-Model" %}</span>
                                             <div style="display: flex; align-items: center; gap: 0.2rem;">
@@ -1246,12 +1252,13 @@
                                         </button>
                                     </th>
                                     <th class="col-year">{% translate "Year Range" %}</th>
+                                    <th class="col-br">{% translate "BR" %}</th>
                                     <th class="col-submodel">{% translate "Sub-Model" %}</th>
                                     {% endif %}
                                     <th class="col-seats">{% translate "Seats" %}</th>
                                     <th class="col-doors">{% translate "Doors" %}</th>
                                     <!-- Two New Columns placed strictly between Doors and Vehicle Country -->
-                                    <th class="col-xcode" {% if new_search_enabled %}data-filter-col="7"{% endif %}>
+                                    <th class="col-xcode" {% if new_search_enabled %}data-filter-col="9"{% endif %}>
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%;">
                                             <span>{% translate "X-Code" %}</span>
                                             {% if new_search_enabled %}
@@ -1262,7 +1269,7 @@
                                             {% endif %}
                                         </div>
                                     </th>
-                                    <th class="col-fitting" data-filter-col="8">
+                                    <th class="col-fitting" data-filter-col="10">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%; white-space: nowrap;">
                                             <span title="{% translate "Fitting Confirmation" %}">{% translate "Fitting Confirm" %}</span>
                                             <div style="display: flex; align-items: center; gap: 0.2rem;">
@@ -1272,7 +1279,7 @@
                                         </div>
                                     </th>
                                     {% if new_search_enabled %}
-                                    <th class="col-country col-vehicle-country" data-filter-col="9">
+                                    <th class="col-country col-vehicle-country" data-filter-col="11">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; width: 100%; white-space: nowrap;">
                                             <button type="button" class="col-sort-btn" data-sort-key="vehicle_country" title="{% translate "Sort by Vehicle Country" %}" aria-label="{% translate "Sort by Vehicle Country" %}" aria-sort="none">
                                                 <span>{% translate "Vehicle Country" %}</span>
@@ -1288,7 +1295,7 @@
                                             </div>
                                         </div>
                                     </th>
-                                    <th class="col-country col-measurement-country" data-filter-col="10">
+                                    <th class="col-country col-measurement-country" data-filter-col="12">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; width: 100%; white-space: nowrap;">
                                             <button type="button" class="col-sort-btn" data-sort-key="measurement_country" title="{% translate "Sort by Measurement Country" %}" aria-label="{% translate "Sort by Measurement Country" %}" aria-sort="none">
                                                 <span>{% translate "Measurement Country" %}</span>
@@ -1349,6 +1356,7 @@
                                             <input type="number" name="year_end" class="form-input" placeholder="{% translate "End" %}" min="1900" max="2100" form="add-vehicle-form" required style="padding: 0.25rem 0.2rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; flex: 1 1 50%; min-width: 0; text-align: center; font-weight: 500; box-sizing: border-box;">
                                         </div>
                                     </td>
+                                    <td class="col-br"><input type="text" name="br" class="form-input" placeholder="{% translate "BR" %}" form="add-vehicle-form" maxlength="20" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; box-sizing: border-box;"></td>
                                     <td class="col-submodel"><input type="text" name="sub_model_name" class="form-input" placeholder="{% translate "Sub-Model" %}" form="add-vehicle-form" style="padding: 0.3rem 0.45rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; box-sizing: border-box;"></td>
                                     <td class="col-seats"><input type="number" name="number_of_seats" class="form-input" placeholder="{% translate "Seats" %}" min="1" form="add-vehicle-form" required style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
                                     <td class="col-doors"><input type="number" name="number_of_doors" class="form-input" placeholder="{% translate "Doors" %}" min="1" form="add-vehicle-form" required style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
@@ -1411,6 +1419,7 @@
                                         <td class="col-brand" title="{{ car.brand }}"><strong>{{ car.brand }}</strong></td>
                                         <td class="col-model" title="{{ car.model }}">{{ car.model }}</td>
                                         <td class="col-year">{% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %} - {% endif %}{{ car.year_end|default:'' }}{% else %}-{% endif %}</td>
+                                        <td class="col-br" title="{{ car.br }}">{{ car.br }}</td>
                                         <td class="col-submodel" title="{{ car.sub_model|default:'-' }}">{{ car.sub_model|default:"-" }}</td>
                                         <td class="col-seats">{{ car.seats }}</td>
                                         <td class="col-doors">{{ car.doors }}</td>
@@ -1440,7 +1449,7 @@
                                         <td class="col-country col-vehicle-country" title="{{ car.vehicle_country }}">{{ car.vehicle_country }}</td>
                                         <td class="col-country col-measurement-country" title="{{ car.measurement_country }}">{{ car.measurement_country }}</td>
                                         <!-- Mobile Card Presentation: Strictly visible on <= 768px via CSS -->
-                                        <td class="mobile-pattern-card-view" colspan="12">
+                                        <td class="mobile-pattern-card-view" colspan="13">
                                             <div class="pattern-mobile-card">
                                                 <!-- Header: Brand/Model + Serial -->
                                                 <div class="pattern-mobile-card__header">
@@ -1458,6 +1467,10 @@
                                                     <div class="pattern-mobile-info-item">
                                                         <span class="info-item-label">{% translate "Year" %}</span>
                                                         <span class="info-item-value">{% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}–{% endif %}{{ car.year_end|default:'' }}{% else %}—{% endif %}</span>
+                                                    </div>
+                                                    <div class="pattern-mobile-info-item">
+                                                        <span class="info-item-label">{% translate "BR" %}</span>
+                                                        <span class="info-item-value">{{ car.br|default:'—' }}</span>
                                                     </div>
                                                     <div class="pattern-mobile-info-item">
                                                         <span class="info-item-label">{% translate "Sub-Model" %}</span>
@@ -1584,6 +1597,7 @@
                                                 <input type="number" name="year_end" value="{{ car.year_end|default:'' }}" class="form-input" placeholder="{% translate "End" %}" min="1900" max="2100" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.25rem 0.2rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; flex: 1 1 50%; min-width: 0; text-align: center; font-weight: 500; box-sizing: border-box;">
                                             </div>
                                         </td>
+                                        <td class="col-br"><input type="text" name="br" value="{{ car.raw_br }}" class="form-input" placeholder="{% translate "BR" %}" form="edit-vehicle-form-{{ car.id }}" maxlength="20" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; box-sizing: border-box;"></td>
                                         <td class="col-submodel"><input type="text" name="sub_model_name" value="{{ car.raw_sub_model }}" class="form-input" placeholder="{% translate "Sub-Model" %}" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.3rem 0.45rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; box-sizing: border-box;"></td>
                                         <td class="col-seats"><input type="number" name="number_of_seats" value="{{ car.seats|default:'' }}" class="form-input" placeholder="{% translate "Seats" %}" min="1" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
                                         <td class="col-doors"><input type="number" name="number_of_doors" value="{{ car.doors|default:'' }}" class="form-input" placeholder="{% translate "Doors" %}" min="1" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
@@ -2340,6 +2354,9 @@
                             yearCell.textContent = yrText;
                         }
 
+                        const brCell = viewRow.querySelector('.col-br');
+                        if (brCell) brCell.textContent = car.br || '-';
+
                         const submodelCell = viewRow.querySelector('.col-submodel');
                         if (submodelCell) {
                             const smText = (car.sub_model && car.sub_model !== '-') ? car.sub_model : '-';
@@ -2882,7 +2899,7 @@
             }
 
             // -------------------------------------------------------------------------
-            // Table Column Sorting Controller (Brand, Model, Vehicle/Measurement Country)
+            // Table Column Sorting Controller
             // -------------------------------------------------------------------------
             let currentSortKey = null;
             let currentSortDir = 'none'; // 'asc' | 'desc'
@@ -2952,7 +2969,9 @@
                     const editRow = carId ? document.getElementById('row-edit-' + carId) : null;
                     const defaultOrder = parseInt(viewRow.getAttribute('data-default-order') || '0', 10);
                     let cellValue = '';
-                    if (sortKey === 'brand') {
+                    if (sortKey === 'serial_number') {
+                        cellValue = viewRow.querySelector('.col-num')?.textContent?.trim() || '';
+                    } else if (sortKey === 'brand') {
                         cellValue = viewRow.querySelector('.col-brand')?.textContent?.trim() || '';
                     } else if (sortKey === 'model') {
                         cellValue = viewRow.querySelector('.col-model')?.textContent?.trim() || '';
@@ -4344,6 +4363,7 @@
                 const modelVal = getVal('model_name');
                 const yearStartVal = getVal('year_start');
                 const yearEndVal = getVal('year_end');
+                const brVal = getVal('br');
                 const subModelVal = getVal('sub_model_name');
                 const seatsVal = getVal('number_of_seats');
                 const doorsVal = getVal('number_of_doors');
@@ -4358,6 +4378,7 @@
                 if (document.getElementById('msModelName')) document.getElementById('msModelName').value = modelVal;
                 if (document.getElementById('msYearStart')) document.getElementById('msYearStart').value = yearStartVal;
                 if (document.getElementById('msYearEnd')) document.getElementById('msYearEnd').value = yearEndVal;
+                if (document.getElementById('msBr')) document.getElementById('msBr').value = brVal;
                 if (document.getElementById('msSubModelName')) document.getElementById('msSubModelName').value = subModelVal;
                 if (document.getElementById('msSeats')) document.getElementById('msSeats').value = seatsVal;
                 if (document.getElementById('msDoors')) document.getElementById('msDoors').value = doorsVal;
@@ -4418,6 +4439,7 @@
                     copyToAdd('msModelName', 'model_name');
                     copyToAdd('msYearStart', 'year_start');
                     copyToAdd('msYearEnd', 'year_end');
+                    copyToAdd('msBr', 'br');
                     copyToAdd('msSubModelName', 'sub_model_name');
                     copyToAdd('msSeats', 'number_of_seats');
                     copyToAdd('msDoors', 'number_of_doors');
@@ -4455,6 +4477,7 @@
                         copyToEdit('msModelName', 'model_name');
                         copyToEdit('msYearStart', 'year_start');
                         copyToEdit('msYearEnd', 'year_end');
+                        copyToEdit('msBr', 'br');
                         copyToEdit('msSubModelName', 'sub_model_name');
                         copyToEdit('msSeats', 'number_of_seats');
                         copyToEdit('msDoors', 'number_of_doors');
@@ -4635,7 +4658,7 @@
             // 2. Brand
             const brandSelect = document.getElementById('mfBrand');
             if (brandSelect) {
-                const currentBrandSet = activeFilters.get(1);
+                const currentBrandSet = activeFilters.get(2);
                 const currentBrand = currentBrandSet && currentBrandSet.size > 0 ? Array.from(currentBrandSet)[0] : '';
                 brandSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Brands')}</option>`;
                 tableMeta.brands.forEach(b => {
@@ -4653,7 +4676,7 @@
             // 4. Year Range
             const yearSelect = document.getElementById('mfYear');
             if (yearSelect) {
-                const currentYearSet = activeFilters.get(3);
+                const currentYearSet = activeFilters.get(4);
                 const currentYear = currentYearSet && currentYearSet.size > 0 ? Array.from(currentYearSet)[0] : '';
                 yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Years')}</option>`;
                 tableMeta.years.forEach(y => {
@@ -4668,7 +4691,7 @@
             // 5. Sub-Model
             const subModelSelect = document.getElementById('mfSubModel');
             if (subModelSelect) {
-                const currentSubSet = activeFilters.get(4);
+                const currentSubSet = activeFilters.get(6);
                 const currentSub = currentSubSet && currentSubSet.size > 0 ? Array.from(currentSubSet)[0] : '';
                 subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Sub-Models')}</option>`;
                 tableMeta.subModels.forEach(sm => {
@@ -4683,7 +4706,7 @@
             // 6. Fitting Confirmation
             const fittingSelect = document.getElementById('mfFitting');
             if (fittingSelect) {
-                const currentFittingSet = activeFilters.get(8);
+                const currentFittingSet = activeFilters.get(10);
                 const currentFitting = currentFittingSet && currentFittingSet.size > 0 ? Array.from(currentFittingSet)[0] : '';
                 fittingSelect.value = currentFitting || '';
             }
@@ -4691,7 +4714,7 @@
             // 7. Vehicle Country
             const vCountrySelect = document.getElementById('mfVehicleCountry');
             if (vCountrySelect) {
-                const currentVCSet = activeFilters.get(9);
+                const currentVCSet = activeFilters.get(11);
                 const currentVC = currentVCSet && currentVCSet.size > 0 ? Array.from(currentVCSet)[0] : '';
                 vCountrySelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Vehicle Countries')}</option>`;
                 tableMeta.vCountries.forEach(vc => {
@@ -4706,7 +4729,7 @@
             // 8. Measurement Country
             const mCountrySelect = document.getElementById('mfMeasurementCountry');
             if (mCountrySelect) {
-                const currentMCSet = activeFilters.get(10);
+                const currentMCSet = activeFilters.get(12);
                 const currentMC = currentMCSet && currentMCSet.size > 0 ? Array.from(currentMCSet)[0] : '';
                 mCountrySelect.innerHTML = `<option value="">${window.FabroI18n.gettext('All Measurement Countries')}</option>`;
                 tableMeta.mCountries.forEach(mc => {
@@ -4730,7 +4753,7 @@
 
             const selectedBrand = brandSelect ? brandSelect.value : '';
             const activeFilters = window.activeColumnFilters || new Map();
-            const currentModelSet = activeFilters.get(2);
+            const currentModelSet = activeFilters.get(3);
             const activeModel = currentModelSet && currentModelSet.size > 0 ? Array.from(currentModelSet)[0] : '';
             const existingVal = preserveExisting ? (modelSelect.value || activeModel) : '';
 
@@ -4778,13 +4801,13 @@
             const searchByVal = document.getElementById('mfSearchBy')?.value || 'all';
 
             // Apply to activeColumnFilters
-            if (brandVal) activeFilters.set(1, new Set([brandVal])); else activeFilters.delete(1);
-            if (modelVal) activeFilters.set(2, new Set([modelVal])); else activeFilters.delete(2);
-            if (yearVal) activeFilters.set(3, new Set([yearVal])); else activeFilters.delete(3);
-            if (subModelVal) activeFilters.set(4, new Set([subModelVal])); else activeFilters.delete(4);
-            if (fittingVal) activeFilters.set(8, new Set([fittingVal])); else activeFilters.delete(8);
-            if (vCountryVal) activeFilters.set(9, new Set([vCountryVal])); else activeFilters.delete(9);
-            if (mCountryVal) activeFilters.set(10, new Set([mCountryVal])); else activeFilters.delete(10);
+            if (brandVal) activeFilters.set(2, new Set([brandVal])); else activeFilters.delete(2);
+            if (modelVal) activeFilters.set(3, new Set([modelVal])); else activeFilters.delete(3);
+            if (yearVal) activeFilters.set(4, new Set([yearVal])); else activeFilters.delete(4);
+            if (subModelVal) activeFilters.set(6, new Set([subModelVal])); else activeFilters.delete(6);
+            if (fittingVal) activeFilters.set(10, new Set([fittingVal])); else activeFilters.delete(10);
+            if (vCountryVal) activeFilters.set(11, new Set([vCountryVal])); else activeFilters.delete(11);
+            if (mCountryVal) activeFilters.set(12, new Set([mCountryVal])); else activeFilters.delete(12);
 
             // Update search_by
             const searchByHidden = document.getElementById('vehicle-search-by');
@@ -5309,12 +5332,20 @@
                     </div>
                 </div>
 
-                <!-- Row 4: Sub-Model & Fitting -->
+                <!-- Row 4: BR & Sub-Model -->
                 <div class="mobile-sheet-grid-2">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="msBr">{% translate "BR" %}</label>
+                        <input type="text" id="msBr" name="br" class="mobile-sheet-input" placeholder="BR1" maxlength="20">
+                    </div>
                     <div class="mobile-sheet-field">
                         <label class="mobile-sheet-label" for="msSubModelName">{% translate "Sub-Model" %}</label>
                         <input type="text" id="msSubModelName" name="sub_model_name" class="mobile-sheet-input" placeholder="e.g. Hybrid / LE">
                     </div>
+                </div>
+
+                <!-- Row 5: Fitting -->
+                <div class="mobile-sheet-grid-2">
                     <div class="mobile-sheet-field">
                         <label class="mobile-sheet-label" for="msFitting">{% translate "Fitting Status" %}</label>
                         <select id="msFitting" name="fitting_confirmation" class="mobile-sheet-select">

@@ -1,6 +1,8 @@
 import json
 from datetime import date, timedelta
 from io import BytesIO, StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.conf import settings
@@ -4641,7 +4643,8 @@ class PatternMasterSortingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode('utf-8')
 
-        # Check sort buttons exist for Brand, Model, Vehicle Country, and Measurement Country
+        # Check sort buttons exist for Serial, Brand, Model, Vehicle Country, and Measurement Country
+        self.assertIn('data-sort-key="serial_number"', content)
         self.assertIn('data-sort-key="brand"', content)
         self.assertIn('data-sort-key="model"', content)
         self.assertIn('data-sort-key="vehicle_country"', content)
@@ -4729,6 +4732,18 @@ class PatternMasterReversedOrderTests(TestCase):
         # The previous newest pattern keeps its serial number.
         self.assertEqual(car_data[1]['id'], self.yr_newest.id)
         self.assertEqual(car_data[1]['serial_number'], 'S0003')
+
+    def test_default_order_uses_serial_number_before_creation_id(self):
+        self.yr_oldest.serial_number = 'S0200'
+        self.yr_oldest.save()
+        self.yr_newest.serial_number = 'S0010'
+        self.yr_newest.save()
+
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+        serials = [row['serial_number'] for row in response.context['car_data']]
+
+        self.assertEqual(serials, ['S0200', 'S0010', 'S0002'])
 
     def test_cancel_inline_add_button_rendered(self):
         response = self.client.get(reverse('car_details'))
@@ -4941,3 +4956,37 @@ class MobileResponsiveDesignTests(TestCase):
         self.assertIn('closeMobileFiltersSheet', content)
         self.assertIn('applyMobileFilters', content)
         self.assertIn('resetMobileFilters', content)
+
+
+class PatternMasterSheetImportTests(TestCase):
+    CSV = """#,Brand,Model,Year Start,Year End,BR,Sub Model,Doors,Seats,X,First Sample Container,Fitting Confirm
+1,TOYOTA,COROLLA,2020,2024,BR1,N1,4,5,X100,,Confirmed
+2,TOYOTA,COROLLA,2020,2024,BR2,N1,4,5,X101,Container 1,Pending
+"""
+
+    def run_import(self, apply=False):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'vehicles.csv'
+            path.write_text(self.CSV, encoding='utf-8')
+            output = StringIO()
+            args = [str(path)]
+            if apply:
+                args.append('--apply')
+            call_command('import_pattern_master_csv', *args, stdout=output)
+            return output.getvalue()
+
+    def test_dry_run_rolls_back_all_changes(self):
+        output = self.run_import()
+        self.assertIn('DRY RUN', output)
+        self.assertEqual(YearRange.objects.count(), 0)
+
+    def test_apply_preserves_rows_with_the_same_vehicle_and_year(self):
+        output = self.run_import(apply=True)
+        vehicles = list(YearRange.objects.order_by('serial_number'))
+        self.assertIn('2 sheet rows preserved', output)
+        self.assertEqual(len(vehicles), 2)
+        self.assertEqual(vehicles[0].serial_number, 'S0001')
+        self.assertEqual(vehicles[0].br, 'BR1')
+        self.assertEqual(vehicles[1].serial_number, 'S0002')
+        self.assertEqual(vehicles[1].br, 'BR2')
+        self.assertEqual(vehicles[1].x_code, 'X101')

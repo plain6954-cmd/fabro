@@ -268,6 +268,7 @@ class YearRange(models.Model):
     serial_number = models.CharField(max_length=50, blank=True, default='', verbose_name=_('Serial Number'))
     year_start = models.PositiveSmallIntegerField(null=True, blank=True)
     year_end = models.PositiveSmallIntegerField(null=True, blank=True)
+    br = models.CharField(max_length=20, blank=True, default='', verbose_name=_('BR'))
     number_of_seats = models.PositiveSmallIntegerField(null=True, blank=True)
     number_of_doors = models.PositiveSmallIntegerField(null=True, blank=True)
     layout_code = models.CharField(max_length=100, unique=True, null=True, blank=True)
@@ -276,9 +277,6 @@ class YearRange(models.Model):
     vehicle_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_vehicle_country')
     measurement_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_measurement_country')
     google_drive_url = models.URLField(max_length=500, blank=True, default='', verbose_name=_('Google Drive URL'))
-
-    class Meta:
-        unique_together = ('sub_model', 'year_start', 'year_end')
 
     def save(self, *args, **kwargs):
         country = self.vehicle_country or self.measurement_country
