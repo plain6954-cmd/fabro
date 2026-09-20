@@ -111,6 +111,9 @@ class Command(BaseCommand):
         existing = {item.serial_number.upper(): item for item in
                     YearRange.objects.filter(serial_number__in=serials).order_by('id')}
         creates, updates = [], []
+        # Clear legacy/internal layout values first so the authoritative sheet X
+        # values can be assigned without transient unique-key collisions.
+        YearRange.objects.filter(serial_number__in=serials).update(layout_code=None)
         for row in rows:
             vehicle = existing.get(row['serial'])
             if vehicle is None:
@@ -125,13 +128,16 @@ class Command(BaseCommand):
             vehicle.number_of_seats = row['seats']
             vehicle.number_of_doors = row['doors']
             vehicle.x_code = row['x_code']
+            # This source has no Layout Code column. Remove stale internal values
+            # instead of making them appear as spreadsheet X-code data.
+            vehicle.layout_code = None
             vehicle.fitting_confirmation = row['fitting']
 
         YearRange.objects.bulk_create(creates, batch_size=250)
         YearRange.objects.bulk_update(
             updates,
             ['sub_model', 'year_start', 'year_end', 'br', 'number_of_seats',
-             'number_of_doors', 'x_code', 'fitting_confirmation'],
+             'number_of_doors', 'x_code', 'layout_code', 'fitting_confirmation'],
             batch_size=250,
         )
         return len(creates), len(updates)
@@ -156,12 +162,13 @@ class Command(BaseCommand):
                 vehicle.number_of_doors,
                 vehicle.number_of_seats,
                 vehicle.x_code,
+                vehicle.layout_code or '',
                 vehicle.fitting_confirmation,
             )
             expected = (
                 row['brand'], row['model'], row['year_start'], row['year_end'],
                 row['br'], row['sub_model'], row['doors'], row['seats'],
-                row['x_code'], row['fitting'],
+                row['x_code'], '', row['fitting'],
             )
             if actual != expected:
                 mismatches.append(row['serial'])

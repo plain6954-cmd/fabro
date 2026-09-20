@@ -473,7 +473,8 @@ class FabroBackendTests(TestCase):
             year_end=2023,
             number_of_seats=5,
             number_of_doors=4,
-            layout_code="CAMRY-HYBRID"
+            layout_code="CAMRY-HYBRID",
+            x_code="CAMRY-HYBRID",
         )
 
         brand2 = Brand.objects.create(name="Ford")
@@ -485,7 +486,8 @@ class FabroBackendTests(TestCase):
             year_end=2024,
             number_of_seats=4,
             number_of_doors=2,
-            layout_code="MUSTANG-GT"
+            layout_code="MUSTANG-GT",
+            x_code="MUSTANG-GT",
         )
 
         sku1 = SKU.objects.create(code="TOY-123", description="Toyota part", region=self.region)
@@ -4745,6 +4747,18 @@ class PatternMasterReversedOrderTests(TestCase):
 
         self.assertEqual(serials, ['S0200', 'S0010', 'S0002'])
 
+    def test_blank_x_code_never_displays_internal_layout_code(self):
+        self.yr_newest.x_code = ''
+        self.yr_newest.layout_code = 'INTERNAL-LAYOUT-ONLY'
+        self.yr_newest.save()
+
+        response = self.client.get(reverse('car_details'))
+
+        row = next(item for item in response.context['car_data'] if item['id'] == self.yr_newest.id)
+        self.assertEqual(row['x_code'], '-')
+        self.assertEqual(row['raw_x_code'], '')
+        self.assertNotContains(response, '>INTERNAL-LAYOUT-ONLY</td>', html=False)
+
     def test_cancel_inline_add_button_rendered(self):
         response = self.client.get(reverse('car_details'))
         self.assertEqual(response.status_code, 200)
@@ -4990,3 +5004,4 @@ class PatternMasterSheetImportTests(TestCase):
         self.assertEqual(vehicles[1].serial_number, 'S0002')
         self.assertEqual(vehicles[1].br, 'BR2')
         self.assertEqual(vehicles[1].x_code, 'X101')
+        self.assertIsNone(vehicles[1].layout_code)

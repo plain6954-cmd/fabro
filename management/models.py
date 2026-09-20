@@ -305,9 +305,6 @@ class YearRange(models.Model):
             base = (self.x_code or '').strip()
             if base and not YearRange.objects.filter(layout_code=base).exclude(pk=self.pk).exists():
                 self.layout_code = base
-            else:
-                import uuid
-                self.layout_code = f"YR-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
 
     def __str__(self):

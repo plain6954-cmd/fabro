@@ -630,7 +630,7 @@ def car_details(request):
             else:
                 yr_qs = yr_qs.filter(serial_number__icontains=search_query)
         elif search_column == 'x_code':
-            yr_qs = yr_qs.filter(Q(x_code__icontains=search_query) | Q(layout_code__icontains=search_query))
+            yr_qs = yr_qs.filter(x_code__icontains=search_query)
         elif search_column == 'fitting_confirmation':
             yr_qs = yr_qs.filter(fitting_confirmation__icontains=search_query)
         elif search_column == 'layout_code':
@@ -668,7 +668,9 @@ def car_details(request):
             "serial_number": display_serial,
             "stored_serial_number": yr.serial_number or '',
             "layout_code": yr.layout_code,
-            "x_code": yr.x_code or yr.layout_code or '-',
+            # X-code is source data. Never substitute the internal layout key,
+            # because blank spreadsheet cells must remain blank in the UI.
+            "x_code": yr.x_code or '-',
             "raw_x_code": yr.x_code or '',
             "fitting_confirmation": yr.fitting_confirmation or '-',
             "raw_fitting_confirmation": yr.fitting_confirmation or '',
@@ -748,6 +750,7 @@ def pattern_vehicle_list_api(request):
         'id': vehicle.pk,
         'serial_number': vehicle.serial_number or f"S{vehicle.pk:04d}",
         'layout_code': vehicle.layout_code,
+        'x_code': vehicle.x_code,
         'brand': vehicle.sub_model.model.brand.name,
         'model': vehicle.sub_model.model.name,
         'sub_model': vehicle.sub_model.name,

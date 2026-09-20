@@ -8,7 +8,7 @@
             <summary style="cursor:pointer;">{{ submodel.name }}</summary>
             <ul style="margin:.35rem 0; padding-left:1.25rem;">
                 {% for year_range in submodel.year_ranges.all %}
-                <li>{{ year_range.year_start }}–{{ year_range.year_end }} · {{ year_range.layout_code }}{% if year_range.number_of_seats %} · {{ year_range.number_of_seats }} {% translate "seats" %}{% endif %}{% if year_range.number_of_doors %} · {{ year_range.number_of_doors }} {% translate "doors" %}{% endif %}</li>
+                <li>{{ year_range.year_start }}–{{ year_range.year_end }} · {% translate "X-Code" %}: {{ year_range.x_code|default:"-" }}{% if year_range.number_of_seats %} · {{ year_range.number_of_seats }} {% translate "seats" %}{% endif %}{% if year_range.number_of_doors %} · {{ year_range.number_of_doors }} {% translate "doors" %}{% endif %}</li>
                 {% empty %}<li>{% translate "No year ranges found." %}</li>{% endfor %}
             </ul>
         </details>
