@@ -4973,6 +4973,65 @@ class MobileResponsiveDesignTests(TestCase):
         self.assertIn('applyMobileFilters', content)
         self.assertIn('resetMobileFilters', content)
 
+    def test_admin_panel_renders_mobile_responsive_elements(self):
+        response = self.client.get(reverse('admin_panel'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Verify layout elements
+        self.assertIn('erp-layout-container', content)
+        self.assertIn('erp-icon-sidebar', content)
+        self.assertIn('erp-workspace', content)
+
+        # Verify responsive wrappers in topbar
+        self.assertIn('erp-portal-link-text', content)
+        self.assertIn('erp-user-name', content)
+
+        # Verify all 7 tabs are present
+        self.assertIn('id="tab-dashboard"', content)
+        self.assertIn('id="tab-users"', content)
+        self.assertIn('id="tab-skus"', content)
+        self.assertIn('id="tab-brands"', content)
+        self.assertIn('id="tab-master"', content)
+        self.assertIn('id="tab-sessions"', content)
+        self.assertIn('id="tab-logs"', content)
+
+        # Verify modal checkbox responsive group
+        self.assertIn('erp-checkbox-group', content)
+
+        # Verify brands grid responsive class
+        self.assertIn('erp-brands-grid', content)
+
+        # Verify smooth scroll logic on tab switch
+        self.assertIn('scrollIntoView', content)
+
+    def test_admin_panel_css_contains_mobile_rules(self):
+        import os
+        from django.conf import settings
+        css_path = os.path.join(settings.BASE_DIR, 'management', 'static', 'management', 'css', 'admin-panel.css')
+        self.assertTrue(os.path.exists(css_path))
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+
+        # Check mobile media query blocks
+        self.assertIn('@media (max-width: 768px)', css_content)
+        self.assertIn('@media (max-width: 480px)', css_content)
+
+        # Check layout overflow trap fix
+        self.assertIn('calc(100dvh - 48px)', css_content)
+        self.assertIn('scrollbar-width: none', css_content)
+
+        # Check faceted chips scroll
+        self.assertIn('.erp-filter-pane > div', css_content)
+        self.assertIn('overflow-x: auto', css_content)
+
+        # Check touch momentum scrolling
+        self.assertIn('-webkit-overflow-scrolling: touch', css_content)
+
+        # Check mobile search container order and sizing
+        self.assertIn('.erp-search-container', css_content)
+
+
 
 class PatternMasterSheetImportTests(TestCase):
     CSV = """#,Brand,Model,Year Start,Year End,BR,Sub Model,Doors,Seats,X,First Sample Container,Fitting Confirm

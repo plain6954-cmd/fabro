@@ -53,7 +53,7 @@
 
         <div class="erp-topbar-right">
             <a href="{% url 'complaint_list' %}" class="erp-portal-link" title="{% translate "Return to Main Portal" %}">
-                <i class="fas fa-arrow-left"></i> {% translate "Back to Portal" %}
+                <i class="fas fa-arrow-left"></i> <span class="erp-portal-link-text">{% translate "Back to Portal" %}</span>
             </a>
             <div class="erp-user-capsule">
                 <div class="erp-avatar-xs">
@@ -63,7 +63,7 @@
                         {{ request.user.username|first|upper }}
                     {% endif %}
                 </div>
-                <span>{{ request.user.first_name|default:request.user.username }}</span>
+                <span class="erp-user-name">{{ request.user.first_name|default:request.user.username }}</span>
             </div>
         </div>
     </header>
@@ -553,7 +553,7 @@
                     <a href="{% url 'car_details' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-car-side"></i> {% translate "Manage Catalog" %}</a>
                 </div>
                 <div style="flex:1; overflow-y:auto; padding:1rem;">
-                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;" aria-live="polite">
+                    <div class="erp-brands-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;" aria-live="polite">
                         {% for brand in brands %}
                         <details class="erp-dash-card" data-vehicle-brand="{{ brand.id }}" hx-get="{% url 'admin_brand_tree' brand.id %}" hx-trigger="toggle once" hx-target="find .brand-tree" hx-swap="innerHTML">
                             <summary style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; list-style:none;">
@@ -779,7 +779,7 @@
                             <label class="erp-form-label">{% translate "Profile Photo" %}</label>
                             <input type="file" name="photo" class="erp-form-input" accept="image/*">
                         </div>
-                        <div class="erp-form-group full-width" style="display: flex; flex-direction: row; gap: 1rem; align-items: center; margin-top: 0.25rem;">
+                        <div class="erp-form-group full-width erp-checkbox-group" style="display: flex; flex-direction: row; gap: 1rem; align-items: center; margin-top: 0.25rem;">
                             <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
                                 <input type="checkbox" name="can_receive_factory_assignments" style="accent-color: #e63946;"> {% translate "Can receive factory assignments" %}
                             </label>
@@ -882,7 +882,7 @@
                             <input type="file" name="photo" class="erp-form-input" accept="image/*">
                             <button type="button" id="removeUserPhotoButton" data-url-template="{% url 'delete_user_photo' 0 %}" class="btn-danger" style="margin-top:.4rem; align-self:flex-start;" onclick="removeUserPhoto()">{% translate "Remove current photo" %}</button>
                         </div>
-                        <div class="erp-form-group full-width" style="display: flex; flex-direction: row; gap: 1rem; align-items: center;">
+                        <div class="erp-form-group full-width erp-checkbox-group" style="display: flex; flex-direction: row; gap: 1rem; align-items: center;">
                             <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
                                 <input type="checkbox" name="can_receive_factory_assignments" id="editCanFactory" style="accent-color: #e63946;"> {% translate "Can receive factory assignments" %}
                             </label>
@@ -1045,7 +1045,12 @@
         localStorage.setItem('fabro_erp_active_tab', tabKey);
 
         const sideBtn = document.getElementById('side-' + tabKey);
-        if (sideBtn) sideBtn.classList.add('active');
+        if (sideBtn) {
+            sideBtn.classList.add('active');
+            if (window.innerWidth <= 768 && typeof sideBtn.scrollIntoView === 'function') {
+                sideBtn.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+            }
+        }
 
         document.querySelectorAll('.erp-topbar-nav .erp-nav-tab').forEach(tab => {
             if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(tabKey)) {
