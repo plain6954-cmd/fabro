@@ -3679,10 +3679,21 @@ def add_sku(request):
                     if invalid_rows:
                         messages.warning(request, '; '.join(invalid_rows[:5]))
 
+    pagination_params = request.GET.copy()
+    pagination_params.pop('page', None)
+    pagination_bubbles = _get_pagination_bubbles(
+        page_skus.number,
+        paginator.num_pages,
+        on_each_side=2,
+        on_ends=1
+    )
+
     return render(request, 'management/add_skus.html', {
         'form': form,
         'skus': page_skus.object_list,
         'page_obj': page_skus,
+        'pagination_bubbles': pagination_bubbles,
+        'pagination_querystring': pagination_params.urlencode(),
         'search_query': search_query,
         'search_column': search_column,
         'search_by': search_column,

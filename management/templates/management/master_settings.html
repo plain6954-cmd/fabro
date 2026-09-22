@@ -13,18 +13,20 @@
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
         .page-container {
-            max-width: 1680px;
-            margin: 0 auto;
-            padding: 0.75rem 1.25rem 1.25rem;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 12px 18px 18px;
+            box-sizing: border-box;
         }
 
         .page-header {
             text-align: center;
-            margin-bottom: 0.85rem;
+            margin-bottom: 10px;
         }
 
         .page-title {
-            font-size: 1.65rem;
+            font-size: 1.35rem;
             font-weight: 700;
             color: var(--dark-text);
             display: flex;
@@ -40,7 +42,8 @@
 
         .page-subtitle {
             color: var(--dark-text-secondary);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            margin: 0;
         }
 
         body.light-mode .page-subtitle {
@@ -49,18 +52,19 @@
 
         .content-grid {
             display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 1.25rem;
+            grid-template-columns: 280px 1fr;
+            gap: 12px;
             align-items: start;
         }
 
         .form-section {
             background: var(--dark-surface);
-            border-radius: var(--border-radius);
-            padding: 1.25rem;
+            border-radius: 10px;
+            padding: 12px 14px;
             box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             height: fit-content;
+            box-sizing: border-box;
         }
 
         body.light-mode .form-section {
@@ -69,25 +73,25 @@
         }
 
         .section-title {
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: var(--primary-color);
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
         }
 
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
 
         .form-label {
             display: block;
             font-weight: 600;
             color: var(--dark-text);
-            margin-bottom: 0.35rem;
-            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.78rem;
         }
 
         body.light-mode .form-label {
@@ -97,61 +101,67 @@
         .form-input,
         .form-select {
             width: 100%;
-            padding: 0.6rem 0.85rem;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
+            height: 34px;
+            padding: 0.4rem 0.7rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
             background-color: var(--dark-card);
             color: var(--dark-text);
-            font-size: 0.825rem;
+            font-size: 0.82rem;
             transition: all 0.2s ease;
+            box-sizing: border-box;
         }
 
         body.light-mode .form-input,
         body.light-mode .form-select {
             background-color: var(--light-card);
             color: var(--light-text);
-            border-color: #e2e8f0;
+            border-color: #cbd5e1;
         }
 
         .form-input:focus,
         .form-select:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
         }
 
         .btn {
-            padding: 0.6rem 1.25rem;
-            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
             font-weight: 600;
-            font-size: 0.825rem;
+            font-size: 0.82rem;
             cursor: pointer;
             transition: all 0.2s ease;
             border: none;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
             text-decoration: none;
             justify-content: center;
+            box-sizing: border-box;
         }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
             color: white;
             width: 100%;
+            height: 36px;
         }
 
         .btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 3px 10px rgba(220, 38, 38, 0.35);
         }
 
         .settings-section {
             background: var(--dark-surface);
-            border-radius: var(--border-radius);
-            padding: 1.25rem;
+            border-radius: 10px;
+            padding: 12px 14px;
             box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         body.light-mode .settings-section {
@@ -159,21 +169,27 @@
             border-color: #e2e8f0;
         }
 
+        /* 1. Main Desktop Grid: 4 columns on >=1400px, 3 on 1100-1399, 2 on 700-1099, 1 on <700 */
         .category-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            align-items: start;
         }
 
+        /* 2 & 3. Dynamic content-driven card height */
         .category-card {
             background: var(--dark-card);
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
             transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
-            height: 290px;
+            height: fit-content;
+            min-height: 0;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         body.light-mode .category-card {
@@ -182,49 +198,74 @@
         }
 
         .category-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow);
+            border-color: rgba(255, 255, 255, 0.12);
         }
 
+        body.light-mode .category-card:hover {
+            border-color: #cbd5e1;
+        }
+
+        /* 4. Compact Card Header */
         .category-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 0.75rem;
+            gap: 8px;
+            margin-bottom: 8px;
+            min-height: 32px;
             flex-shrink: 0;
+            min-width: 0;
         }
 
         .category-title {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 600;
             color: var(--dark-text);
             display: flex;
             align-items: center;
             gap: 0.45rem;
+            min-width: 0;
+            overflow: hidden;
         }
 
         body.light-mode .category-title {
             color: var(--light-text);
         }
 
+        .category-title-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .category-count {
             background: var(--primary-color);
             color: white;
-            padding: 0.15rem 0.6rem;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 14px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            min-width: 24px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
 
         .category-icon {
-            width: 1.75rem;
-            height: 1.75rem;
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             color: white;
+            flex-shrink: 0;
         }
 
         .icon-channel { background: linear-gradient(135deg, #3b82f6, #2563eb); }
@@ -234,15 +275,18 @@
         .icon-series { background: linear-gradient(135deg, #ef4444, #dc2626); }
         .icon-material { background: linear-gradient(135deg, #06b6d4, #0891b2); }
 
+        /* 5 & 7. Compact List Items and Internal Scrolling */
         .settings-list {
-            display: grid;
-            gap: 0.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 210px;
             overflow-y: auto;
-            flex: 1;
-            padding-right: 4px;
+            padding-right: 3px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(220, 38, 38, 0.45) transparent;
         }
 
-        /* Styled Scrollbar for settings list */
         .settings-list::-webkit-scrollbar {
             width: 4px;
         }
@@ -250,22 +294,25 @@
             background: transparent;
         }
         .settings-list::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(220, 38, 38, 0.4);
             border-radius: 4px;
         }
-        body.light-mode .settings-list::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.12);
+        .settings-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(220, 38, 38, 0.75);
         }
 
         .setting-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.5rem 0.75rem;
+            min-height: 44px;
+            padding: 5px 8px 5px 10px;
             background: var(--dark-surface);
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.2s ease;
+            gap: 6px;
+            box-sizing: border-box;
         }
 
         body.light-mode .setting-item {
@@ -274,59 +321,76 @@
         }
 
         .setting-item:hover {
-            background: rgba(37, 99, 235, 0.05);
+            background: rgba(255, 255, 255, 0.035);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-mode .setting-item:hover {
+            background: rgba(0, 0, 0, 0.02);
+            border-color: #cbd5e1;
         }
 
         .setting-name {
-            color: var(--dark-text-secondary);
-            font-size: 0.8rem;
+            color: var(--dark-text);
+            font-size: 0.82rem;
             font-weight: 500;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         body.light-mode .setting-name {
-            color: var(--light-text-secondary);
+            color: var(--light-text);
         }
 
+        /* 6. Action Buttons: 34px x 34px */
         .setting-actions {
-            display: flex;
-            gap: 0.4rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
         }
 
         .action-btn {
-            padding: 0.4rem;
-            border-radius: 6px;
+            padding: 0;
+            border-radius: 8px;
             border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
             color: white;
-            font-size: 0.7rem;
-            display: flex;
+            font-size: 0.78rem;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 1.75rem;
-            height: 1.75rem;
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
             text-decoration: none;
+            box-sizing: border-box;
         }
 
         .action-btn.edit {
-            background-color: var(--warning-color);
+            background-color: var(--warning-color, #f59e0b);
         }
 
         .action-btn.delete {
-            background-color: var(--error-color);
+            background-color: var(--error-color, #ef4444);
         }
 
         .action-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
         }
 
         .empty-state {
             text-align: center;
-            padding: 1.5rem 1rem;
+            padding: 1rem 0.5rem;
             color: var(--dark-text-secondary);
             font-style: italic;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
         }
 
         body.light-mode .empty-state {
@@ -349,10 +413,10 @@
         .modal-content {
             background: var(--dark-surface);
             margin: 10% auto;
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: var(--border-radius);
             width: 90%;
-            max-width: 500px;
+            max-width: 480px;
             box-shadow: var(--shadow-lg);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -366,8 +430,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -376,7 +440,7 @@
         }
 
         .modal-title {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 600;
             color: var(--dark-text);
         }
@@ -388,10 +452,10 @@
         .close-btn {
             background: none;
             border: none;
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             color: var(--dark-text-secondary);
             cursor: pointer;
-            padding: 0.5rem;
+            padding: 0.4rem;
             border-radius: 6px;
             transition: all 0.2s ease;
         }
@@ -407,9 +471,9 @@
 
         .modal-actions {
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             justify-content: flex-end;
-            margin-top: 1.5rem;
+            margin-top: 1.25rem;
         }
 
         .btn-secondary {
@@ -434,26 +498,70 @@
             color: var(--light-text);
         }
 
-        @media (max-width: 1024px) {
-            .content-grid {
-                grid-template-columns: 1fr;
+        /* 10. Responsive Breakpoints */
+        /* Desktop / Smaller Laptop: 1100px - 1399px -> 3 columns */
+        @media (max-width: 1399px) {
+            .category-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
 
-        @media (max-width: 768px) {
+        /* Tablet: 700px - 1099px -> 2 columns, form stacked on top */
+        @media (min-width: 700px) and (max-width: 1099px) {
+            .content-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+
+            .category-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 12px;
+            }
+        }
+
+        /* Mobile: < 700px -> 1 column */
+        @media (max-width: 699px) {
             .page-container {
-                padding: 1rem;
+                padding: 8px 10px 14px;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
             }
 
             .form-section,
             .settings-section {
-                padding: 1.5rem;
+                padding: 10px 12px;
+            }
+
+            .category-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
             }
 
             .category-card {
-                padding: 1rem;
+                padding: 10px;
+            }
+
+            .setting-item {
+                padding: 6px 8px;
+            }
+
+            .form-input,
+            .form-select,
+            .btn-primary {
+                height: 44px;
+            }
+
+            .action-btn {
+                width: 44px !important;
+                height: 44px !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
             }
         }
+
     </style>
 {% if is_htmx_request %}
 </template>
@@ -542,7 +650,7 @@
                                             <i class="fas fa-cog"></i>
                                         </div>
                                     {% endif %}
-                                    {{ category }}
+                                    <span class="category-title-text">{{ category }}</span>
                                 </div>
                                 <span class="category-count">{{ settings|length }}</span>
                             </div>

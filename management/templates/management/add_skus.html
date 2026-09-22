@@ -12,11 +12,24 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <style data-fabro-page-asset>
+        html, body {
+            height: 100vh !important;
+            overflow: hidden !important;
+        }
+
+        @media (max-width: 768px) {
+            html, body {
+                height: auto !important;
+                overflow-y: auto !important;
+            }
+        }
+
         {% if new_search_enabled %}
         .page-container {
             max-width: 100%;
-            margin: 0;
-            padding: 0.75rem 1.5rem 1.5rem;
+            margin: 0 auto;
+            padding: 0.35rem 1.25rem 0.5rem;
+            box-sizing: border-box;
         }
 
         .page-header {
@@ -828,17 +841,20 @@
             cursor: pointer;
         }
 
-        /* One-frame SKU workspace: the data area owns the only scrollbar. */
+        /* One-frame SKU workspace: matching Pattern Master high-density layout */
         .sku-workspace {
             display: flex;
             flex-direction: column;
-            height: calc(100dvh - 5.5rem);
+            height: calc(100dvh - 84px) !important;
+            max-height: calc(100dvh - 84px) !important;
             min-height: 0;
             overflow: hidden;
-            background: rgba(30, 30, 32, 0.94);
+            background: rgba(18, 18, 20, 0.42);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--border-radius);
+            border-radius: 8px;
             box-shadow: var(--shadow);
+            padding: 0.4rem 0.85rem 0.4rem !important;
+            box-sizing: border-box !important;
         }
 
         body.light-mode .sku-workspace {
@@ -848,13 +864,133 @@
 
         .sku-workspace .sku-workspace__toolbar {
             flex: 0 0 auto;
-            margin: 0 0 0.65rem;
-            padding: 0.15rem 0.15rem 0.7rem;
+            margin: 0 0 0.35rem;
+            padding: 0.1rem 0 0.35rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         body.light-mode .sku-workspace .sku-workspace__toolbar {
             border-bottom-color: #e2e8f0;
+        }
+
+        .sku-toolbar__header {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-shrink: 0;
+        }
+
+        .sku-workspace .page-title {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+            margin: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            color: var(--dark-text);
+        }
+
+        body.light-mode .sku-workspace .page-title {
+            color: var(--light-text);
+        }
+
+        .sku-toolbar__primary-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .sku-add-btn {
+            background: linear-gradient(135deg, var(--primary-color, #dc2626), #b91c1c) !important;
+            color: #ffffff !important;
+            height: 2.35rem !important;
+            width: 2.35rem !important;
+            min-width: 2.35rem !important;
+            font-size: 0.95rem !important;
+            border-radius: 6px !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35) !important;
+            border: none !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .sku-add-btn:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.45) !important;
+        }
+
+        .sku-csv-btn {
+            background: linear-gradient(135deg, #059669, #10b981) !important;
+            color: #ffffff !important;
+            height: 2.35rem !important;
+            width: 2.35rem !important;
+            min-width: 2.35rem !important;
+            font-size: 0.95rem !important;
+            border-radius: 6px !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+            border: none !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .sku-csv-btn:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45) !important;
+        }
+
+        .sku-toolbar__search-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex: 1 1 320px;
+            max-width: 460px;
+        }
+
+        .sku-toolbar__search-row .header-search-form {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            justify-content: flex-end;
+        }
+
+        .sku-toolbar__search-row .header-search-input {
+            height: 2.35rem !important;
+            font-size: 0.82rem !important;
+            border-radius: 6px !important;
+            padding: 0.45rem 9.5rem 0.45rem 2.2rem !important;
+            background: rgba(18, 18, 20, 0.82) !important;
+        }
+
+        body.light-mode .sku-toolbar__search-row .header-search-input {
+            background: var(--light-card) !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        .sku-toolbar__search-row .btn.icon-btn {
+            height: 2.35rem !important;
+            width: 2.35rem !important;
+            min-width: 2.35rem !important;
+            border-radius: 6px !important;
+            padding: 0 !important;
+            font-size: 0.85rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
 
         .sku-workspace .table-section {
@@ -874,29 +1010,474 @@
         .sku-workspace .table-container {
             flex: 1 1 auto;
             min-height: 0;
-            max-height: none;
-            overflow: auto;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow-y: auto !important;
+            overflow-x: auto !important;
             border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(18, 18, 20, 0.42);
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
         }
 
+        .sku-workspace .table-container::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .sku-workspace .table-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sku-workspace .table-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        .sku-workspace .table-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        body.light-mode .sku-workspace .table-container {
+            background: var(--light-surface);
+            border-color: #e2e8f0;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        body.light-mode .sku-workspace .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+        }
+
+        /* High-Density Compact Table Styles (Matching Pattern Master) */
+        .sku-workspace .table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+        }
+
+        .sku-workspace .table th,
+        .sku-workspace .table td {
+            padding: 0.35rem 0.5rem !important;
+            font-size: 0.8rem !important;
+            line-height: 1.25 !important;
+            white-space: nowrap !important;
+            vertical-align: middle !important;
+        }
+
+        .sku-workspace .table thead th {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 10 !important;
+            background: var(--dark-card, #161922) !important;
+            color: var(--dark-text, #f0f6fc) !important;
+            font-weight: 600 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12) !important;
+        }
+
+        body.light-mode .sku-workspace .table thead th {
+            background: var(--light-card, #f8fafc) !important;
+            color: var(--light-text, #0f172a) !important;
+            box-shadow: inset 0 -1px 0 #cbd5e1 !important;
+            border-bottom-color: #e2e8f0 !important;
+        }
+
+        .sku-workspace .table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background-color 0.15s ease;
+        }
+
+        .sku-workspace .table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+
+        body.light-mode .sku-workspace .table tbody tr {
+            border-bottom-color: #f1f5f9;
+        }
+
+        body.light-mode .sku-workspace .table tbody tr:hover {
+            background-color: rgba(0, 0, 0, 0.025) !important;
+        }
+
+        .sku-col-num {
+            width: 50px;
+            min-width: 45px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--dark-text-secondary, #94a3b8);
+        }
+
+        .sku-col-code {
+            width: 180px;
+            min-width: 150px;
+            font-weight: 700;
+            color: #f0f6fc;
+        }
+
+        body.light-mode .sku-col-code {
+            color: #0f172a;
+        }
+
+        .sku-col-desc {
+            min-width: 250px;
+            color: var(--dark-text-secondary, #94a3b8);
+        }
+
+        .sku-col-region {
+            width: 100px;
+            text-align: center;
+            color: var(--dark-text-secondary, #94a3b8);
+        }
+
+        .sku-col-actions {
+            width: 85px;
+            text-align: center;
+        }
+
+        /* Pattern Master Amber & Crimson Action Chips */
+        .sku-workspace .action-buttons {
+            display: inline-flex;
+            gap: 0.3rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sku-workspace .action-btn {
+            width: 24px !important;
+            height: 24px !important;
+            min-width: 24px !important;
+            min-height: 24px !important;
+            padding: 0 !important;
+            border-radius: 4px !important;
+            font-size: 0.72rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid transparent !important;
+            text-decoration: none;
+        }
+
+        .sku-workspace .action-btn.edit {
+            background: rgba(245, 158, 11, 0.16) !important;
+            color: #f59e0b !important;
+            border-color: rgba(245, 158, 11, 0.32) !important;
+        }
+
+        .sku-workspace .action-btn.edit:hover {
+            background: #f59e0b !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.45) !important;
+            transform: translateY(-1px);
+        }
+
+        .sku-workspace .action-btn.delete {
+            background: rgba(239, 68, 68, 0.16) !important;
+            color: #ef4444 !important;
+            border-color: rgba(239, 68, 68, 0.32) !important;
+        }
+
+        .sku-workspace .action-btn.delete:hover {
+            background: #ef4444 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.45) !important;
+            transform: translateY(-1px);
+        }
+
+        body.light-mode .sku-workspace .action-btn.edit {
+            background: rgba(245, 158, 11, 0.12) !important;
+            color: #b45309 !important;
+            border-color: rgba(245, 158, 11, 0.3) !important;
+        }
+
+        body.light-mode .sku-workspace .action-btn.edit:hover {
+            background: #f59e0b !important;
+            color: #ffffff !important;
+        }
+
+        body.light-mode .sku-workspace .action-btn.delete {
+            background: rgba(239, 68, 68, 0.12) !important;
+            color: #b91c1c !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+        }
+
+        body.light-mode .sku-workspace .action-btn.delete:hover {
+            background: #ef4444 !important;
+            color: #ffffff !important;
+        }
+
+        /* Compact Inline Add & Edit Row Inputs */
+        .sku-workspace .table input.form-input,
+        .sku-workspace .table select.form-select {
+            height: 26px !important;
+            min-height: 26px !important;
+            padding: 0.15rem 0.45rem !important;
+            font-size: 0.8rem !important;
+            border-radius: 4px !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            background: var(--dark-card) !important;
+            color: var(--dark-text) !important;
+        }
+
+        body.light-mode .sku-workspace .table input.form-input,
+        body.light-mode .sku-workspace .table select.form-select {
+            border-color: #cbd5e1 !important;
+            background: var(--light-card) !important;
+            color: var(--light-text) !important;
+        }
+
+        /* Circular Bubble Pagination (Identical to Pattern Master) */
         .sku-workspace .pagination-container {
             flex: 0 0 auto;
-            margin-top: 0.55rem !important;
+            margin-top: 0.4rem !important;
+            padding: 0 !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pattern-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.75rem;
+            user-select: none;
+            flex-wrap: wrap;
+        }
+
+        .pattern-pagination__bubbles {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .pattern-pagination__bubble {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2.1rem;
+            height: 2.1rem;
+            border-radius: 50%;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            text-decoration: none;
+            color: var(--dark-text-secondary, #94a3b8);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 160ms ease;
+            user-select: none;
+        }
+
+        .pattern-pagination__bubble:hover {
+            color: #ffffff;
+            background: rgba(220, 38, 38, 0.18);
+            border-color: rgba(220, 38, 38, 0.45);
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .pattern-pagination__bubble.is-active {
+            background: var(--primary-color, #dc2626);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 2px 10px rgba(220, 38, 38, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            cursor: default;
+            transform: scale(1.05);
+        }
+
+        .pattern-pagination__ellipsis {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.5rem;
+            color: var(--dark-text-secondary, #94a3b8);
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            opacity: 0.6;
+            user-select: none;
+        }
+
+        .pattern-pagination__control {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--dark-text-secondary, #94a3b8);
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: transparent;
+            transition: all 160ms ease;
+        }
+
+        .pattern-pagination__control[href]:hover {
+            color: #ffffff;
+            border-color: rgba(220, 38, 38, 0.4);
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .pattern-pagination__control.is-disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        body.light-mode .pattern-pagination__bubble {
+            color: #4b5563;
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        body.light-mode .pattern-pagination__bubble:hover {
+            color: var(--primary-color, #dc2626);
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.35);
+        }
+
+        body.light-mode .pattern-pagination__bubble.is-active {
+            background: var(--primary-color, #dc2626);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(220, 38, 38, 0.35);
+        }
+
+        body.light-mode .pattern-pagination__control {
+            color: #6b7280;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .pattern-pagination__control[href]:hover {
+            color: #d92736;
+            border-color: rgba(217, 39, 54, 0.34);
+            background: rgba(217, 39, 54, 0.055);
         }
 
         @media (max-width: 768px) {
             .sku-workspace {
-                height: calc(100dvh - 5rem);
-                padding: 0.75rem;
+                height: max(320px, calc(100dvh - 8rem)) !important;
+                max-height: none !important;
+                padding: 0.5rem;
+            }
+
+            .sku-workspace--csv-open {
+                height: auto !important;
+                min-height: max(320px, calc(100dvh - 8rem));
+                overflow: visible;
+            }
+
+            .sku-workspace--csv-open .table-section {
+                min-height: 300px;
+            }
+
+            .sku-workspace .page-title {
+                font-size: 1.125rem !important;
+            }
+
+            .sku-add-btn,
+            .sku-csv-btn,
+            .sku-toolbar__search-row .btn.icon-btn {
+                width: 44px !important;
+                height: 44px !important;
+                min-width: 44px !important;
+            }
+
+            .sku-toolbar__search-row .header-search-input {
+                height: 44px !important;
+                padding-right: 6.5rem !important;
+            }
+
+            .sku-workspace .table td {
+                white-space: normal !important;
+                overflow-wrap: anywhere;
+            }
+
+            .sku-workspace .sku-col-code,
+            .sku-workspace .sku-col-desc,
+            .sku-workspace .sku-col-region {
+                min-width: 0;
+                width: auto;
+            }
+
+            .sku-workspace .action-btn {
+                width: 44px !important;
+                height: 44px !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }
+
+            .sku-workspace .table input.form-input,
+            .sku-workspace .table select.form-select {
+                height: 44px !important;
+                min-height: 44px !important;
             }
 
             .sku-workspace .sku-workspace__toolbar {
                 padding-inline: 0;
             }
 
+            .sku-toolbar__search-row {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .header-search-form {
+                gap: 0.35rem;
+            }
+
+            .header-search-form .icon-btn {
+                width: 2.45rem !important;
+                height: 2.45rem !important;
+                min-width: 2.45rem !important;
+                font-size: 0.88rem !important;
+                border-radius: 6px !important;
+                flex-shrink: 0;
+            }
+
+            .header-search-input {
+                height: 2.45rem !important;
+                padding-left: 2.15rem !important;
+                padding-right: 6.2rem !important;
+                font-size: 0.85rem !important;
+            }
+
+            .search-leading-icon {
+                left: 0.75rem !important;
+                font-size: 0.82rem !important;
+            }
+
+            .search-field-label {
+                max-width: 5.5rem !important;
+                font-size: 0.62rem !important;
+                padding: 0.2rem 0.4rem !important;
+                right: 0.35rem !important;
+            }
+
             .sku-workspace .table-container {
                 overflow-x: hidden;
                 overflow-y: auto;
+            }
+
+            .pattern-pagination__control span {
+                display: none;
+            }
+
+            .pattern-pagination__control {
+                min-width: 1.8rem;
+                justify-content: center;
+            }
+
+            .pattern-pagination__bubble {
+                min-width: 1.8rem;
+                height: 1.8rem;
+                font-size: 0.7rem;
+                padding: 0 0.3rem;
             }
         }
     </style>
@@ -908,29 +1489,30 @@
     {% include 'management/base.html' %}
 {% endif %}
     <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
-    <div class="page-container sku-workspace">
-        <div class="page-header sku-workspace__toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <h1 class="page-title" style="margin-bottom: 0.25rem; justify-content: flex-start;">
+    <div class="page-container sku-workspace{% if upload_feedback or upload_form.csv_file.errors %} sku-workspace--csv-open{% endif %}">
+        <div class="page-header sku-workspace__toolbar">
+            <div class="sku-toolbar__header">
+                <h1 class="page-title">
                     <i class="fas fa-barcode"></i>
-                    {% translate "SKU Management" %}
+                    <span>{% translate "SKU Management" %}</span>
                 </h1>
-                <p class="page-subtitle" style="margin-bottom: 0;">{% translate "Manage product SKUs and inventory with inline editing & bulk upload capabilities" %}</p>
+                <div class="sku-toolbar__primary-actions">
+                    {% if can_manage_catalog %}
+                    <button type="button" class="btn btn-primary icon-btn sku-add-btn" id="btnToggleAddSku" title="{% translate "Add New SKU (Inline)" %}" onclick="toggleInlineAddRow()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button type="button" class="btn btn-success icon-btn sku-csv-btn" id="btnToggleCsvUpload" title="{% translate "Bulk Upload CSV" %}" onclick="toggleCsvExpand()">
+                        <i class="fas fa-file-csv"></i>
+                    </button>
+                    {% endif %}
+                </div>
             </div>
-            <div class="header-actions" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
-                {% if can_manage_catalog %}
-                <button type="button" class="btn btn-primary icon-btn" id="btnToggleAddSku" title="{% translate "Add New SKU (Inline)" %}" onclick="toggleInlineAddRow()" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
-                    <i class="fas fa-plus"></i>
-                </button>
-                <button type="button" class="btn btn-success icon-btn" id="btnToggleCsvUpload" title="{% translate "Bulk Upload CSV" %}" onclick="toggleCsvExpand()" style="width: 2.85rem; height: 2.85rem; font-size: 1.1rem; border-radius: 8px;">
-                    <i class="fas fa-file-csv"></i>
-                </button>
-                {% endif %}
+            <div class="sku-toolbar__search-row">
                 <form method="GET" class="header-search-form" id="sku-search-form">
                     <input type="hidden" name="search_by" id="sku-search-by" value="{{ search_by|default:'all' }}">
                     <div class="search-picker" id="sku-search-picker">
                         <i class="fas fa-search search-leading-icon"></i>
-                        <input type="text" name="search" id="sku-search-input" placeholder="{% translate "Search SKUs..." %}"
+                        <input type="text" name="search" id="sku-search-input" placeholder="{% translate "Search..." %}"
                                value="{{ search_query }}" class="header-search-input" autocomplete="off"
                                aria-label="{% translate "Search SKUs" %}" aria-describedby="sku-search-options-title"
                                aria-haspopup="listbox" aria-expanded="false">
@@ -1011,10 +1593,25 @@
         </div>
         {% endif %}
 
+        {% if can_manage_catalog %}
+        <!-- Hidden Form Controllers for HTML5 table-row form associations -->
+        <div id="skuFormControllers" style="display: none;" aria-hidden="true">
+            <form id="inlineAddSkuForm" method="post" action="{% url 'add_sku' %}">
+                {% csrf_token %}
+                <input type="hidden" name="add_sku" value="1">
+            </form>
+            {% for sku in skus %}
+            <form id="sku-edit-form-{{ sku.id }}" method="post" action="{% url 'edit_sku' sku.id %}">
+                {% csrf_token %}
+            </form>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- SKU List FIRST -->
         <div class="table-section" data-no-reveal>
             <div class="table-container">
-                <table class="table">
+                <table class="table sku-table--compact">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -1058,23 +1655,27 @@
                         {% if can_manage_catalog %}
                         <!-- Inline Add SKU Row -->
                         <tr id="inlineAddRow" style="display: {% if form.errors and 'add_sku' in request.POST %}table-row{% else %}none{% endif %}; background: rgba(229, 57, 53, 0.08); border-bottom: 2px solid var(--primary-color);">
-                            <form method="post" id="inlineAddSkuForm">
-                                {% csrf_token %}
-                                <td style="vertical-align: middle;"><span style="background: var(--primary-color); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">{% translate "NEW" %}</span></td>
-                                <td style="vertical-align: middle;">{{ form.code }}</td>
-                                <td style="vertical-align: middle;">{{ form.description }}</td>
-                                <td style="vertical-align: middle;">{{ form.region }}</td>
-                                <td style="vertical-align: middle;">
-                                    <div style="display: flex; gap: 0.4rem;">
-                                        <button type="submit" name="add_sku" class="action-btn" title="{% translate "Save SKU" %}" style="background: #10b981; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button type="button" class="action-btn" title="{% translate "Cancel" %}" onclick="toggleInlineAddRow(false)" style="background: rgba(255,255,255,0.15); color: var(--dark-text); border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </form>
+                            <td style="vertical-align: middle;"><span style="background: var(--primary-color); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">{% translate "NEW" %}</span></td>
+                            <td style="vertical-align: middle;"><input type="text" name="code" id="id_code" form="inlineAddSkuForm" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;" placeholder="{% translate 'SKU Code' %}" value="{{ form.code.value|default:'' }}" required></td>
+                            <td style="vertical-align: middle;"><input type="text" name="description" id="id_description" form="inlineAddSkuForm" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;" placeholder="{% translate 'Description' %}" value="{{ form.description.value|default:'' }}"></td>
+                            <td style="vertical-align: middle;">
+                                <select name="region" id="id_region" form="inlineAddSkuForm" class="form-select" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">
+                                    <option value="">---------</option>
+                                    {% for r in form.fields.region.queryset %}
+                                    <option value="{{ r.id }}" {% if form.region.value|stringformat:"s" == r.id|stringformat:"s" %}selected{% endif %}>{{ r }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <div style="display: flex; gap: 0.4rem;">
+                                    <button type="submit" form="inlineAddSkuForm" name="add_sku" value="1" class="action-btn" title="{% translate "Save SKU" %}" style="background: #10b981; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button type="button" class="action-btn" title="{% translate "Cancel" %}" onclick="toggleInlineAddRow(false)" style="background: rgba(255,255,255,0.15); color: var(--dark-text); border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                         {% endif %}
 
@@ -1082,18 +1683,18 @@
                             {% for sku in skus %}
                             <!-- View Row -->
                             <tr id="sku-row-{{ sku.id }}">
-                                <td>{% if page_obj %}{{ page_obj.start_index|add:forloop.counter0 }}{% else %}{{ forloop.counter }}{% endif %}</td>
-                                <td><strong>{{ sku.code }}</strong></td>
-                                <td>{{ sku.description|default:"-" }}</td>
-                                <td>{{ sku.region|default:"-" }}</td>
-                                {% if can_manage_catalog %}<td>
+                                <td class="sku-col-num">{% if page_obj %}{{ page_obj.start_index|add:forloop.counter0 }}{% else %}{{ forloop.counter }}{% endif %}</td>
+                                <td class="sku-col-code"><strong>{{ sku.code }}</strong></td>
+                                <td class="sku-col-desc">{{ sku.description|default:"-" }}</td>
+                                <td class="sku-col-region">{{ sku.region|default:"-" }}</td>
+                                {% if can_manage_catalog %}<td class="sku-col-actions">
                                     <div class="action-buttons">
-                                        <button type="button" class="action-btn edit" title="{% translate "Edit Inline" %}" onclick="toggleInlineEditRow({{ sku.id }}, true)">
+                                        <button type="button" class="action-btn edit sku-action-btn sku-action-btn--edit" title="{% translate "Edit Inline" %}" onclick="toggleInlineEditRow({{ sku.id }}, true)">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <form method="post" action="{% url 'delete_sku' sku.id %}" style="display:inline;">
                                             {% csrf_token %}
-                                            <button type="submit" class="action-btn delete" title="{% translate "Delete" %}"
+                                            <button type="submit" class="action-btn delete sku-action-btn sku-action-btn--delete" title="{% translate "Delete" %}"
                                                     onclick="return confirm(window.FabroI18n.gettext('Are you sure you want to delete this SKU?'));">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -1104,30 +1705,27 @@
                             {% if can_manage_catalog %}
                             <!-- Inline Edit Row -->
                             <tr id="sku-edit-row-{{ sku.id }}" style="display:none; background: rgba(59, 130, 246, 0.08); border-bottom: 2px solid #3b82f6;">
-                                <form method="post" action="{% url 'edit_sku' sku.id %}">
-                                    {% csrf_token %}
-                                    <td style="vertical-align: middle;">#{{ forloop.counter }}</td>
-                                    <td style="vertical-align: middle;"><input type="text" name="code" value="{{ sku.code }}" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;" required></td>
-                                    <td style="vertical-align: middle;"><input type="text" name="description" value="{{ sku.description|default:'' }}" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;"></td>
-                                    <td style="vertical-align: middle;">
-                                        <select name="region" class="form-select" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">
-                                            <option value="">---------</option>
-                                            {% for r in form.fields.region.queryset %}
-                                            <option value="{{ r.id }}" {% if sku.region_id == r.id %}selected{% endif %}>{{ r }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    <td style="vertical-align: middle;">
-                                        <div style="display: flex; gap: 0.4rem;">
-                                            <button type="submit" class="action-btn" title="{% translate "Save Changes" %}" style="background: #10b981; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                            <button type="button" class="action-btn" title="{% translate "Cancel" %}" onclick="toggleInlineEditRow({{ sku.id }}, false)" style="background: rgba(255,255,255,0.15); color: var(--dark-text); border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </form>
+                                <td style="vertical-align: middle;">#{{ forloop.counter }}</td>
+                                <td style="vertical-align: middle;"><input type="text" name="code" value="{{ sku.code }}" form="sku-edit-form-{{ sku.id }}" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;" required></td>
+                                <td style="vertical-align: middle;"><input type="text" name="description" value="{{ sku.description|default:'' }}" form="sku-edit-form-{{ sku.id }}" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;"></td>
+                                <td style="vertical-align: middle;">
+                                    <select name="region" form="sku-edit-form-{{ sku.id }}" class="form-select" style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">
+                                        <option value="">---------</option>
+                                        {% for r in form.fields.region.queryset %}
+                                        <option value="{{ r.id }}" {% if sku.region_id == r.id %}selected{% endif %}>{{ r }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td style="vertical-align: middle;">
+                                    <div style="display: flex; gap: 0.4rem;">
+                                        <button type="submit" form="sku-edit-form-{{ sku.id }}" class="action-btn" title="{% translate "Save Changes" %}" style="background: #10b981; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="action-btn" title="{% translate "Cancel" %}" onclick="toggleInlineEditRow({{ sku.id }}, false)" style="background: rgba(255,255,255,0.15); color: var(--dark-text); border: none; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                             {% endif %}
                             {% endfor %}
@@ -1143,18 +1741,46 @@
                 </table>
             </div>
                 {% if page_obj and page_obj.has_other_pages %}
-                <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
-                    {% if page_obj.has_previous %}
-                        <a href="?page=1{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">&laquo; {% translate "First" %}</a>
-                        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "Prev" %}</a>
-                    {% endif %}
+                <div class="pagination-container">
+                    <nav class="pattern-pagination" aria-label="{% translate 'SKU pages' %}">
+                        {% if page_obj.has_previous %}
+                        <a class="pattern-pagination__control pattern-pagination__control--previous" href="?page={{ page_obj.previous_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Prev' %}">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            <span>{% translate "Prev" %}</span>
+                        </a>
+                        {% else %}
+                        <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            <span>{% translate "Prev" %}</span>
+                        </span>
+                        {% endif %}
 
-                    <span style="font-size: 0.875rem; color: var(--dark-text); font-weight: 500; margin: 0 0.5rem;">{% blocktranslate with page=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
+                        <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
+                            {% for p in pagination_bubbles %}
+                                {% if p == '...' or p == '.' %}
+                                    <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
+                                {% elif p == page_obj.number %}
+                                    <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
+                                {% else %}
+                                    <a class="pattern-pagination__bubble" href="?page={{ p }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
+                                {% endif %}
+                            {% empty %}
+                                <span class="pattern-pagination__bubble is-active" aria-current="page">{{ page_obj.number }}</span>
+                            {% endfor %}
+                        </div>
 
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "Next" %}</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&amp;search={{ search_query }}{% endif %}{% if new_search_enabled and search_column %}&amp;column={{ search_column }}{% endif %}" class="btn" style="padding: 0.4rem 0.8rem; background: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255,255,255,0.1);">{% translate "Last" %} &raquo;</a>
-                    {% endif %}
+                        {% if page_obj.has_next %}
+                        <a class="pattern-pagination__control pattern-pagination__control--next" href="?page={{ page_obj.next_page_number }}{% if pagination_querystring %}&amp;{{ pagination_querystring }}{% endif %}" aria-label="{% translate 'Next' %}">
+                            <span>{% translate "Next" %}</span>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </a>
+                        {% else %}
+                        <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
+                            <span>{% translate "Next" %}</span>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </span>
+                        {% endif %}
+                    </nav>
                 </div>
                 {% endif %}
         </div>
@@ -1235,6 +1861,7 @@
             } else {
                 container.style.display = show ? 'block' : 'none';
             }
+            document.querySelector('.sku-workspace')?.classList.toggle('sku-workspace--csv-open', container.style.display === 'block');
 
             if (container.style.display === 'block') {
                 container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

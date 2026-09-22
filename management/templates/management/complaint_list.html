@@ -12,7 +12,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/complaints.css' %}?v=20260912-workflow-serial-nested" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/complaints.css' %}?v=20260923-responsive-search" data-fabro-page-asset>
 {% if is_htmx_request %}
 </template>
 {% else %}
@@ -53,7 +53,7 @@
                     {% endfor %}
                     <div class="search-picker" id="search-picker">
                         <i class="fas fa-search search-leading-icon"></i>
-                        <input type="text" name="search" id="header-search-input" placeholder="{% translate "Search complaints..." %}"
+                        <input type="text" name="search" id="header-search-input" placeholder="{% translate "Search..." %}"
                                value="{{ search_query }}" class="header-search-input" autocomplete="off"
                                aria-label="{% translate "Search complaints" %}" aria-describedby="search-options-title"
                                aria-haspopup="listbox" aria-expanded="false">

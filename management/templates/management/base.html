@@ -251,18 +251,6 @@
         body.light-mode .profile-trigger {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(244, 244, 245, 0.86));
             border-color: rgba(24, 24, 27, 0.12);
-            box-shadow: 0 18px 44px rgba(24, 24, 27, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.86);
-        }
-
-        .profile-trigger:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-1px);
-            box-shadow: 0 20px 48px rgba(220, 38, 38, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-        }
-
-        .profile-avatar {
-            width: 2.35rem;
-            height: 2.35rem;
             background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
             border-radius: 50%;
             display: flex;
@@ -365,7 +353,6 @@
 
         .profile-dropdown.is-open .profile-dropdown-content {
             display: block;
-            animation: fadeInUp 0.2s ease;
         }
 
         @media (hover: hover) and (pointer: fine) {
@@ -375,7 +362,6 @@
 
             .profile-dropdown:hover .profile-dropdown-content {
                 display: block;
-                animation: fadeInUp 0.2s ease;
             }
         }
 
@@ -541,39 +527,70 @@
             z-index: 10000;
             pointer-events: none;
             opacity: 0;
-            background:
-                radial-gradient(circle at 50% 42%, rgba(220, 38, 38, 0.18), transparent 28%),
-                rgba(18, 18, 20, 0.96);
+            background: rgba(18, 18, 20, 0.97);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             transition: opacity 120ms ease;
         }
 
         body.light-mode .fabro-page-transition-layer {
-            background:
-                radial-gradient(circle at 50% 42%, rgba(220, 38, 38, 0.12), transparent 28%),
-                rgba(255, 255, 255, 0.97);
+            background: rgba(255, 255, 255, 0.98);
         }
 
-        .fabro-page-transition-layer::after {
-            content: '';
+        /* 3x3 Micro Square Grid Loader */
+        .fabro-loader-grid {
             position: absolute;
-            top: 42%;
+            top: 50%;
             left: 50%;
-            width: 34px;
-            height: 34px;
-            margin: -17px 0 0 -17px;
-            border: 3px solid rgba(255, 255, 255, 0.18);
-            border-top-color: var(--primary-color);
-            border-radius: 50%;
-            animation: fabroRouteSpin 700ms linear infinite;
+            transform: translate(-50%, -50%);
+            display: grid;
+            grid-template-columns: repeat(3, 6px);
+            grid-template-rows: repeat(3, 6px);
+            gap: 3px;
+            width: 24px;
+            height: 24px;
+            pointer-events: none;
         }
 
-        body.light-mode .fabro-page-transition-layer::after {
-            border-color: rgba(24, 24, 27, 0.14);
-            border-top-color: var(--primary-color);
+        .fabro-loader-grid .square {
+            background: #ffffff;
+            width: 6px;
+            height: 6px;
+            border-radius: 1px;
+            box-shadow: 0 0 4px rgba(255, 255, 255, 0.45);
         }
 
-        @keyframes fabroRouteSpin {
-            to { transform: rotate(360deg); }
+        body.light-mode .fabro-loader-grid .square {
+            background: #1e293b;
+            box-shadow: none;
+        }
+
+        @keyframes loader_5191 {
+            from {
+                opacity: 0.15;
+                transform: scale(0.85);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        #sq1 { animation: loader_5191 675ms ease-in-out 0ms infinite alternate; }
+        #sq2 { animation: loader_5191 675ms ease-in-out 75ms infinite alternate; }
+        #sq3 { animation: loader_5191 675ms ease-in-out 150ms infinite alternate; }
+        #sq4 { animation: loader_5191 675ms ease-in-out 225ms infinite alternate; }
+        #sq5 { animation: loader_5191 675ms ease-in-out 300ms infinite alternate; }
+        #sq6 { animation: loader_5191 675ms ease-in-out 375ms infinite alternate; }
+        #sq7 { animation: loader_5191 675ms ease-in-out 450ms infinite alternate; }
+        #sq8 { animation: loader_5191 675ms ease-in-out 525ms infinite alternate; }
+        #sq9 { animation: loader_5191 675ms ease-in-out 600ms infinite alternate; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fabro-loader-grid .square {
+                animation: none !important;
+                opacity: 0.75 !important;
+            }
         }
 
         #fabro-app-shell {
@@ -997,8 +1014,7 @@
             .content-grid,
             .dashboard-layout,
             .form-grid,
-            .settings-grid,
-            .category-grid {
+            .settings-grid {
                 grid-template-columns: minmax(0, 1fr) !important;
                 min-width: 0;
             }
@@ -1006,8 +1022,7 @@
             .content-grid > *,
             .dashboard-layout > *,
             .form-grid > *,
-            .settings-grid > *,
-            .category-grid > * {
+            .settings-grid > * {
                 min-width: 0;
                 max-width: 100%;
             }
@@ -2445,7 +2460,19 @@
 
     <template id="chat-badge-template"><span class="nav-chat-badge" data-shell-badge="chat"></span></template>
     <template id="approvals-badge-template"><span class="nav-chat-badge" data-shell-badge="approvals" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);"></span></template>
-    <div class="fabro-page-transition-layer" aria-hidden="true"></div>
+    <div class="fabro-page-transition-layer" aria-hidden="true">
+        <div class="fabro-loader-grid">
+            <div class="square" id="sq1"></div>
+            <div class="square" id="sq2"></div>
+            <div class="square" id="sq3"></div>
+            <div class="square" id="sq4"></div>
+            <div class="square" id="sq5"></div>
+            <div class="square" id="sq6"></div>
+            <div class="square" id="sq7"></div>
+            <div class="square" id="sq8"></div>
+            <div class="square" id="sq9"></div>
+        </div>
+    </div>
 
     <nav class="navbar" data-active-window="Dashboard">
         <a href="{% url 'index' %}" class="nav-brand">

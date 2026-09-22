@@ -3657,6 +3657,10 @@ class HtmxNavigationTests(TestCase):
         self.assertContains(response, 'class="navbar"', html=False)
         self.assertContains(response, 'id="app-content"', html=False)
         self.assertContains(response, 'vendor/htmx/', html=False)
+        self.assertContains(response, 'class="fabro-page-transition-layer"', html=False)
+        self.assertContains(response, 'class="fabro-loader-grid"', html=False)
+        self.assertContains(response, 'id="sq1"', html=False)
+        self.assertContains(response, 'id="sq9"', html=False)
         self.assertIn('HX-Request', response.headers.get('Vary', ''))
         self.assertIn('Cookie', response.headers.get('Vary', ''))
 
@@ -5068,3 +5072,93 @@ class PatternMasterSheetImportTests(TestCase):
         self.assertEqual(vehicles[1].br, 'BR2')
         self.assertEqual(vehicles[1].x_code, 'X101')
         self.assertIsNone(vehicles[1].layout_code)
+
+
+class SkuManagementCompactDesignTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser(
+            username="sku_test_admin",
+            email="sku_admin@example.com",
+            password="SkuTestAdmin!234",
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+        self.region = MasterSetting.objects.create(category="Region", name="Middle East")
+        for i in range(1, 60):
+            SKU.objects.create(
+                code=f"SKU-TEST-{i:03d}",
+                description=f"Test SKU Description {i}",
+                region=self.region,
+            )
+
+    def test_add_sku_page_renders_compact_pattern_theme(self):
+        response = self.client.get(reverse('add_sku'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('pagination_bubbles', response.context)
+        self.assertIn('page_obj', response.context)
+        content = response.content.decode('utf-8')
+        self.assertIn('sku-workspace', content)
+        self.assertIn('sku-toolbar__header', content)
+        self.assertIn('sku-table--compact', content)
+        self.assertIn('sku-action-btn--edit', content)
+        self.assertIn('sku-action-btn--delete', content)
+        self.assertIn('pattern-pagination', content)
+        self.assertIn('pattern-pagination__bubble is-active', content)
+
+    def test_sku_inline_edit_and_add_form_linkage(self):
+        response = self.client.get(reverse('add_sku'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        # Verify hidden controller forms are present outside table
+        self.assertIn('id="skuFormControllers"', content)
+        self.assertIn('id="inlineAddSkuForm"', content)
+        first_sku = response.context['skus'][0]
+        self.assertIn(f'id="sku-edit-form-{first_sku.id}"', content)
+        # Verify inline edit inputs and submit button are linked via HTML5 form attribute
+        self.assertIn(f'form="sku-edit-form-{first_sku.id}"', content)
+        self.assertIn(f'form="inlineAddSkuForm"', content)
+
+
+
+class MasterSettingsResponsiveDesignTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser(
+            username="master_test_admin",
+            email="master_admin@example.com",
+            password="MasterAdminPass!234",
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+        self.channel = MasterSetting.objects.create(category="Channel", name="Web Portal")
+        self.series = MasterSetting.objects.create(category="Series", name="Luxe Edition")
+
+    def test_master_settings_renders_compact_responsive_grid(self):
+        response = self.client.get(reverse('master_settings'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('master_settings', response.context)
+        content = response.content.decode('utf-8')
+        self.assertIn('category-grid', content)
+        self.assertIn('category-card', content)
+        self.assertIn('category-title-text', content)
+        self.assertIn('repeat(4, minmax(0, 1fr))', content)
+        self.assertIn('height: fit-content', content)
+        self.assertIn('max-height: 210px', content)
+        self.assertIn('action-btn edit', content)
+        self.assertIn('action-btn delete', content)
+
+    def test_master_settings_crud_create_and_delete(self):
+        # Create
+        create_res = self.client.post(reverse('master_settings'), {
+            'category': 'Material',
+            'name': 'Italian Nappa Leather',
+        })
+        self.assertEqual(create_res.status_code, 302)
+        new_setting = MasterSetting.objects.get(name='Italian Nappa Leather', category='Material')
+        self.assertIsNotNone(new_setting)
+
+        # Delete
+        del_res = self.client.post(reverse('delete_master_setting', args=[new_setting.id]))
+        self.assertEqual(del_res.status_code, 302)
+        self.assertFalse(MasterSetting.objects.filter(id=new_setting.id).exists())
