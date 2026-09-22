@@ -538,17 +538,42 @@
         .fabro-page-transition-layer {
             position: fixed;
             inset: 0;
-            z-index: 998;
+            z-index: 10000;
             pointer-events: none;
             opacity: 0;
-            transform: translate3d(0, 0, 0) scaleX(0.96);
-            transform-origin: center;
             background:
-                radial-gradient(circle at var(--fabro-transition-x, 50%) 18%, rgba(220, 38, 38, 0.2), transparent 34%),
-                linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.11), transparent);
-            -webkit-backdrop-filter: blur(0);
-            backdrop-filter: blur(0);
-            transition: opacity 220ms var(--motion-ease), transform 260ms var(--motion-ease), backdrop-filter 260ms var(--motion-ease);
+                radial-gradient(circle at 50% 42%, rgba(220, 38, 38, 0.18), transparent 28%),
+                rgba(18, 18, 20, 0.96);
+            transition: opacity 120ms ease;
+        }
+
+        body.light-mode .fabro-page-transition-layer {
+            background:
+                radial-gradient(circle at 50% 42%, rgba(220, 38, 38, 0.12), transparent 28%),
+                rgba(255, 255, 255, 0.97);
+        }
+
+        .fabro-page-transition-layer::after {
+            content: '';
+            position: absolute;
+            top: 42%;
+            left: 50%;
+            width: 34px;
+            height: 34px;
+            margin: -17px 0 0 -17px;
+            border: 3px solid rgba(255, 255, 255, 0.18);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: fabroRouteSpin 700ms linear infinite;
+        }
+
+        body.light-mode .fabro-page-transition-layer::after {
+            border-color: rgba(24, 24, 27, 0.14);
+            border-top-color: var(--primary-color);
+        }
+
+        @keyframes fabroRouteSpin {
+            to { transform: rotate(360deg); }
         }
 
         #fabro-app-shell {
@@ -579,7 +604,7 @@
 
         body.fabro-page-exiting .fabro-page-transition-layer {
             opacity: 1;
-            transform: translate3d(0, 0, 0) scaleX(1);
+            pointer-events: auto;
         }
 
         .page-container,
@@ -2091,23 +2116,146 @@
                 window.htmx.process(root);
             };
 
-            const updatePageHead = (responseText) => {
+            const PAGE_ASSET_TIMEOUT_MS = 5000;
+            const pageLoadCallbacks = [];
+            const requestTokens = new WeakMap();
+            let navigationToken = 0;
+            let pendingNavigation = null;
+            let activeRequest = null;
+
+            const beginNavigation = (xhr = null) => {
+                const token = ++navigationToken;
+                if (xhr) {
+                    requestTokens.set(xhr, token);
+                    if (activeRequest && activeRequest !== xhr && activeRequest.readyState !== XMLHttpRequest.DONE) {
+                        activeRequest.abort();
+                    }
+                    activeRequest = xhr;
+                }
+                document.body.classList.add('fabro-page-exiting', 'fabro-ajax-routing');
+                document.body.setAttribute('aria-busy', 'true');
+                window.__fabroPageRouting = true;
+                return token;
+            };
+
+            const assetIdentity = (asset) => {
+                const tag = asset.tagName.toLowerCase();
+                if (tag === 'link') {
+                    const href = asset.getAttribute('href') || '';
+                    return `link:${asset.getAttribute('rel') || ''}:${new URL(href, window.location.href).href}`;
+                }
+                return `${tag}:${asset.textContent || ''}`;
+            };
+
+            const waitForStylesheet = (link) => new Promise((resolve, reject) => {
+                if (link.sheet) {
+                    resolve();
+                    return;
+                }
+
+                let settled = false;
+                const timeoutId = window.setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    reject(new Error(`Stylesheet timed out: ${link.href}`));
+                }, PAGE_ASSET_TIMEOUT_MS);
+                const finish = (error = null) => {
+                    if (settled) return;
+                    settled = true;
+                    window.clearTimeout(timeoutId);
+                    link.removeEventListener('load', onLoad);
+                    link.removeEventListener('error', onError);
+                    if (error) reject(error);
+                    else resolve();
+                };
+                const onLoad = () => finish();
+                const onError = () => finish(new Error(`Stylesheet failed to load: ${link.href}`));
+                link.addEventListener('load', onLoad, { once: true });
+                link.addEventListener('error', onError, { once: true });
+            });
+
+            const stagePageHead = (responseText) => {
                 const responseDocument = new DOMParser().parseFromString(responseText, 'text/html');
                 const headTemplate = responseDocument.querySelector('template[data-fabro-page-head], template[data-fabro-history-head]');
                 if (!headTemplate) {
-                    return false;
+                    return null;
                 }
 
                 const nextTitle = headTemplate.content.querySelector('title');
-                if (nextTitle) {
-                    document.title = nextTitle.textContent;
-                }
+                const currentAssets = Array.from(document.head.querySelectorAll('[data-fabro-page-asset]'));
+                const currentByIdentity = new Map(currentAssets.map((asset) => [assetIdentity(asset), asset]));
+                const nextAssets = new Set();
+                const nextByIdentity = new Map();
+                const stylesheetPromises = [];
 
-                document.head.querySelectorAll('[data-fabro-page-asset]').forEach((asset) => asset.remove());
-                headTemplate.content.querySelectorAll('[data-fabro-page-asset]').forEach((asset) => {
-                    document.head.appendChild(asset.cloneNode(true));
+                headTemplate.content.querySelectorAll('[data-fabro-page-asset]').forEach((sourceAsset) => {
+                    const identity = assetIdentity(sourceAsset);
+                    if (nextByIdentity.has(identity)) return;
+
+                    let destinationAsset = currentByIdentity.get(identity);
+                    if (!destinationAsset) {
+                        destinationAsset = sourceAsset.cloneNode(true);
+                        document.head.appendChild(destinationAsset);
+                    }
+                    if (destinationAsset.matches('link[rel~="stylesheet"]') && !destinationAsset.sheet) {
+                        stylesheetPromises.push(waitForStylesheet(destinationAsset));
+                    }
+                    nextAssets.add(destinationAsset);
+                    nextByIdentity.set(identity, destinationAsset);
                 });
-                return true;
+
+                return {
+                    ready: Promise.all(stylesheetPromises),
+                    commit() {
+                        if (nextTitle) document.title = nextTitle.textContent;
+                        currentAssets.forEach((asset) => {
+                            if (!nextAssets.has(asset)) asset.remove();
+                        });
+                    },
+                };
+            };
+
+            const flushPageLoadCallbacks = (token) => {
+                while (pageLoadCallbacks.length) {
+                    const queued = pageLoadCallbacks.shift();
+                    if (queued.token !== token) continue;
+                    try {
+                        queued.callback();
+                    } catch (error) {
+                        window.setTimeout(() => { throw error; });
+                    }
+                }
+            };
+
+            const completeNavigation = async (navigation) => {
+                if (!navigation || navigation.token !== navigationToken) return;
+                try {
+                    await navigation.transaction.ready;
+                } catch (error) {
+                    if (navigation.token === navigationToken) {
+                        window.location.assign(navigation.url);
+                    }
+                    return;
+                }
+                if (navigation.token !== navigationToken) return;
+
+                navigation.transaction.commit();
+                const content = document.getElementById('app-content');
+                if (content) enhanceLinks(content);
+                syncShellCounts(content);
+                initActiveWindowLabel();
+                flushPageLoadCallbacks(navigation.token);
+                initPremiumInteractions();
+                rememberPageAssets();
+                window.__fabroPageRouting = false;
+                document.body.classList.remove('fabro-page-exiting', 'fabro-ajax-routing');
+                document.body.classList.add('fabro-page-entered');
+                document.body.removeAttribute('aria-busy');
+                document.dispatchEvent(new CustomEvent('fabro:page-ready', {
+                    detail: { url: navigation.url },
+                }));
+                activeRequest = null;
+                pendingNavigation = null;
             };
 
             const rememberPageAssets = () => {
@@ -2166,19 +2314,31 @@
                 }
             });
 
+            document.body.addEventListener('htmx:beforeRequest', (event) => {
+                if (event.detail.target?.id !== 'app-content') return;
+                beginNavigation(event.detail.xhr);
+            });
+
             document.body.addEventListener('htmx:beforeSwap', (event) => {
                 if (event.detail.target?.id !== 'app-content' || !event.detail.shouldSwap) return;
                 const responseUrl = new URL(event.detail.xhr.responseURL, window.location.href);
+                const token = requestTokens.get(event.detail.xhr) || navigationToken;
+                if (token !== navigationToken) {
+                    event.detail.shouldSwap = false;
+                    return;
+                }
                 if (responseUrl.pathname.startsWith('/login/')) {
                     event.detail.shouldSwap = false;
                     window.location.assign(responseUrl.href);
                     return;
                 }
-                if (!updatePageHead(event.detail.xhr.responseText)) {
+                const transaction = stagePageHead(event.detail.xhr.responseText);
+                if (!transaction) {
                     event.detail.shouldSwap = false;
                     window.location.assign(responseUrl.href);
                     return;
                 }
+                pendingNavigation = { token, transaction, url: responseUrl.href };
                 disposeCurrentPage();
             });
 
@@ -2186,35 +2346,45 @@
                 if (event.detail.target?.id !== 'app-content') {
                     return;
                 }
-                syncShellCounts(event.detail.target);
-                enhanceLinks(event.detail.target);
-                initActiveWindowLabel();
-                initPremiumInteractions();
-                rememberPageAssets();
+                void completeNavigation(pendingNavigation);
             });
 
             document.body.addEventListener('htmx:historyCacheHit', (event) => {
-                if (!updatePageHead(event.detail.item.content)) {
+                const token = beginNavigation();
+                const transaction = stagePageHead(event.detail.item.content);
+                if (!transaction) {
                     event.preventDefault();
                     window.location.assign(event.detail.path);
                     return;
                 }
+                pendingNavigation = {
+                    token,
+                    transaction,
+                    url: new URL(event.detail.path, window.location.href).href,
+                };
                 disposeCurrentPage();
             });
             document.body.addEventListener('htmx:historyCacheMissLoad', (event) => {
-                updatePageHead(event.detail.response);
+                const token = beginNavigation();
+                const transaction = stagePageHead(event.detail.response);
+                if (!transaction) {
+                    window.location.assign(event.detail.path);
+                    return;
+                }
+                pendingNavigation = {
+                    token,
+                    transaction,
+                    url: new URL(event.detail.path, window.location.href).href,
+                };
                 disposeCurrentPage();
             });
             document.body.addEventListener('htmx:historyRestore', () => {
-                const content = document.getElementById('app-content');
-                if (content) enhanceLinks(content);
-                syncShellCounts(content);
-                initActiveWindowLabel();
-                initPremiumInteractions();
-                rememberPageAssets();
+                void completeNavigation(pendingNavigation);
             });
 
             document.body.addEventListener('htmx:responseError', (event) => {
+                const token = requestTokens.get(event.detail.xhr);
+                if (token && token !== navigationToken) return;
                 if (event.detail.elt.matches('a[hx-get]')) {
                     window.location.assign(event.detail.elt.href);
                 }
@@ -2224,9 +2394,17 @@
             syncShellCounts(document.getElementById('app-content'));
             rememberPageAssets();
             window.__fabroHtmxRouterReady = true;
+
+            window.__fabroQueuePageLoad = (callback) => {
+                pageLoadCallbacks.push({ token: navigationToken, callback });
+            };
         };
 
         window.fabroOnPageLoad = (callback) => {
+            if (window.__fabroPageRouting && window.__fabroQueuePageLoad) {
+                window.__fabroQueuePageLoad(callback);
+                return;
+            }
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', callback, { once: true });
                 return;
@@ -2267,6 +2445,7 @@
 
     <template id="chat-badge-template"><span class="nav-chat-badge" data-shell-badge="chat"></span></template>
     <template id="approvals-badge-template"><span class="nav-chat-badge" data-shell-badge="approvals" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);"></span></template>
+    <div class="fabro-page-transition-layer" aria-hidden="true"></div>
 
     <nav class="navbar" data-active-window="Dashboard">
         <a href="{% url 'index' %}" class="nav-brand">

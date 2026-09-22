@@ -3658,6 +3658,7 @@ class HtmxNavigationTests(TestCase):
         self.assertContains(response, 'id="app-content"', html=False)
         self.assertContains(response, 'vendor/htmx/', html=False)
         self.assertIn('HX-Request', response.headers.get('Vary', ''))
+        self.assertIn('Cookie', response.headers.get('Vary', ''))
 
     def test_complaint_search_has_clear_control(self):
         response = self.client.get(reverse('complaint_list'), {'search': 'PAT-26070001'})
@@ -3763,6 +3764,7 @@ class HtmxNavigationTests(TestCase):
                 self.assertNotContains(response, 'class="navbar"', html=False)
                 self.assertNotContains(response, 'vendor/htmx/htmx.min.js', html=False)
                 self.assertIn('HX-Request', response.headers.get('Vary', ''))
+                self.assertIn('Cookie', response.headers.get('Vary', ''))
 
     def test_chat_deliberately_remains_a_full_page(self):
         response = self.client.get(reverse('chat_view'), HTTP_HX_REQUEST='true')
