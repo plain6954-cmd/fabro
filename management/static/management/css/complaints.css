@@ -2282,6 +2282,11 @@
             opacity: 0.5;
         }
 
+        .mobile-sheet-backdrop,
+        .mobile-sheet-container {
+            display: none !important;
+        }
+
         @media (max-width: 768px) {
             .page-container {
                 padding: 1rem;
@@ -2396,12 +2401,256 @@
                 }
             }
 
-            .filter-grid {
-                grid-template-columns: 1fr;
+            /* Hide inline desktop filter section on mobile so mobile sheet takes over */
+            #advanced-filter-section {
+                display: none !important;
             }
 
-            .filter-actions {
-                justify-content: stretch;
+            /* ----------------------------------------------------------------------
+               Mobile Slide-Up Bottom Sheet for Filters (Matching Pattern Master)
+               ---------------------------------------------------------------------- */
+            .mobile-sheet-backdrop {
+                display: block !important;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.75);
+                z-index: 10000;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 180ms ease;
+            }
+
+            .mobile-sheet-backdrop.is-open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .mobile-sheet-container {
+                display: flex !important;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                max-height: 88dvh;
+                background: rgba(24, 24, 28, 0.98);
+                border-top: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 20px 20px 0 0;
+                z-index: 10001;
+                transform: translateY(105%);
+                transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+                flex-direction: column;
+                box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.65);
+                overflow: hidden;
+            }
+
+            body.light-mode .mobile-sheet-container {
+                background: rgba(255, 255, 255, 0.98);
+                border-top-color: rgba(0, 0, 0, 0.1);
+                box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+            }
+
+            .mobile-sheet-container.is-open {
+                transform: translateY(0);
+            }
+
+            .mobile-sheet-handle-bar {
+                padding: 0.55rem 0 0.35rem;
+                display: flex;
+                justify-content: center;
+                cursor: pointer;
+                touch-action: manipulation;
+            }
+
+            .mobile-sheet-handle {
+                width: 44px;
+                height: 5px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.28);
+            }
+
+            body.light-mode .mobile-sheet-handle {
+                background: rgba(0, 0, 0, 0.2);
+            }
+
+            .mobile-sheet-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.35rem 1.15rem 0.75rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            body.light-mode .mobile-sheet-header {
+                border-bottom-color: rgba(0, 0, 0, 0.08);
+            }
+
+            .mobile-sheet-title-wrap {
+                display: flex;
+                flex-direction: column;
+                gap: 0.15rem;
+            }
+
+            .mobile-sheet-title {
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: var(--dark-text);
+                margin: 0;
+            }
+
+            body.light-mode .mobile-sheet-title {
+                color: var(--light-text);
+            }
+
+            .mobile-sheet-subtitle {
+                font-size: 0.74rem;
+                color: var(--dark-text-secondary);
+            }
+
+            .mobile-sheet-close-btn {
+                background: rgba(255, 255, 255, 0.08);
+                border: none;
+                color: var(--dark-text);
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1rem;
+                cursor: pointer;
+                touch-action: manipulation;
+            }
+
+            body.light-mode .mobile-sheet-close-btn {
+                background: rgba(0, 0, 0, 0.06);
+                color: var(--light-text);
+            }
+
+            .mobile-sheet-body {
+                padding: 0.9rem 1.15rem;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                display: flex;
+                flex-direction: column;
+                gap: 0.85rem;
+                max-height: calc(88dvh - 145px);
+            }
+
+            .mobile-sheet-grid-2 {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.65rem;
+            }
+
+            @media (max-width: 360px) {
+                .mobile-sheet-grid-2 {
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                }
+            }
+
+            .mobile-sheet-field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.3rem;
+            }
+
+            .mobile-sheet-label {
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--dark-text);
+            }
+
+            body.light-mode .mobile-sheet-label {
+                color: var(--light-text);
+            }
+
+            .mobile-sheet-input,
+            .mobile-sheet-select {
+                width: 100%;
+                min-height: 44px;
+                height: 44px;
+                padding: 0.5rem 0.65rem;
+                font-size: 1rem;
+                border-radius: 8px;
+                background: rgba(18, 18, 20, 0.7);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                color: var(--dark-text);
+                box-sizing: border-box;
+            }
+
+            body.light-mode .mobile-sheet-input,
+            body.light-mode .mobile-sheet-select {
+                background: #ffffff;
+                border-color: #cbd5e1;
+                color: var(--light-text);
+            }
+
+            .mobile-sheet-footer {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 0.65rem;
+                padding: 0.75rem 1.15rem;
+                padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+                background: rgba(18, 18, 20, 0.95);
+                margin-top: auto;
+            }
+
+            body.light-mode .mobile-sheet-footer {
+                background: #ffffff;
+                border-top-color: rgba(0, 0, 0, 0.08);
+            }
+
+            .mobile-sheet-btn {
+                min-height: 44px;
+                padding: 0 1.25rem;
+                border-radius: 9px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                cursor: pointer;
+                border: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.4rem;
+                touch-action: manipulation;
+                flex: 1;
+            }
+
+            .mobile-sheet-btn.cancel {
+                background: rgba(255, 255, 255, 0.08);
+                color: var(--dark-text);
+            }
+
+            body.light-mode .mobile-sheet-btn.cancel {
+                background: #f1f5f9;
+                color: var(--light-text);
+            }
+
+            .mobile-sheet-btn.submit {
+                background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+                color: #ffffff;
+                box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+            }
+
+            .mobile-filter-badge {
+                position: absolute;
+                top: -4px;
+                right: -4px;
+                min-width: 18px;
+                height: 18px;
+                padding: 0 4px;
+                border-radius: 999px;
+                background: #ef4444;
+                color: #ffffff;
+                font-size: 0.65rem;
+                font-weight: 700;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid var(--dark-bg);
             }
 
             .btn {

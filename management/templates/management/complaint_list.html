@@ -107,8 +107,9 @@
                         <i class="fas fa-arrow-right"></i>
                     </button>
                     <button type="button" class="btn btn-danger icon-btn" id="filter-toggle"
-                            title="{% translate "Filters" %}" aria-label="{% translate "Toggle filters" %}" aria-expanded="false" aria-controls="advanced-filter-section">
+                            title="{% translate "Filters" %}" aria-label="{% translate "Toggle filters" %}" aria-expanded="false" aria-controls="advanced-filter-section" style="position: relative;">
                         <i class="fas fa-filter"></i>
+                        <span class="mobile-filter-badge" id="mobileFilterBadge" style="display: none;"></span>
                     </button>
                 </form>
             </div>
@@ -639,6 +640,132 @@
         </div>
     </div>
 
+    <!-- Mobile Slide-Up Bottom Sheet for Complaints Filters (Pattern Master Style) -->
+    <div id="mobileFiltersSheetBackdrop" class="mobile-sheet-backdrop" onclick="closeMobileFiltersSheet()"></div>
+    <div id="mobileFiltersSheet" class="mobile-sheet-container" role="dialog" aria-modal="true" aria-labelledby="mobileFiltersSheetTitle" aria-hidden="true">
+        <div class="mobile-sheet-handle-bar" onclick="closeMobileFiltersSheet()">
+            <div class="mobile-sheet-handle"></div>
+        </div>
+
+        <div class="mobile-sheet-header">
+            <div class="mobile-sheet-title-wrap">
+                <h3 id="mobileFiltersSheetTitle" class="mobile-sheet-title">{% translate "Filter Complaints" %}</h3>
+                <span id="mobileFiltersSheetSubtitle" class="mobile-sheet-subtitle">{% translate "Select filters to refine complaint list" %}</span>
+            </div>
+            <button type="button" class="mobile-sheet-close-btn" onclick="closeMobileFiltersSheet()" aria-label="{% translate "Close" %}">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="GET" id="mobile-filter-form" action="{% url 'complaint_list' %}" style="display:flex; flex-direction:column; min-height:0; flex:1; overflow:hidden;">
+            <input type="hidden" name="search" id="mfcSearchHidden" value="{{ search_query }}">
+            <input type="hidden" name="search_by" id="mfcSearchByHidden" value="{{ search_by|default:'complaint_id' }}">
+            {% for param, value in active_column_filter_pairs %}
+            <input type="hidden" name="{{ param }}" value="{{ value }}">
+            {% endfor %}
+
+            <div class="mobile-sheet-body">
+                <!-- Filter 1: Complaint Type -->
+                <div class="mobile-sheet-field">
+                    <label class="mobile-sheet-label" for="mfcComplaintType">{% translate "Complaint Type" %}</label>
+                    <select name="complaint_type" id="mfcComplaintType" class="mobile-sheet-select">
+                        <option value="">{% translate "All Complaint Types" %}</option>
+                        {% for value, label in complaint_type_choices %}
+                            <option value="{{ value }}" {% if selected_complaint_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter 2: Channel -->
+                <div class="mobile-sheet-field">
+                    <label class="mobile-sheet-label" for="mfcChannel">{% translate "Channel" %}</label>
+                    <select name="channel" id="mfcChannel" class="mobile-sheet-select">
+                        <option value="">{% translate "All Channels" %}</option>
+                        {% for channel in channels %}
+                            <option value="{{ channel.id }}" {% if selected_channel == channel.id|stringformat:"s" %}selected{% endif %}>
+                                {{ channel.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter 3: Reporter -->
+                <div class="mobile-sheet-field">
+                    <label class="mobile-sheet-label" for="mfcPerson">{% translate "Reported By" %}</label>
+                    <select name="person" id="mfcPerson" class="mobile-sheet-select">
+                        <option value="">{% translate "All Reporters" %}</option>
+                        {% for person in persons %}
+                            <option value="{{ person.id }}" {% if selected_person == person.id|stringformat:"s" %}selected{% endif %}>
+                                {{ person.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter 4: Country -->
+                <div class="mobile-sheet-field">
+                    <label class="mobile-sheet-label" for="mfcCountry">{% translate "Country" %}</label>
+                    <select name="country" id="mfcCountry" class="mobile-sheet-select">
+                        <option value="">{% translate "All Countries" %}</option>
+                        {% for country in countries %}
+                            <option value="{{ country.id }}" {% if selected_country == country.id|stringformat:"s" %}selected{% endif %}>
+                                {{ country.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter 5: Status -->
+                <div class="mobile-sheet-field">
+                    <label class="mobile-sheet-label" for="mfcStatus">{% translate "Status" %}</label>
+                    <select name="status" id="mfcStatus" class="mobile-sheet-select">
+                        <option value="">{% translate "All Statuses" %}</option>
+                        {% for status in statuses %}
+                            <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter 6: Priority -->
+                <div class="mobile-sheet-field">
+                    <label class="mobile-sheet-label" for="mfcPriority">{% translate "Priority" %}</label>
+                    <select name="priority" id="mfcPriority" class="mobile-sheet-select">
+                        <option value="">{% translate "All Priorities" %}</option>
+                        {% for priority in priorities %}
+                            <option value="{{ priority }}" {% if selected_priority == priority %}selected{% endif %}>{{ priority }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter 7 & 8: From Date & To Date -->
+                <div class="mobile-sheet-grid-2">
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="mfcFromDate">{% translate "From Date" %}</label>
+                        <input type="date" name="from_date" id="mfcFromDate" value="{{ from_date }}" class="mobile-sheet-input">
+                    </div>
+                    <div class="mobile-sheet-field">
+                        <label class="mobile-sheet-label" for="mfcToDate">{% translate "To Date" %}</label>
+                        <input type="date" name="to_date" id="mfcToDate" value="{{ to_date }}" class="mobile-sheet-input">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <div class="mobile-sheet-footer">
+                <button type="button" class="mobile-sheet-btn cancel" id="mfResetBtn" onclick="clearMobileComplaintFilters()">
+                    <i class="fas fa-rotate-left"></i>
+                    <span>{% translate "Clear Filters" %}</span>
+                </button>
+                <button type="submit" class="mobile-sheet-btn submit" id="mfApplyBtn" onclick="applyMobileComplaintFilters(event)">
+                    <i class="fas fa-check"></i>
+                    <span>{% translate "Apply Filters" %}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
     {{ column_filter_config|json_script:"complaint-column-filter-config" }}
     <script>
     (() => {
@@ -738,6 +865,9 @@
 
             pageScope.listen(document, 'keydown', function(event) {
                 if (event.key === 'Escape') {
+                    if (typeof window.closeMobileFiltersSheet === 'function') {
+                        window.closeMobileFiltersSheet();
+                    }
                     document.querySelectorAll('.modal.is-open').forEach((modal) => {
                         releaseComplaintVideos(modal);
                         modal.classList.remove('is-open');
@@ -759,13 +889,180 @@
                 complaintListLink.classList.add('active');
             }
 
+            const appliedComplaintFilters = {
+                complaint_type: "{{ selected_complaint_type|escapejs }}",
+                channel: "{{ selected_channel|escapejs }}",
+                person: "{{ selected_person|escapejs }}",
+                country: "{{ selected_country|escapejs }}",
+                status: "{{ selected_status|escapejs }}",
+                priority: "{{ selected_priority|escapejs }}",
+                from_date: "{{ from_date|escapejs }}",
+                to_date: "{{ to_date|escapejs }}"
+            };
+
+            function updateComplaintFilterBadge() {
+                const keys = Object.values(appliedComplaintFilters);
+                const activeCount = keys.filter(Boolean).length;
+                const badge = document.getElementById('mobileFilterBadge');
+                const toggle = document.getElementById('filter-toggle');
+                if (badge) {
+                    if (activeCount > 0) {
+                        badge.textContent = activeCount;
+                        badge.style.display = 'inline-flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+                if (toggle) {
+                    toggle.classList.toggle('has-active-filters', activeCount > 0);
+                }
+            }
+
+            window.openMobileFiltersSheet = function() {
+                const sheet = document.getElementById('mobileFiltersSheet');
+                const backdrop = document.getElementById('mobileFiltersSheetBackdrop');
+                if (!sheet || !backdrop) return;
+
+                // Sync draft fields inside sheet to current applied values
+                const typeSel = document.getElementById('mfcComplaintType');
+                const chanSel = document.getElementById('mfcChannel');
+                const persSel = document.getElementById('mfcPerson');
+                const counSel = document.getElementById('mfcCountry');
+                const statSel = document.getElementById('mfcStatus');
+                const prioSel = document.getElementById('mfcPriority');
+                const fromInp = document.getElementById('mfcFromDate');
+                const toInp = document.getElementById('mfcToDate');
+
+                if (typeSel) typeSel.value = appliedComplaintFilters.complaint_type;
+                if (chanSel) chanSel.value = appliedComplaintFilters.channel;
+                if (persSel) persSel.value = appliedComplaintFilters.person;
+                if (counSel) counSel.value = appliedComplaintFilters.country;
+                if (statSel) statSel.value = appliedComplaintFilters.status;
+                if (prioSel) prioSel.value = appliedComplaintFilters.priority;
+                if (fromInp) fromInp.value = appliedComplaintFilters.from_date;
+                if (toInp) toInp.value = appliedComplaintFilters.to_date;
+
+                backdrop.classList.add('is-open');
+                sheet.classList.add('is-open');
+                document.body.style.overflow = 'hidden';
+                sheet.setAttribute('aria-hidden', 'false');
+            };
+
+            window.closeMobileFiltersSheet = function() {
+                const sheet = document.getElementById('mobileFiltersSheet');
+                const backdrop = document.getElementById('mobileFiltersSheetBackdrop');
+                if (sheet) {
+                    sheet.classList.remove('is-open');
+                    sheet.setAttribute('aria-hidden', 'true');
+                    sheet.style.transform = '';
+                }
+                if (backdrop) backdrop.classList.remove('is-open');
+                document.body.style.overflow = '';
+                const btn = document.getElementById('filter-toggle');
+                if (btn) btn.focus();
+            };
+
+            window.clearMobileComplaintFilters = function() {
+                const typeSel = document.getElementById('mfcComplaintType');
+                const chanSel = document.getElementById('mfcChannel');
+                const persSel = document.getElementById('mfcPerson');
+                const counSel = document.getElementById('mfcCountry');
+                const statSel = document.getElementById('mfcStatus');
+                const prioSel = document.getElementById('mfcPriority');
+                const fromInp = document.getElementById('mfcFromDate');
+                const toInp = document.getElementById('mfcToDate');
+
+                if (typeSel) typeSel.value = '';
+                if (chanSel) chanSel.value = '';
+                if (persSel) persSel.value = '';
+                if (counSel) counSel.value = '';
+                if (statSel) statSel.value = '';
+                if (prioSel) prioSel.value = '';
+                if (fromInp) fromInp.value = '';
+                if (toInp) toInp.value = '';
+
+                window.closeMobileFiltersSheet();
+
+                const searchInput = document.getElementById('header-search-input');
+                const searchByInput = document.getElementById('header-search-by');
+                const searchVal = searchInput ? searchInput.value.trim() : '';
+                const searchByVal = searchByInput ? searchByInput.value : '';
+
+                let targetUrl = "{% url 'complaint_list' %}";
+                if (searchVal) {
+                    const params = new URLSearchParams();
+                    params.set('search', searchVal);
+                    if (searchByVal) params.set('search_by', searchByVal);
+                    targetUrl += '?' + params.toString();
+                }
+                window.location.href = targetUrl;
+            };
+
+            window.applyMobileComplaintFilters = function(event) {
+                if (event) event.preventDefault();
+
+                const searchInput = document.getElementById('header-search-input');
+                const searchByInput = document.getElementById('header-search-by');
+                const mobileSearchHidden = document.getElementById('mfcSearchHidden');
+                const mobileSearchByHidden = document.getElementById('mfcSearchByHidden');
+                if (searchInput && mobileSearchHidden) mobileSearchHidden.value = searchInput.value;
+                if (searchByInput && mobileSearchByHidden) mobileSearchByHidden.value = searchByInput.value;
+
+                window.closeMobileFiltersSheet();
+
+                const form = document.getElementById('mobile-filter-form');
+                if (form) {
+                    form.submit();
+                }
+            };
+
+            // Touch drag-to-dismiss gesture support for mobile bottom sheet
+            const mobileSheet = document.getElementById('mobileFiltersSheet');
+            if (mobileSheet) {
+                let touchStartY = 0;
+                let touchCurrentY = 0;
+                mobileSheet.addEventListener('touchstart', function(e) {
+                    const body = mobileSheet.querySelector('.mobile-sheet-body');
+                    if (!body || body.scrollTop <= 0) {
+                        touchStartY = e.touches[0].clientY;
+                    } else {
+                        touchStartY = 0;
+                    }
+                }, { passive: true });
+                mobileSheet.addEventListener('touchmove', function(e) {
+                    if (!touchStartY) return;
+                    touchCurrentY = e.touches[0].clientY;
+                    const diff = touchCurrentY - touchStartY;
+                    if (diff > 0) {
+                        mobileSheet.style.transform = `translateY(${diff}px)`;
+                    }
+                }, { passive: true });
+                mobileSheet.addEventListener('touchend', function() {
+                    if (!touchStartY) return;
+                    const diff = touchCurrentY - touchStartY;
+                    mobileSheet.style.transform = '';
+                    if (diff > 90) {
+                        window.closeMobileFiltersSheet();
+                    }
+                    touchStartY = 0;
+                    touchCurrentY = 0;
+                }, { passive: true });
+            }
+
+            updateComplaintFilterBadge();
+
             const filterToggle = document.getElementById('filter-toggle');
             const filterSection = document.getElementById('advanced-filter-section');
-            if (filterToggle && filterSection) {
-                filterToggle.setAttribute('aria-expanded', filterSection.classList.contains('is-open') ? 'true' : 'false');
+            if (filterToggle) {
+                filterToggle.setAttribute('aria-expanded', filterSection && filterSection.classList.contains('is-open') ? 'true' : 'false');
                 filterToggle.addEventListener('click', function () {
-                    const isOpen = filterSection.classList.toggle('is-open');
-                    filterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+                    if (isMobile) {
+                        window.openMobileFiltersSheet();
+                    } else if (filterSection) {
+                        const isOpen = filterSection.classList.toggle('is-open');
+                        filterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    }
                 });
             }
 

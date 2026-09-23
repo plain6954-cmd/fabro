@@ -12,7 +12,7 @@
     <script src="{% url 'javascript-catalog' %}"></script>
     <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
     <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
-    <link rel="stylesheet" href="{% static 'management/css/admin-panel.css' %}?v=20260912-responsive1">
+    <link rel="stylesheet" href="{% static 'management/css/admin-panel.css' %}?v=20260923-pagination2">
 </head>
 <body>
 
@@ -34,16 +34,16 @@
                     <i class="fas fa-users"></i> {% translate "Users" %}
                 </div>
                 <div class="erp-nav-tab" onclick="switchErpTab('skus')">
-                    <i class="fas fa-box-open"></i> {% translate "SKUs" %}
+                    <i class="fas fa-box-open"></i> {% translate "SKUs" %}{% if total_skus_count %} <span style="font-size:0.68rem; background:rgba(88,166,255,0.18); color:#58a6ff; padding:1px 6px; border-radius:10px; margin-left:3px; font-weight:600;">{{ total_skus_count }}</span>{% endif %}
                 </div>
                 <div class="erp-nav-tab" onclick="switchErpTab('brands')">
-                    <i class="fas fa-car"></i> {% translate "Vehicle Catalog" %}
+                    <i class="fas fa-car"></i> {% translate "Vehicle Catalog" %}{% if total_brands_count %} <span style="font-size:0.68rem; background:rgba(188,140,255,0.18); color:#bc8cff; padding:1px 6px; border-radius:10px; margin-left:3px; font-weight:600;">{{ total_brands_count }}</span>{% endif %}
                 </div>
                 <div class="erp-nav-tab" onclick="switchErpTab('master')">
                     <i class="fas fa-sliders-h"></i> {% translate "Master Settings" %}
                 </div>
                 <div class="erp-nav-tab" onclick="switchErpTab('sessions')">
-                    <i class="fas fa-network-wired"></i> {% blocktranslate with count=active_sessions_count %}Active Sessions ({{ count }}){% endblocktranslate %}
+                    <i class="fas fa-network-wired"></i> {% translate "Active Sessions" %} <span id="nav-sessions-count" style="font-size:0.68rem; background:rgba(247,120,186,0.18); color:#f778ba; padding:1px 6px; border-radius:10px; margin-left:3px; font-weight:600;">{{ active_sessions_count }}</span>
                 </div>
                 <div class="erp-nav-tab" onclick="switchErpTab('logs')">
                     <i class="fas fa-history"></i> {% translate "Activity Logs" %}
@@ -273,7 +273,7 @@
                     </div>
 
                     <div class="erp-subheader-right">
-                        <span class="erp-record-counter" id="recordCounter">1-{{ users|length }} / {{ users|length }}</span>
+                        <span class="erp-record-counter" id="recordCounter">{% if section == 'users' %}1-{{ users|length }} / {{ total_users_count }}{% else %}{% translate "Loading..." %}{% endif %}</span>
                         <div class="erp-view-switcher">
                             <button class="erp-view-btn active" id="view-kanban-btn" onclick="toggleUsersView('kanban')" title="{% translate "Kanban Card View" %}">
                                 <i class="fas fa-th-large"></i>
@@ -295,7 +295,7 @@
                             <div class="erp-filter-list">
                                 <div class="erp-filter-item active" data-filter-type="role" data-filter-val="all" onclick="applyFacetedFilter('role', 'all', this)">
                                     <span>{% translate "All Roles" %}</span>
-                                    <span class="erp-filter-count">{{ users|length }}</span>
+                                    <span class="erp-filter-count">{{ total_users_count }}</span>
                                 </div>
                                 <div class="erp-filter-item" data-filter-type="role" data-filter-val="country_executive" onclick="applyFacetedFilter('role', 'country_executive', this)">
                                     <span>{% translate "Country Executive" %}</span>
@@ -345,7 +345,7 @@
                             <div class="erp-filter-list">
                                 <div class="erp-filter-item active" data-filter-type="country" data-filter-val="all" onclick="applyFacetedFilter('country', 'all', this)">
                                     <span>{% translate "All Countries" %}</span>
-                                    <span class="erp-filter-count">{{ users|length }}</span>
+                                    <span class="erp-filter-count">{{ total_users_count }}</span>
                                 </div>
                                 {% for country in workflow_countries %}
                                 <div class="erp-filter-item" data-filter-type="country" data-filter-val="{{ country.id }}" onclick="applyFacetedFilter('country', '{{ country.id }}', this)">
@@ -443,7 +443,14 @@
                                 </div>
                             </div>
                             {% empty %}
+                            {% if section == 'users' %}
                             <p style="color: var(--erp-text-dim); text-align: center; grid-column: 1/-1; padding: 40px;">{% translate "No users found." %}</p>
+                            {% else %}
+                            <div class="erp-loading-placeholder" style="text-align: center; padding: 60px 20px; grid-column: 1/-1; color: var(--erp-text-dim);">
+                                <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: #ff6b77; margin-bottom: 12px; display: inline-block;"></i>
+                                <p style="font-size: 0.95rem; font-weight: 500; margin: 0;">{% translate "Loading users directory..." %}</p>
+                            </div>
+                            {% endif %}
                             {% endfor %}
                         </div>
                         <p id="userFilterEmptyState" hidden style="color: var(--erp-text-dim); text-align: center; padding: 40px;">{% translate "No users match the current filters." %}</p>
@@ -502,6 +509,12 @@
                                             <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.72rem;">{% translate "Edit" %}</button>
                                         </td>
                                     </tr>
+                                    {% empty %}
+                                    {% if section == 'users' %}
+                                    <tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--erp-text-dim);">{% translate "No users found." %}</td></tr>
+                                    {% else %}
+                                    <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--erp-text-dim);"><i class="fas fa-circle-notch fa-spin" style="color: #ff6b77; margin-right: 8px;"></i>{% translate "Loading users directory..." %}</td></tr>
+                                    {% endif %}
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -517,7 +530,7 @@
                  ======================================================== -->
             <div id="tab-skus" class="erp-tab-pane">
                 <div class="erp-action-subheader">
-                    <span class="erp-module-title"><i class="fas fa-box-open" style="color: #58a6ff;"></i> {% translate "SKU Master Catalog" %}</span>
+                    <span class="erp-module-title"><i class="fas fa-box-open" style="color: #58a6ff;"></i> {% translate "SKU Master Catalog" %}{% if total_skus_count %} <span style="font-size:0.8rem; color:var(--erp-text-muted); font-weight:normal;">({{ total_skus_count }})</span>{% endif %}</span>
                     <a href="{% url 'add_sku' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-plus"></i> {% translate "Add SKU" %}</a>
                 </div>
                 <div style="flex:1; overflow-y:auto; padding:1rem;">
@@ -537,7 +550,11 @@
                                 <td>{{ sku.region.name|default:"—" }}</td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" style="text-align:center; color: var(--erp-text-dim); padding:20px;">{% translate "No SKUs loaded." %}</td></tr>
+                            {% if active_tab == 'skus' %}
+                            <tr><td colspan="3" style="text-align:center; color: var(--erp-text-dim); padding:20px;">{% translate "No SKUs found." %}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" style="text-align:center; padding: 40px;"><div class="erp-loading-placeholder" style="display:inline-flex; align-items:center; gap:0.6rem; color: var(--erp-text-muted); font-size: 0.95rem;"><i class="fas fa-circle-notch fa-spin"></i> {% translate "Loading SKU catalog..." %}</div></td></tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
@@ -549,7 +566,7 @@
                  ======================================================== -->
             <div id="tab-brands" class="erp-tab-pane">
                 <div class="erp-action-subheader">
-                    <span class="erp-module-title"><i class="fas fa-car" style="color: #bc8cff;"></i> {% translate "Vehicle Brands & Models" %}</span>
+                    <span class="erp-module-title"><i class="fas fa-car" style="color: #bc8cff;"></i> {% translate "Vehicle Brands & Models" %}{% if total_brands_count %} <span style="font-size:0.8rem; color:var(--erp-text-muted); font-weight:normal;">({{ total_brands_count }})</span>{% endif %}</span>
                     <a href="{% url 'car_details' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-car-side"></i> {% translate "Manage Catalog" %}</a>
                 </div>
                 <div style="flex:1; overflow-y:auto; padding:1rem;">
@@ -568,7 +585,13 @@
                             <div class="brand-tree" style="font-size:0.75rem; color:var(--erp-text-muted);"><p>{% translate "Open to load models." %}</p></div>
                         </details>
                         {% empty %}
+                        {% if active_tab == 'brands' %}
                         <p style="color:var(--erp-text-dim); text-align:center; padding:20px;">{% translate "No brands found." %}</p>
+                        {% else %}
+                        <div class="erp-loading-placeholder" style="grid-column: 1 / -1; display:flex; align-items:center; justify-content:center; gap:0.6rem; padding: 48px; color: var(--erp-text-muted); font-size: 0.95rem;">
+                            <i class="fas fa-circle-notch fa-spin"></i> {% translate "Loading vehicle catalog..." %}
+                        </div>
+                        {% endif %}
                         {% endfor %}
                     </div>
                 </div>
@@ -605,7 +628,11 @@
                                 </td>
                             </tr>
                             {% empty %}
+                            {% if active_tab == 'master' %}
                             <tr><td colspan="3" style="text-align:center; color: var(--erp-text-dim); padding:20px;">{% translate "No master settings found." %}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" style="text-align:center; padding: 40px;"><div class="erp-loading-placeholder" style="display:inline-flex; align-items:center; gap:0.6rem; color: var(--erp-text-muted); font-size: 0.95rem;"><i class="fas fa-circle-notch fa-spin"></i> {% translate "Loading master settings..." %}</div></td></tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
@@ -648,12 +675,18 @@
                                         <span style="color: #3fb950; font-weight: 700;">{% translate "CURRENT SESSION" %}</span>
                                     {% else %}
                                         <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;">
-                                            {% csrf_token %}
+                                             {% csrf_token %}
                                             <button type="submit" class="btn-danger" onclick="return confirm(window.FabroI18n.gettext('Kick this user session?'));">{% translate "Terminate" %}</button>
                                         </form>
                                     {% endif %}
                                 </td>
                             </tr>
+                            {% empty %}
+                            {% if active_tab == 'sessions' or active_tab == 'dashboard' %}
+                            <tr><td colspan="4" style="text-align: center; color: var(--erp-text-dim); padding: 15px;">{% translate "No active sessions." %}</td></tr>
+                            {% else %}
+                            <tr><td colspan="4" style="text-align:center; padding: 40px;"><div class="erp-loading-placeholder" style="display:inline-flex; align-items:center; gap:0.6rem; color: var(--erp-text-muted); font-size: 0.95rem;"><i class="fas fa-circle-notch fa-spin"></i> {% translate "Loading active sessions..." %}</div></td></tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
@@ -688,18 +721,56 @@
                                 <td><code>{{ log.object_name }}</code></td>
                             </tr>
                             {% empty %}
+                            {% if active_tab == 'logs' %}
                             <tr><td colspan="5" style="text-align:center; color: var(--erp-text-dim); padding:20px;">{% translate "No activity logs found." %}</td></tr>
+                            {% else %}
+                            <tr><td colspan="5" style="text-align:center; padding: 40px;"><div class="erp-loading-placeholder" style="display:inline-flex; align-items:center; gap:0.6rem; color: var(--erp-text-muted); font-size: 0.95rem;"><i class="fas fa-circle-notch fa-spin"></i> {% translate "Loading activity logs..." %}</div></td></tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <nav id="admin-section-pagination" class="pagination" aria-label="{% translate 'Admin section pages' %}">
+            <nav id="admin-section-pagination" class="pattern-pagination erp-pagination" aria-label="{% translate 'Admin section pages' %}">
                 {% if section_page_obj and section_page_obj.has_other_pages %}
-                    {% if section_page_obj.has_previous %}<a class="btn-erp-new" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.previous_page_number }}#{{ active_tab }}">{% translate "Prev" %}</a>{% endif %}
-                    <span>{% blocktranslate with page=section_page_obj.number pages=section_page_obj.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
-                    {% if section_page_obj.has_next %}<a class="btn-erp-new" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.next_page_number }}#{{ active_tab }}">{% translate "Next" %}</a>{% endif %}
+                    {% if section_page_obj.has_previous %}
+                    <a class="pattern-pagination__control pattern-pagination__control--previous" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.previous_page_number }}#{{ active_tab }}" aria-label="{% translate 'Prev' %}">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        <span>{% translate "Prev" %}</span>
+                    </a>
+                    {% else %}
+                    <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        <span>{% translate "Prev" %}</span>
+                    </span>
+                    {% endif %}
+
+                    <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
+                        {% for p in section_pagination_bubbles %}
+                            {% if p == '...' or p == '…' or p == '.' %}
+                                <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
+                            {% elif p == section_page_obj.number %}
+                                <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
+                            {% else %}
+                                <a class="pattern-pagination__bubble" href="?section={{ active_tab }}&amp;section_page={{ p }}#{{ active_tab }}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
+                            {% endif %}
+                        {% empty %}
+                            <span class="pattern-pagination__bubble is-active" aria-current="page">{{ section_page_obj.number }}</span>
+                        {% endfor %}
+                    </div>
+
+                    {% if section_page_obj.has_next %}
+                    <a class="pattern-pagination__control pattern-pagination__control--next" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.next_page_number }}#{{ active_tab }}" aria-label="{% translate 'Next' %}">
+                        <span>{% translate "Next" %}</span>
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </a>
+                    {% else %}
+                    <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
+                        <span>{% translate "Next" %}</span>
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </span>
+                    {% endif %}
                 {% endif %}
             </nav>
         </main>
@@ -958,13 +1029,19 @@
     function initAdminPanel() {
         // Restore tab from URL hash, server active_tab, or localStorage
         let initialTab = 'dashboard';
+        const hashTab = window.location.hash ? window.location.hash.replace('#', '') : '';
         const serverTab = '{{ active_tab|default:"" }}';
-        if (serverTab) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasExplicitQuery = urlParams.has('section');
+
+        if (hashTab && document.getElementById('tab-' + hashTab)) {
+            initialTab = hashTab;
+        } else if (hasExplicitQuery && serverTab) {
             initialTab = serverTab;
-        } else if (window.location.hash) {
-            initialTab = window.location.hash.replace('#', '');
-        } else if (localStorage.getItem('fabro_erp_active_tab')) {
+        } else if (localStorage.getItem('fabro_erp_active_tab') && document.getElementById('tab-' + localStorage.getItem('fabro_erp_active_tab'))) {
             initialTab = localStorage.getItem('fabro_erp_active_tab');
+        } else if (serverTab) {
+            initialTab = serverTab;
         }
         switchErpTab(initialTab);
 
@@ -1036,6 +1113,11 @@
         const targetPane = document.getElementById('tab-' + tabKey);
         if (!targetPane) return;
 
+        window.erpActiveTab = tabKey;
+        for (const [pendingTab, controller] of window.erpSectionRequests) {
+            if (pendingTab !== tabKey) controller.abort();
+        }
+
         document.querySelectorAll('.erp-tab-pane').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.erp-nav-tab').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.erp-sidebar-btn').forEach(el => el.classList.remove('active'));
@@ -1063,6 +1145,38 @@
             const controller = new AbortController();
             window.erpSectionRequests.get(tabKey)?.abort();
             window.erpSectionRequests.set(tabKey, controller);
+
+            // Display loading placeholder while network request is in flight
+            const existingPlaceholder = targetPane.querySelector('.erp-loading-placeholder');
+            if (!existingPlaceholder) {
+                if (tabKey === 'brands') {
+                    const grid = targetPane.querySelector('.erp-brands-grid');
+                    if (grid) {
+                        grid.innerHTML = '<div class="erp-loading-placeholder" style="grid-column: 1 / -1; display:flex; align-items:center; justify-content:center; gap:0.6rem; padding: 48px; color: var(--erp-text-muted); font-size: 0.95rem;"><i class="fas fa-circle-notch fa-spin"></i> ' + (window.FabroI18n?.gettext('Loading vehicle catalog...') || 'Loading vehicle catalog...') + '</div>';
+                    }
+                } else if (tabKey === 'skus') {
+                    const tbody = targetPane.querySelector('tbody');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 40px;"><div class="erp-loading-placeholder" style="display:inline-flex; align-items:center; gap:0.6rem; color: var(--erp-text-muted); font-size: 0.95rem;"><i class="fas fa-circle-notch fa-spin"></i> ' + (window.FabroI18n?.gettext('Loading SKU catalog...') || 'Loading SKU catalog...') + '</div></td></tr>';
+                    }
+                } else if (tabKey === 'users') {
+                    const kanban = targetPane.querySelector('#users-kanban-view');
+                    if (kanban) {
+                        kanban.innerHTML = '<div class="erp-loading-placeholder"><i class="fas fa-circle-notch fa-spin"></i> ' + (window.FabroI18n?.gettext('Loading users directory...') || 'Loading users directory...') + '</div>';
+                    }
+                    const listTbody = targetPane.querySelector('#users-list-view tbody');
+                    if (listTbody) {
+                        listTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;"><div class="erp-loading-placeholder"><i class="fas fa-circle-notch fa-spin"></i> ' + (window.FabroI18n?.gettext('Loading users directory...') || 'Loading users directory...') + '</div></td></tr>';
+                    }
+                } else if (tabKey === 'master' || tabKey === 'sessions' || tabKey === 'logs') {
+                    const tbody = targetPane.querySelector('tbody');
+                    if (tbody) {
+                        const colSpan = tabKey === 'logs' ? 5 : (tabKey === 'sessions' ? 4 : 3);
+                        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; padding: 40px;"><div class="erp-loading-placeholder" style="display:inline-flex; align-items:center; gap:0.6rem; color: var(--erp-text-muted); font-size: 0.95rem;"><i class="fas fa-circle-notch fa-spin"></i> ${window.FabroI18n?.gettext('Loading...') || 'Loading...'}</div></td></tr>`;
+                    }
+                }
+            }
+
             try {
                 const response = await fetch(`/admin_panel/?section=${encodeURIComponent(tabKey)}`, {
                     credentials: 'same-origin',
@@ -1073,24 +1187,30 @@
                 const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
                 const incoming = doc.getElementById('tab-' + tabKey);
                 if (!incoming) throw new Error('Admin section response is incomplete');
+                if (controller.signal.aborted || window.erpActiveTab !== tabKey) return;
                 incoming.classList.add('active');
                 targetPane.replaceWith(incoming);
                 const incomingPagination = doc.getElementById('admin-section-pagination');
                 const currentPagination = document.getElementById('admin-section-pagination');
                 if (incomingPagination && currentPagination) currentPagination.replaceWith(incomingPagination);
+                const incomingSessions = doc.getElementById('nav-sessions-count');
+                const currentSessions = document.getElementById('nav-sessions-count');
+                if (incomingSessions && currentSessions) currentSessions.textContent = incomingSessions.textContent;
                 window.erpLoadedSections.add(tabKey);
                 if (tabKey === 'users') {
                     restoreUserFilters();
                     filterUserCards();
                 }
             } catch (error) {
-                if (error.name !== 'AbortError') {
+                if (error.name !== 'AbortError' && !controller.signal.aborted && window.erpActiveTab === tabKey) {
                     targetPane.innerHTML = `<div class="erp-empty-state">${window.FabroI18n.gettext('Unable to load this section. Please try again.')}</div>`;
                     console.error(error);
                 }
             } finally {
-                window.erpSectionRequests.delete(tabKey);
-                document.getElementById('tab-' + tabKey)?.removeAttribute('aria-busy');
+                if (window.erpSectionRequests.get(tabKey) === controller) {
+                    window.erpSectionRequests.delete(tabKey);
+                    document.getElementById('tab-' + tabKey)?.removeAttribute('aria-busy');
+                }
             }
         }
     }
@@ -1377,12 +1497,39 @@
 
         const counterEl = document.getElementById('recordCounter');
         if (counterEl) {
-            counterEl.textContent = visibleCount
-                ? `1-${visibleCount} / ${cards.length}`
-                : `0 / ${cards.length}`;
+            if (cards.length === 0) {
+                counterEl.textContent = window.FabroI18n ? window.FabroI18n.gettext('Loading...') : 'Loading...';
+            } else {
+                counterEl.textContent = visibleCount
+                    ? `1-${visibleCount} / ${cards.length}`
+                    : `0 / ${cards.length}`;
+            }
         }
         const emptyState = document.getElementById('userFilterEmptyState');
-        if (emptyState) emptyState.hidden = visibleCount !== 0;
+        if (emptyState) emptyState.hidden = !(cards.length > 0 && visibleCount === 0);
+        updateRoleFilterCounts();
+    }
+
+    function updateRoleFilterCounts() {
+        const cards = document.querySelectorAll('.erp-user-card');
+        if (!cards.length) return;
+        const counts = {};
+        cards.forEach(card => {
+            const r = card.dataset.role;
+            if (r) counts[r] = (counts[r] || 0) + 1;
+        });
+        document.querySelectorAll('.erp-filter-item[data-filter-type="role"]').forEach(item => {
+            const val = item.dataset.filterVal;
+            const badge = item.querySelector('.erp-filter-count');
+            if (!badge) return;
+            if (val === 'all') {
+                badge.textContent = cards.length;
+            } else if (counts[val] !== undefined) {
+                badge.textContent = counts[val];
+            } else {
+                badge.textContent = '0';
+            }
+        });
     }
 
     // The user editor remains open until one of its explicit X buttons is used.

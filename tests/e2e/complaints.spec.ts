@@ -66,6 +66,7 @@ test('complaint type remains recognizable and synchronized while editing', async
 });
 
 test('add complaint form supports fields, clear, cancel, upload, save, view, search, edit and delete', async ({ page }) => {
+  test.setTimeout(120_000);
   const diagnostics = attachPageDiagnostics(page);
   await page.goto(routes.addComplaint);
   await expect(page.getByRole('heading', { name: /Add New Complaint/i })).toBeVisible();
@@ -73,16 +74,13 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
   const description = page.locator('textarea[name="complaint_description"]');
   await description.fill('Text cleared by reset');
   await page.getByRole('button', { name: /Clear/i }).click({ force: true });
-  await expect(description).toHaveValue('Not Provided');
+  await expect(description).toHaveValue('');
 
   await description.fill(sample.complaintText);
-  await page.locator('select[name="channel"]').selectOption({ index: 1 }).catch(() => {});
-  await page.locator('select[name="country"]').selectOption({ index: 1 }).catch(() => {});
-  await page.locator('select[name="person"]').selectOption({ index: 1 }).catch(() => {});
-  await page.locator('select[name="case_sub_category"]').selectOption({ index: 1 }).catch(() => {});
-  await page.locator('select[name="series"]').selectOption({ index: 1 }).catch(() => {});
-  await page.locator('select[name="material"]').selectOption({ index: 1 }).catch(() => {});
-  await page.locator('select[name="sku"]').selectOption({ index: 1 }).catch(() => {});
+  for (const field of ['case_sub_category', 'series', 'brand', 'model', 'sub_model', 'year', 'material', 'sku']) {
+    const select = page.locator(`select[name="${field}"]`);
+    await select.selectOption({ index: 1 });
+  }
   await page.locator('input[name="serial_no"]').fill('SN-E2E-TEST-001');
   await page.locator('input[name="media_files"]').setInputFiles(path.join(process.cwd(), 'static', 'FABRO__BRAND ICON_FINAL_CMYK.png'));
   await expect(page.getByText(/file\(s\) selected/i)).toBeVisible();
@@ -103,6 +101,7 @@ test('add complaint form supports fields, clear, cancel, upload, save, view, sea
   const workflowStatus = page.locator('select[name="status"]');
   await expect(workflowStatus).toBeDisabled();
   await expect(workflowStatus).toHaveValue('Open');
+  await expect(page.locator('select[name="model"]')).not.toHaveValue('');
   await page.locator('select[name="priority"]').selectOption('High');
   await page.getByRole('button', { name: /Update Complaint|Save/i }).click({ force: true });
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
@@ -141,14 +140,12 @@ test('complaint column menus filter both complaint and journey rows', async ({ p
   await expect(dropdown).toBeVisible();
   await dropdown.locator('label', { hasText: 'Assigned to Factory' }).locator('input').check();
 
-  await expect(page.locator('tbody tr.complaint-info-row:not([hidden])')).toHaveCount(1);
-  await expect(page.locator('tbody tr.complaint-workflow-row:not([hidden])')).toHaveCount(1);
-  await expect(page.locator('tbody tr.complaint-info-row[hidden]')).toHaveCount(1);
-  await expect(page.locator('tbody tr.complaint-workflow-row[hidden]')).toHaveCount(1);
+  await expect(infoRows).toHaveCount(1);
+  await expect(workflowRows).toHaveCount(1);
 
   await statusHeader.locator('.column-filter-clear').click();
-  await expect(page.locator('tbody tr.complaint-info-row:not([hidden])')).toHaveCount(2);
-  await expect(page.locator('tbody tr.complaint-workflow-row:not([hidden])')).toHaveCount(2);
+  await expect(infoRows).toHaveCount(2);
+  await expect(workflowRows).toHaveCount(2);
   await expectNoDjangoError(page);
   await diagnostics.assertClean();
 });

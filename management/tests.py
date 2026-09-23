@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 from datetime import date, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
@@ -12,7 +15,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import Client, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
@@ -5162,3 +5165,206 @@ class MasterSettingsResponsiveDesignTests(TestCase):
         del_res = self.client.post(reverse('delete_master_setting', args=[new_setting.id]))
         self.assertEqual(del_res.status_code, 302)
         self.assertFalse(MasterSetting.objects.filter(id=new_setting.id).exists())
+
+
+class AdminPanelUsersSectionTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(username='admin_test', email='admin@test.com', password='password123')
+        self.country_exec = User.objects.create_user(username='country_exec', email='ce@test.com', password='password123')
+        self.factory_exec = User.objects.create_user(username='factory_exec', email='fe@test.com', password='password123')
+
+        UserProfile.objects.filter(user=self.admin).update(role=WorkflowRoles.ADMIN)
+        UserProfile.objects.filter(user=self.country_exec).update(role=WorkflowRoles.COUNTRY_EXECUTIVE)
+        UserProfile.objects.filter(user=self.factory_exec).update(role=WorkflowRoles.FACTORY_EXECUTIVE)
+
+    def test_role_counts_populated_for_users_section(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('admin_panel'), {'section': 'users'})
+        self.assertEqual(response.status_code, 200)
+
+        role_counts = response.context['role_counts']
+        self.assertEqual(role_counts[WorkflowRoles.COUNTRY_EXECUTIVE], 1)
+        self.assertEqual(role_counts[WorkflowRoles.FACTORY_EXECUTIVE], 1)
+        self.assertGreaterEqual(role_counts[WorkflowRoles.ADMIN], 1)
+
+        content = response.content.decode('utf-8')
+        html_body = content.split('<script>\n    // Faceted')[0]
+        self.assertIn('data-filter-val="country_executive"', html_body)
+        self.assertIn('data-filter-val="factory_executive"', html_body)
+        self.assertIn('erp-user-card', html_body)
+        self.assertNotIn('Loading users directory...', html_body)
+
+    def test_role_counts_and_loading_placeholder_for_dashboard_section(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('admin_panel'), {'section': 'dashboard'})
+        self.assertEqual(response.status_code, 200)
+
+        role_counts = response.context['role_counts']
+        self.assertEqual(role_counts[WorkflowRoles.COUNTRY_EXECUTIVE], 1)
+        self.assertEqual(role_counts[WorkflowRoles.FACTORY_EXECUTIVE], 1)
+
+        html_body = response.content.decode('utf-8').split('<script>\n    // Faceted')[0]
+        self.assertIn('Loading users directory...', html_body)
+        self.assertNotIn('No users found.', html_body)
+
+    def test_brands_and_skus_counts_and_loading_placeholders(self):
+        Brand.objects.create(name='TOYOTA')
+        SKU.objects.create(code='SKU-001', description='Test Seat Cover')
+
+        self.client.force_login(self.admin)
+        # 1. When on dashboard, brands and skus tabs show loading indicators, not empty messages
+        resp_dash = self.client.get(reverse('admin_panel'), {'section': 'dashboard'})
+        self.assertEqual(resp_dash.status_code, 200)
+        self.assertGreaterEqual(resp_dash.context['total_brands_count'], 1)
+        self.assertGreaterEqual(resp_dash.context['total_skus_count'], 1)
+
+        dash_body = resp_dash.content.decode('utf-8').split('<script>\n    // Faceted')[0]
+        self.assertIn('Loading vehicle catalog...', dash_body)
+        self.assertNotIn('No brands found.', dash_body)
+        self.assertIn('Loading SKU catalog...', dash_body)
+        self.assertNotIn('No SKUs loaded.', dash_body)
+        self.assertNotIn('No SKUs found.', dash_body)
+
+        # 2. When on brands section, brands are loaded and no loading placeholder in body
+        resp_brands = self.client.get(reverse('admin_panel'), {'section': 'brands'})
+        self.assertEqual(resp_brands.status_code, 200)
+        self.assertEqual(len(resp_brands.context['brands']), 1)
+        brands_body = resp_brands.content.decode('utf-8').split('<script>\n    // Faceted')[0]
+        self.assertIn('TOYOTA', brands_body)
+
+        # 3. When on skus section, skus are loaded and no loading placeholder in body
+        resp_skus = self.client.get(reverse('admin_panel'), {'section': 'skus'})
+        self.assertEqual(resp_skus.status_code, 200)
+        self.assertEqual(len(resp_skus.context['skus']), 1)
+        skus_body = resp_skus.content.decode('utf-8').split('<script>\n    // Faceted')[0]
+        self.assertIn('SKU-001', skus_body)
+
+    def test_admin_section_pagination_bubbles(self):
+        # Create 60 SKUs to trigger pagination (50 per page -> 2 pages)
+        SKU.objects.bulk_create([
+            SKU(code=f'SKU-BATCH-{i:03d}', description=f'Batch SKU {i}')
+            for i in range(1, 61)
+        ])
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('admin_panel'), {'section': 'skus', 'section_page': 2})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['section_pagination_bubbles'], [1, 2])
+
+        content = response.content.decode('utf-8')
+        html_body = content.split('<script>\n    // Faceted')[0]
+        self.assertIn('pattern-pagination', html_body)
+        self.assertIn('pattern-pagination__bubbles', html_body)
+        self.assertIn('pattern-pagination__bubble is-active', html_body)
+        self.assertIn('pattern-pagination__control--previous', html_body)
+        self.assertIn('pattern-pagination__control--next', html_body)
+        # Verify old clunky text pagination buttons are not used
+        self.assertNotIn('class="btn-erp-new" href="?section=skus', html_body)
+
+    def test_active_sessions_count_always_available_and_rendered(self):
+        self.client.force_login(self.admin)
+        for sec in ['dashboard', 'skus', 'sessions', 'brands']:
+            resp = self.client.get(reverse('admin_panel'), {'section': sec})
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('active_sessions_count', resp.context)
+            content = resp.content.decode('utf-8')
+            self.assertIn('id="nav-sessions-count"', content)
+            self.assertNotIn('Active Sessions (0)', content)
+
+
+class ComplaintsListMobileFilterSheetTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(username='admin_filter_test', email='admin_filter@test.com', password='password123')
+        UserProfile.objects.filter(user=self.admin).update(role=WorkflowRoles.ADMIN)
+        self.channel = MasterSetting.objects.create(category='Channel', name='WhatsApp')
+        self.country = MasterSetting.objects.create(category='Country', name='KSA')
+
+    def test_mobile_filter_sheet_elements_rendered_in_complaint_list(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('complaint_list'))
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode('utf-8')
+
+        # Check mobile bottom sheet structure
+        self.assertIn('id="mobileFiltersSheetBackdrop"', content)
+        self.assertIn('class="mobile-sheet-backdrop"', content)
+        self.assertIn('id="mobileFiltersSheet"', content)
+        self.assertIn('class="mobile-sheet-container"', content)
+        self.assertIn('class="mobile-sheet-handle-bar"', content)
+        self.assertIn('class="mobile-sheet-handle"', content)
+        self.assertIn('class="mobile-sheet-close-btn"', content)
+        self.assertIn('id="mobileFiltersSheetTitle"', content)
+
+        # Check all 8 mobile filter fields
+        self.assertIn('id="mfcComplaintType"', content)
+        self.assertIn('id="mfcChannel"', content)
+        self.assertIn('id="mfcPerson"', content)
+        self.assertIn('id="mfcCountry"', content)
+        self.assertIn('id="mfcStatus"', content)
+        self.assertIn('id="mfcPriority"', content)
+        self.assertIn('id="mfcFromDate"', content)
+        self.assertIn('id="mfcToDate"', content)
+
+        # Check sticky bottom actions
+        self.assertIn('id="mfResetBtn"', content)
+        self.assertIn('id="mfApplyBtn"', content)
+        self.assertIn('Clear Filters', content)
+        self.assertIn('Apply Filters', content)
+
+        # Check mobile filter badge on filter-toggle button
+        self.assertIn('id="mobileFilterBadge"', content)
+
+        # Check JavaScript functions exist
+        self.assertIn('window.openMobileFiltersSheet', content)
+        self.assertIn('window.closeMobileFiltersSheet', content)
+        self.assertIn('window.clearMobileComplaintFilters', content)
+        self.assertIn('window.applyMobileComplaintFilters', content)
+
+        # Check desktop inline filter section is also preserved
+        self.assertIn('id="advanced-filter-section"', content)
+
+    def test_complaints_filter_query_preserves_and_applies(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('complaint_list'), {
+            'complaint_type': 'pattern',
+            'status': 'Open',
+            'from_date': '2026-01-01',
+            'to_date': '2026-12-31',
+        })
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('value="pattern"', content)
+        self.assertIn('value="Open"', content)
+
+
+class DeploymentSettingsTests(SimpleTestCase):
+    def test_server_environment_takes_precedence_over_dotenv(self):
+        environment = os.environ.copy()
+        environment.update({
+            'DJANGO_SETTINGS_MODULE': 'fabro_leather.settings',
+            'E2E_TESTING': 'True',
+            'DEBUG': 'False',
+            'DJANGO_SECRET_KEY': 'deployment-check-only-7b6e2f838c6d49f78a35ed2b9c709b41',
+        })
+        process = subprocess.run(
+            [sys.executable, '-c',
+             'import json; from django.conf import settings; '
+             'print(json.dumps({"debug": settings.DEBUG, '
+             '"session_secure": settings.SESSION_COOKIE_SECURE, '
+             '"csrf_secure": settings.CSRF_COOKIE_SECURE}))'],
+            cwd=settings.BASE_DIR,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual(result, {
+            'debug': False,
+            'session_secure': True,
+            'csrf_secure': True,
+        })

@@ -767,38 +767,8 @@
         });
 
     
-    window.fabroOnPageLoad(function () {
-        const brand = document.getElementById('id_brand');
-        const model = document.getElementById('id_model');
-        const subModel = document.getElementById('id_sub_model');
-        const year = document.getElementById('id_year');
-
-        const initialModel = "{{ form.instance.model.id|default:'' }}";
-        const initialSubModel = "{{ form.instance.sub_model.id|default:'' }}";
-        const initialYear = "{{ form.instance.year.id|default:'' }}";
-
-        if (brand.value) {
-            loadDependentData(`/api/models/${brand.value}/`, 'id_model', 'Select Model');
-        }
-
-        if (initialModel) {
-            setTimeout(() => {
-                loadDependentData(`/api/sub_models/${initialModel}/`, 'id_sub_model', 'Select Sub-Model (Optional)');
-                setTimeout(() => {
-                    if (initialSubModel) {
-                        loadDependentData(`/api/year_ranges/${initialSubModel}/`, 'id_year', 'Select Year');
-                    }
-                }, 300);
-            }, 300);
-        }
-
-        // Set selected values after AJAX populates them
-        setTimeout(() => {
-            if (initialModel) model.value = initialModel;
-            if (initialSubModel) subModel.value = initialSubModel;
-            if (initialYear) year.value = initialYear;
-        }, 1000);
-    });
+    // Django renders the current Model, Sub-Model, and Year options on edit.
+    // Reloading them on page ready can clear valid selections before a save.
 
 
 

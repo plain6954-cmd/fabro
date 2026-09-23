@@ -3809,7 +3809,13 @@ def admin_panel_view(request):
     if section not in {'dashboard', 'users', 'skus', 'brands', 'master', 'sessions', 'logs'}:
         section = 'dashboard'
 
-    active_users = get_active_users() if section in {'dashboard', 'users', 'sessions'} else []
+    needs_session_details = section in {'dashboard', 'users', 'sessions'}
+    active_users = get_active_users() if needs_session_details else []
+    active_sessions_count = (
+        len(active_users)
+        if needs_session_details
+        else Session.objects.filter(expire_date__gte=now()).count()
+    )
     online_user_ids = {entry['user'].pk for entry in active_users}
     users_qs = User.objects.select_related('workflow_profile__country').order_by('username')
     users_page = Paginator(users_qs, 25).get_page(request.GET.get('section_page')) if section == 'users' else None
@@ -3828,7 +3834,7 @@ def admin_panel_view(request):
             *[role for role, label in ApprovalRoles.CHOICES],
         )
     }
-    if section == 'dashboard':
+    if section in {'dashboard', 'users'}:
         for role, approval_role, count in UserProfile.objects.values_list('role', 'approval_role').annotate(count=Count('pk')):
             role_key = approval_role if role == WorkflowRoles.APPROVER else role
             role_counts[role_key] = role_counts.get(role_key, 0) + count
@@ -3854,6 +3860,13 @@ def admin_panel_view(request):
         request.GET.get('section_page')
     ) if section == 'brands' else None
 
+    section_page_obj = users_page or sku_page or session_page or vehicle_page or logs_page
+    section_pagination_bubbles = (
+        _get_pagination_bubbles(section_page_obj.number, section_page_obj.paginator.num_pages)
+        if section_page_obj and section_page_obj.has_other_pages()
+        else []
+    )
+
     return render(request, 'management/admin_panel.html', {
         'user_form': user_form,
         'group_form': group_form,
@@ -3866,11 +3879,13 @@ def admin_panel_view(request):
         'activity_logs': logs_page.object_list if logs_page else [],
         'total_users_count': User.objects.count() if section == 'dashboard' else users_qs.count(),
         'active_users_count': len(online_user_ids),
-        'active_sessions_count': len(active_users),
+        'active_sessions_count': active_sessions_count,
         'total_complaints_count': complaint_stats['total'],
         'complaints_resolved_count': complaint_stats['resolved'],
         'complaints_in_progress_count': complaint_stats['in_progress'],
         'role_counts': role_counts,
+        'total_skus_count': SKU.objects.count(),
+        'total_brands_count': Brand.objects.count(),
         'skus': sku_page.object_list if sku_page else [],
         'brands': Brand.objects.filter(
             pk__in=[brand.pk for brand in vehicle_page.object_list]
@@ -3880,8 +3895,10 @@ def admin_panel_view(request):
         'approval_role_choices': ApprovalRoles.CHOICES,
         'workflow_countries': countries,
         'edit_user_id': request.GET.get('edit_user', '').strip(),
+        'section': section,
         'active_tab': section,
-        'section_page_obj': users_page or sku_page or session_page or vehicle_page or logs_page,
+        'section_page_obj': section_page_obj,
+        'section_pagination_bubbles': section_pagination_bubbles,
     })
 
 
@@ -4173,7 +4190,10 @@ def get_active_users():
     user_ids = set()
     session_data_list = []
     for session in sessions:
-        data = session.get_decoded()
+        try:
+            data = session.get_decoded()
+        except Exception:
+            continue
         user_id = data.get('_auth_user_id')
         if user_id:
             user_ids.add(user_id)

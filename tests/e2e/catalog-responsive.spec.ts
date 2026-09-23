@@ -100,3 +100,74 @@ test('complaint search fits narrow phones with usable controls', async ({ page }
     }
   }
 });
+
+test('profile and language menus respond to touch and dismiss outside', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL || `http://127.0.0.1:${process.env.E2E_PORT || '8001'}`,
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  try {
+    const page = await context.newPage();
+    await login(page);
+    await page.locator('.profile-trigger').tap();
+    await expect(page.locator('.profile-dropdown')).toHaveClass(/is-open/);
+    await page.locator('.language-menu-trigger').tap();
+    await expect(page.locator('.language-menu')).toHaveClass(/is-pinned/);
+    await page.touchscreen.tap(10, 400);
+    await expect(page.locator('.profile-dropdown')).not.toHaveClass(/is-open/);
+  } finally {
+    await context.close();
+  }
+});
+
+test('pattern master search input fits narrow phones without placeholder truncation', async ({ page }) => {
+  await login(page);
+
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 740 });
+    await page.goto(routes.vehicles);
+
+    const searchInput = page.locator('#vehicle-search-input');
+    await expect(searchInput).toBeVisible();
+
+    const metrics = await searchInput.evaluate((el: HTMLInputElement) => {
+      const style = window.getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      const paddingLeft = parseFloat(style.paddingLeft);
+      const paddingRight = parseFloat(style.paddingRight);
+      const availableTextWidth = rect.width - paddingLeft - paddingRight;
+      return {
+        width: rect.width,
+        paddingLeft,
+        paddingRight,
+        availableTextWidth,
+        placeholder: el.placeholder,
+      };
+    });
+
+    expect(metrics.placeholder).toMatch(/Search/i);
+    expect(metrics.paddingRight).toBeLessThanOrEqual(16);
+    expect(metrics.availableTextWidth).toBeGreaterThanOrEqual(100);
+  }
+});
+
+test('mobile complaint filters apply and clear without hiding the list', async ({ page }) => {
+  await login(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(routes.complaints);
+
+  await page.locator('#filter-toggle').click();
+  await expect(page.locator('#mobileFiltersSheet')).toHaveAttribute('aria-hidden', 'false');
+  await page.locator('#mfcComplaintType').selectOption('pattern');
+  await page.locator('#mfApplyBtn').click();
+  await expect(page).toHaveURL(/complaint_type=pattern/);
+  await expect(page.locator('#mobileFilterBadge')).toHaveText('1');
+  await expect(page.locator('.table-container')).toBeVisible();
+
+  await page.locator('#filter-toggle').click();
+  await page.locator('#mfResetBtn').click();
+  await expect(page).not.toHaveURL(/complaint_type=pattern/);
+  await expect(page.locator('#mobileFilterBadge')).toBeHidden();
+});

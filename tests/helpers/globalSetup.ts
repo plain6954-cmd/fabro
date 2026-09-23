@@ -39,7 +39,7 @@ model, _ = Model.objects.get_or_create(brand=brand, name="PLAYWRIGHT MODEL")
 sub_model, _ = SubModel.objects.get_or_create(model=model, name="PLAYWRIGHT SUB")
 YearRange.objects.get_or_create(sub_model=sub_model, year_start=2024, year_end=2026, defaults={"layout_code": "PW-LAYOUT", "number_of_seats": 5, "number_of_doors": 4})
 region = MasterSetting.objects.filter(category="Region").first()
-SKU.objects.get_or_create(code="PW-SKU-SEED", defaults={"description": "Seed SKU for browser tests", "region": region})
+SKU.objects.get_or_create(code="PW-SKU-SEED", defaults={"description": "PLAYWRIGHT BRAND PLAYWRIGHT MODEL PLAYWRIGHT SUB 2024-2026 browser SKU", "region": region})
 
 workflow_password = "FabroWorkflow!234"
 workflow_accounts = {

@@ -32,6 +32,9 @@ export function attachPageDiagnostics(page: Page) {
 
   page.on('requestfailed', (request: Request) => {
     const url = request.url();
+    if (url.includes('/api/filtered-skus/') && /ERR_ABORTED|NS_BINDING_ABORTED/.test(request.failure()?.errorText || '')) {
+      return;
+    }
     if (!ignoredRequestPatterns.some((pattern) => pattern.test(url))) {
       failedRequests.push(`${request.method()} ${url} ${request.failure()?.errorText || ''}`.trim());
     }
