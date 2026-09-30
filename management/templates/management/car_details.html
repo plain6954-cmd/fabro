@@ -1074,9 +1074,11 @@
                         <div class="pattern-actions-drawer" id="patternActionsDrawer">
                             <!-- Single-row Actions (Icons Only) -->
                             <div class="pattern-single-actions" id="patternSingleActions">
+                                {% if can_create_complaint %}
                                 <a href="#" class="pattern-action-chip action-complaint" id="actionBtnAddComplaint" title="{% translate "Add Complaint" %}" aria-label="{% translate "Add Complaint" %}">
                                     <i class="fas fa-file-circle-plus"></i>
                                 </a>
+                                {% endif %}
                                 <button type="button" class="pattern-action-chip action-design" id="actionBtnDesign" title="{% translate "Design Options" %}" aria-label="{% translate "Design Options" %}">
                                     <i class="fas fa-palette"></i>
                                 </button>
@@ -1085,9 +1087,11 @@
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 {% endif %}
+                                {% if not is_designer_freelancer %}
                                 <button type="button" class="pattern-action-chip action-log" id="actionBtnLog" title="{% translate "Pattern Change Log" %}" aria-label="{% translate "Pattern Change Log" %}">
                                     <i class="fas fa-history"></i>
                                 </button>
+                                {% endif %}
                                 {% if can_manage_catalog %}
                                 <button type="button" class="pattern-action-chip action-delete" id="actionBtnDeleteSingle" title="{% translate "Delete Pattern" %}" aria-label="{% translate "Delete Pattern" %}">
                                     <i class="fas fa-trash"></i>
@@ -1480,7 +1484,7 @@
                                                    data-design-title="{{ car.brand|escapejs }} {{ car.model|escapejs }}{% if car.year_start or car.year_end %} {{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}-{% endif %}{{ car.year_end|default:'' }}{% endif %}{% if car.sub_model and car.sub_model != '-' %} {{ car.sub_model|escapejs }}{% endif %}"
                                                    aria-label="Select {{ car.brand }} {{ car.model }}">
                                         </td>
-                                        <td class="col-num" title="{{ car.serial_number }}"><strong>{{ car.serial_number }}</strong></td>
+                                        <td class="col-num" title="{{ car.serial_number }}"><div class="col-num-inner"><strong>{{ car.serial_number }}</strong>{% if car.has_pending_designs %}<span class="pending-design-dot" title="{% translate "New 3D design upload pending review" %}"></span>{% endif %}</div></td>
                                         <td class="col-brand" title="{{ car.brand }}"><strong>{{ car.brand }}</strong></td>
                                         <td class="col-model" title="{{ car.model }}">{{ car.model }}</td>
                                         <td class="col-year">{% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %} - {% endif %}{{ car.year_end|default:'' }}{% else %}-{% endif %}</td>
@@ -1523,7 +1527,7 @@
                                                         <div class="pattern-mobile-card__model">{{ car.model }}</div>
                                                     </div>
                                                     <div class="pattern-mobile-card__serial-wrap">
-                                                        <span class="pattern-mobile-card__serial">{{ car.serial_number }}</span>
+                                                        <span class="pattern-mobile-card__serial">{{ car.serial_number }}</span>{% if car.has_pending_designs %}<span class="pending-design-dot" title="{% translate "New 3D design upload pending review" %}"></span>{% endif %}
                                                     </div>
                                                 </div>
 
@@ -1578,7 +1582,7 @@
                                                             <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
                                                         </button>
                                                         <div class="pattern-card-actions-menu" id="cardActionsMenu-{{ car.id }}" role="menu" aria-labelledby="cardActionsBtn-{{ car.id }}" style="display: none;">
-                                                            {% if new_search_enabled %}
+                                                            {% if new_search_enabled and can_create_complaint %}
                                                             <a href="{% url 'add_complaint' %}?brand={{ car.brand_id|default:'' }}&amp;model={{ car.model_id|default:'' }}&amp;sub_model={{ car.sub_model_id|default:'' }}&amp;year={{ car.id }}" 
                                                                class="card-action-item action-add-complaint" role="menuitem" onclick="closeAllCardActionsMenus()" title="{% translate "Add Complaint" %}" aria-label="{% translate "Add Complaint" %}">
                                                                 <i class="fas fa-plus action-icon"></i>
@@ -1789,7 +1793,7 @@
                         </div>
                         <div style="display: flex; gap: 0.65rem; align-items: center;">
                             <div style="position: relative;">
-                                <input type="text" id="designFolderSearchInput" class="form-input" placeholder="{% translate "Search..." %}"
+                                <input type="text" id="designFolderSearchInput" class="form-input" placeholder="{% translate "Search this page..." %}"
                                        style="width: 160px; height: 2.35rem; font-size: 0.8rem; padding-left: 2rem;" oninput="filterDesignFolders()">
                                 <i class="fas fa-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--dark-text-secondary); pointer-events: none;"></i>
                             </div>
@@ -1806,7 +1810,7 @@
                                 </svg>
                             </button>
 
-                            {% if can_manage_catalog %}
+                            {% if can_manage_design_assets %}
                             <!-- Add Dropdown (Simple Plus Button) -->
                             <div style="position: relative;" id="designAddDropdownContainer">
                                 <button type="button" class="btn btn-primary design-add-plus-btn" id="designAddDropdownBtn" onclick="toggleDesignAddDropdown(event)" title="{% translate "Add (Folder or Image)" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.95rem;">
@@ -1833,6 +1837,13 @@
                     <!-- Folders Grid Container -->
                     <div class="design-folders-grid" id="designFoldersGrid">
                         <!-- Populated by JavaScript and updated on folder changes -->
+                    </div>
+                    <div class="matrix-pagination-bar" id="designFoldersPaginationBar" style="display: none;">
+                        <div class="matrix-pagination-info" id="designFoldersPaginationInfo"></div>
+                        <div class="matrix-pagination-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" id="prevDesignFoldersBtn" onclick="changeDesignFolderPage(-1)">{% translate "Previous" %}</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="nextDesignFoldersBtn" onclick="changeDesignFolderPage(1)">{% translate "Next" %}</button>
+                        </div>
                     </div>
 
                     <!-- Direct Images Section on Vehicle Design Page -->
@@ -1876,7 +1887,7 @@
                             <p style="font-size: 0.85rem; color: var(--dark-text-secondary); margin: 0; line-height: 1.5;">
                                 {% translate "Create folders or upload design images directly to organize pattern variations, aesthetic pairings, and stitching references for this vehicle." %}
                             </p>
-                            {% if can_manage_catalog %}
+                            {% if can_manage_design_assets %}
                             <div style="display: flex; gap: 0.65rem; margin-top: 0.5rem; flex-wrap: wrap; justify-content: center;">
                                 <button type="button" class="btn btn-primary" onclick="openAddFolderModal()">
                                     <i class="fas fa-folder-plus"></i>
@@ -1903,7 +1914,7 @@
                             <div style="display: flex; flex-direction: column; gap: 0.15rem;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <h2 class="design-section-title" id="activeFolderNameDisplay" style="margin: 0; font-size: 1.15rem;"></h2>
-                                    {% if can_manage_catalog %}
+                                    {% if can_manage_design_assets %}
                                     <button type="button" class="design-folder-action-btn" onclick="openRenameCurrentFolderModal()" title="{% translate "Rename Folder" %}">
                                         <i class="fas fa-pencil-alt"></i>
                                     </button>
@@ -1918,7 +1929,7 @@
                         </div>
 
                         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            {% if can_manage_catalog %}
+                            {% if can_manage_design_assets %}
                             <button type="button" class="btn btn-secondary btn-sm" onclick="pasteImageFromClipboard()" title="{% translate "Paste image from clipboard (or press Ctrl+V)" %}" style="height: 2.25rem; padding: 0 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc;">
                                 <i class="fas fa-paste"></i>
                                 <span>{% translate "Paste Image" %}</span>
@@ -1942,13 +1953,13 @@
                     <div id="designFolderContentArea">
                         <!-- Dropzone when empty -->
                         <div id="designEmptyImagesDropzone" class="design-upload-dropzone" style="display: none;"
-                             onclick="{% if can_manage_catalog %}document.getElementById('designImageFileInput').click(){% endif %}">
+                             onclick="{% if can_manage_design_assets %}document.getElementById('designImageFileInput').click(){% endif %}">
                             <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(220, 38, 38, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary-color); font-size: 1.8rem;">
                                 <i class="fas fa-images"></i>
                             </div>
                             <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--dark-text);">{% translate "No Images In This Folder" %}</h3>
                             <p style="font-size: 0.85rem; color: var(--dark-text-secondary); margin: 0; max-width: 400px;">
-                                {% if can_manage_catalog %}
+                                {% if can_manage_design_assets %}
                                 {% translate "Click here to upload, click Paste Image, or press Ctrl+V to paste directly from your clipboard. Images will preview in a 2x2 matrix." %}
                                 {% else %}
                                 {% translate "No design images have been uploaded to this folder yet." %}
@@ -2064,13 +2075,48 @@
                 </button>
                 <div style="display: flex; gap: 0.5rem; margin-left: auto;">
                     <button type="button" class="btn btn-secondary" onclick="closeGoogleDriveModal()">{% translate "Cancel" %}</button>
-                    {% if can_manage_catalog %}
+                    {% if can_manage_design_assets %}
                     <button type="button" class="btn btn-primary" id="saveGoogleDriveBtn" onclick="submitSaveGoogleDrive()">
                         <i class="fas fa-save"></i>
                         {% translate "Save Link" %}
                     </button>
                     {% endif %}
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Design Image Modal -->
+    <div id="rejectDesignModal" class="modal" role="dialog" aria-labelledby="rejectDesignModalTitle" aria-modal="true" style="display: none; z-index: 99999;">
+        <div class="modal-content" style="max-width: 480px; border: 1px solid rgba(244, 63, 94, 0.35); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.85rem;">
+                <h2 id="rejectDesignModalTitle" class="modal-title" style="color: var(--dark-text); font-size: 1.15rem; display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="fas fa-times-circle" style="color: #f43f5e; font-size: 1.25rem;"></i>
+                    <span>{% translate "Reject Design Image" %}</span>
+                </h2>
+                <button type="button" class="close-btn" onclick="closeRejectDesignModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding-top: 1rem; margin-bottom: 1rem;">
+                <p id="rejectDesignImageTitleText" style="font-size: 0.85rem; color: var(--dark-text-secondary); margin-bottom: 0.85rem; line-height: 1.4; word-break: break-word; font-weight: 500;"></p>
+                <label class="form-label" for="rejectDesignReasonInput" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem; display: block;">
+                    {% translate "Reason for Rejection" %} <span style="color: #f43f5e;">*</span>
+                </label>
+                <textarea id="rejectDesignReasonInput" class="form-input" rows="4" maxlength="1000"
+                          placeholder="{% translate "Specify the pattern issues, fitment mismatch, or corrections required..." %}"
+                          oninput="document.getElementById('rejectReasonCharCount').textContent = this.value.length + '/1000';"
+                          style="resize: vertical; min-height: 90px; font-family: inherit; font-size: 0.88rem; width: 100%; box-sizing: border-box;"></textarea>
+                <div id="rejectDesignError" style="color: #f43f5e; font-size: 0.8rem; margin-top: 0.45rem; display: none;"></div>
+                <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-comment-dots" style="color: #818cf8; margin-right: 4px;"></i> {% translate "This feedback will be posted to the freelancer's chat box & notifications." %}</span>
+                    <span id="rejectReasonCharCount" style="font-variant-numeric: tabular-nums;">0/1000</span>
+                </div>
+            </div>
+            <div class="modal-actions" style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem; display: flex; justify-content: flex-end; gap: 0.6rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeRejectDesignModal()">{% translate "Cancel" %}</button>
+                <button type="button" class="btn btn-danger" id="confirmRejectDesignBtn" onclick="submitRejectDesign()" style="background-color: #e11d48; border-color: #e11d48; color: #ffffff;">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>{% translate "Send Rejection Feedback" %}</span>
+                </button>
             </div>
         </div>
     </div>
@@ -2098,7 +2144,7 @@
                     <a href="#" id="enlargedDownloadLink" download class="btn btn-secondary btn-sm" style="height: 1.85rem; padding: 0 0.65rem; font-size: 0.75rem;" title="{% translate "Download Image" %}">
                         <i class="fas fa-download"></i>
                     </a>
-                    {% if can_manage_catalog %}
+                    {% if can_manage_design_assets %}
                     <button type="button" class="btn btn-danger btn-sm" id="enlargedDeleteBtn" onclick="deleteCurrentEnlargedImage()" style="height: 1.85rem; padding: 0 0.65rem; font-size: 0.75rem;" title="{% translate "Delete Image" %}">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -3431,6 +3477,11 @@
         let activeFolderImages = [];
         let matrixCurrentPage = 0;
         let directMatrixCurrentPage = 0;
+        let folderCurrentPage = 0;
+        let folderTotalPages = 1;
+        let matrixTotalPages = 1;
+        let directMatrixTotalPages = 1;
+        let activeFolderTotalImages = 0;
         const MATRIX_PAGE_SIZE = 4;
         let currentEnlargedIdx = -1;
         let renameTargetFolderId = null;
@@ -3474,19 +3525,25 @@
             return String(text || '').replace(/[&<>"']/g, m => map[m]);
         }
 
-        function loadDesignFolders(vehicleId) {
+        function loadDesignFolders(vehicleId, folderPage = 1, imagePage = 1) {
             const targetVehicleId = (vehicleId !== undefined) ? vehicleId : currentVehicleId;
-            let url = '/api/design-folders/';
+            const params = new URLSearchParams({
+                folder_page: String(folderPage),
+                image_page: String(imagePage),
+            });
             if (targetVehicleId) {
-                url += `?vehicle_id=${encodeURIComponent(targetVehicleId)}`;
+                params.set('vehicle_id', targetVehicleId);
             }
-            fetch(url)
+            pageScope.fetch(`/api/design-folders/?${params}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
                         designFoldersState = data.folders || [];
                         directImagesState = data.direct_images || [];
-                        directMatrixCurrentPage = 0;
+                        folderCurrentPage = Math.max(0, (data.folder_pagination?.page || 1) - 1);
+                        folderTotalPages = Math.max(1, data.folder_pagination?.pages || 1);
+                        directMatrixCurrentPage = Math.max(0, (data.image_pagination?.page || 1) - 1);
+                        directMatrixTotalPages = Math.max(1, data.image_pagination?.pages || 1);
                         if (data.vehicle) {
                             if (data.vehicle.name) {
                                 currentVehicleName = data.vehicle.name;
@@ -3497,11 +3554,17 @@
                         } else if (currentVehicleName) {
                             updateVehicleSubheadings(currentVehicleName);
                         }
-                        renderDesignFoldersList(designFoldersState);
+                        filterDesignFolders();
                         renderDirectImagesMatrix();
                     }
                 })
-                .catch(err => console.error('Error loading design folders:', err));
+                .catch(err => { if (err.name !== 'AbortError') console.error('Error loading design folders:', err); });
+        }
+
+        function changeDesignFolderPage(delta) {
+            const nextPage = folderCurrentPage + delta;
+            if (nextPage < 0 || nextPage >= folderTotalPages) return;
+            loadDesignFolders(currentVehicleId, nextPage + 1, directMatrixCurrentPage + 1);
         }
 
         function renderDesignFoldersList(folders) {
@@ -3509,9 +3572,17 @@
             const emptyState = document.getElementById('designFoldersEmptyState');
             const badge = document.getElementById('designFoldersCountBadge');
             const directSection = document.getElementById('designDirectImagesSection');
+            const paginationBar = document.getElementById('designFoldersPaginationBar');
             if (!grid) return;
 
             if (badge) badge.textContent = folders.length;
+            if (paginationBar) paginationBar.style.display = folderTotalPages > 1 ? 'flex' : 'none';
+            const pageInfo = document.getElementById('designFoldersPaginationInfo');
+            if (pageInfo) pageInfo.textContent = `${folderCurrentPage + 1} / ${folderTotalPages}`;
+            const prevPage = document.getElementById('prevDesignFoldersBtn');
+            const nextPage = document.getElementById('nextDesignFoldersBtn');
+            if (prevPage) prevPage.disabled = folderCurrentPage === 0;
+            if (nextPage) nextPage.disabled = folderCurrentPage >= folderTotalPages - 1;
 
             const hasFolders = folders && folders.length > 0;
             const hasDirectImages = directImagesState && directImagesState.length > 0;
@@ -3534,7 +3605,7 @@
 
             grid.style.display = 'grid';
 
-            const canManage = {% if can_manage_catalog %}true{% else %}false{% endif %};
+            const canManage = {% if can_manage_design_assets %}true{% else %}false{% endif %};
 
             grid.innerHTML = folders.map(f => {
                 let previewHtml = '';
@@ -3554,13 +3625,12 @@
 
                 let actionsHtml = '';
                 if (canManage) {
-                    const safeName = escapeHtml(f.name).replace(/'/g, "\\'");
                     actionsHtml = `
                         <div class="design-folder-actions">
-                            <button type="button" class="design-folder-action-btn" onclick="event.stopPropagation(); openRenameFolderModal(${f.id}, '${safeName}')" title="{% translate "Rename" %}">
+                            <button type="button" class="design-folder-action-btn" onclick="event.stopPropagation(); openRenameFolderModal(${f.id})" title="{% translate "Rename" %}">
                                 <i class="fas fa-pencil-alt"></i>
                             </button>
-                            <button type="button" class="design-folder-action-btn delete" onclick="event.stopPropagation(); confirmDeleteFolder(${f.id}, '${safeName}')" title="{% translate "Delete" %}">
+                            <button type="button" class="design-folder-action-btn delete" onclick="event.stopPropagation(); confirmDeleteFolder(${f.id})" title="{% translate "Delete" %}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -3663,7 +3733,8 @@
             renameTargetFolderId = folderId;
             const input = document.getElementById('renameFolderNameInput');
             const err = document.getElementById('renameFolderError');
-            if (input) input.value = currentName;
+            const folderName = currentName ?? designFoldersState.find(folder => folder.id === folderId)?.name ?? '';
+            if (input) input.value = folderName;
             if (err) { err.textContent = ''; err.style.display = 'none'; }
             const modal = document.getElementById('renameFolderModal');
             if (modal) {
@@ -3730,6 +3801,7 @@
 
         // Delete Folder
         function confirmDeleteFolder(folderId, folderName) {
+            folderName = folderName ?? designFoldersState.find(folder => folder.id === folderId)?.name ?? '';
             if (!confirm(`{% translate "Are you sure you want to delete folder" %} "${folderName}" {% translate "and all images inside it?" %}`)) {
                 return;
             }
@@ -3758,19 +3830,21 @@
         }
 
         // Inside Folder Navigation
-        function openDesignFolder(folderId) {
-            fetch(`/api/design-folders/${folderId}/`)
+        function openDesignFolder(folderId, page = 1) {
+            pageScope.fetch(`/api/design-folders/${folderId}/?page=${page}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
                         activeDesignFolder = data.folder;
                         activeFolderImages = data.images || [];
-                        matrixCurrentPage = 0;
+                        matrixCurrentPage = Math.max(0, (data.pagination?.page || 1) - 1);
+                        matrixTotalPages = Math.max(1, data.pagination?.pages || 1);
+                        activeFolderTotalImages = data.folder.image_count || 0;
 
                         const titleEl = document.getElementById('activeFolderNameDisplay');
                         const countEl = document.getElementById('activeFolderImageCountBadge');
                         if (titleEl) titleEl.textContent = activeDesignFolder.name;
-                        if (countEl) countEl.textContent = activeFolderImages.length;
+                        if (countEl) countEl.textContent = activeFolderTotalImages;
 
                         if (data.folder.vehicle && data.folder.vehicle.name) {
                             currentVehicleName = data.folder.vehicle.name;
@@ -3784,7 +3858,8 @@
 
                         renderDesignMatrix();
                     }
-                });
+                })
+                .catch(err => { if (err.name !== 'AbortError') console.error('Error loading design folder:', err); });
         }
 
         function backToFoldersList() {
@@ -3806,7 +3881,7 @@
             const nextBtn = document.getElementById('nextMatrixBtn');
             const countEl = document.getElementById('activeFolderImageCountBadge');
 
-            if (countEl) countEl.textContent = activeFolderImages.length;
+            if (countEl) countEl.textContent = activeFolderTotalImages;
 
             if (activeFolderImages.length === 0) {
                 if (dropzone) dropzone.style.display = 'flex';
@@ -3817,21 +3892,17 @@
             if (dropzone) dropzone.style.display = 'none';
             if (wrapper) wrapper.style.display = 'block';
 
-            const totalImages = activeFolderImages.length;
-            const totalPages = Math.max(1, Math.ceil(totalImages / MATRIX_PAGE_SIZE));
-
-            if (matrixCurrentPage >= totalPages) matrixCurrentPage = Math.max(0, totalPages - 1);
-            if (matrixCurrentPage < 0) matrixCurrentPage = 0;
-
+            const totalImages = activeFolderTotalImages;
+            const totalPages = matrixTotalPages;
             const startIdx = matrixCurrentPage * MATRIX_PAGE_SIZE;
-            const endIdx = Math.min(startIdx + MATRIX_PAGE_SIZE, totalImages);
-            const pageImages = activeFolderImages.slice(startIdx, endIdx);
+            const endIdx = startIdx + activeFolderImages.length;
+            const pageImages = activeFolderImages;
 
-            const canManage = {% if can_manage_catalog %}true{% else %}false{% endif %};
+            const canManage = {% if can_manage_design_assets %}true{% else %}false{% endif %};
 
             if (grid) {
                 grid.innerHTML = pageImages.map((img, idx) => {
-                    const globalIdx = startIdx + idx;
+                    const globalIdx = idx;
                     let delBtn = '';
                     if (canManage) {
                         delBtn = `
@@ -3841,18 +3912,42 @@
                         `;
                     }
 
+                    let statusBadge = '';
+                    if (img.approval_status === 'pending') {
+                        statusBadge = `<span class="matrix-status-pill is-pending"><i class="fas fa-clock"></i> {% translate "Pending Review" %}</span>`;
+                    } else if (img.approval_status === 'rejected') {
+                        const rReason = img.rejection_reason ? escapeHtml(img.rejection_reason) : '';
+                        statusBadge = `<span class="matrix-status-pill is-rejected" title="${rReason}"><i class="fas fa-times-circle"></i> {% translate "Rejected" %}</span>`;
+                    }
+
+                    let approvalActions = '';
+                    if (img.can_approve) {
+                        approvalActions = `
+                            <div class="matrix-approval-actions" onclick="event.stopPropagation()">
+                                <button type="button" class="matrix-action-btn matrix-approve-btn" onclick="approveDesignImage(${img.id}, this)" title="{% translate "Approve Design" %}">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button type="button" class="matrix-action-btn matrix-reject-btn" onclick="openRejectDesignModal(${img.id})" title="{% translate "Reject Design" %}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+
                     return `
                         <div class="design-matrix-card" onclick="openEnlargedView(${globalIdx})">
                             <div class="matrix-card-media">
                                 <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" loading="lazy">
+                                ${statusBadge ? `<div class="matrix-card-badge-wrap">${statusBadge}</div>` : ''}
                                 <div class="matrix-card-overlay">
                                     <div class="matrix-overlay-top">
                                         <span class="matrix-zoom-badge"><i class="fas fa-expand-alt"></i> {% translate "Enlarged View" %}</span>
-                                        ${delBtn}
+                                        <div class="matrix-top-actions">${approvalActions}${delBtn}</div>
                                     </div>
                                     <div class="matrix-overlay-bottom">
                                         <div class="matrix-image-title">${escapeHtml(img.title)}</div>
                                         <div class="matrix-image-meta">${img.uploaded_at}</div>
+                                        ${img.rejection_reason ? `<div class="matrix-rejection-note"><i class="fas fa-info-circle"></i> ${escapeHtml(img.rejection_reason)}</div>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -3865,13 +3960,17 @@
                 info.innerHTML = `{% translate "Showing" %} <strong>${startIdx + 1}–${endIdx}</strong> {% translate "of" %} <strong>${totalImages}</strong> {% translate "images" %} (${matrixCurrentPage + 1} / ${totalPages})`;
             }
 
+            const paginationBar = document.getElementById('matrixPaginationBar');
+            if (paginationBar) paginationBar.style.display = totalPages > 1 ? 'flex' : 'none';
+
             if (prevBtn) prevBtn.disabled = (matrixCurrentPage <= 0);
             if (nextBtn) nextBtn.disabled = (matrixCurrentPage >= totalPages - 1);
         }
 
         function changeMatrixPage(delta) {
-            matrixCurrentPage += delta;
-            renderDesignMatrix();
+            const nextPage = matrixCurrentPage + delta;
+            if (!activeDesignFolder || nextPage < 0 || nextPage >= matrixTotalPages) return;
+            openDesignFolder(activeDesignFolder.id, nextPage + 1);
         }
 
         // Image Upload
@@ -3895,9 +3994,7 @@
             .then(data => {
                 if (data.status === 'success') {
                     if (data.images && data.images.length) {
-                        activeFolderImages = data.images.concat(activeFolderImages);
-                        matrixCurrentPage = 0;
-                        renderDesignMatrix();
+                        openDesignFolder(activeDesignFolder.id);
                     }
                 } else {
                     alert(data.message || '{% translate "Upload failed." %}');
@@ -3911,7 +4008,7 @@
 
         // Paste Image From Clipboard via Button
         async function pasteImageFromClipboard() {
-            const canManage = {% if can_manage_catalog %}true{% else %}false{% endif %};
+            const canManage = {% if can_manage_design_assets %}true{% else %}false{% endif %};
             if (!canManage || !activeDesignFolder) return;
 
             try {
@@ -3976,7 +4073,7 @@
             if (currentGoogleDriveUrl) {
                 window.open(currentGoogleDriveUrl, '_blank', 'noopener,noreferrer');
             } else {
-                const canManage = {% if can_manage_catalog %}true{% else %}false{% endif %};
+                const canManage = {% if can_manage_design_assets %}true{% else %}false{% endif %};
                 if (canManage) {
                     openGoogleDriveModal();
                 } else {
@@ -4088,10 +4185,7 @@
             .then(data => {
                 if (data.status === 'success') {
                     if (data.images && data.images.length) {
-                        directImagesState = data.images.concat(directImagesState);
-                        directMatrixCurrentPage = 0;
-                        renderDirectImagesMatrix();
-                        renderDesignFoldersList(designFoldersState);
+                        loadDesignFolders(currentVehicleId);
                     }
                 } else {
                     alert(data.message || '{% translate "Upload failed." %}');
@@ -4114,7 +4208,7 @@
 
             if (!section) return;
 
-            if (badge) badge.textContent = directImagesState.length;
+            if (badge) badge.textContent = directMatrixTotalPages > 1 ? `${directMatrixCurrentPage + 1}/${directMatrixTotalPages}` : directImagesState.length;
 
             if (directImagesState.length === 0) {
                 section.style.display = 'none';
@@ -4124,20 +4218,16 @@
             section.style.display = 'block';
 
             const totalImages = directImagesState.length;
-            const totalPages = Math.max(1, Math.ceil(totalImages / MATRIX_PAGE_SIZE));
-
-            if (directMatrixCurrentPage >= totalPages) directMatrixCurrentPage = Math.max(0, totalPages - 1);
-            if (directMatrixCurrentPage < 0) directMatrixCurrentPage = 0;
-
+            const totalPages = directMatrixTotalPages;
             const startIdx = directMatrixCurrentPage * MATRIX_PAGE_SIZE;
-            const endIdx = Math.min(startIdx + MATRIX_PAGE_SIZE, totalImages);
-            const pageImages = directImagesState.slice(startIdx, endIdx);
+            const endIdx = startIdx + totalImages;
+            const pageImages = directImagesState;
 
-            const canManage = {% if can_manage_catalog %}true{% else %}false{% endif %};
+            const canManage = {% if can_manage_design_assets %}true{% else %}false{% endif %};
 
             if (grid) {
                 grid.innerHTML = pageImages.map((img, idx) => {
-                    const globalIdx = startIdx + idx;
+                    const globalIdx = idx;
                     let delBtn = '';
                     if (canManage) {
                         delBtn = `
@@ -4147,18 +4237,42 @@
                         `;
                     }
 
+                    let statusBadge = '';
+                    if (img.approval_status === 'pending') {
+                        statusBadge = `<span class="matrix-status-pill is-pending"><i class="fas fa-clock"></i> {% translate "Pending Review" %}</span>`;
+                    } else if (img.approval_status === 'rejected') {
+                        const rReason = img.rejection_reason ? escapeHtml(img.rejection_reason) : '';
+                        statusBadge = `<span class="matrix-status-pill is-rejected" title="${rReason}"><i class="fas fa-times-circle"></i> {% translate "Rejected" %}</span>`;
+                    }
+
+                    let approvalActions = '';
+                    if (img.can_approve) {
+                        approvalActions = `
+                            <div class="matrix-approval-actions" onclick="event.stopPropagation()">
+                                <button type="button" class="matrix-action-btn matrix-approve-btn" onclick="approveDesignImage(${img.id}, this)" title="{% translate "Approve Design" %}">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button type="button" class="matrix-action-btn matrix-reject-btn" onclick="openRejectDesignModal(${img.id})" title="{% translate "Reject Design" %}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+
                     return `
                         <div class="design-matrix-card" onclick="openDirectEnlargedView(${globalIdx})">
                             <div class="matrix-card-media">
                                 <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" loading="lazy">
+                                ${statusBadge ? `<div class="matrix-card-badge-wrap">${statusBadge}</div>` : ''}
                                 <div class="matrix-card-overlay">
                                     <div class="matrix-overlay-top">
                                         <span class="matrix-zoom-badge"><i class="fas fa-expand-alt"></i> {% translate "Enlarged View" %}</span>
-                                        ${delBtn}
+                                        <div class="matrix-top-actions">${approvalActions}${delBtn}</div>
                                     </div>
                                     <div class="matrix-overlay-bottom">
                                         <div class="matrix-image-title">${escapeHtml(img.title)}</div>
                                         <div class="matrix-image-meta">${img.uploaded_at}</div>
+                                        ${img.rejection_reason ? `<div class="matrix-rejection-note"><i class="fas fa-info-circle"></i> ${escapeHtml(img.rejection_reason)}</div>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -4168,11 +4282,11 @@
             }
 
             if (pBar) {
-                pBar.style.display = totalImages > MATRIX_PAGE_SIZE ? 'flex' : 'none';
+                pBar.style.display = totalPages > 1 ? 'flex' : 'none';
             }
 
             if (info) {
-                info.innerHTML = `{% translate "Showing" %} <strong>${startIdx + 1}–${endIdx}</strong> {% translate "of" %} <strong>${totalImages}</strong> {% translate "images" %} (${directMatrixCurrentPage + 1} / ${totalPages})`;
+                info.textContent = `${directMatrixCurrentPage + 1} / ${totalPages}`;
             }
 
             if (prevBtn) prevBtn.disabled = (directMatrixCurrentPage <= 0);
@@ -4180,8 +4294,9 @@
         }
 
         function changeDirectMatrixPage(delta) {
-            directMatrixCurrentPage += delta;
-            renderDirectImagesMatrix();
+            const nextPage = directMatrixCurrentPage + delta;
+            if (nextPage < 0 || nextPage >= directMatrixTotalPages) return;
+            loadDesignFolders(currentVehicleId, folderCurrentPage + 1, nextPage + 1);
         }
 
         function confirmDeleteDirectImage(imageId) {
@@ -4194,17 +4309,8 @@
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'success') {
-                    directImagesState = directImagesState.filter(img => img.id !== imageId);
-                    if (currentEnlargedIdx >= directImagesState.length) {
-                        currentEnlargedIdx = directImagesState.length - 1;
-                    }
-                    if (currentEnlargedIdx >= 0 && activeFolderImages === directImagesState) {
-                        updateEnlargedModal();
-                    } else if (activeFolderImages === directImagesState) {
-                        closeEnlargedView();
-                    }
-                    renderDirectImagesMatrix();
-                    renderDesignFoldersList(designFoldersState);
+                    closeEnlargedView();
+                    loadDesignFolders(currentVehicleId, folderCurrentPage + 1, directMatrixCurrentPage + 1);
                 } else {
                     alert(data.message || '{% translate "Error deleting image." %}');
                 }
@@ -4219,7 +4325,7 @@
 
         // Global Paste Listener for Ctrl+V
         pageScope.listen(document, 'paste', function(e) {
-            const canManage = {% if can_manage_catalog %}true{% else %}false{% endif %};
+            const canManage = {% if can_manage_design_assets %}true{% else %}false{% endif %};
             if (!canManage) return;
 
             const activeEl = document.activeElement;
@@ -4271,16 +4377,8 @@
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'success') {
-                    activeFolderImages = activeFolderImages.filter(img => img.id !== imageId);
-                    if (currentEnlargedIdx >= activeFolderImages.length) {
-                        currentEnlargedIdx = activeFolderImages.length - 1;
-                    }
-                    if (currentEnlargedIdx >= 0) {
-                        updateEnlargedModal();
-                    } else {
-                        closeEnlargedView();
-                    }
-                    renderDesignMatrix();
+                    closeEnlargedView();
+                    openDesignFolder(activeDesignFolder.id, matrixCurrentPage + 1);
                 } else {
                     alert(data.message || '{% translate "Error deleting image." %}');
                 }
@@ -4341,7 +4439,7 @@
             if (metaEl) metaEl.textContent = img.uploaded_at;
             if (counterEl) counterEl.textContent = `${currentEnlargedIdx + 1} / ${activeFolderImages.length}`;
             if (dlLink) {
-                dlLink.href = img.url;
+                dlLink.href = img.original_url || img.url;
                 dlLink.setAttribute('download', img.title || 'design_image.jpg');
             }
 
@@ -4352,6 +4450,178 @@
                 if (prevBtn) prevBtn.style.display = 'flex';
                 if (nextBtn) nextBtn.style.display = 'flex';
             }
+        }
+
+        // -------------------------------------------------------------------------
+        // 3D Design Approval & Rejection Handlers
+        // -------------------------------------------------------------------------
+        let rejectTargetImageId = null;
+
+        function approveDesignImage(imageId, btn) {
+            if (!imageId) return;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+            fetch(`/api/design-images/${imageId}/approve/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getDesignCsrfToken() }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (activeFolderImages && activeFolderImages.length) {
+                        const target = activeFolderImages.find(x => x.id === imageId);
+                        if (target) {
+                            target.approval_status = 'approved';
+                            target.can_approve = false;
+                        }
+                    }
+                    if (directImagesState && directImagesState.length) {
+                        const target = directImagesState.find(x => x.id === imageId);
+                        if (target) {
+                            target.approval_status = 'approved';
+                            target.can_approve = false;
+                        }
+                    }
+                    renderDesignMatrix();
+                    renderDirectImagesMatrix();
+                } else {
+                    alert(data.message || '{% translate "Error approving image." %}');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-check"></i>';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Approve error:', err);
+                alert('{% translate "Network error." %}');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check"></i>';
+                }
+            });
+        }
+
+        function openRejectDesignModal(imageId, imageTitle) {
+            rejectTargetImageId = imageId;
+            imageTitle = imageTitle ?? activeFolderImages.find(image => image.id === imageId)?.title
+                ?? directImagesState.find(image => image.id === imageId)?.title ?? '';
+            const modal = document.getElementById('rejectDesignModal');
+            const input = document.getElementById('rejectDesignReasonInput');
+            const err = document.getElementById('rejectDesignError');
+            const titleEl = document.getElementById('rejectDesignImageTitleText');
+            const charEl = document.getElementById('rejectReasonCharCount');
+
+            if (input) {
+                input.value = '';
+                input.disabled = false;
+            }
+            if (err) {
+                err.textContent = '';
+                err.style.display = 'none';
+            }
+            if (titleEl) {
+                titleEl.textContent = imageTitle ? `{% translate "Image" %}: ${imageTitle}` : '';
+            }
+            if (charEl) charEl.textContent = '0/1000';
+
+            const btn = document.getElementById('confirmRejectDesignBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>{% translate "Send Rejection Feedback" %}</span>';
+            }
+
+            if (modal) {
+                modal.style.display = 'block';
+                setTimeout(() => input && input.focus(), 60);
+            }
+        }
+
+        function closeRejectDesignModal() {
+            const modal = document.getElementById('rejectDesignModal');
+            if (modal) modal.style.display = 'none';
+            rejectTargetImageId = null;
+        }
+
+        function submitRejectDesign() {
+            if (!rejectTargetImageId) return;
+            const input = document.getElementById('rejectDesignReasonInput');
+            const err = document.getElementById('rejectDesignError');
+            const btn = document.getElementById('confirmRejectDesignBtn');
+            const reason = (input?.value || '').trim();
+
+            if (!reason) {
+                if (err) {
+                    err.textContent = '{% translate "Please provide a rejection reason." %}';
+                    err.style.display = 'block';
+                }
+                if (input) input.focus();
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>{% translate "Sending..." %}</span>';
+            }
+            if (input) input.disabled = true;
+
+            fetch(`/api/design-images/${rejectTargetImageId}/reject/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getDesignCsrfToken(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const targetId = rejectTargetImageId;
+                    if (activeFolderImages && activeFolderImages.length) {
+                        const target = activeFolderImages.find(x => x.id === targetId);
+                        if (target) {
+                            target.approval_status = 'rejected';
+                            target.rejection_reason = reason;
+                            target.can_approve = false;
+                        }
+                    }
+                    if (directImagesState && directImagesState.length) {
+                        const target = directImagesState.find(x => x.id === targetId);
+                        if (target) {
+                            target.approval_status = 'rejected';
+                            target.rejection_reason = reason;
+                            target.can_approve = false;
+                        }
+                    }
+                    renderDesignMatrix();
+                    renderDirectImagesMatrix();
+                    closeRejectDesignModal();
+                } else {
+                    if (err) {
+                        err.textContent = data.message || '{% translate "Failed to reject image." %}';
+                        err.style.display = 'block';
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>{% translate "Send Rejection Feedback" %}</span>';
+                    }
+                    if (input) input.disabled = false;
+                }
+            })
+            .catch(e => {
+                console.error('Reject error:', e);
+                if (err) {
+                    err.textContent = '{% translate "Network error occurred." %}';
+                    err.style.display = 'block';
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>{% translate "Send Rejection Feedback" %}</span>';
+                }
+                if (input) input.disabled = false;
+            });
         }
 
         // Global Keyboard Handler for Modals & Lightbox
@@ -4374,6 +4644,7 @@
                 closeAddFolderModal();
                 closeRenameFolderModal();
                 closeGoogleDriveModal();
+                closeRejectDesignModal();
             }
 
             if (e.key === 'Enter') {
@@ -5325,7 +5596,7 @@
             console.error('Error initializing selection UI:', e);
         }
 
-        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, handleGoogleDriveClick, openGoogleDriveModal, closeGoogleDriveModal, openCurrentGoogleDriveInNewTab, submitSaveGoogleDrive, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI});
+        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, handleGoogleDriveClick, openGoogleDriveModal, closeGoogleDriveModal, openCurrentGoogleDriveInNewTab, submitSaveGoogleDrive, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI});
     })();
     </script>
 

@@ -2187,10 +2187,21 @@
                     }
                     activeRequest = xhr;
                 }
-                document.body.classList.add('fabro-page-exiting', 'fabro-ajax-routing');
                 document.body.setAttribute('aria-busy', 'true');
                 window.__fabroPageRouting = true;
                 return token;
+            };
+
+            const showNavigationLoading = () => {
+                document.body.classList.add('fabro-page-exiting', 'fabro-ajax-routing');
+            };
+
+            const resetNavigationState = () => {
+                window.__fabroPageRouting = false;
+                document.body.classList.remove('fabro-page-exiting', 'fabro-ajax-routing');
+                document.body.removeAttribute('aria-busy');
+                pendingNavigation = null;
+                activeRequest = null;
             };
 
             const assetIdentity = (asset) => {
@@ -2302,15 +2313,11 @@
                 flushPageLoadCallbacks(navigation.token);
                 initPremiumInteractions();
                 rememberPageAssets();
-                window.__fabroPageRouting = false;
-                document.body.classList.remove('fabro-page-exiting', 'fabro-ajax-routing');
+                resetNavigationState();
                 document.body.classList.add('fabro-page-entered');
-                document.body.removeAttribute('aria-busy');
                 document.dispatchEvent(new CustomEvent('fabro:page-ready', {
                     detail: { url: navigation.url },
                 }));
-                activeRequest = null;
-                pendingNavigation = null;
             };
 
             const rememberPageAssets = () => {
@@ -2394,6 +2401,7 @@
                     return;
                 }
                 pendingNavigation = { token, transaction, url: responseUrl.href };
+                showNavigationLoading();
                 disposeCurrentPage();
             });
 
@@ -2417,6 +2425,7 @@
                     transaction,
                     url: new URL(event.detail.path, window.location.href).href,
                 };
+                showNavigationLoading();
                 disposeCurrentPage();
             });
             document.body.addEventListener('htmx:historyCacheMissLoad', (event) => {
@@ -2431,6 +2440,7 @@
                     transaction,
                     url: new URL(event.detail.path, window.location.href).href,
                 };
+                showNavigationLoading();
                 disposeCurrentPage();
             });
             document.body.addEventListener('htmx:historyRestore', () => {
@@ -2442,7 +2452,13 @@
                 if (token && token !== navigationToken) return;
                 if (event.detail.elt.matches('a[hx-get]')) {
                     window.location.assign(event.detail.elt.href);
+                } else {
+                    resetNavigationState();
                 }
+            });
+            document.body.addEventListener('htmx:sendError', (event) => {
+                const token = requestTokens.get(event.detail.xhr);
+                if (!token || token === navigationToken) resetNavigationState();
             });
 
             enhanceLinks(document);
@@ -2515,11 +2531,24 @@
     </div>
 
     <nav class="navbar" data-active-window="Dashboard">
-        <a href="{% url 'index' %}" class="nav-brand">
+        <a href="{% if is_designer_freelancer %}{% url 'car_details' %}{% else %}{% url 'index' %}{% endif %}" class="nav-brand">
             <img src="{% static 'fabro-logo.png' %}" alt="Fabro Leather Logo" class="nav-brand-logo">
         </a>
 
         <div class="nav-links">
+            {% if is_designer_freelancer %}
+            <a href="{% url 'car_details' %}" class="nav-link {% if request.resolver_match.url_name == 'car_details' %}active{% endif %}">
+                <i class="fas fa-car"></i>
+                <span>{% translate "Patterns" %}</span>
+            </a>
+            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+                <i class="fas fa-comments"></i>
+                <span>{% translate "CHAT" %}</span>
+                {% if unread_chat_count %}
+                <span class="nav-chat-badge" data-shell-badge="chat">{{ unread_chat_count }}</span>
+                {% endif %}
+            </a>
+            {% else %}
             <a href="{% url 'index' %}" class="nav-link">
                 <i class="fas fa-home"></i>
                 <span>{% translate "Dashboard" %}</span>
@@ -2567,6 +2596,7 @@
                 <i class="fas fa-cog"></i>
                 <span>{% translate "Master" %}</span>
             </a>
+            {% endif %}
             {% endif %}
         </div>
 
@@ -2671,6 +2701,19 @@
     </nav>
 
     <nav class="mobile-bottom-nav" aria-label="{% translate "Mobile Navigation" %}">
+        {% if is_designer_freelancer %}
+        <a href="{% url 'car_details' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'car_details' %}active{% endif %}">
+            <i class="fas fa-car"></i>
+            <span>{% translate "Patterns" %}</span>
+        </a>
+        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+            <i class="fas fa-comments"></i>
+            <span>{% translate "Chat" %}</span>
+            {% if unread_chat_count %}
+            <span class="mobile-bottom-badge" data-shell-badge="chat">{{ unread_chat_count }}</span>
+            {% endif %}
+        </a>
+        {% else %}
         <a href="{% url 'index' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
             <i class="fas fa-home"></i>
             <span>{% translate "Dashboard" %}</span>
@@ -2704,4 +2747,5 @@
             <span class="mobile-bottom-badge" data-shell-badge="chat">{{ unread_chat_count }}</span>
             {% endif %}
         </a>
+        {% endif %}
     </nav>

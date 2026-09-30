@@ -24,7 +24,7 @@ from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q, Case, When, Value, IntegerField, Max, OuterRef, Subquery
+from django.db.models import Count, Q, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Exists
 from django.http import HttpResponse, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -52,6 +52,7 @@ from .forms import (
     UploadCSVForm,
     UserCreationForm,
     UserWorkflowProfileForm,
+    UnifiedWorkflowRoles,
 )
 from .models import (
     ActivityLog,
@@ -94,6 +95,7 @@ from .services.workflow import (
     can_user_edit_report_step,
     can_user_execute_action,
     can_user_manage_catalog,
+    can_user_manage_design_assets,
     can_user_review_factory_step,
     can_user_view_approvals,
     close_complaint_after_execution,
@@ -199,6 +201,35 @@ def _parse_csv_int(value, label, minimum, maximum):
 
 def _can_manage_catalog(user):
     return can_user_manage_catalog(user)
+
+
+def _can_manage_design_assets(user):
+    return can_user_manage_design_assets(user)
+
+
+def _can_approve_design_assets(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    prof = getattr(user, 'workflow_profile', None)
+    return bool(
+        prof and (
+            prof.role == WorkflowRoles.ADMIN
+            or prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
+        )
+    )
+
+
+def _visible_design_images_qs(user, base_qs):
+    if not user or not user.is_authenticated:
+        return base_qs.none()
+    if _can_approve_design_assets(user):
+        return base_qs
+    prof = getattr(user, 'workflow_profile', None)
+    if prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
+        return base_qs.filter(Q(approval_status='approved') | Q(uploaded_by=user))
+    return base_qs.filter(approval_status='approved')
 
 
 def _configure_complaint_form(form, user):
@@ -359,6 +390,9 @@ def pattern_design_image_download(request, image_id):
 @login_required
 @gzip_page
 def index(request):
+    prof = getattr(request.user, 'workflow_profile', None)
+    if prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
+        return redirect('car_details')
     # Get dashboard statistics
     visible_complaints = visible_complaints_for_user(request.user, Complaint.objects.all())
     today = now().date()
@@ -612,9 +646,10 @@ def car_details(request):
 
     # Sort by the persistent, zero-padded serial before pagination. Ordering by
     # creation id makes edited/imported serials appear randomly across pages.
+    pending_designs_subquery = PatternDesignImage.objects.filter(Q(vehicle_id=OuterRef('pk')) | Q(folder__vehicle_id=OuterRef('pk')), approval_status='pending')
     yr_qs = YearRange.objects.select_related(
         'sub_model__model__brand', 'vehicle_country', 'measurement_country'
-    ).order_by('-serial_number', '-id')
+    ).annotate(has_pending_designs=Exists(pending_designs_subquery)).order_by('-serial_number', '-id')
     if search_query:
         if search_column in ('serial_number', 'serial_no', 'serial'):
             import re
@@ -661,6 +696,7 @@ def car_details(request):
 
     vehicle_paginator = Paginator(yr_qs, 50)
     vehicle_page = vehicle_paginator.get_page(request.GET.get('page'))
+    can_see_pending_designs = _can_approve_design_assets(request.user) or (getattr(getattr(request.user, 'workflow_profile', None), 'role', '') == WorkflowRoles.FREELANCE_3D_DESIGNER)
     car_data = []
     for yr in vehicle_page.object_list:
         display_serial = yr.serial_number or f"S{yr.id:04d}"
@@ -693,6 +729,7 @@ def car_details(request):
             "vehicle_country_id": yr.vehicle_country.id if yr.vehicle_country else None,
             "measurement_country": yr.measurement_country.name if yr.measurement_country else '-',
             "measurement_country_id": yr.measurement_country.id if yr.measurement_country else None,
+            "has_pending_designs": bool(getattr(yr, 'has_pending_designs', False)) if can_see_pending_designs else False,
         })
 
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
@@ -734,6 +771,13 @@ def pattern_vehicle_list_api(request):
     search = request.GET.get('search', '').strip()[:100]
     queryset = YearRange.objects.select_related(
         'sub_model__model__brand', 'vehicle_country', 'measurement_country'
+    ).annotate(
+        has_pending_designs=Exists(
+            PatternDesignImage.objects.filter(
+                Q(vehicle_id=OuterRef('pk')) | Q(folder__vehicle_id=OuterRef('pk')),
+                approval_status='pending',
+            )
+        )
     ).order_by('-serial_number', '-id')
     if search:
         queryset = queryset.filter(
@@ -745,6 +789,7 @@ def pattern_vehicle_list_api(request):
             | Q(sub_model__model__name__icontains=search)
             | Q(sub_model__name__icontains=search)
         )
+    can_see_pending = _can_approve_design_assets(request.user) or (getattr(getattr(request.user, 'workflow_profile', None), 'role', '') == WorkflowRoles.FREELANCE_3D_DESIGNER)
     page = Paginator(queryset, 50).get_page(request.GET.get('page'))
     results = [{
         'id': vehicle.pk,
@@ -757,6 +802,7 @@ def pattern_vehicle_list_api(request):
         'year_start': vehicle.year_start,
         'year_end': vehicle.year_end,
         'br': vehicle.br,
+        'has_pending_designs': bool(getattr(vehicle, 'has_pending_designs', False)) if can_see_pending else False,
     } for idx, vehicle in enumerate(page.object_list)]
     return JsonResponse({
         'results': results,
@@ -1253,9 +1299,10 @@ def get_design_folders_api(request):
                 'sub_model': sub_name,
                 'google_drive_url': yr.google_drive_url or '',
             }
+            can_approve = _can_approve_design_assets(request.user)
             folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(image_total=Count('images'))
             direct_page = Paginator(
-                PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at'),
+                _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at')),
                 4,
             ).get_page(request.GET.get('image_page'))
             direct_imgs = direct_page.object_list
@@ -1268,6 +1315,10 @@ def get_design_folders_api(request):
                         'title': img.title or os.path.basename(img.image.name),
                         'file_size': img.file_size,
                         'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+                        'approval_status': getattr(img, 'approval_status', 'approved'),
+                        'rejection_reason': getattr(img, 'rejection_reason', '') or '',
+                        'can_approve': can_approve and getattr(img, 'approval_status', 'approved') == 'pending',
+                        'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
                     })
         except YearRange.DoesNotExist:
             folders = PatternDesignFolder.objects.none()
@@ -1281,9 +1332,9 @@ def get_design_folders_api(request):
 
     folder_page = Paginator(folders, 20).get_page(request.GET.get('folder_page'))
     data = []
-    preview_rows = PatternDesignImage.objects.filter(
+    preview_rows = _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(
         folder_id__in=[folder.pk for folder in folder_page.object_list]
-    ).order_by('folder_id', '-uploaded_at')
+    )).order_by('folder_id', '-uploaded_at')
     previews_by_folder = {}
     for image in preview_rows:
         bucket = previews_by_folder.setdefault(image.folder_id, [])
@@ -1304,6 +1355,7 @@ def get_design_folders_api(request):
     return JsonResponse({
         'status': 'success',
         'folders': data,
+        'can_approve_designs': _can_approve_design_assets(request.user),
         'direct_images': direct_images_data,
         'vehicle': vehicle_info,
         'folder_pagination': {'page': folder_page.number, 'pages': folder_page.paginator.num_pages},
@@ -1314,7 +1366,7 @@ def get_design_folders_api(request):
 @login_required
 @require_POST
 def create_design_folder_api(request):
-    if not _can_manage_catalog(request.user):
+    if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     name = (request.POST.get('name') or '').strip()
     if not name:
@@ -1358,7 +1410,9 @@ def create_design_folder_api(request):
 @login_required
 def get_design_folder_detail_api(request, folder_id):
     folder = get_object_or_404(PatternDesignFolder.objects.select_related('vehicle__sub_model__model__brand'), id=folder_id)
-    image_page = Paginator(folder.images.all(), 4).get_page(request.GET.get('page'))
+    visible_images = _visible_design_images_qs(request.user, folder.images.select_related('uploaded_by').all())
+    image_page = Paginator(visible_images, 4).get_page(request.GET.get('page'))
+    can_approve = _can_approve_design_assets(request.user)
     image_list = []
     for img in image_page.object_list:
         if img.image:
@@ -1369,6 +1423,10 @@ def get_design_folder_detail_api(request, folder_id):
                 'title': img.title or os.path.basename(img.image.name),
                 'file_size': img.file_size,
                 'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+                'approval_status': getattr(img, 'approval_status', 'approved'),
+                'rejection_reason': getattr(img, 'rejection_reason', '') or '',
+                'can_approve': can_approve and getattr(img, 'approval_status', 'approved') == 'pending',
+                'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
             })
 
     vehicle_info = None
@@ -1390,11 +1448,12 @@ def get_design_folder_detail_api(request, folder_id):
             'id': folder.id,
             'name': folder.name,
             'description': folder.description,
-            'image_count': folder.images.count(),
+            'image_count': visible_images.count(),
             'created_at': folder.created_at.strftime('%b %d, %Y'),
             'vehicle_id': folder.vehicle_id,
             'vehicle': vehicle_info,
         },
+        'can_approve_designs': can_approve,
         'images': image_list,
         'pagination': {'page': image_page.number, 'pages': image_page.paginator.num_pages},
     })
@@ -1403,7 +1462,7 @@ def get_design_folder_detail_api(request, folder_id):
 @login_required
 @require_POST
 def rename_design_folder_api(request, folder_id):
-    if not _can_manage_catalog(request.user):
+    if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     folder = get_object_or_404(PatternDesignFolder, id=folder_id)
     name = (request.POST.get('name') or '').strip()
@@ -1419,7 +1478,7 @@ def rename_design_folder_api(request, folder_id):
 @login_required
 @require_POST
 def delete_design_folder_api(request, folder_id):
-    if not _can_manage_catalog(request.user):
+    if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     folder = get_object_or_404(PatternDesignFolder, id=folder_id)
     for img in folder.images.all():
@@ -1447,12 +1506,16 @@ def delete_design_folder_api(request, folder_id):
 @login_required
 @require_POST
 def upload_design_images_api(request, folder_id):
-    if not _can_manage_catalog(request.user):
+    if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     folder = get_object_or_404(PatternDesignFolder, id=folder_id)
     files = request.FILES.getlist('images')
     if not files:
         return JsonResponse({'status': 'error', 'message': _('No files uploaded.')}, status=400)
+
+    prof = getattr(request.user, 'workflow_profile', None)
+    is_freelancer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    initial_status = 'pending' if is_freelancer else 'approved'
 
     allowed_exts = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
     max_size = 30 * 1024 * 1024  # 30MB
@@ -1471,6 +1534,7 @@ def upload_design_images_api(request, folder_id):
             title=file_obj.name,
             file_size=file_obj.size,
             uploaded_by=request.user,
+            approval_status=initial_status,
         )
         design_img.save()
         thumbnail_url = _ensure_pattern_thumbnail(design_img)
@@ -1480,7 +1544,26 @@ def upload_design_images_api(request, folder_id):
             'title': design_img.title,
             'file_size': design_img.file_size,
             'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+            'approval_status': design_img.approval_status,
         })
+
+    if is_freelancer and created_images:
+        vehicle = folder.vehicle
+        v_title = str(vehicle) if vehicle else folder.name
+        approver_users = User.objects.filter(
+            is_active=True,
+            workflow_profile__approval_role__in=[ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD],
+        ).exclude(id=request.user.id)
+        for app_user in approver_users:
+            Notification.objects.create(
+                recipient=app_user,
+                title=_("New 3D Design Upload: %(title)s") % {'title': v_title},
+                message=_("%(user)s uploaded %(count)s new 3D design file(s) for review.") % {
+                    'user': request.user.username,
+                    'count': len(created_images),
+                },
+                notification_type='design_approval',
+            )
 
     return JsonResponse({
         'status': 'success',
@@ -1493,12 +1576,16 @@ def upload_design_images_api(request, folder_id):
 @login_required
 @require_POST
 def upload_vehicle_design_images_api(request, vehicle_id):
-    if not _can_manage_catalog(request.user):
+    if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     vehicle = get_object_or_404(YearRange, id=vehicle_id)
     files = request.FILES.getlist('images')
     if not files:
         return JsonResponse({'status': 'error', 'message': _('No files uploaded.')}, status=400)
+
+    prof = getattr(request.user, 'workflow_profile', None)
+    is_freelancer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    initial_status = 'pending' if is_freelancer else 'approved'
 
     allowed_exts = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
     max_size = 30 * 1024 * 1024  # 30MB
@@ -1518,6 +1605,7 @@ def upload_vehicle_design_images_api(request, vehicle_id):
             title=file_obj.name,
             file_size=file_obj.size,
             uploaded_by=request.user,
+            approval_status=initial_status,
         )
         design_img.save()
         thumbnail_url = _ensure_pattern_thumbnail(design_img)
@@ -1527,7 +1615,25 @@ def upload_vehicle_design_images_api(request, vehicle_id):
             'title': design_img.title,
             'file_size': design_img.file_size,
             'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+            'approval_status': design_img.approval_status,
         })
+
+    if is_freelancer and created_images:
+        v_title = str(vehicle)
+        approver_users = User.objects.filter(
+            is_active=True,
+            workflow_profile__approval_role__in=[ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD],
+        ).exclude(id=request.user.id)
+        for app_user in approver_users:
+            Notification.objects.create(
+                recipient=app_user,
+                title=_("New 3D Design Upload: %(title)s") % {'title': v_title},
+                message=_("%(user)s uploaded %(count)s new 3D design file(s) for review.") % {
+                    'user': request.user.username,
+                    'count': len(created_images),
+                },
+                notification_type='design_approval',
+            )
 
     return JsonResponse({
         'status': 'success',
@@ -1540,7 +1646,7 @@ def upload_vehicle_design_images_api(request, vehicle_id):
 @login_required
 @require_POST
 def update_vehicle_google_drive_api(request, vehicle_id):
-    if not _can_manage_catalog(request.user):
+    if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     vehicle = get_object_or_404(YearRange, id=vehicle_id)
     drive_url = (request.POST.get('google_drive_url') or '').strip()
@@ -1555,7 +1661,7 @@ def update_vehicle_google_drive_api(request, vehicle_id):
 @login_required
 @require_POST
 def delete_design_image_api(request, image_id):
-    if not _can_manage_catalog(request.user):
+    if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     img = get_object_or_404(PatternDesignImage, id=image_id)
     folder_id = img.folder_id
@@ -1575,6 +1681,106 @@ def delete_design_image_api(request, image_id):
     return JsonResponse({
         'status': 'success',
         'remaining_count': remaining
+    })
+
+
+@login_required
+@require_POST
+def approve_design_image_api(request, image_id):
+    if not _can_approve_design_assets(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    img = get_object_or_404(PatternDesignImage, id=image_id)
+    if img.approval_status != 'pending':
+        return JsonResponse({'status': 'error', 'message': _('This design image has already been reviewed.')}, status=409)
+    img.approval_status = 'approved'
+    img.approved_by = request.user
+    img.approved_at = now()
+    img.rejected_by = None
+    img.rejected_at = None
+    img.rejection_reason = ''
+    img.save()
+
+    if img.uploaded_by and img.uploaded_by != request.user:
+        Notification.objects.create(
+            recipient=img.uploaded_by,
+            title=_("Design Image Approved"),
+            message=_("Your design image \"%(title)s\" was approved by %(user)s.") % {
+                'title': img.title or os.path.basename(img.image.name),
+                'user': request.user.get_full_name() or request.user.username,
+            },
+            notification_type='design_approval',
+        )
+
+    ActivityLog.objects.create(
+        user=request.user,
+        action='approved',
+        object_type='Design Image',
+        object_name=img.title or str(img.id),
+    )
+    return JsonResponse({
+        'status': 'success',
+        'approval_status': 'approved',
+        'message': _('Design image approved successfully.')
+    })
+
+
+@login_required
+@require_POST
+def reject_design_image_api(request, image_id):
+    if not _can_approve_design_assets(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    img = get_object_or_404(PatternDesignImage, id=image_id)
+    if img.approval_status != 'pending':
+        return JsonResponse({'status': 'error', 'message': _('This design image has already been reviewed.')}, status=409)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    reason = (data.get('reason') or '').strip()
+    if not reason:
+        return JsonResponse({'status': 'error', 'message': _('A rejection reason is mandatory.')}, status=400)
+
+    img.approval_status = 'rejected'
+    img.rejected_by = request.user
+    img.rejected_at = now()
+    img.rejection_reason = reason
+    img.approved_by = None
+    img.approved_at = None
+    img.save()
+
+    if img.uploaded_by and img.uploaded_by != request.user:
+        chat_msg_text = _("Design image \"%(title)s\" was rejected. Reason: %(reason)s") % {
+            'title': img.title or os.path.basename(img.image.name),
+            'reason': reason,
+        }
+        ChatMessage.objects.create(
+            sender=request.user,
+            recipient=img.uploaded_by,
+            message=chat_msg_text,
+        )
+        Notification.objects.create(
+            recipient=img.uploaded_by,
+            title=_("Design Image Rejected: %(title)s") % {'title': img.title or os.path.basename(img.image.name)},
+            message=_("Rejection reason from %(user)s: %(reason)s") % {
+                'user': request.user.get_full_name() or request.user.username,
+                'reason': reason,
+            },
+            notification_type='design_approval',
+        )
+
+    ActivityLog.objects.create(
+        user=request.user,
+        action='rejected',
+        object_type='Design Image',
+        object_name=f"{img.title or str(img.id)}: {reason[:80]}",
+    )
+    return JsonResponse({
+        'status': 'success',
+        'approval_status': 'rejected',
+        'rejection_reason': reason,
+        'message': _('Design image rejected. Feedback sent to freelancer.')
     })
 
 
@@ -1889,6 +2095,9 @@ def get_filtered_skus(request):
 @login_required
 @gzip_page
 def complaint_list(request):
+    prof = getattr(request.user, 'workflow_profile', None)
+    if prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
+        return redirect('car_details')
     authorized_complaints = visible_complaints_for_user(request.user, Complaint.objects.select_related(
         'channel', 'country', 'person', 'case_sub_category',
         'series', 'material', 'sku', 'brand', 'model', 'sub_model', 'year',
@@ -3071,6 +3280,10 @@ def open_notification(request, notification_id):
 
     complaint = notification.complaint
     if not complaint:
+        if notification.notification_type == 'design_approval':
+            return redirect('car_details')
+        if notification.notification_type == 'chat':
+            return redirect('chat_view')
         return redirect('notification_list')
     if notification.notification_type in ['approval', 'approval_reconsideration', 'execution_verification']:
         approval = get_user_current_approval(request.user, complaint)
@@ -3133,6 +3346,9 @@ def _csv_safe(value):
 
 @login_required
 def export_complaints(request):
+    prof = getattr(request.user, 'workflow_profile', None)
+    if prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
+        return redirect('car_details')
     complaints = visible_complaints_for_user(request.user, Complaint.objects.select_related(
         'channel', 'country', 'person', 'case_sub_category',
         'series', 'material', 'sku', 'brand', 'model', 'sub_model', 'year'
@@ -3578,6 +3794,9 @@ def upload_car_csv(request):
 
 @login_required
 def add_sku(request):
+    prof = getattr(request.user, 'workflow_profile', None)
+    if prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
+        return redirect('car_details')
     form = SKUForm()
     search_query = request.GET.get('search', '').strip()
     search_column = (request.GET.get('search_by') or request.GET.get('column', 'all')).strip()
@@ -3830,6 +4049,7 @@ def admin_panel_view(request):
             WorkflowRoles.FACTORY_VIEWER,
             WorkflowRoles.FACTORY_EXECUTIVE,
             WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR,
+            WorkflowRoles.FREELANCE_3D_DESIGNER,
             WorkflowRoles.ADMIN,
             *[role for role, label in ApprovalRoles.CHOICES],
         )
@@ -3961,6 +4181,11 @@ def edit_user(request):
         user_id = request.POST.get('user_id')
         edit_redirect = f"{reverse('admin_panel')}?edit_user={user_id}#users"
 
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest'
+            or 'application/json' in request.headers.get('accept', '')
+        )
+
         def add_edit_feedback(level, text):
             messages.add_message(
                 request,
@@ -3969,41 +4194,40 @@ def edit_user(request):
                 extra_tags='edit-user-feedback',
             )
 
+        def edit_response(success, feedback_list, status=200, user_payload=None):
+            feedback = list(feedback_list)
+            if is_ajax:
+                resp_data = {'success': success, 'messages': feedback}
+                if user_payload:
+                    resp_data['user'] = user_payload
+                return JsonResponse(resp_data, status=status)
+            level = messages.SUCCESS if success else messages.ERROR
+            for msg in feedback:
+                add_edit_feedback(level, msg)
+            return redirect(edit_redirect)
+
+        request_is_superuser = request.user.is_superuser
+
         if 'reset_password' in request.POST:
             new_password = request.POST.get('new_password') or ''
             confirm_password = request.POST.get('confirm_password') or ''
-            is_ajax_password_reset = (
-                request.headers.get('x-requested-with') == 'XMLHttpRequest'
-            )
-
-            def password_reset_response(success, feedback, status=200):
-                feedback = list(feedback)
-                if is_ajax_password_reset:
-                    return JsonResponse(
-                        {'success': success, 'messages': feedback},
-                        status=status,
-                    )
-                level = messages.SUCCESS if success else messages.ERROR
-                for message in feedback:
-                    add_edit_feedback(level, message)
-                return redirect(edit_redirect)
 
             try:
                 user = User.objects.get(id=user_id)
-                if user.is_superuser and not request.user.is_superuser:
-                    return password_reset_response(
+                if user.is_superuser and not request_is_superuser:
+                    return edit_response(
                         False,
                         [_('Only a Django superuser can reset another superuser password.')],
                         status=403,
                     )
                 if not new_password:
-                    return password_reset_response(
+                    return edit_response(
                         False,
                         [_('Enter a new password.')],
                         status=400,
                     )
                 if new_password != confirm_password:
-                    return password_reset_response(
+                    return edit_response(
                         False,
                         [_('The two password fields did not match.')],
                         status=400,
@@ -4011,7 +4235,7 @@ def edit_user(request):
                 try:
                     validate_password(new_password, user=user)
                 except ValidationError as exc:
-                    return password_reset_response(
+                    return edit_response(
                         False,
                         exc.messages,
                         status=400,
@@ -4019,19 +4243,22 @@ def edit_user(request):
 
                 user.set_password(new_password)
                 user.save(update_fields=['password'])
-                _invalidate_user_authentication(user.id)
+                if user.pk == request.user.pk:
+                    update_session_auth_hash(request, user)
+                else:
+                    _invalidate_user_authentication(user.id)
                 ActivityLog.objects.create(
                     user=request.user,
                     action='reset password',
                     object_type='User',
                     object_name=user.username,
                 )
-                return password_reset_response(
+                return edit_response(
                     True,
                     [_('Password reset successfully for %(username)s.') % {'username': user.username}],
                 )
             except User.DoesNotExist:
-                return password_reset_response(
+                return edit_response(
                     False,
                     [_('User not found.')],
                     status=404,
@@ -4041,41 +4268,59 @@ def edit_user(request):
         email = (request.POST.get('email') or '').strip()
         first_name = (request.POST.get('first_name') or '').strip()
         last_name = (request.POST.get('last_name') or '').strip()
+        new_password = (request.POST.get('new_password') or '').strip()
+        confirm_password = (request.POST.get('confirm_password') or '').strip()
 
         try:
             if not username:
-                add_edit_feedback(messages.ERROR, _('Username is required.'))
-                return redirect(edit_redirect)
+                return edit_response(False, [_('Username is required.')], status=400)
             if User.objects.filter(username=username).exclude(id=user_id).exists():
-                add_edit_feedback(messages.ERROR, _('That username is already in use.'))
-                return redirect(edit_redirect)
+                return edit_response(False, [_('That username is already in use.')], status=400)
             if len(username) > 150:
-                add_edit_feedback(messages.ERROR, _('Username must be 150 characters or fewer.'))
-                return redirect(edit_redirect)
+                return edit_response(False, [_('Username must be 150 characters or fewer.')], status=400)
             if len(first_name) > 150 or len(last_name) > 150:
-                add_edit_feedback(messages.ERROR, _('Names must be 150 characters or fewer.'))
-                return redirect(edit_redirect)
+                return edit_response(False, [_('Names must be 150 characters or fewer.')], status=400)
             if email:
                 try:
                     validate_email(email)
                 except ValidationError:
-                    add_edit_feedback(messages.ERROR, _('Enter a valid email address.'))
-                    return redirect(edit_redirect)
+                    return edit_response(False, [_('Enter a valid email address.')], status=400)
+
             user = User.objects.select_related('workflow_profile').get(id=user_id)
-            if user.is_superuser and not request.user.is_superuser:
-                add_edit_feedback(messages.ERROR, _('Only a Django superuser can edit another superuser account.'))
-                return redirect(edit_redirect)
+            if user.is_superuser and not request_is_superuser:
+                return edit_response(
+                    False,
+                    [_('Only a Django superuser can edit another superuser account.')],
+                    status=403,
+                )
+
+            password_changed = False
+            if new_password:
+                if new_password != confirm_password:
+                    return edit_response(
+                        False,
+                        [_('The two password fields did not match.')],
+                        status=400,
+                    )
+                try:
+                    validate_password(new_password, user=user)
+                except ValidationError as exc:
+                    return edit_response(False, exc.messages, status=400)
+                user.set_password(new_password)
+                password_changed = True
+
             profile, profile_created = UserProfile.objects.get_or_create(user=user)
             profile_form = UserWorkflowProfileForm(request.POST, request.FILES, instance=profile)
             if not profile_form.is_valid():
-                for errors in profile_form.errors.values():
-                    for error in errors:
-                        add_edit_feedback(messages.ERROR, error)
-                return redirect(edit_redirect)
+                form_errors = []
+                for field_errors in profile_form.errors.values():
+                    for err in field_errors:
+                        form_errors.append(str(err))
+                return edit_response(False, form_errors, status=400)
 
             new_is_staff = user.is_staff
             new_is_superuser = user.is_superuser
-            if request.user.is_superuser:
+            if request_is_superuser:
                 new_is_superuser = request.POST.get('is_superuser') == 'on'
                 new_is_staff = request.POST.get('is_staff') == 'on' or new_is_superuser
                 removing_final_superuser = (
@@ -4084,8 +4329,11 @@ def edit_user(request):
                     and User.objects.filter(is_superuser=True, is_active=True).count() <= 1
                 )
                 if removing_final_superuser:
-                    add_edit_feedback(messages.ERROR, _('The final active superuser cannot be demoted.'))
-                    return redirect(edit_redirect)
+                    return edit_response(
+                        False,
+                        [_('The final active superuser cannot be demoted.')],
+                        status=400,
+                    )
 
             user.username = username
             user.email = email
@@ -4103,13 +4351,54 @@ def edit_user(request):
                     object_type="User",
                     object_name=username
                 )
+                if password_changed:
+                    if user.pk == request.user.pk:
+                        update_session_auth_hash(request, user)
+                    else:
+                        _invalidate_user_authentication(user.id)
+                    ActivityLog.objects.create(
+                        user=request.user,
+                        action="reset password",
+                        object_type="User",
+                        object_name=username
+                    )
 
-            add_edit_feedback(
-                messages.SUCCESS,
-                _('User %(username)s and workflow access were updated.') % {'username': username},
-            )
+            full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+            role_val = updated_profile.role or ''
+            role_label = dict(UnifiedWorkflowRoles.CHOICES).get(role_val, role_val)
+            if role_val == WorkflowRoles.APPROVER and updated_profile.approval_role:
+                role_label = updated_profile.approval_role
+
+            user_payload = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email or '',
+                'first_name': user.first_name or '',
+                'last_name': user.last_name or '',
+                'full_name': full_name,
+                'phone': updated_profile.phone_number or '',
+                'role': updated_profile.approval_role if updated_profile.role == WorkflowRoles.APPROVER and updated_profile.approval_role else role_val,
+                'role_label': role_label,
+                'approval_role': updated_profile.approval_role or '',
+                'country_id': str(updated_profile.country_id or ''),
+                'country_name': updated_profile.country.name if updated_profile.country else '',
+                'country_flag_url': updated_profile.country_flag_url or '',
+                'department': updated_profile.department or '',
+                'can_factory': 1 if updated_profile.can_receive_factory_assignments else 0,
+                'is_staff': 1 if user.is_staff else 0,
+                'is_superuser': 1 if user.is_superuser else 0,
+                'photo_url': updated_profile.photo.url if updated_profile.photo else '',
+                'password_changed': password_changed,
+            }
+
+            if password_changed:
+                msg = _('User %(username)s and password were updated.') % {'username': username}
+            else:
+                msg = _('User %(username)s and workflow access were updated.') % {'username': username}
+
+            return edit_response(True, [msg], status=200, user_payload=user_payload)
         except User.DoesNotExist:
-            add_edit_feedback(messages.ERROR, _('User not found.'))
+            return edit_response(False, [_('User not found.')], status=404)
 
     return redirect(edit_redirect)
 
@@ -4333,14 +4622,69 @@ def terminate_all_sessions_view(request):
     return redirect('admin_panel')
 
 
+def _can_chat_together(user1, user2):
+    """
+    Enforces role-based chat boundaries.
+    If either participant is a 3D Designer Freelancer (FREELANCE_3D_DESIGNER),
+    communication is strictly confined to MD, ED, CAD approver roles, or Portal Admins / Superusers.
+    """
+    if not user1 or not user2 or not user1.is_authenticated or not user2.is_authenticated:
+        return False
+    if user1.id == user2.id:
+        return False
+
+    prof1 = getattr(user1, 'workflow_profile', None)
+    prof2 = getattr(user2, 'workflow_profile', None)
+    role1 = getattr(prof1, 'role', '')
+    role2 = getattr(prof2, 'role', '')
+
+    is_free1 = (role1 == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    is_free2 = (role2 == WorkflowRoles.FREELANCE_3D_DESIGNER)
+
+    if not is_free1 and not is_free2:
+        return True
+
+    def _is_cad_ed_md_or_admin(u, prof):
+        if u.is_superuser:
+            return True
+        if not prof:
+            return False
+        if prof.role == WorkflowRoles.ADMIN:
+            return True
+        return prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
+
+    if is_free1 and not _is_cad_ed_md_or_admin(user2, prof2):
+        return False
+    if is_free2 and not _is_cad_ed_md_or_admin(user1, prof1):
+        return False
+    return True
+
+
 def get_sorted_chat_users(current_user):
     latest_message = ChatMessage.objects.filter(
         Q(sender_id=OuterRef('pk'), recipient=current_user)
         | Q(sender=current_user, recipient_id=OuterRef('pk'))
     ).order_by('-created_at', '-pk')
+    cur_prof = getattr(current_user, 'workflow_profile', None)
+    cur_role = getattr(cur_prof, 'role', '')
+    is_current_freelancer = (cur_role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    is_current_approver_or_admin = (
+        current_user.is_superuser
+        or cur_role == WorkflowRoles.ADMIN
+        or getattr(cur_prof, 'approval_role', None) in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
+    )
+    base_users_qs = User.objects.filter(is_active=True).exclude(id=current_user.id)
+    if is_current_freelancer:
+        base_users_qs = base_users_qs.filter(
+            Q(is_superuser=True)
+            | Q(workflow_profile__role=WorkflowRoles.ADMIN)
+            | Q(workflow_profile__approval_role__in=[ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD])
+        )
+    elif not is_current_approver_or_admin:
+        base_users_qs = base_users_qs.exclude(workflow_profile__role=WorkflowRoles.FREELANCE_3D_DESIGNER)
     user_list = list(
-        User.objects.filter(is_active=True)
-        .exclude(id=current_user.id)
+        base_users_qs
+
         .select_related('workflow_profile__country')
         .annotate(
             chat_unread_count=Count(
@@ -4416,6 +4760,8 @@ def chat_view(request):
     selected_user = None
     if recipient_id and recipient_id.isdigit():
         selected_user = User.objects.filter(id=int(recipient_id), is_active=True).exclude(id=request.user.id).first()
+        if selected_user and not _can_chat_together(request.user, selected_user):
+            selected_user = None
     
     if not selected_user and users_data:
         selected_user = users_data[0]['user']
@@ -4488,6 +4834,8 @@ def chat_users_api(request):
 @login_required
 def chat_messages_api(request, user_id):
     target_user = get_object_or_404(User.objects.filter(is_active=True).exclude(id=request.user.id), id=user_id)
+    if not _can_chat_together(request.user, target_user):
+        return JsonResponse({'status': 'error', 'error': _('Direct messaging with this user is restricted.')}, status=403)
     ChatMessage.objects.filter(sender=target_user, recipient=request.user, is_read=False).update(is_read=True)
     
     messages_qs = ChatMessage.objects.filter(
@@ -4533,6 +4881,8 @@ def chat_send_api(request):
         return JsonResponse({'status': 'error', 'error': 'Messages must be 5000 characters or fewer.'}, status=400)
 
     recipient = get_object_or_404(User.objects.filter(is_active=True).exclude(id=request.user.id), id=recipient_id)
+    if not _can_chat_together(request.user, recipient):
+        return JsonResponse({'status': 'error', 'error': _('Direct messaging with this user is restricted.')}, status=403)
     complaint = None
     if complaint_id:
         complaint = get_object_or_404(

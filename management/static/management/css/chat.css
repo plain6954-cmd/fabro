@@ -284,6 +284,7 @@
         .avatar-approver { background: linear-gradient(135deg, #4f46e5, #6366f1); }
         .avatar-workflow_admin { background: linear-gradient(135deg, #be123c, #ef4444); }
         .avatar-factory_viewer { background: linear-gradient(135deg, #475569, #64748b); }
+        .avatar-freelance_3d_designer { background: linear-gradient(135deg, #7c3aed, #a855f7); }
         .avatar-default { background: linear-gradient(135deg, var(--primary-color), #b91c1c); }
 
         .status-dot {

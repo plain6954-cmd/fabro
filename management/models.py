@@ -19,6 +19,7 @@ class WorkflowRoles:
     FACTORY_COMPLAINT_REGISTRAR = 'factory_complaint_registrar'
     APPROVER = 'approver'
     ADMIN = 'admin'
+    FREELANCE_3D_DESIGNER = 'freelance_3d_designer'
 
     CHOICES = [
         (COUNTRY_EXECUTIVE, _('Country Executive')),
@@ -27,6 +28,7 @@ class WorkflowRoles:
         (FACTORY_COMPLAINT_REGISTRAR, _('Factory Complaint Registrar')),
         (APPROVER, _('Approver')),
         (ADMIN, _('Admin')),
+        (FREELANCE_3D_DESIGNER, _('3D Designer Freelancer')),
     ]
 
 
@@ -916,11 +918,40 @@ class PatternDesignImage(models.Model):
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_design_images')
+    APPROVAL_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_CHOICES,
+        default='approved',
+        db_index=True,
+    )
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_design_images',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejected_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rejected_design_images',
+    )
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, default='')
 
     class Meta:
         ordering = ['-uploaded_at']
         indexes = [
             models.Index(fields=['vehicle', 'folder', '-uploaded_at'], name='idx_design_image_vehicle'),
+            models.Index(fields=['approval_status', '-uploaded_at'], name='idx_design_img_approval'),
         ]
 
     def __str__(self):

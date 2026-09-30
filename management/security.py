@@ -3,6 +3,7 @@ import hashlib
 from django.conf import settings
 from django.contrib.auth.views import LoginView
 from django.core.cache import cache
+from django.utils.translation import gettext_lazy as _
 
 
 def get_client_ip(request):
@@ -29,7 +30,7 @@ class RateLimitedLoginView(LoginView):
         self._lock_key = lock_key
         if cache.get(lock_key):
             form = self.get_form()
-            form.add_error(None, 'Invalid username or password.')
+            form.add_error(None, _('Too many failed login attempts. Your account is temporarily locked for 15 minutes. Please wait before trying again.'))
             return self.render_to_response(self.get_context_data(form=form), status=429)
         return super().post(request, *args, **kwargs)
 

@@ -313,6 +313,10 @@
                                     <span>{% translate "Factory Complaint Registrar" %}</span>
                                     <span class="erp-filter-count">{{ role_counts.factory_complaint_registrar }}</span>
                                 </div>
+                                <div class="erp-filter-item" data-filter-type="role" data-filter-val="freelance_3d_designer" onclick="applyFacetedFilter('role', 'freelance_3d_designer', this)">
+                                    <span>{% translate "3D Designer Freelancer" %}</span>
+                                    <span class="erp-filter-count">{{ role_counts.freelance_3d_designer }}</span>
+                                </div>
                                 <div class="erp-filter-item" data-filter-type="role" data-filter-val="PM" onclick="applyFacetedFilter('role', 'PM', this)">
                                     <span>{% translate "PM" %}</span>
                                     <span class="erp-filter-count">{{ role_counts.PM }}</span>
@@ -732,47 +736,49 @@
                 </div>
             </div>
 
+            {% if section_page_obj and section_page_obj.has_other_pages %}
             <nav id="admin-section-pagination" class="pattern-pagination erp-pagination" aria-label="{% translate 'Admin section pages' %}">
-                {% if section_page_obj and section_page_obj.has_other_pages %}
-                    {% if section_page_obj.has_previous %}
-                    <a class="pattern-pagination__control pattern-pagination__control--previous" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.previous_page_number }}#{{ active_tab }}" aria-label="{% translate 'Prev' %}">
-                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
-                        <span>{% translate "Prev" %}</span>
-                    </a>
-                    {% else %}
-                    <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
-                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
-                        <span>{% translate "Prev" %}</span>
-                    </span>
-                    {% endif %}
+                {% if section_page_obj.has_previous %}
+                <a class="pattern-pagination__control pattern-pagination__control--previous" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.previous_page_number }}#{{ active_tab }}" aria-label="{% translate 'Prev' %}">
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    <span>{% translate "Prev" %}</span>
+                </a>
+                {% else %}
+                <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    <span>{% translate "Prev" %}</span>
+                </span>
+                {% endif %}
 
-                    <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
-                        {% for p in section_pagination_bubbles %}
-                            {% if p == '...' or p == '…' or p == '.' %}
-                                <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
-                            {% elif p == section_page_obj.number %}
-                                <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
-                            {% else %}
-                                <a class="pattern-pagination__bubble" href="?section={{ active_tab }}&amp;section_page={{ p }}#{{ active_tab }}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
-                            {% endif %}
-                        {% empty %}
-                            <span class="pattern-pagination__bubble is-active" aria-current="page">{{ section_page_obj.number }}</span>
-                        {% endfor %}
-                    </div>
+                <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
+                    {% for p in section_pagination_bubbles %}
+                        {% if p == '...' or p == '…' or p == '.' %}
+                            <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
+                        {% elif p == section_page_obj.number %}
+                            <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
+                        {% else %}
+                            <a class="pattern-pagination__bubble" href="?section={{ active_tab }}&amp;section_page={{ p }}#{{ active_tab }}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
+                        {% endif %}
+                    {% empty %}
+                        <span class="pattern-pagination__bubble is-active" aria-current="page">{{ section_page_obj.number }}</span>
+                    {% endfor %}
+                </div>
 
-                    {% if section_page_obj.has_next %}
-                    <a class="pattern-pagination__control pattern-pagination__control--next" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.next_page_number }}#{{ active_tab }}" aria-label="{% translate 'Next' %}">
-                        <span>{% translate "Next" %}</span>
-                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                    </a>
-                    {% else %}
-                    <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
-                        <span>{% translate "Next" %}</span>
-                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                    </span>
-                    {% endif %}
+                {% if section_page_obj.has_next %}
+                <a class="pattern-pagination__control pattern-pagination__control--next" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.next_page_number }}#{{ active_tab }}" aria-label="{% translate 'Next' %}">
+                    <span>{% translate "Next" %}</span>
+                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                </a>
+                {% else %}
+                <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
+                    <span>{% translate "Next" %}</span>
+                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                </span>
                 {% endif %}
             </nav>
+            {% else %}
+            <nav id="admin-section-pagination" class="pattern-pagination erp-pagination" aria-label="{% translate 'Admin section pages' %}" style="display: none;"></nav>
+            {% endif %}
         </main>
     </div>
 
@@ -825,6 +831,7 @@
                                 <option value="factory_viewer" selected>{% translate "Factory Viewer" %}</option>
                                 <option value="factory_executive">{% translate "Factory Executive" %}</option>
                                 <option value="factory_complaint_registrar">{% translate "Factory Complaint Registrar" %}</option>
+                                <option value="freelance_3d_designer">{% translate "3D Designer Freelancer" %}</option>
                                 <option value="PM">{% translate "PM" %}</option>
                                 <option value="OM">{% translate "OM" %}</option>
                                 <option value="CAD">{% translate "CAD" %}</option>
@@ -882,7 +889,7 @@
                 <span class="erp-modal-title"><i class="fas fa-user-edit" style="color: #e63946;"></i> {% translate "Edit User Profile & Workflow Role" %}</span>
                 <button type="button" class="erp-modal-close" onclick="closeEditUserModal()">×</button>
             </div>
-            <form method="post" enctype="multipart/form-data" action="{% url 'edit_user' %}">
+            <form id="editUserForm" method="post" enctype="multipart/form-data" action="{% url 'edit_user' %}" onsubmit="saveEditUser(event)">
                 {% csrf_token %}
                 <input type="hidden" name="user_id" id="editUserId">
                 <div class="erp-modal-body">
@@ -910,7 +917,7 @@
                         <div class="erp-form-group">
                             <label class="erp-form-label">{% translate "Reset Password" %}</label>
                             <div style="position: relative; display: flex; align-items: center;">
-                                <input type="password" name="new_password" id="editUserPassword" class="erp-form-input" placeholder="{% translate "Enter a new password" %}" style="width: 100%; padding-right: 2.2rem;">
+                                <input type="password" name="new_password" id="editUserPassword" class="erp-form-input" placeholder="{% translate "Enter a new password" %}" autocomplete="new-password" style="width: 100%; padding-right: 2.2rem;">
                                 <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('editUserPassword', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.6rem; background: none; border: none; color: var(--erp-text-muted); cursor: pointer; padding: 0.2rem; font-size: 0.82rem;">
                                     <i class="fas fa-eye"></i>
                                 </button>
@@ -927,6 +934,7 @@
                                 <option value="factory_viewer">{% translate "Factory Viewer" %}</option>
                                 <option value="factory_executive">{% translate "Factory Executive" %}</option>
                                 <option value="factory_complaint_registrar">{% translate "Factory Complaint Registrar" %}</option>
+                                <option value="freelance_3d_designer">{% translate "3D Designer Freelancer" %}</option>
                                 <option value="PM">{% translate "PM" %}</option>
                                 <option value="OM">{% translate "OM" %}</option>
                                 <option value="CAD">{% translate "CAD" %}</option>
@@ -986,7 +994,7 @@
                         <button type="button" class="btn-secondary icon-only-action" onclick="closeEditUserModal()" title="{% translate "Cancel" %}" aria-label="{% translate "Cancel" %}">
                             <i class="fas fa-times" aria-hidden="true"></i>
                         </button>
-                        <button type="submit" class="btn-erp-new icon-only-action" title="{% translate "Save Changes" %}" aria-label="{% translate "Save Changes" %}">
+                        <button type="submit" id="saveEditUserButton" class="btn-erp-new icon-only-action" title="{% translate "Save Changes" %}" aria-label="{% translate "Save Changes" %}">
                             <i class="fas fa-save" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -1335,6 +1343,7 @@
             );
             if (data.success) {
                 document.getElementById('editUserPassword').value = '';
+                document.getElementById('editUserPasswordConfirm').value = '';
             }
         } catch (error) {
             showEditUserFeedback(
@@ -1344,6 +1353,136 @@
         } finally {
             button.disabled = false;
             modal.style.display = 'flex';
+        }
+    }
+
+    async function saveEditUser(e) {
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+        }
+        const modal = document.getElementById('editUserModal');
+        const form = modal ? modal.querySelector('form') : null;
+        const saveButton = document.getElementById('saveEditUserButton') || (form ? form.querySelector('button[type="submit"]') : null);
+        if (!form) return;
+
+        const formData = new FormData(form);
+        const originalBtnHtml = saveButton ? saveButton.innerHTML : '';
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>';
+        }
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+            showEditUserFeedback(
+                data.messages || [window.FabroI18n?.gettext('Unable to save user profile.') || 'Unable to save user profile.'],
+                Boolean(data.success)
+            );
+
+            if (data.success) {
+                const pwdInput = document.getElementById('editUserPassword');
+                const pwdConfirmInput = document.getElementById('editUserPasswordConfirm');
+                if (pwdInput) pwdInput.value = '';
+                if (pwdConfirmInput) pwdConfirmInput.value = '';
+
+                if (data.user) {
+                    updateUserCardInDOM(data.user);
+                }
+            }
+        } catch (error) {
+            showEditUserFeedback(
+                [window.FabroI18n?.gettext('Unable to save changes. Check your connection and try again.') || 'Unable to save changes. Check your connection and try again.'],
+                false
+            );
+        } finally {
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalBtnHtml || '<i class="fas fa-save" aria-hidden="true"></i>';
+            }
+            if (modal) modal.style.display = 'flex';
+        }
+    }
+
+    function updateUserCardInDOM(user) {
+        if (!user || !user.id) return;
+        const userId = String(user.id);
+
+        // 1. Update Kanban Card
+        const card = document.querySelector(`.erp-user-card[data-user-id="${userId}"]`);
+        if (card) {
+            card.dataset.username = user.username || '';
+            card.dataset.email = user.email || '';
+            card.dataset.firstName = user.first_name || '';
+            card.dataset.lastName = user.last_name || '';
+            card.dataset.fullName = user.full_name || user.username || '';
+            card.dataset.phone = user.phone || '';
+            card.dataset.role = user.approval_role || user.role || '';
+            card.dataset.roleDisplay = user.role_label || 'User';
+            card.dataset.countryId = user.country_id || '';
+            card.dataset.countryName = user.country_name || '';
+            card.dataset.department = user.department || '';
+            card.dataset.canFactory = user.can_factory ? '1' : '0';
+            card.dataset.isStaff = user.is_staff ? '1' : '0';
+            card.dataset.isSuperuser = user.is_superuser ? '1' : '0';
+
+            const nameEl = card.querySelector('.erp-card-name');
+            if (nameEl) nameEl.textContent = user.full_name || user.username;
+
+            const roleEl = card.querySelector('.erp-card-role-title');
+            if (roleEl) roleEl.textContent = user.role_label || 'User';
+
+            const infoItems = card.querySelectorAll('.erp-card-info-item span');
+            if (infoItems.length >= 1) infoItems[0].textContent = user.email || 'No email set';
+            if (infoItems.length >= 2) infoItems[1].textContent = user.phone || 'No phone';
+
+            const footerTags = card.querySelector('.erp-card-footer-tags');
+            if (footerTags) {
+                let tagsHtml = '';
+                if (user.country_name) {
+                    tagsHtml += `<span class="erp-card-tag">`;
+                    if (user.country_flag_url) {
+                        tagsHtml += `<img src="${user.country_flag_url}" style="width:12px; height:8px; vertical-align:middle;" alt="Flag"> `;
+                    }
+                    tagsHtml += `${user.country_name}</span> `;
+                }
+                if (user.is_superuser) {
+                    tagsHtml += `<span class="erp-card-tag admin">${window.FabroI18n?.gettext('Superuser') || 'Superuser'}</span>`;
+                } else if (user.is_staff) {
+                    tagsHtml += `<span class="erp-card-tag">${window.FabroI18n?.gettext('Staff') || 'Staff'}</span>`;
+                }
+                footerTags.innerHTML = tagsHtml;
+            }
+
+            if (user.photo_url) {
+                const avatar = card.querySelector('.erp-card-avatar');
+                if (avatar) {
+                    avatar.innerHTML = `<img src="${user.photo_url}" alt="${user.username}">`;
+                }
+            }
+        }
+
+        // 2. Update Table Row
+        const row = document.querySelector(`.erp-user-table-row[data-user-id="${userId}"]`);
+        if (row) {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 6) {
+                const usernameEl = cells[0].querySelector('strong');
+                if (usernameEl) usernameEl.textContent = user.username;
+                cells[1].textContent = user.full_name || `${user.first_name} ${user.last_name}`.trim() || user.username;
+                const roleSpan = cells[2].querySelector('span');
+                if (roleSpan) roleSpan.textContent = user.role_label || 'User';
+                cells[3].textContent = user.email || '—';
+                cells[4].textContent = user.phone || '—';
+                cells[5].textContent = user.country_name || '—';
+            }
         }
     }
 

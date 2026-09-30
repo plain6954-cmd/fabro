@@ -64,6 +64,11 @@ This document serves as the authoritative specification for the **FABRO Leather 
    * Approves or rejects action plans during initial and reconsideration rounds.
 5. **Workflow Admin / Superuser:**
    * Unrestricted management access to Master Settings, Vehicle/SKU Catalogs, User & Group creation, Session termination, and System Activity Logs.
+6. **3D Designer Freelancer:**
+   * External CAD and 3D modeling specialist for seat patterns and vehicle upholstery.
+   * Has access to Pattern Master (`/car-details/`), vehicle design folders, design image uploads/downloads, and Google Drive 3D CAD folder linking.
+   * Can view pattern alterations and pattern complaints (`PAT-...`) in read-only mode to assess fitment issues.
+   * Strictly restricted from internal Approvals workspace, Admin Suite, Master Settings, and registering complaints. Defaults to India.
 
 ---
 

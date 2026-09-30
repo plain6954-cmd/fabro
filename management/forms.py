@@ -470,6 +470,7 @@ class UnifiedWorkflowRoles:
         ('ED', 'ED'),
         ('MD', 'MD'),
         (WorkflowRoles.ADMIN, _('Admin')),
+        (WorkflowRoles.FREELANCE_3D_DESIGNER, _('3D Designer Freelancer')),
     ]
 
     ALL_CHOICES = CHOICES + [
@@ -545,6 +546,8 @@ class UserCreationForm(forms.ModelForm):
 
         cleaned_data['mapped_role'] = mapped_role
         cleaned_data['mapped_approval_role'] = mapped_approval
+        cleaned_data['role'] = mapped_role
+        cleaned_data['approval_role'] = mapped_approval
         return cleaned_data
 
     def clean_photo(self):
@@ -611,6 +614,8 @@ class UserWorkflowProfileForm(forms.ModelForm):
 
         cleaned_data['mapped_role'] = mapped_role
         cleaned_data['mapped_approval_role'] = mapped_approval
+        cleaned_data['role'] = mapped_role
+        cleaned_data['approval_role'] = mapped_approval
         return cleaned_data
 
     def clean_photo(self):

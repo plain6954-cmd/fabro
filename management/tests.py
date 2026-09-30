@@ -2640,6 +2640,100 @@ class FabroBackendTests(TestCase):
         )
         self.assertEqual(visible_ids, {pattern.complaint_id, factory.complaint_id})
 
+    def test_freelance_3d_designer_permissions_and_workflow(self):
+        freelancer = self.create_workflow_user(
+            'designer_freelancer',
+            WorkflowRoles.FREELANCE_3D_DESIGNER,
+        )
+        self.client.force_login(freelancer)
+
+        # 1. Car details page is accessible
+        response = self.client.get(reverse('car_details'))
+        self.assertEqual(response.status_code, 200)
+
+        # 2. Cannot view approvals workspace (forbidden)
+        self.assertEqual(self.client.get(reverse('approvals_list')).status_code, 403)
+
+        # 3. Cannot add complaints (forbidden)
+        self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
+
+        # 4. Cannot access admin panel or master settings (redirected)
+        self.assertEqual(self.client.get(reverse('admin_panel')).status_code, 302)
+        self.assertEqual(self.client.get(reverse('master_settings')).status_code, 302)
+
+        # 5. Visible complaints scoped to Pattern complaints only
+        pattern_complaint = Complaint.objects.create(
+            date='2026-09-01',
+            country=self.country,
+            complaint_type=ComplaintTypes.PATTERN,
+            complaint_description='Visible pattern to 3d designer',
+            batch_order='DESIGNER-VISIBLE-PATTERN',
+        )
+        production_complaint = Complaint.objects.create(
+            date='2026-09-01',
+            country=self.country,
+            complaint_type=ComplaintTypes.PRODUCTION,
+            complaint_description='Hidden production to 3d designer',
+            batch_order='DESIGNER-HIDDEN-PROD',
+        )
+        visible_ids = set(
+            visible_complaints_for_user(freelancer).values_list('complaint_id', flat=True)
+        )
+        self.assertIn(pattern_complaint.complaint_id, visible_ids)
+        self.assertNotIn(production_complaint.complaint_id, visible_ids)
+
+        # 6. Can create design folder and upload design assets
+        create_folder_res = self.client.post(reverse('create_design_folder_api'), {
+            'name': 'Test 3D Folder',
+            'vehicle_id': self.year.id,
+        })
+        self.assertEqual(create_folder_res.status_code, 200)
+
+        # 7. Dashboard, complaints list, and add_sku redirect to car_details
+        self.assertRedirects(self.client.get(reverse('index')), reverse('car_details'))
+        self.assertRedirects(self.client.get(reverse('complaint_list')), reverse('car_details'))
+        self.assertRedirects(self.client.get(reverse('add_sku')), reverse('car_details'))
+
+        # 8. Chat view is accessible
+        chat_res = self.client.get(reverse('chat_view'))
+        self.assertEqual(chat_res.status_code, 200)
+
+        # 9. Navbar has only Patterns and Chat for freelance designer
+        car_details_res = self.client.get(reverse('car_details'))
+        self.assertTrue(car_details_res.context['is_designer_freelancer'])
+        self.assertTrue(car_details_res.context['can_manage_design_assets'])
+        car_html = car_details_res.content.decode('utf-8')
+        self.assertIn('actionBtnDesign', car_html)
+        self.assertNotIn('id="actionBtnAddComplaint"', car_html)
+
+    def test_admin_can_create_and_edit_freelance_3d_designer_user(self):
+        admin_user = self.create_workflow_user('admin_tester', WorkflowRoles.ADMIN)
+        self.client.force_login(admin_user)
+
+        # 1. Admin creates a user with role freelance_3d_designer
+        response = self.client.post(reverse('admin_panel'), {
+            'add_user': '1',
+            'username': 'new_3d_freelancer',
+            'password': 'FreelancerPass!123',
+            'first_name': 'Freelance',
+            'last_name': 'Designer',
+            'email': 'freelance3d@example.com',
+            'role': WorkflowRoles.FREELANCE_3D_DESIGNER,
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        created_user = get_user_model().objects.get(username='new_3d_freelancer')
+        self.assertEqual(created_user.workflow_profile.role, WorkflowRoles.FREELANCE_3D_DESIGNER)
+        self.assertEqual(created_user.workflow_profile.country.name.lower(), 'india')
+
+        # 2. Admin panel user list displays freelance_3d_designer in faceted filter counts
+        panel_res = self.client.get(reverse('admin_panel') + '?section=users')
+        self.assertEqual(panel_res.status_code, 200)
+        self.assertContains(panel_res, 'data-filter-val="freelance_3d_designer"')
+        self.assertContains(panel_res, '3D Designer Freelancer')
+
+
+
     def test_workflow_admin_can_manage_catalog_and_master_without_superuser_flag(self):
         workflow_admin = self.create_workflow_user('catalog_admin', WorkflowRoles.ADMIN)
         self.assertFalse(workflow_admin.is_staff)
@@ -5272,6 +5366,128 @@ class AdminPanelUsersSectionTests(TestCase):
             self.assertIn('id="nav-sessions-count"', content)
             self.assertNotIn('Active Sessions (0)', content)
 
+    def test_ajax_edit_user_updates_in_place_and_returns_json_payload(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('edit_user'),
+            {
+                'user_id': self.country_exec.pk,
+                'username': 'country_exec_updated',
+                'email': 'ce_updated@test.com',
+                'first_name': 'UpdatedFirst',
+                'last_name': 'UpdatedLast',
+                'phone_number': '+966512345678',
+                'role': WorkflowRoles.FACTORY_VIEWER,
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertIn('user', data)
+        self.assertEqual(data['user']['username'], 'country_exec_updated')
+        self.assertEqual(data['user']['full_name'], 'UpdatedFirst UpdatedLast')
+        self.assertEqual(data['user']['email'], 'ce_updated@test.com')
+        self.assertEqual(data['user']['role'], WorkflowRoles.FACTORY_VIEWER)
+
+        self.country_exec.refresh_from_db()
+        self.assertEqual(self.country_exec.username, 'country_exec_updated')
+        self.assertEqual(self.country_exec.email, 'ce_updated@test.com')
+
+    def test_ajax_edit_user_with_new_password_updates_password(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('edit_user'),
+            {
+                'user_id': self.country_exec.pk,
+                'username': 'country_exec',
+                'email': 'ce@test.com',
+                'first_name': 'CE',
+                'last_name': 'User',
+                'role': WorkflowRoles.FACTORY_VIEWER,
+                'new_password': 'BrandNewPassword!123',
+                'confirm_password': 'BrandNewPassword!123',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['user']['password_changed'])
+
+        self.country_exec.refresh_from_db()
+        self.assertTrue(self.country_exec.check_password('BrandNewPassword!123'))
+
+    def test_ajax_edit_user_password_mismatch_returns_error(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('edit_user'),
+            {
+                'user_id': self.country_exec.pk,
+                'username': 'country_exec',
+                'email': 'ce@test.com',
+                'role': WorkflowRoles.COUNTRY_EXECUTIVE,
+                'new_password': 'PasswordOne!123',
+                'confirm_password': 'PasswordTwo!123',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertIn('The two password fields did not match.', data['messages'])
+
+    def test_md_approver_can_edit_users_in_admin_panel(self):
+        User = get_user_model()
+        md_user = User.objects.create_user(username='md_exec', email='md@test.com', password='password123')
+        UserProfile.objects.filter(user=md_user).update(role=WorkflowRoles.APPROVER, approval_role=ApprovalRoles.MD)
+
+        self.client.force_login(md_user)
+        response = self.client.post(
+            reverse('edit_user'),
+            {
+                'user_id': self.factory_exec.pk,
+                'username': 'factory_exec_by_md',
+                'email': 'fe_md@test.com',
+                'role': WorkflowRoles.FACTORY_EXECUTIVE,
+                'is_superuser': 'on',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        self.factory_exec.refresh_from_db()
+        self.assertEqual(self.factory_exec.username, 'factory_exec_by_md')
+        self.assertFalse(self.factory_exec.is_superuser)
+
+    def test_ajax_edit_user_with_approver_role_md_saves_successfully(self):
+        User = get_user_model()
+        md_user = User.objects.create_user(username='existing_md', email='md_exist@test.com', password='password123')
+        UserProfile.objects.filter(user=md_user).update(role=WorkflowRoles.APPROVER, approval_role=ApprovalRoles.MD)
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('edit_user'),
+            {
+                'user_id': md_user.pk,
+                'username': 'shabeervayoli',
+                'email': 'shabeer@fabroleather.com',
+                'first_name': 'Shabeer',
+                'last_name': 'Vayoli',
+                'role': 'MD',
+                'department': 'Audit',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        md_user.refresh_from_db()
+        self.assertEqual(md_user.username, 'shabeervayoli')
+        self.assertEqual(md_user.workflow_profile.role, WorkflowRoles.APPROVER)
+        self.assertEqual(md_user.workflow_profile.approval_role, ApprovalRoles.MD)
+        self.assertEqual(data['user']['role'], 'MD')
+
 
 class ComplaintsListMobileFilterSheetTests(TestCase):
     def setUp(self):
@@ -5368,3 +5584,319 @@ class DeploymentSettingsTests(SimpleTestCase):
             'session_secure': True,
             'csrf_secure': True,
         })
+
+
+class Freelance3DDesignerWorkflowTests(TestCase):
+    def setUp(self):
+        from .models import (
+            Brand, Model, SubModel, YearRange,
+            PatternDesignFolder, PatternDesignImage,
+            WorkflowRoles, ApprovalRoles, UserProfile,
+            MasterSetting, Notification, ChatMessage
+        )
+        self.brand = Brand.objects.create(name='Aero Brand')
+        self.model = Model.objects.create(brand=self.brand, name='GTX')
+        self.sub_model = SubModel.objects.create(model=self.model, name='Sport')
+        self.vehicle = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2024,
+            year_end=2026,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code='GTX-2024',
+            serial_number='S1001',
+        )
+        self.folder = PatternDesignFolder.objects.create(
+            name='Seat Cover CAD v1',
+            vehicle=self.vehicle,
+        )
+
+        # 1. Freelancer user
+        self.freelancer = get_user_model().objects.create_user(
+            username='freelance_designer_1',
+            password='TestPassword123!',
+        )
+        self.freelance_profile = self.freelancer.workflow_profile
+        self.freelance_profile.role = WorkflowRoles.FREELANCE_3D_DESIGNER
+        self.freelance_profile.save()
+
+        # 2. Approver: CAD
+        self.cad_user = get_user_model().objects.create_user(
+            username='cad_approver_1',
+            password='TestPassword123!',
+        )
+        self.cad_profile = self.cad_user.workflow_profile
+        self.cad_profile.role = WorkflowRoles.APPROVER
+        self.cad_profile.approval_role = ApprovalRoles.CAD
+        self.cad_profile.save()
+
+        # 3. Approver: ED
+        self.ed_user = get_user_model().objects.create_user(
+            username='ed_approver_1',
+            password='TestPassword123!',
+        )
+        self.ed_profile = self.ed_user.workflow_profile
+        self.ed_profile.role = WorkflowRoles.APPROVER
+        self.ed_profile.approval_role = ApprovalRoles.ED
+        self.ed_profile.save()
+
+        # 4. Approver: MD
+        self.md_user = get_user_model().objects.create_user(
+            username='md_approver_1',
+            password='TestPassword123!',
+        )
+        self.md_profile = self.md_user.workflow_profile
+        self.md_profile.role = WorkflowRoles.APPROVER
+        self.md_profile.approval_role = ApprovalRoles.MD
+        self.md_profile.save()
+
+        # 5. Regular User: Country Executive
+        self.country_user = get_user_model().objects.create_user(
+            username='country_exec_1',
+            password='TestPassword123!',
+        )
+        self.country_profile = self.country_user.workflow_profile
+        self.country_profile.role = WorkflowRoles.COUNTRY_EXECUTIVE
+        self.country_profile.save()
+
+        # 6. Admin
+        self.admin_user = get_user_model().objects.create_superuser(
+            username='super_admin_1',
+            password='TestPassword123!',
+            email='admin@example.com',
+        )
+
+    def test_freelancer_upload_creates_pending_image_and_notifies_approvers(self):
+        self.client.force_login(self.freelancer)
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        file_obj = SimpleUploadedFile('cad_spec.gif', tiny_gif, content_type='image/gif')
+
+        res = self.client.post(
+            reverse('upload_design_images_api', args=[self.folder.id]),
+            {'images': [file_obj]}
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertEqual(data['images'][0]['approval_status'], 'pending')
+
+        from .models import PatternDesignImage, Notification
+        img = PatternDesignImage.objects.get(id=data['images'][0]['id'])
+        self.assertEqual(img.approval_status, 'pending')
+        self.assertEqual(img.uploaded_by, self.freelancer)
+
+        # Check notifications for CAD, ED, MD
+        notif_recipients = set(Notification.objects.filter(notification_type='design_approval').values_list('recipient__username', flat=True))
+        self.assertIn(self.cad_user.username, notif_recipients)
+        self.assertIn(self.ed_user.username, notif_recipients)
+        self.assertIn(self.md_user.username, notif_recipients)
+        self.assertNotIn(self.country_user.username, notif_recipients)
+
+    def test_visibility_gating_for_pending_images(self):
+        from .models import PatternDesignImage
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        file_obj = SimpleUploadedFile('pending_design.gif', tiny_gif, content_type='image/gif')
+        img = PatternDesignImage.objects.create(
+            folder=self.folder,
+            image=file_obj,
+            title='pending_design.gif',
+            file_size=len(tiny_gif),
+            uploaded_by=self.freelancer,
+            approval_status='pending',
+        )
+
+        # 1. Freelancer who uploaded can view
+        self.client.force_login(self.freelancer)
+        res = self.client.get(reverse('get_design_folder_detail_api', args=[self.folder.id]))
+        self.assertEqual(len(res.json()['images']), 1)
+        self.assertEqual(res.json()['images'][0]['approval_status'], 'pending')
+        self.assertFalse(res.json()['images'][0]['can_approve'])
+
+        # 2. Approver (CAD) can view and approve
+        self.client.force_login(self.cad_user)
+        res = self.client.get(reverse('get_design_folder_detail_api', args=[self.folder.id]))
+        self.assertEqual(len(res.json()['images']), 1)
+        self.assertTrue(res.json()['images'][0]['can_approve'])
+
+        # 3. Country Executive CANNOT view unapproved image
+        self.client.force_login(self.country_user)
+        res = self.client.get(reverse('get_design_folder_detail_api', args=[self.folder.id]))
+        self.assertEqual(len(res.json()['images']), 0)
+
+    def test_approve_design_image_api(self):
+        from .models import PatternDesignImage, Notification
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        file_obj = SimpleUploadedFile('pending_design.gif', tiny_gif, content_type='image/gif')
+        img = PatternDesignImage.objects.create(
+            folder=self.folder,
+            image=file_obj,
+            title='pending_design.gif',
+            file_size=len(tiny_gif),
+            uploaded_by=self.freelancer,
+            approval_status='pending',
+        )
+
+        # Unauthorized user cannot approve
+        self.client.force_login(self.country_user)
+        res = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.assertEqual(res.status_code, 403)
+
+        # CAD approver approves
+        self.client.force_login(self.cad_user)
+        res = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['status'], 'success')
+        self.assertEqual(res.json()['approval_status'], 'approved')
+
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'approved')
+        self.assertEqual(img.approved_by, self.cad_user)
+        self.assertIsNotNone(img.approved_at)
+
+        repeat_res = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.assertEqual(repeat_res.status_code, 409)
+        reject_after_approval = self.client.post(
+            reverse('reject_design_image_api', args=[img.id]),
+            json.dumps({'reason': 'Late objection'}),
+            content_type='application/json',
+        )
+        self.assertEqual(reject_after_approval.status_code, 409)
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'approved')
+
+        # Notification sent to freelancer
+        notif = Notification.objects.filter(recipient=self.freelancer, notification_type='design_approval').first()
+        self.assertIsNotNone(notif)
+        self.assertIn('Approved', notif.title)
+
+        # Once approved, regular users can view it
+        self.client.force_login(self.country_user)
+        res = self.client.get(reverse('get_design_folder_detail_api', args=[self.folder.id]))
+        self.assertEqual(len(res.json()['images']), 1)
+
+    def test_reject_design_image_api_dispatches_chat_and_notification(self):
+        from .models import PatternDesignImage, Notification, ChatMessage
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        file_obj = SimpleUploadedFile('pending_design.gif', tiny_gif, content_type='image/gif')
+        img = PatternDesignImage.objects.create(
+            folder=self.folder,
+            image=file_obj,
+            title='leather_cut.gif',
+            file_size=len(tiny_gif),
+            uploaded_by=self.freelancer,
+            approval_status='pending',
+        )
+
+        self.client.force_login(self.ed_user)
+
+        # Empty reason rejected with 400
+        res = self.client.post(
+            reverse('reject_design_image_api', args=[img.id]),
+            json.dumps({'reason': '   '}),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 400)
+
+        # Valid rejection with reason
+        rejection_reason = "Headrest pattern dimensions do not align with 2024 seat frames."
+        res = self.client.post(
+            reverse('reject_design_image_api', args=[img.id]),
+            json.dumps({'reason': rejection_reason}),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['status'], 'success')
+        self.assertEqual(res.json()['approval_status'], 'rejected')
+
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'rejected')
+        self.assertEqual(img.rejected_by, self.ed_user)
+        self.assertEqual(img.rejection_reason, rejection_reason)
+
+        # ChatMessage sent to freelancer from ED approver
+        chat_msg = ChatMessage.objects.filter(
+            sender=self.ed_user,
+            recipient=self.freelancer,
+        ).first()
+        self.assertIsNotNone(chat_msg)
+        self.assertIn(rejection_reason, chat_msg.message)
+        self.assertIn('leather_cut.gif', chat_msg.message)
+
+        # Notification sent to freelancer
+        notif = Notification.objects.filter(
+            recipient=self.freelancer,
+            notification_type='design_approval'
+        ).latest('created_at')
+        self.assertIn('Rejected', notif.title)
+        self.assertIn(rejection_reason, notif.message)
+
+    def test_freelancer_chat_scoped_to_md_ed_cad_and_admin_only(self):
+        from .views import get_sorted_chat_users
+
+        # Freelancer chat users list
+        freelancer_chat_users = [x['user'].username for x in get_sorted_chat_users(self.freelancer)]
+        self.assertIn(self.cad_user.username, freelancer_chat_users)
+        self.assertIn(self.ed_user.username, freelancer_chat_users)
+        self.assertIn(self.md_user.username, freelancer_chat_users)
+        self.assertIn(self.admin_user.username, freelancer_chat_users)
+        self.assertNotIn(self.country_user.username, freelancer_chat_users)
+
+        # Country executive chat users list does not include freelancer
+        country_chat_users = [x['user'].username for x in get_sorted_chat_users(self.country_user)]
+        self.assertNotIn(self.freelancer.username, country_chat_users)
+
+        # Country executive attempting to send direct message to freelancer gets 403
+        self.client.force_login(self.country_user)
+        send_res = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.freelancer.id,
+            'message': 'Hello Freelancer',
+        })
+        self.assertEqual(send_res.status_code, 403)
+
+        # Country executive requesting chat messages with freelancer gets 403
+        msg_res = self.client.get(reverse('chat_messages_api', args=[self.freelancer.id]))
+        self.assertEqual(msg_res.status_code, 403)
+
+        # CAD approver can chat with freelancer
+        self.client.force_login(self.cad_user)
+        cad_send_res = self.client.post(reverse('chat_send_api'), {
+            'recipient_id': self.freelancer.id,
+            'message': 'Hi Freelancer, please check CAD seam details.',
+        })
+        self.assertEqual(cad_send_res.status_code, 200)
+
+    def test_pattern_master_pending_designs_annotation_and_badge(self):
+        from .models import PatternDesignImage
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        file_obj = SimpleUploadedFile('pending_design.gif', tiny_gif, content_type='image/gif')
+        img = PatternDesignImage.objects.create(
+            folder=self.folder,
+            image=file_obj,
+            title='pending_design.gif',
+            file_size=len(tiny_gif),
+            uploaded_by=self.freelancer,
+            approval_status='pending',
+        )
+
+        # CAD approver visits Pattern Master: has_pending_designs is True
+        self.client.force_login(self.cad_user)
+        res = self.client.get(reverse('car_details'))
+        self.assertEqual(res.status_code, 200)
+        car_item = next(c for c in res.context['car_data'] if c['id'] == self.vehicle.id)
+        self.assertTrue(car_item['has_pending_designs'])
+        self.assertContains(res, 'pending-design-dot')
+
+        # Regular user visits Pattern Master: has_pending_designs is False
+        self.client.force_login(self.country_user)
+        res = self.client.get(reverse('car_details'))
+        self.assertEqual(res.status_code, 200)
+        car_item = next(c for c in res.context['car_data'] if c['id'] == self.vehicle.id)
+        self.assertFalse(car_item['has_pending_designs'])
+
+        # After approval, pending dot disappears for CAD approver as well
+        img.approval_status = 'approved'
+        img.save()
+        self.client.force_login(self.cad_user)
+        res = self.client.get(reverse('car_details'))
+        car_item = next(c for c in res.context['car_data'] if c['id'] == self.vehicle.id)
+        self.assertFalse(car_item['has_pending_designs'])

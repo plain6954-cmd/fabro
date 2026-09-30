@@ -161,6 +161,17 @@ def can_user_manage_catalog(user):
     )
 
 
+def can_user_manage_design_assets(user):
+    """Allow staff, workflow admins, and 3D designer freelancers to manage design folders and assets."""
+    if not user or not user.is_authenticated:
+        return False
+    if can_user_manage_catalog(user):
+        return True
+    profile = get_user_profile(user)
+    return bool(profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+
+
+
 def can_user_create_complaint(user):
     """Return whether the user has at least one registerable complaint type."""
     return bool(allowed_complaint_types_for_user(user))
@@ -242,6 +253,9 @@ def visible_complaints_for_user(user, queryset=None):
 
     if profile.role == WorkflowRoles.FACTORY_EXECUTIVE:
         return queryset.filter(assigned_factory_executive_id=user.id)
+
+    if profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
+        return queryset.filter(complaint_type=ComplaintTypes.PATTERN)
 
     if profile.role in {
         WorkflowRoles.FACTORY_VIEWER,
