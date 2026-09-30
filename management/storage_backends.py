@@ -1,8 +1,10 @@
+from django.core.files.base import ContentFile
 from django.core.files.storage import Storage
 
 from .services.s3_storage import (
     create_signed_download_url,
     delete_objects,
+    download_content,
     get_object_info,
     upload_content,
 )
@@ -20,6 +22,11 @@ class S3Storage(Storage):
         content.seek(0)
         upload_content(name, content.read(), getattr(content, 'content_type', None))
         return name
+
+    def _open(self, name, mode='rb'):
+        if 'r' not in mode:
+            raise ValueError('S3Storage only supports read mode via _open().')
+        return ContentFile(download_content(name), name=name)
 
     def delete(self, name):
         delete_objects([name])

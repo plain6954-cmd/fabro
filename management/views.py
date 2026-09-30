@@ -153,7 +153,7 @@ def _ensure_pattern_thumbnail(design_image):
             f'{stem}-{design_image.pk}.webp', ContentFile(output.getvalue()), save=True,
         )
         return design_image.thumbnail.url
-    except (OSError, ValueError, UnidentifiedImageError):
+    except (OSError, ValueError, UnidentifiedImageError, S3StorageError):
         logger.warning('Unable to generate pattern thumbnail for image %s.', design_image.pk, exc_info=True)
         return ''
 

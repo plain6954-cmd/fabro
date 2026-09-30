@@ -103,6 +103,29 @@ def get_object_info(storage_path):
         raise S3StorageError(f'Object storage is unavailable: {exc}') from exc
 
 
+
+def download_content(storage_path):
+    """Download object bytes directly from S3/Garage."""
+    key = storage_path.lstrip('/')
+    bucket = getattr(settings, 'S3_BUCKET_NAME', '')
+    try:
+        client = get_s3_client(public=False)
+        response = client.get_object(Bucket=bucket, Key=key)
+        return response['Body'].read()
+    except ClientError as exc:
+        code = str(exc.response.get('Error', {}).get('Code', ''))
+        if code in ('404', 'NoSuchKey', 'NotFound'):
+            raise S3StorageError(
+                f'Object not found: {storage_path}'
+            ) from exc
+        raise S3StorageError(
+            f'Object storage error downloading {storage_path}: {exc}'
+        ) from exc
+    except (BotoCoreError, OSError) as exc:
+        raise S3StorageError(
+            f'Object storage is unavailable: {exc}'
+        ) from exc
+
 def delete_objects(storage_paths):
     """Delete one or more objects from S3/Garage."""
     paths = list(dict.fromkeys(path.lstrip('/') for path in storage_paths if path))
