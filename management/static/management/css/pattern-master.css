@@ -1819,6 +1819,221 @@
             transform: rotate(180deg);
         }
 
+        /* Country & Drive Badges */
+        .country-badge, .drive-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 0.70rem;
+            font-weight: 600;
+            line-height: 1.2;
+            white-space: nowrap;
+            user-select: none;
+            transition: all 0.15s ease;
+            box-sizing: border-box;
+        }
+
+        /* Default / Fallback Country Badges */
+        .country-badge.is-region {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+        }
+        body.light-mode .country-badge.is-region {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+        }
+
+        .country-badge.is-measured {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+        body.light-mode .country-badge.is-measured {
+            background: #ecfdf5;
+            color: #047857;
+            border-color: #a7f3d0;
+        }
+
+        /* 1. KSA (Saudi Arabia) Flag: Emerald Green & White */
+        .country-badge.is-ksa {
+            background: rgba(16, 185, 129, 0.16);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.42);
+        }
+        body.light-mode .country-badge.is-ksa {
+            background: #ecfdf5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+
+        /* 2. GCC Flag / Emblem: Rich Teal & Gold */
+        .country-badge.is-gcc {
+            background: rgba(20, 184, 166, 0.16);
+            color: #5eead4;
+            border: 1px solid rgba(20, 184, 166, 0.42);
+        }
+        body.light-mode .country-badge.is-gcc {
+            background: #f0fdfa;
+            color: #0f766e;
+            border-color: #99f6e4;
+        }
+
+        /* 3. USA Flag: Deep Navy Blue & Red Accent */
+        .country-badge.is-usa {
+            background: rgba(59, 130, 246, 0.18);
+            color: #93c5fd;
+            border: 1px solid rgba(96, 165, 250, 0.45);
+        }
+        body.light-mode .country-badge.is-usa {
+            background: #eff6ff;
+            color: #1e40af;
+            border-color: #bfdbfe;
+        }
+
+        /* 4. Europe Flag: Azure Blue with Gold Stars */
+        .country-badge.is-europe {
+            background: rgba(37, 99, 235, 0.22);
+            color: #fde047;
+            border: 1px solid rgba(234, 179, 8, 0.55);
+        }
+        body.light-mode .country-badge.is-europe {
+            background: #eef2ff;
+            color: #1e3a8a;
+            border-color: #eab308;
+        }
+
+        /* 5. North America: Crimson / Slate Blue */
+        .country-badge.is-north-america {
+            background: rgba(239, 68, 68, 0.16);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.42);
+        }
+        body.light-mode .country-badge.is-north-america {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        /* 6. India Flag: Saffron / Kesari & Navy */
+        .country-badge.is-india {
+            background: rgba(249, 115, 22, 0.18);
+            color: #fdba74;
+            border: 1px solid rgba(249, 115, 22, 0.48);
+        }
+        body.light-mode .country-badge.is-india {
+            background: #fff7ed;
+            color: #9a3412;
+            border-color: #fed7aa;
+        }
+
+        /* 7. China Flag: Red & Gold Stars */
+        .country-badge.is-china {
+            background: rgba(220, 38, 38, 0.22);
+            color: #fef08a;
+            border: 1px solid rgba(239, 68, 68, 0.55);
+        }
+        body.light-mode .country-badge.is-china {
+            background: #fef2f2;
+            color: #b91c1c;
+            border-color: #fca5a5;
+        }
+
+        /* 8. Oman Flag: Red & Emerald */
+        .country-badge.is-oman {
+            background: rgba(225, 29, 72, 0.18);
+            color: #fda4af;
+            border: 1px solid rgba(225, 29, 72, 0.45);
+        }
+        body.light-mode .country-badge.is-oman {
+            background: #fff1f2;
+            color: #9f1239;
+            border-color: #fecdd3;
+        }
+
+        /* 9. Qatar Flag: Deep Maroon / Burgundy */
+        .country-badge.is-qatar {
+            background: rgba(159, 18, 57, 0.24);
+            color: #fbcfe8;
+            border: 1px solid rgba(190, 24, 93, 0.52);
+        }
+        body.light-mode .country-badge.is-qatar {
+            background: #fdf2f8;
+            color: #831843;
+            border-color: #fbcfe8;
+        }
+
+        .drive-badge.is-lhd {
+            background: rgba(16, 185, 129, 0.18);
+            color: #a7f3d0;
+            border: 1px solid #10b981;
+        }
+        body.light-mode .drive-badge.is-lhd {
+            background: #d1fae5;
+            color: #065f46;
+            border-color: #34d399;
+        }
+
+        .drive-badge.is-rhd {
+            background: rgba(99, 102, 241, 0.18);
+            color: #c7d2fe;
+            border: 1px solid #6366f1;
+        }
+        body.light-mode .drive-badge.is-rhd {
+            background: #e0e7ff;
+            color: #3730a3;
+            border-color: #818cf8;
+        }
+
+        .country-badge.is-none, .drive-badge.is-none {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--dark-text-secondary);
+            border: 1px dashed rgba(255, 255, 255, 0.22);
+        }
+
+        button.country-dropdown-btn, button.drive-dropdown-btn {
+            cursor: pointer;
+            outline: none;
+            font-family: inherit;
+            min-width: 66px;
+            max-width: 95px;
+            padding: 2px 6px;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .country-badge-text, .drive-badge-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 72px;
+        }
+
+        button.country-dropdown-btn:hover, button.drive-dropdown-btn:hover {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button.country-dropdown-btn.is-active, button.drive-dropdown-btn.is-active {
+            box-shadow: 0 0 0 2px var(--primary-color, #dc2626) !important;
+        }
+
+        .country-badge-caret, .drive-badge-caret {
+            font-size: 0.65rem;
+            margin-left: 4px;
+            opacity: 0.75;
+            transition: transform 0.15s ease;
+        }
+
+        button.country-dropdown-btn.is-active .country-badge-caret,
+        button.drive-dropdown-btn.is-active .drive-badge-caret {
+            transform: rotate(180deg);
+        }
+
         /* Floating Dropdown Popup */
         .fitting-confirmation-popup {
             position: fixed;
@@ -2259,17 +2474,24 @@
 
         .design-folders-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 1.25rem;
+            grid-template-columns: repeat(auto-fill, 168px);
+            gap: 0.85rem;
+            justify-content: start;
+        }
+
+        @media (max-width: 480px) {
+            .design-folders-grid {
+                grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            }
         }
 
         .design-folder-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
             position: relative;
@@ -2280,22 +2502,24 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
         .design-folder-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-3px);
             border-color: var(--primary-color);
-            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.15);
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.18);
         }
 
         .design-folder-preview {
-            height: 150px;
-            background: rgba(0, 0, 0, 0.25);
+            height: 110px;
+            background: rgba(0, 0, 0, 0.35);
             position: relative;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
         body.light-mode .design-folder-preview {
-            background: #f8fafc;
+            background: #f1f5f9;
+            border-bottom-color: #e2e8f0;
         }
 
         /* Compact vehicle-table pagination */
@@ -2523,7 +2747,49 @@
             }
         }
 
-        /* 2x2 Mini Collage for Folder Preview */
+        /* Single Full Preview for Folder Preview */
+        .folder-preview-single {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            position: relative;
+        }
+        .folder-preview-full-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            border-radius: 4px;
+        }
+        .folder-preview-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            pointer-events: none;
+            z-index: 2;
+        }
+        body.light-mode .folder-preview-badge {
+            background: rgba(255, 255, 255, 0.92);
+            color: #1e293b;
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        /* 2x2 Mini Collage fallback if used */
         .folder-preview-quad {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -2536,7 +2802,7 @@
         .folder-preview-quad img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
         .folder-preview-empty-quad {
             background: rgba(255, 255, 255, 0.03);
@@ -2544,7 +2810,7 @@
             align-items: center;
             justify-content: center;
             color: rgba(255, 255, 255, 0.2);
-            font-size: 0.85rem;
+            font-size: 0.75rem;
         }
         body.light-mode .folder-preview-empty-quad {
             background: rgba(0, 0, 0, 0.03);
@@ -2552,38 +2818,39 @@
         }
 
         .folder-empty-icon {
-            font-size: 3.25rem;
+            font-size: 2.2rem;
             color: var(--primary-color);
             opacity: 0.75;
             transition: transform 0.2s ease;
         }
         .design-folder-card:hover .folder-empty-icon {
-            transform: scale(1.1);
+            transform: scale(1.08);
             opacity: 1;
         }
 
         .design-folder-info {
-            padding: 0.85rem 1rem;
+            padding: 0.55rem 0.65rem;
             display: flex;
             flex-direction: column;
-            gap: 0.3rem;
+            gap: 0.2rem;
         }
 
         .design-folder-title-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.35rem;
         }
 
         .design-folder-title {
-            font-size: 0.95rem;
-            font-weight: 700;
+            font-size: 0.82rem;
+            font-weight: 600;
             color: var(--dark-text);
             margin: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            line-height: 1.25;
         }
         body.light-mode .design-folder-title {
             color: var(--light-text);
@@ -2591,9 +2858,10 @@
 
         .design-folder-actions {
             display: flex;
-            gap: 4px;
-            opacity: 0.6;
+            gap: 2px;
+            opacity: 0.5;
             transition: opacity 0.2s;
+            flex-shrink: 0;
         }
         .design-folder-card:hover .design-folder-actions {
             opacity: 1;
@@ -2603,9 +2871,9 @@
             background: none;
             border: none;
             color: var(--dark-text-secondary);
-            font-size: 0.78rem;
-            padding: 4px;
-            border-radius: 4px;
+            font-size: 0.72rem;
+            padding: 2px 4px;
+            border-radius: 3px;
             cursor: pointer;
             transition: color 0.15s, background 0.15s;
         }
@@ -2618,74 +2886,331 @@
         }
 
         .design-folder-meta {
-            font-size: 0.75rem;
+            font-size: 0.68rem;
             color: var(--dark-text-secondary);
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.35rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* 2x2 Matrix Inside Folder */
+        /* Matrix Inside Folder & Direct Images - Compact Right-to-Left Layout */
         .design-matrix-wrapper {
-            max-width: 980px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
         }
 
         .design-matrix-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 1.5rem;
-        }
-
-        @media (max-width: 640px) {
-            .design-matrix-grid {
-                grid-template-columns: 1fr;
-            }
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            justify-content: flex-start;
+            direction: ltr; /* Aligns and flows items from left to right */
+            margin-bottom: 1.25rem;
+            width: 100%;
         }
 
         .design-matrix-card {
+            direction: ltr; /* Keeps card inner content, text and buttons LTR */
+            width: 168px;
+            flex: 0 0 168px;
             background: #12161c;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
             position: relative;
-            aspect-ratio: 4 / 3;
             cursor: pointer;
-            transition: all 0.25s ease;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
         }
         body.light-mode .design-matrix-card {
-            background: #f1f5f9;
+            background: #ffffff;
             border-color: #cbd5e1;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         .design-matrix-card:hover {
-            transform: scale(1.015);
+            transform: translateY(-3px);
             border-color: var(--primary-color);
-            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.25);
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
+        }
+
+        /* Animations for smooth pop-in and squish-off */
+        @keyframes squishOff {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+                max-width: 168px;
+                filter: blur(0px);
+            }
+            30% {
+                transform: scale(1.08, 0.88);
+                opacity: 0.95;
+            }
+            100% {
+                transform: scale(0.2, 0);
+                opacity: 0;
+                max-width: 0;
+                min-width: 0;
+                padding: 0;
+                margin: 0;
+                border-width: 0;
+                filter: blur(4px);
+            }
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.4) translateY(20px);
+                opacity: 0;
+                filter: blur(5px);
+            }
+            60% {
+                transform: scale(1.08) translateY(-4px);
+                opacity: 0.95;
+                filter: blur(0px);
+            }
+            85% {
+                transform: scale(0.97) translateY(1px);
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        @keyframes uploadPulse {
+            0%, 100% {
+                opacity: 0.6;
+                border-color: rgba(99, 102, 241, 0.4);
+                transform: scale(0.98);
+            }
+            50% {
+                opacity: 1;
+                border-color: rgba(99, 102, 241, 0.9);
+                transform: scale(1);
+                box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+            }
+        }
+
+        .design-matrix-card.is-deleting {
+            animation: squishOff 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+        }
+
+        .design-matrix-card.is-new-item {
+            animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+        }
+
+        .design-matrix-card.is-uploading {
+            animation: uploadPulse 1.4s ease-in-out infinite, popIn 0.35s ease-out;
+            background: rgba(99, 102, 241, 0.08) !important;
+            border: 1px dashed rgba(99, 102, 241, 0.6) !important;
+            pointer-events: none !important;
         }
 
         .matrix-card-media {
             width: 100%;
-            height: 100%;
+            height: 110px;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #090c10;
+            background: rgba(0, 0, 0, 0.35);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+            padding: 4px;
         }
         body.light-mode .matrix-card-media {
-            background: #e2e8f0;
+            background: #f1f5f9;
+            border-bottom-color: #e2e8f0;
         }
-        .matrix-card-media img {
+
+        .matrix-card-media img,
+        .matrix-card-img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            transition: transform 0.35s ease;
+            object-fit: contain;
+            display: block;
+            border-radius: 4px;
+            transition: transform 0.25s ease;
         }
+        .design-matrix-card:hover .matrix-card-img,
         .design-matrix-card:hover .matrix-card-media img {
             transform: scale(1.05);
+        }
+
+        /* Document Previews for PDF & CAD */
+        .matrix-doc-preview {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border-radius: 6px;
+            transition: transform 0.2s ease;
+        }
+        .design-matrix-card:hover .matrix-doc-preview {
+            transform: scale(1.06);
+        }
+        .matrix-doc-preview.is-pdf {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px dashed rgba(239, 68, 68, 0.35);
+        }
+        .matrix-doc-preview.is-cad {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px dashed rgba(56, 189, 248, 0.35);
+        }
+        .matrix-doc-icon {
+            font-size: 2.2rem;
+            transition: transform 0.2s ease;
+        }
+        .matrix-doc-preview.is-pdf .matrix-doc-icon {
+            color: #ef4444;
+        }
+        .matrix-doc-preview.is-cad .matrix-doc-icon {
+            color: #38bdf8;
+        }
+        .matrix-doc-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.05em;
+        }
+        .matrix-doc-preview.is-pdf .matrix-doc-badge {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+        .matrix-doc-preview.is-cad .matrix-doc-badge {
+            background: rgba(56, 189, 248, 0.2);
+            color: #7dd3fc;
+        }
+
+        .matrix-card-badge-wrap {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            z-index: 2;
+        }
+
+        .matrix-media-hover-bar {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 3;
+        }
+        .design-matrix-card:hover .matrix-media-hover-bar {
+            opacity: 1;
+        }
+        .matrix-view-btn {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .matrix-view-btn:hover {
+            background: var(--primary-color);
+        }
+
+        .matrix-card-info {
+            padding: 0.55rem 0.65rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            flex: 1;
+        }
+
+        .matrix-card-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.35rem;
+        }
+
+        .matrix-card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.25;
+        }
+        body.light-mode .matrix-card-title {
+            color: var(--light-text);
+        }
+
+        .matrix-card-meta {
+            font-size: 0.68rem;
+            color: var(--dark-text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .matrix-file-badge {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--dark-text-secondary);
+            font-size: 0.62rem;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        body.light-mode .matrix-file-badge {
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--light-text-secondary);
+        }
+
+        .matrix-card-approvals {
+            margin-top: 0.2rem;
+            display: flex;
+            gap: 0.3rem;
+            align-items: center;
+        }
+
+        .matrix-delete-btn {
+            background: rgba(220, 38, 38, 0.88);
+            border: none;
+            color: white;
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .matrix-delete-btn:hover {
+            background: #ef4444;
+            transform: scale(1.1);
         }
 
         .matrix-card-overlay {

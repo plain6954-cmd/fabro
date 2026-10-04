@@ -361,14 +361,14 @@
                 {% csrf_token %}
                 
                 <div class="form-group">
-                    <label class="form-label" for="username">{% translate "Username" %}</label>
+                    <label class="form-label" for="username">{% translate "Username or Email" %}</label>
                     <div class="input-wrapper">
                         <i class="fas fa-user input-icon"></i>
                         <input type="text" 
                                name="username" 
                                id="username" 
                                class="form-input" 
-                               placeholder="{% translate "Enter your username" %}"
+                               placeholder="{% translate "Enter your username or email" %}"
                                required 
                                autocomplete="username">
                     </div>
@@ -401,7 +401,11 @@
                 {% if form.errors %}
                     <div class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
-                        {% translate "Invalid username or password. Please try again." %}
+                        {% if form.non_field_errors %}
+                            {{ form.non_field_errors.0 }}
+                        {% else %}
+                            {% translate "Invalid username, email, or password. Please try again." %}
+                        {% endif %}
                     </div>
                 {% endif %}
             </form>

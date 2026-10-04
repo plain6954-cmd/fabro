@@ -134,17 +134,13 @@ def delete_objects(storage_paths):
     bucket = getattr(settings, 'S3_BUCKET_NAME', '')
     try:
         client = get_s3_client(public=False)
-        # S3 delete_objects takes up to 1000 keys per request
-        chunk_size = 1000
-        for i in range(0, len(paths), chunk_size):
-            chunk = paths[i:i + chunk_size]
-            delete_payload = {'Objects': [{'Key': p} for p in chunk], 'Quiet': True}
-            response = client.delete_objects(Bucket=bucket, Delete=delete_payload)
-            errors = response.get('Errors', [])
-            if errors:
-                first_err = errors[0]
-                msg = f"{first_err.get('Key')}: {first_err.get('Code')} - {first_err.get('Message')}"
-                raise S3StorageError(f'Failed to delete objects: {msg}')
+        for p in paths:
+            try:
+                client.delete_object(Bucket=bucket, Key=p)
+            except ClientError as exc:
+                code = str(exc.response.get('Error', {}).get('Code', ''))
+                if code not in ('404', 'NoSuchKey', 'NotFound'):
+                    raise
     except ClientError as exc:
         raise S3StorageError(f'Object storage error deleting objects: {exc}') from exc
     except (BotoCoreError, OSError) as exc:

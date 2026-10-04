@@ -75,15 +75,15 @@ class LoginAPIView(APIView):
     throttle_scope = 'login'
 
     def post(self, request, *args, **kwargs):
-        username = request.data.get('username')
+        username = (request.data.get('username') or request.data.get('email') or '').strip()
         password = request.data.get('password')
         if not username or not password:
             return Response(
-                {'error': 'Please provide both username and password.'},
+                {'error': 'Please provide both username or email and password.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        user = authenticate(username=username, password=password)
+        user = authenticate(request=request, username=username, password=password)
         if not user:
             return Response(
                 {'error': 'Invalid credentials.'},

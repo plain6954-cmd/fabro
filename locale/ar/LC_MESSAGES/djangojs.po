@@ -15,24 +15,53 @@ msgid "%(filename)s — Ready to upload"
 msgstr ""
 
 #, python-format
-msgid "+%(count)s more"
-msgstr ""
-
-#, python-format
 msgid "A complaint can contain at most %(count)s media files."
 msgstr ""
 
 msgid "Action Plan"
 msgstr "خطة العمل"
 
+msgid "Actions"
+msgstr ""
+
+msgid "Add Vehicle"
+msgstr ""
+
+msgid "Add Vehicle Pattern"
+msgstr ""
+
+msgid "All Brands"
+msgstr ""
+
 msgid "All Fields"
 msgstr "كل الحقول"
+
+msgid "All Measurement Countries"
+msgstr ""
+
+msgid "All Models"
+msgstr ""
+
+msgid "All Sub-Models"
+msgstr ""
+
+msgid "All values shown"
+msgstr ""
+
+msgid "All Vehicle Countries"
+msgstr ""
+
+msgid "All Years"
+msgstr ""
 
 msgid "An error occurred while submitting your decision."
 msgstr ""
 
 msgid "Approve Plan"
 msgstr "الموافقة على الخطة"
+
+msgid "Approved"
+msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete %(name)s?"
@@ -69,10 +98,19 @@ msgstr "الفئة"
 msgid "Channel"
 msgstr "القناة"
 
+msgid "Choose File"
+msgstr ""
+
 msgid "Clear"
 msgstr "مسح"
 
+msgid "Clear / None"
+msgstr ""
+
 msgid "Clear All"
+msgstr ""
+
+msgid "Close"
 msgstr ""
 
 msgid "Complaint"
@@ -93,6 +131,9 @@ msgstr "الدولة"
 msgid "Dashboard"
 msgstr "لوحة التحكم"
 
+msgid "Delete"
+msgstr ""
+
 msgid "Delete group?"
 msgstr ""
 
@@ -105,6 +146,9 @@ msgstr "الوصف"
 msgid "Each media file must be 100 MB or smaller."
 msgstr ""
 
+msgid "Edit Vehicle"
+msgstr ""
+
 msgid "Error loading complaint types"
 msgstr ""
 
@@ -112,6 +156,9 @@ msgid "Error loading data"
 msgstr ""
 
 msgid "Error loading SKUs"
+msgstr ""
+
+msgid "Error saving vehicle pattern. Please try again."
 msgstr ""
 
 msgid "Execution Is Correct"
@@ -130,7 +177,16 @@ msgstr "تعذر إرسال الرسالة."
 msgid "File size: %(size)s MB"
 msgstr ""
 
+msgid "Fill in vehicle details"
+msgstr ""
+
+msgid "Fitting Confirmation"
+msgstr ""
+
 msgid "Flag"
+msgstr ""
+
+msgid "Hide details"
 msgstr ""
 
 msgid "Kick this session?"
@@ -139,14 +195,29 @@ msgstr ""
 msgid "Kick this user session?"
 msgstr ""
 
-msgid "Layout Code"
-msgstr "رمز التخطيط"
+msgid "Load older messages"
+msgstr ""
+
+msgid "Loading audit logs..."
+msgstr ""
+
+msgid "Loading SKU catalog..."
+msgstr ""
 
 msgid "Loading SKUs..."
 msgstr "جارٍ تحميل رموز المنتجات..."
 
 msgid "Loading types..."
 msgstr "جارٍ تحميل الأنواع..."
+
+msgid "Loading users directory..."
+msgstr ""
+
+msgid "Loading vehicle catalog..."
+msgstr ""
+
+msgid "Loading..."
+msgstr ""
 
 msgid "Manufacturing, material, or stitching defect."
 msgstr ""
@@ -162,6 +233,9 @@ msgstr ""
 
 #, python-format
 msgid "Network error while contacting server: %(error)s"
+msgstr ""
+
+msgid "No change history recorded yet for this vehicle pattern."
 msgstr ""
 
 msgid "No matching SKUs"
@@ -212,8 +286,23 @@ msgstr "المنطقة"
 msgid "Reject Plan"
 msgstr ""
 
+msgid "Rejected"
+msgstr ""
+
+msgid "Remove file"
+msgstr ""
+
+msgid "Remove this user profile photo?"
+msgstr ""
+
 msgid "Reported By"
 msgstr "أبلغ بواسطة"
+
+msgid "Request approval to delete this vehicle pattern?"
+msgstr ""
+
+msgid "Reset"
+msgstr ""
 
 msgid "Return for Rework"
 msgstr ""
@@ -222,8 +311,14 @@ msgstr ""
 msgid "Save %(type)s"
 msgstr ""
 
+msgid "Save Changes"
+msgstr ""
+
 #, python-format
 msgid "Saving %(type)s..."
+msgstr ""
+
+msgid "Saving..."
 msgstr ""
 
 msgid "Search values..."
@@ -238,6 +333,9 @@ msgstr "اختر الطراز"
 msgid "Select SKU"
 msgstr "اختر رمز المنتج"
 
+msgid "Select Sub-Model"
+msgstr ""
+
 msgid "Select Sub-Model (Optional)"
 msgstr "اختر الطراز الفرعي (اختياري)"
 
@@ -247,11 +345,20 @@ msgstr "اختر النوع"
 msgid "Select Year"
 msgstr "اختر السنة"
 
+msgid "Serial No"
+msgstr ""
+
+msgid "Serial No is required."
+msgstr ""
+
 msgid "Setting updated successfully."
 msgstr ""
 
 msgid "SKU Code"
 msgstr "رمز المنتج"
+
+msgid "Staff"
+msgstr ""
 
 msgid "Start the conversation by sending a text below."
 msgstr "ابدأ المحادثة بإرسال رسالة أدناه."
@@ -268,6 +375,9 @@ msgstr ""
 msgid "Submitting..."
 msgstr "جارٍ الإرسال..."
 
+msgid "Superuser"
+msgstr ""
+
 msgid "Template, dimension, or cutting issue."
 msgstr ""
 
@@ -278,11 +388,24 @@ msgid "To reset your password if forgotten, please contact your system administr
 msgstr ""
 
 #, python-format
+msgid "Type a message to %(username)s..."
+msgstr ""
+
+#, python-format
 msgid "Type a message to %(username)s... (Press Enter to send)"
+msgstr ""
+
+msgid "Unable to load this section. Please try again."
 msgstr ""
 
 msgid "Unable to load types"
 msgstr "تعذر تحميل الأنواع"
+
+msgid "Unable to save changes. Check your connection and try again."
+msgstr ""
+
+msgid "Unable to save user profile."
+msgstr ""
 
 msgid "Uploading..."
 msgstr ""
@@ -294,4 +417,10 @@ msgid "Vehicle Country"
 msgstr "دولة المركبة"
 
 msgid "Verify Executed Action Plan"
+msgstr ""
+
+msgid "View details"
+msgstr ""
+
+msgid "X-Code"
 msgstr ""

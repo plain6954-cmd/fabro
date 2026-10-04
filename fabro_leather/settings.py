@@ -113,7 +113,7 @@ SQL_QUERY_COUNT_ENABLED = env_bool('SQL_QUERY_COUNT_ENABLED', False)
 SLOW_REQUEST_THRESHOLD_MS = int(os.getenv('SLOW_REQUEST_THRESHOLD_MS', '750'))
 
 S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', '')
-S3_REGION = os.getenv('S3_REGION', 'garage')
+S3_REGION = os.getenv('S3_REGION', 'us-east-1')
 
 # Canonical S3 settings with backward compatibility for the existing
 # production environment variable names.
@@ -350,6 +350,11 @@ MEDIA_ROOT = BASE_DIR / ('.e2e-media' if E2E_TESTING else 'media')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTHENTICATION_BACKENDS = [
+    'management.auth_backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.views import LoginView
 from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
+from .forms import EmailOrUsernameAuthenticationForm
 
 
 def get_client_ip(request):
@@ -18,8 +19,10 @@ def get_client_ip(request):
 class RateLimitedLoginView(LoginView):
     """Protect the session login form from repeated credential guessing."""
 
+    form_class = EmailOrUsernameAuthenticationForm
+
     def _cache_keys(self):
-        username = (self.request.POST.get('username') or '').strip().casefold()[:150]
+        username = (self.request.POST.get('username') or '').strip().casefold()[:254]
         identity = f'{get_client_ip(self.request)}|{username}'.encode('utf-8')
         digest = hashlib.sha256(identity).hexdigest()
         return f'fabro:login-attempts:{digest}', f'fabro:login-lock:{digest}'

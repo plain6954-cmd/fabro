@@ -469,7 +469,7 @@
                         {% translate "Vehicle Country" %}
                         <span class="tooltip-container">
                             <i class="fas fa-info-circle info-icon"></i>
-                            <span class="tooltip-text">{% translate "Where the vehicle is manufactured." %}</span>
+                            <span class="tooltip-text">{% translate "Region / Vehicle Country specification." %}</span>
                         </span>
                     </label>
                     <select name="vehicle_country" class="form-input" style="height: 48px;">
@@ -485,7 +485,7 @@
                         {% translate "Measurement Country" %}
                         <span class="tooltip-container">
                             <i class="fas fa-info-circle info-icon"></i>
-                            <span class="tooltip-text">{% translate "Where the measurement is taken for this vehicle" %}</span>
+                            <span class="tooltip-text">{% translate "Where the measurement was taken for this vehicle" %}</span>
                         </span>
                     </label>
                     <select name="measurement_country" class="form-input" style="height: 48px;">
@@ -493,6 +493,17 @@
                         {% for country in countries %}
                             <option value="{{ country.id }}" {% if form.measurement_country.value == country.id or form.measurement_country.value|stringformat:"s" == country.id|stringformat:"s" or form.measurement_country.value.id == country.id %}selected{% endif %}>{{ country.name }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        {% translate "Drive" %}
+                    </label>
+                    <select name="drive" class="form-input" style="height: 48px;">
+                        <option value="">{% translate "Select Drive..." %}</option>
+                        <option value="LHD" {% if form.drive.value == 'LHD' %}selected{% endif %}>LHD</option>
+                        <option value="RHD" {% if form.drive.value == 'RHD' %}selected{% endif %}>RHD</option>
                     </select>
                 </div>
             </div>

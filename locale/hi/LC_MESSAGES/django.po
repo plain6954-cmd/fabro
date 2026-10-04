@@ -47,14 +47,17 @@ msgid "%(role)s reviews assigned to your account."
 msgstr ""
 
 #, python-format
+msgid "%(user)s uploaded %(count)s new 3D design file(s) for review."
+msgstr ""
+
+#, python-format
 msgid "%(username)s was assigned to %(group)s."
 msgstr ""
 
 msgid "(Required for rejection)"
 msgstr ""
 
-#, python-format
-msgid "+%(count)s more"
+msgid "3D Designer Freelancer"
 msgstr ""
 
 #, python-format
@@ -65,6 +68,9 @@ msgid "A group with that name already exists."
 msgstr ""
 
 msgid "A production container number is not required for Factory Complaints."
+msgstr ""
+
+msgid "A rejection reason is mandatory."
 msgstr ""
 
 msgid "above to add one inline!"
@@ -79,10 +85,10 @@ msgstr "कार्रवाई"
 msgid "Action In Progress"
 msgstr "कार्रवाई जारी"
 
-msgid "Action Plan"
+msgid "Action plan"
 msgstr "कार्य योजना"
 
-msgid "Action plan"
+msgid "Action Plan"
 msgstr "कार्य योजना"
 
 msgid "Action plan started. Submit the execution for verification when implementation is complete."
@@ -115,10 +121,6 @@ msgstr ""
 msgid "Active Sessions"
 msgstr "सक्रिय सत्र"
 
-#, python-format
-msgid "Active Sessions (%(count)s)"
-msgstr ""
-
 msgid "Active Users Online"
 msgstr "ऑनलाइन सक्रिय उपयोगकर्ता"
 
@@ -134,6 +136,9 @@ msgstr ""
 msgid "Add"
 msgstr ""
 
+msgid "Add (Folder or Image)"
+msgstr ""
+
 msgid "Add Complaint"
 msgstr "शिकायत जोड़ें"
 
@@ -143,19 +148,25 @@ msgstr ""
 msgid "Add First Complaint"
 msgstr ""
 
+msgid "Add Folder"
+msgstr ""
+
+msgid "Add Image"
+msgstr ""
+
 msgid "Add New Complaint"
 msgstr "नई शिकायत जोड़ें"
 
 msgid "Add New Media Files"
 msgstr ""
 
+msgid "Add New Pattern"
+msgstr ""
+
 msgid "Add New Setting"
 msgstr "नई सेटिंग जोड़ें"
 
 msgid "Add New SKU (Inline)"
-msgstr ""
-
-msgid "Add New Vehicle"
 msgstr ""
 
 msgid "Add Setting"
@@ -167,6 +178,9 @@ msgstr ""
 msgid "Add Vehicle"
 msgstr ""
 
+msgid "Add Vehicle Pattern"
+msgstr ""
+
 msgid "Add your first vehicle using the form on the left or upload a CSV file."
 msgstr "फ़ॉर्म से अपना पहला वाहन जोड़ें या CSV फ़ाइल अपलोड करें।"
 
@@ -176,7 +190,13 @@ msgstr "एडमिन"
 msgid "Admin Panel"
 msgstr ""
 
+msgid "Admin section pages"
+msgstr ""
+
 msgid "All"
+msgstr ""
+
+msgid "All Brands"
 msgstr ""
 
 msgid "All Channels"
@@ -194,10 +214,19 @@ msgstr "सभी देश"
 msgid "All Fields"
 msgstr "सभी फ़ील्ड"
 
+msgid "All Fitting Statuses"
+msgstr ""
+
 msgid "All History"
 msgstr ""
 
 msgid "All marked as read"
+msgstr ""
+
+msgid "All Measurement Countries"
+msgstr ""
+
+msgid "All Models"
 msgstr ""
 
 msgid "All notifications marked as read."
@@ -221,10 +250,31 @@ msgstr ""
 msgid "All Statuses"
 msgstr "सभी स्थितियाँ"
 
+msgid "All Sub-Models"
+msgstr ""
+
 msgid "All Types"
 msgstr "सभी प्रकार"
 
+msgid "All values shown"
+msgstr ""
+
+msgid "All Vehicle Countries"
+msgstr ""
+
+msgid "All Years"
+msgstr ""
+
 msgid "Allowed Pages (comma-separated)"
+msgstr ""
+
+msgid "Alteration approved and executed successfully."
+msgstr ""
+
+msgid "Alteration rejected."
+msgstr ""
+
+msgid "Alteration request submitted. Approval notifications sent to approver roles."
 msgstr ""
 
 #, python-format
@@ -234,7 +284,13 @@ msgstr ""
 msgid "An error occurred while submitting your decision."
 msgstr ""
 
+msgid "and all images inside it?"
+msgstr ""
+
 msgid "Apply Filters"
+msgstr ""
+
+msgid "Apply filters"
 msgstr ""
 
 msgid "Approval Feedback"
@@ -247,6 +303,9 @@ msgid "Approval Inbox"
 msgstr "अनुमोदन इनबॉक्स"
 
 msgid "Approval Inbox - Fabro Leather"
+msgstr ""
+
+msgid "Approval pages"
 msgstr ""
 
 msgid "Approval requests, factory assignments, rework, and closure updates."
@@ -271,6 +330,9 @@ msgstr ""
 msgid "Approve"
 msgstr ""
 
+msgid "Approve Design"
+msgstr ""
+
 msgid "Approve Plan"
 msgstr "योजना अनुमोदित करें"
 
@@ -293,8 +355,14 @@ msgstr ""
 msgid "Are you sure you want to delete %(name)s?"
 msgstr ""
 
+msgid "Are you sure you want to delete folder"
+msgstr ""
+
 msgid "Are you sure you want to delete this complaint?"
 msgstr "क्या आप वाकई यह शिकायत हटाना चाहते हैं?"
+
+msgid "Are you sure you want to delete this image?"
+msgstr ""
 
 msgid "Are you sure you want to delete this SKU?"
 msgstr ""
@@ -324,11 +392,26 @@ msgstr "फैक्टरी को सौंपा गया"
 msgid "Audit & Activity Logs"
 msgstr "ऑडिट और गतिविधि लॉग"
 
+msgid "Auto"
+msgstr ""
+
 msgid "Awaiting Approval"
 msgstr "अनुमोदन की प्रतीक्षा"
 
 msgid "Awaiting Execution Verification"
 msgstr "निष्पादन सत्यापन की प्रतीक्षा"
+
+msgid "Back to all folders"
+msgstr ""
+
+msgid "Back to chats"
+msgstr ""
+
+msgid "Back to Pattern List"
+msgstr ""
+
+msgid "Back to Patterns"
+msgstr ""
 
 msgid "Back to Portal"
 msgstr ""
@@ -336,16 +419,16 @@ msgstr ""
 msgid "Back to Vehicle Management"
 msgstr ""
 
-msgid "Basic Information"
+msgid "Batch No"
 msgstr ""
 
-msgid "Batch / Order"
+msgid "Batch No:"
 msgstr ""
-
-msgid "Batch / Order #"
-msgstr "बैच / ऑर्डर संख्या"
 
 msgid "Before Execution"
+msgstr ""
+
+msgid "BR"
 msgstr ""
 
 msgid "Brand"
@@ -373,6 +456,9 @@ msgid "Brand:"
 msgstr ""
 
 msgid "Brands"
+msgstr ""
+
+msgid "Bulk Delete Patterns"
 msgstr ""
 
 msgid "Bulk import vehicle configurations from CSV file"
@@ -411,16 +497,28 @@ msgstr ""
 msgid "Car Seat Management System"
 msgstr ""
 
-msgid "Case Details"
-msgstr ""
-
 msgid "Category"
 msgstr "श्रेणी"
+
+msgid "Change Drive"
+msgstr "ड्राइव बदलें"
+
+msgid "Change Fitting Confirmation"
+msgstr ""
+
+msgid "Change Measurement Country"
+msgstr "माप देश बदलें"
+
+msgid "Change Vehicle Country"
+msgstr "वाहन देश बदलें"
 
 msgid "Channel"
 msgstr "चैनल"
 
 msgid "Channel:"
+msgstr ""
+
+msgid "Chat"
 msgstr ""
 
 msgid "CHAT"
@@ -429,7 +527,13 @@ msgstr "चैट"
 msgid "Chat Workspace - Fabro Leather"
 msgstr ""
 
+msgid "Chats"
+msgstr ""
+
 msgid "Choose any user from the left directory to open a direct messaging workspace."
+msgstr ""
+
+msgid "Choose File"
 msgstr ""
 
 msgid "Choose PM, OM, CAD, ED, or MD for an approver."
@@ -437,6 +541,9 @@ msgstr ""
 
 msgid "Clear"
 msgstr "साफ़ करें"
+
+msgid "Clear / None"
+msgstr ""
 
 msgid "Clear All"
 msgstr ""
@@ -453,13 +560,19 @@ msgstr ""
 msgid "Clear Filters"
 msgstr ""
 
+msgid "Clear filters"
+msgstr ""
+
 msgid "Clear form"
+msgstr ""
+
+msgid "Clear Search"
 msgstr ""
 
 msgid "Clear search"
 msgstr "खोज साफ़ करें"
 
-msgid "Clear Search"
+msgid "Click here to upload, click Paste Image, or press Ctrl+V to paste directly from your clipboard. Images will preview in a 2x2 matrix."
 msgstr ""
 
 msgid "Click the button below to log back in."
@@ -468,7 +581,16 @@ msgstr ""
 msgid "Click to upload"
 msgstr "अपलोड करने के लिए क्लिक करें"
 
+msgid "Close"
+msgstr ""
+
+msgid "Close (Esc)"
+msgstr ""
+
 msgid "Close complaint details"
+msgstr ""
+
+msgid "Close filters"
 msgstr ""
 
 msgid "Closed"
@@ -486,9 +608,6 @@ msgstr ""
 msgid "Complaint And Factory Review"
 msgstr ""
 
-msgid "Complaint Batch Order:"
-msgstr ""
-
 msgid "Complaint Context:"
 msgstr ""
 
@@ -498,10 +617,10 @@ msgstr "शिकायत सफलतापूर्वक हटाई गई
 msgid "Complaint Description"
 msgstr "शिकायत का विवरण"
 
-msgid "Complaint details"
-msgstr "शिकायत विवरण"
+msgid "Complaint description is required."
+msgstr ""
 
-msgid "Complaint Details"
+msgid "Complaint details"
 msgstr "शिकायत विवरण"
 
 msgid "Complaint ID"
@@ -525,17 +644,20 @@ msgstr ""
 msgid "Complaint Media"
 msgstr "शिकायत मीडिया"
 
-msgid "Complaint media must be uploaded directly to Supabase Storage."
+msgid "Complaint media must be uploaded directly to object storage."
+msgstr ""
+
+msgid "Complaint Product"
 msgstr ""
 
 msgid "Complaint Snapshot"
 msgstr ""
 
-msgid "Complaint type"
-msgstr "शिकायत का प्रकार"
-
 msgid "Complaint Type"
 msgstr ""
+
+msgid "Complaint type"
+msgstr "शिकायत का प्रकार"
 
 msgid "Complaint Types"
 msgstr "शिकायत के प्रकार"
@@ -558,6 +680,9 @@ msgstr ""
 msgid "Complaints Resolved"
 msgstr "समाधान की गई शिकायतें"
 
+msgid "Complaints This Month"
+msgstr ""
+
 msgid "Completed Approvals"
 msgstr ""
 
@@ -576,14 +701,17 @@ msgstr ""
 msgid "Confirm New Password"
 msgstr ""
 
-msgid "Confirmed Reason"
+msgid "Confirmed"
 msgstr ""
 
-msgid "Contact Information"
+msgid "Confirmed Reason"
 msgstr ""
 
 msgid "Container number"
 msgstr "कंटेनर संख्या"
+
+msgid "Copy any image to clipboard and press Ctrl+V to paste directly into this folder"
+msgstr ""
 
 msgid "Country"
 msgstr "देश"
@@ -594,7 +722,19 @@ msgstr "देश कार्यकारी"
 msgid "Country executives must be assigned to a country."
 msgstr "देश कार्यकारी को किसी देश से संबद्ध करना आवश्यक है।"
 
+msgid "Country specification for this vehicle"
+msgstr "इस वाहन के लिए देश विनिर्देश"
+
 msgid "Country:"
+msgstr ""
+
+msgid "Create Design Folder"
+msgstr ""
+
+msgid "Create Folder"
+msgstr ""
+
+msgid "Create folders or upload design images directly to organize pattern variations, aesthetic pairings, and stitching references for this vehicle."
 msgstr ""
 
 msgid "Create Group"
@@ -635,7 +775,13 @@ msgstr ""
 msgid "CSV files only (Max 5MB)"
 msgstr ""
 
+msgid "CSV Import Results:"
+msgstr ""
+
 msgid "CSV must use UTF-8 encoding."
+msgstr ""
+
+msgid "CSV must use UTF-8 or compatible text encoding."
 msgstr ""
 
 msgid "CURRENT"
@@ -681,10 +827,25 @@ msgstr "हटाएँ"
 msgid "Delete Complaint"
 msgstr "शिकायत हटाएँ"
 
+msgid "Delete Folder"
+msgstr ""
+
 msgid "Delete group?"
 msgstr ""
 
+msgid "Delete Image"
+msgstr ""
+
+msgid "Delete image"
+msgstr ""
+
+msgid "Delete Pattern"
+msgstr ""
+
 msgid "Delete privilege?"
+msgstr ""
+
+msgid "Delete Selected"
 msgstr ""
 
 msgid "Delete User"
@@ -696,7 +857,30 @@ msgstr "विभाग"
 msgid "Description"
 msgstr "विवरण"
 
-msgid "Direct Messages"
+msgid "Design Folders"
+msgstr ""
+
+#, python-format
+msgid "Design image \"%(title)s\" was rejected. Reason: %(reason)s"
+msgstr ""
+
+msgid "Design Image Approved"
+msgstr ""
+
+msgid "Design image approved successfully."
+msgstr ""
+
+msgid "Design image rejected. Feedback sent to freelancer."
+msgstr ""
+
+#, python-format
+msgid "Design Image Rejected: %(title)s"
+msgstr ""
+
+msgid "Design Options"
+msgstr ""
+
+msgid "Direct messaging with this user is restricted."
 msgstr ""
 
 msgid "Dismiss message"
@@ -704,6 +888,18 @@ msgstr ""
 
 msgid "Doors"
 msgstr "दरवाज़े"
+
+msgid "doors"
+msgstr ""
+
+msgid "Download Image"
+msgstr ""
+
+msgid "Drive"
+msgstr "ड्राइव"
+
+msgid "Drive updated successfully."
+msgstr "ड्राइव सफलतापूर्वक अपडेट किया गया।"
 
 msgid "Duplicate Layout Code"
 msgstr ""
@@ -714,10 +910,19 @@ msgstr ""
 msgid "Duplicate Vehicle Entry"
 msgstr ""
 
+msgid "e.g. BR1"
+msgstr ""
+
+msgid "e.g. S0001"
+msgstr ""
+
 msgid "e.g. Sales, Operations"
 msgstr ""
 
 msgid "e.g., BMW, Mercedes"
+msgstr ""
+
+msgid "e.g., Luxury Diamond Pattern"
 msgstr ""
 
 msgid "e.g., Sport, Luxury"
@@ -771,6 +976,9 @@ msgstr "ईमेल पता *"
 msgid "End"
 msgstr ""
 
+msgid "Enlarged View"
+msgstr ""
+
 msgid "Enter a new password"
 msgstr ""
 
@@ -778,6 +986,9 @@ msgid "Enter a new password."
 msgstr ""
 
 msgid "Enter a valid email address."
+msgstr ""
+
+msgid "Enter batch number (optional)"
 msgstr ""
 
 msgid "Enter current password"
@@ -792,6 +1003,9 @@ msgstr ""
 msgid "Enter last name"
 msgstr ""
 
+msgid "Enter layout code"
+msgstr ""
+
 msgid "Enter new password"
 msgstr ""
 
@@ -801,17 +1015,23 @@ msgstr ""
 msgid "Enter reason, feedback, or stipulations for factory executive..."
 msgstr ""
 
+msgid "Enter serial number"
+msgstr ""
+
+msgid "Enter shipment or order number (optional)"
+msgstr ""
+
 msgid "Enter the new production container number"
 msgstr ""
 
-msgid "Enter unique layout code"
+msgid "Enter X-Code"
 msgstr ""
 
 msgid "Enter your password"
 msgstr ""
 
-msgid "Enter your username"
-msgstr ""
+msgid "Enter your username or email"
+msgstr "अपना उपयोगकर्ता नाम या ईमेल दर्ज करें"
 
 msgid "ERP ADMIN"
 msgstr ""
@@ -819,8 +1039,20 @@ msgstr ""
 msgid "ERP Admin Suite - Fabro Leather"
 msgstr ""
 
+msgid "Error approving image."
+msgstr ""
+
 #, python-format
 msgid "Error clearing sessions: %(error)s"
+msgstr ""
+
+msgid "Error creating folder."
+msgstr ""
+
+msgid "Error deleting folder."
+msgstr ""
+
+msgid "Error deleting image."
 msgstr ""
 
 msgid "Error loading complaint types"
@@ -830,6 +1062,18 @@ msgid "Error loading data"
 msgstr ""
 
 msgid "Error loading SKUs"
+msgstr ""
+
+msgid "Error reason for each failed row:\n"
+msgstr ""
+
+msgid "Error renaming folder."
+msgstr ""
+
+msgid "Error saving Google Drive link."
+msgstr ""
+
+msgid "Error saving vehicle pattern. Please try again."
 msgstr ""
 
 #, python-format
@@ -864,10 +1108,10 @@ msgstr "निष्पादन आंशिक सत्यापित"
 msgid "Execution submitted to the original approvers for verification."
 msgstr "निष्पादन सत्यापन के लिए मूल अनुमोदकों को भेजा गया।"
 
-msgid "Execution verification"
+msgid "Execution Verification"
 msgstr ""
 
-msgid "Execution Verification"
+msgid "Execution verification"
 msgstr ""
 
 msgid "Execution verification decision"
@@ -891,19 +1135,16 @@ msgstr ""
 msgid "FABRO"
 msgstr ""
 
-msgid "Fabro Leather"
-msgstr ""
-
 msgid "Factory"
 msgstr "फैक्टरी"
 
 msgid "Factory action plan"
 msgstr ""
 
-msgid "FACTORY COMPLAINT"
+msgid "Factory Complaint"
 msgstr "फैक्टरी शिकायत"
 
-msgid "Factory Complaint"
+msgid "FACTORY COMPLAINT"
 msgstr "फैक्टरी शिकायत"
 
 msgid "Factory Complaint Registrar"
@@ -912,10 +1153,10 @@ msgstr "फैक्टरी शिकायत पंजीयक"
 msgid "Factory Complaint Types"
 msgstr ""
 
-msgid "Factory Executive"
+msgid "Factory executive"
 msgstr "फैक्टरी कार्यकारी"
 
-msgid "Factory executive"
+msgid "Factory Executive"
 msgstr "फैक्टरी कार्यकारी"
 
 msgid "Factory Executive:"
@@ -951,8 +1192,14 @@ msgstr "फैक्टरी दर्शक"
 msgid "Factory:"
 msgstr ""
 
+msgid "Failed to reject image."
+msgstr ""
+
 msgid "Failed to send message."
 msgstr "संदेश भेजा नहीं जा सका।"
+
+msgid "Failed to update vehicle: "
+msgstr ""
 
 msgid "File must be a CSV."
 msgstr ""
@@ -962,6 +1209,21 @@ msgid "File size: %(size)s MB"
 msgstr ""
 
 msgid "File unavailable"
+msgstr ""
+
+msgid "Fill in details below"
+msgstr ""
+
+msgid "Fill in vehicle details"
+msgstr ""
+
+msgid "Filter approvals"
+msgstr ""
+
+msgid "Filter Complaints"
+msgstr ""
+
+msgid "Filter Vehicles"
 msgstr ""
 
 msgid "Filters"
@@ -979,16 +1241,49 @@ msgstr "पहला"
 msgid "First Name"
 msgstr "पहला नाम"
 
+msgid "Fitting"
+msgstr ""
+
+msgid "Fitting Confirm"
+msgstr ""
+
+msgid "Fitting Confirmation"
+msgstr ""
+
+msgid "Fitting confirmation updated successfully."
+msgstr ""
+
+msgid "Fitting Status"
+msgstr ""
+
 msgid "Flag"
 msgstr ""
 
 msgid "Flag / Detail"
 msgstr ""
 
+msgid "Folder"
+msgstr ""
+
+msgid "Folder Name"
+msgstr ""
+
+msgid "Folder name is required."
+msgstr ""
+
+msgid "Folder name must be 150 characters or fewer."
+msgstr ""
+
+msgid "Folders"
+msgstr ""
+
 msgid "Forgot"
 msgstr ""
 
 msgid "Forgot Password?"
+msgstr ""
+
+msgid "From Date"
 msgstr ""
 
 msgid "Full Name"
@@ -1001,6 +1296,18 @@ msgid "General Info"
 msgstr ""
 
 msgid "Go to workflow page"
+msgstr ""
+
+msgid "Google Drive"
+msgstr ""
+
+msgid "Google Drive Folder"
+msgstr ""
+
+msgid "Google Drive Folder URL"
+msgstr ""
+
+msgid "Google Drive URL"
 msgstr ""
 
 msgid "Green light proposed action"
@@ -1022,22 +1329,31 @@ msgstr ""
 msgid "Group name must be 150 characters or fewer."
 msgstr ""
 
+msgid "Hide details"
+msgstr ""
+
 msgid "High"
 msgstr ""
 
 msgid "ID"
 msgstr ""
 
+msgid "image"
+msgstr ""
+
+msgid "Image"
+msgstr ""
+
 msgid "Image Preview"
 msgstr "चित्र पूर्वावलोकन"
+
+msgid "images"
+msgstr ""
 
 msgid "Images and videos"
 msgstr "चित्र और वीडियो"
 
 msgid "Images and videos (Max 100MB each)"
-msgstr ""
-
-msgid "India"
 msgstr ""
 
 msgid "Initial approval"
@@ -1049,8 +1365,23 @@ msgstr "प्रारंभिक अनुमोदन"
 msgid "Inspect complaint in full complaint list"
 msgstr ""
 
-msgid "Invalid username or password. Please try again."
+msgid "Invalid decision choice."
 msgstr ""
+
+msgid "Invalid Drive value."
+msgstr "अमान्य ड्राइव मान।"
+
+msgid "Invalid fitting confirmation value."
+msgstr ""
+
+msgid "Invalid Measurement Country value."
+msgstr "अमान्य माप देश मान।"
+
+msgid "Invalid username, email, or password. Please try again."
+msgstr "अमान्य उपयोगकर्ता नाम, ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।"
+
+msgid "Invalid Vehicle Country value."
+msgstr "अमान्य वाहन देश मान।"
 
 msgid "IP"
 msgstr ""
@@ -1078,9 +1409,6 @@ msgstr ""
 msgid "Kick this user session?"
 msgstr ""
 
-msgid "KSA"
-msgstr ""
-
 msgid "Language"
 msgstr "भाषा"
 
@@ -1097,9 +1425,6 @@ msgstr ""
 msgid "Last Name"
 msgstr "अंतिम नाम"
 
-msgid "Layout"
-msgstr ""
-
 msgid "Layout Code"
 msgstr "लेआउट कोड"
 
@@ -1107,6 +1432,9 @@ msgid "Layout code already exists. Please use a unique layout code."
 msgstr ""
 
 msgid "Layout Code:"
+msgstr ""
+
+msgid "Link a Google Drive folder for"
 msgstr ""
 
 msgid "Linked Context:"
@@ -1129,11 +1457,41 @@ msgstr ""
 msgid "Live Approver Status Matrix"
 msgstr "लाइव अनुमोदक स्थिति मैट्रिक्स"
 
+msgid "Load older messages"
+msgstr ""
+
+msgid "Loading active sessions..."
+msgstr ""
+
+msgid "Loading activity logs..."
+msgstr ""
+
+msgid "Loading audit logs..."
+msgstr ""
+
+msgid "Loading history..."
+msgstr ""
+
+msgid "Loading master settings..."
+msgstr ""
+
+msgid "Loading SKU catalog..."
+msgstr ""
+
 msgid "Loading SKUs..."
 msgstr "एसकेयू लोड हो रहे हैं..."
 
 msgid "Loading types..."
 msgstr "प्रकार लोड हो रहे हैं..."
+
+msgid "Loading users directory..."
+msgstr ""
+
+msgid "Loading vehicle catalog..."
+msgstr ""
+
+msgid "Loading..."
+msgstr ""
 
 msgid "Log Back In"
 msgstr ""
@@ -1141,7 +1499,7 @@ msgstr ""
 msgid "Logged Out"
 msgstr ""
 
-msgid "Login - Fabro Leather"
+msgid "Login - Fabro Craft"
 msgstr ""
 
 msgid "Login Time"
@@ -1164,9 +1522,6 @@ msgstr "कैटलॉग प्रबंधित करें"
 
 msgid "Manage Master Settings"
 msgstr "मास्टर सेटिंग्स प्रबंधित करें"
-
-msgid "Manage product SKUs and inventory with inline editing & bulk upload capabilities"
-msgstr ""
 
 msgid "Manage User Groups & Privileges"
 msgstr ""
@@ -1205,6 +1560,9 @@ msgstr ""
 msgid "Measurement Country"
 msgstr "मापन देश"
 
+msgid "Measurement Country updated successfully."
+msgstr "माप देश सफलतापूर्वक अपडेट किया गया।"
+
 #, python-format
 msgid "Media %(number)s"
 msgstr ""
@@ -1231,6 +1589,9 @@ msgstr ""
 msgid "Missing required CSV columns: %(columns)s."
 msgstr ""
 
+msgid "Mobile Navigation"
+msgstr ""
+
 msgid "Model"
 msgstr "मॉडल"
 
@@ -1238,6 +1599,9 @@ msgid "Model Name"
 msgstr "मॉडल नाम"
 
 msgid "Model:"
+msgstr ""
+
+msgid "models"
 msgstr ""
 
 msgid "My Pending Reviews"
@@ -1252,17 +1616,39 @@ msgstr ""
 msgid "Needs Correction"
 msgstr ""
 
+msgid "Network error during upload."
+msgstr ""
+
+msgid "Network error occurred."
+msgstr ""
+
 #, python-format
 msgid "Network error while contacting server: %(error)s"
 msgstr ""
 
-msgid "New"
+msgid "Network error."
+msgstr ""
+
+msgid "Network error. Please retry."
 msgstr ""
 
 msgid "NEW"
 msgstr ""
 
+msgid "New"
+msgstr ""
+
+msgid "New 3D design upload pending review"
+msgstr ""
+
+#, python-format
+msgid "New 3D Design Upload: %(title)s"
+msgstr ""
+
 msgid "New approval requests will appear here."
+msgstr ""
+
+msgid "New Folder Name"
 msgstr ""
 
 msgid "New Password"
@@ -1273,6 +1659,12 @@ msgstr ""
 
 msgid "Next"
 msgstr "अगला"
+
+msgid "Next 4"
+msgstr ""
+
+msgid "Next image"
+msgstr ""
 
 msgid "No active sessions."
 msgstr "कोई सक्रिय सत्र नहीं।"
@@ -1289,6 +1681,9 @@ msgstr "कोई अनुमोदन नहीं मिला"
 msgid "No brands found."
 msgstr ""
 
+msgid "No change history recorded yet for this vehicle pattern."
+msgstr ""
+
 msgid "No complaints available yet."
 msgstr ""
 
@@ -1298,7 +1693,22 @@ msgstr "कोई शिकायत नहीं मिली"
 msgid "No decisions submitted yet."
 msgstr "अभी कोई निर्णय जमा नहीं हुआ।"
 
-msgid "No Logo"
+msgid "No design images have been uploaded to this folder yet."
+msgstr ""
+
+msgid "No files uploaded."
+msgstr ""
+
+msgid "No Folders or Images Yet"
+msgstr ""
+
+msgid "No Google Drive folder has been linked for this vehicle yet."
+msgstr ""
+
+msgid "No image found in clipboard. Copy an image or take a screenshot, then try again or press Ctrl+V."
+msgstr ""
+
+msgid "No Images In This Folder"
 msgstr ""
 
 msgid "No master settings found."
@@ -1322,7 +1732,13 @@ msgstr ""
 msgid "No messages yet"
 msgstr "अभी कोई संदेश नहीं"
 
+msgid "No models found."
+msgstr ""
+
 msgid "No notifications yet"
+msgstr ""
+
+msgid "No patterns selected."
 msgstr ""
 
 msgid "No pending approvals requiring your action."
@@ -1337,10 +1753,13 @@ msgstr "कोई समीक्षा लंबित नहीं"
 msgid "No settings for this category"
 msgstr "इस श्रेणी में कोई सेटिंग नहीं है"
 
+msgid "No SKUs found."
+msgstr ""
+
 msgid "No SKUs found. Click"
 msgstr ""
 
-msgid "No SKUs loaded."
+msgid "No submodels found."
 msgstr ""
 
 msgid "No team members found."
@@ -1355,16 +1774,28 @@ msgstr ""
 msgid "No users found."
 msgstr ""
 
+msgid "No users match the current filters."
+msgstr ""
+
 msgid "No values found"
 msgstr "कोई मान नहीं मिला"
 
 msgid "No vehicles added yet"
 msgstr "अभी कोई वाहन नहीं जोड़ा गया"
 
+msgid "No year ranges found."
+msgstr ""
+
+msgid "None"
+msgstr ""
+
 msgid "None (Global)"
 msgstr ""
 
 msgid "Note:"
+msgstr ""
+
+msgid "Notification pages"
 msgstr ""
 
 msgid "Notifications"
@@ -1384,6 +1815,9 @@ msgstr "ऑब्जेक्ट विवरण"
 
 msgid "Object Type"
 msgstr "ऑब्जेक्ट प्रकार"
+
+msgid "of"
+msgstr ""
 
 msgid "Offline"
 msgstr ""
@@ -1409,7 +1843,19 @@ msgstr ""
 msgid "Only a Django superuser can reset another superuser password."
 msgstr ""
 
+msgid "Only approver accounts can decide pattern alterations."
+msgstr ""
+
+msgid "Only staff users can alter patterns."
+msgstr ""
+
+msgid "Only staff users can edit vehicles."
+msgstr ""
+
 msgid "Open"
+msgstr ""
+
+msgid "Open Admin Panel"
 msgstr ""
 
 msgid "Open Approvals Workspace"
@@ -1419,6 +1865,12 @@ msgid "Open attached file"
 msgstr "संलग्न फ़ाइल खोलें"
 
 msgid "Open full dedicated review screen"
+msgstr ""
+
+msgid "Open in Drive"
+msgstr ""
+
+msgid "Open to load models."
 msgstr ""
 
 msgid "Optional for approval. Required when rejecting."
@@ -1433,8 +1885,14 @@ msgstr ""
 msgid "or drag and drop"
 msgstr "या खींचकर छोड़ें"
 
+msgid "Page"
+msgstr ""
+
 #, python-format
 msgid "Page %(page)s of %(pages)s"
+msgstr ""
+
+msgid "Page numbers"
 msgstr ""
 
 msgid "Parallel Review Progress"
@@ -1456,22 +1914,49 @@ msgstr "पासवर्ड *"
 msgid "Password reset successfully for %(username)s."
 msgstr ""
 
+msgid "Paste Image"
+msgstr ""
+
+msgid "Paste image from clipboard (or press Ctrl+V)"
+msgstr ""
+
 msgid "PAT-26070001"
 msgstr ""
 
 msgid "Pattern"
 msgstr "पैटर्न"
 
-msgid "Pattern Complaint"
-msgstr "पैटर्न शिकायत"
+msgid "Pattern added successfully."
+msgstr ""
+
+msgid "Pattern Change Log"
+msgstr ""
 
 msgid "PATTERN COMPLAINT"
+msgstr "पैटर्न शिकायत"
+
+msgid "Pattern Complaint"
 msgstr "पैटर्न शिकायत"
 
 msgid "Pattern Complaint Types"
 msgstr ""
 
+msgid "Pattern Master"
+msgstr ""
+
+msgid "Pattern Master - Fabro Leather"
+msgstr ""
+
+msgid "Pattern Master Alteration Request"
+msgstr ""
+
+msgid "Patterns"
+msgstr ""
+
 msgid "Pending"
+msgstr ""
+
+msgid "Pending Approval"
 msgstr ""
 
 msgid "Pending Approvals"
@@ -1479,6 +1964,12 @@ msgstr "लंबित अनुमोदन"
 
 msgid "Pending Final Update"
 msgstr "अंतिम अपडेट लंबित"
+
+msgid "Pending Review"
+msgstr ""
+
+msgid "Permission denied."
+msgstr ""
 
 msgid "Phone"
 msgstr ""
@@ -1498,6 +1989,15 @@ msgstr "वीडियो चलाएँ"
 msgid "Please enter a review comment explaining the rejection or rework requirement."
 msgstr ""
 
+msgid "Please press Ctrl+V on your keyboard to paste the image directly."
+msgstr ""
+
+msgid "Please press Ctrl+V on your keyboard to paste the image."
+msgstr ""
+
+msgid "Please provide a rejection reason."
+msgstr ""
+
 msgid "Please sign in to your account"
 msgstr ""
 
@@ -1507,8 +2007,29 @@ msgstr ""
 msgid "PNG, JPG (Max 5MB)"
 msgstr ""
 
+msgid "Post-execution verification matrix"
+msgstr ""
+
+msgid "Post-execution verification tracker"
+msgstr ""
+
+msgid "Pre-execution action plan approval matrix"
+msgstr ""
+
+msgid "Pre-execution approval tracker"
+msgstr ""
+
 msgid "Prev"
 msgstr "पिछला"
+
+msgid "Prev 4"
+msgstr ""
+
+msgid "Previous"
+msgstr ""
+
+msgid "Previous image"
+msgstr ""
 
 msgid "Priority"
 msgstr "प्राथमिकता"
@@ -1525,10 +2046,10 @@ msgstr ""
 msgid "Privileges (select multiple):"
 msgstr ""
 
-msgid "Proceed With Action Plan"
+msgid "Proceed with Action Plan"
 msgstr ""
 
-msgid "Proceed with Action Plan"
+msgid "Proceed With Action Plan"
 msgstr ""
 
 msgid "Proceed with Plan"
@@ -1567,6 +2088,9 @@ msgstr ""
 msgid "Profile photo must be under 5 MB."
 msgstr ""
 
+msgid "Profile photo removed successfully."
+msgstr ""
+
 msgid "Profile Settings"
 msgstr ""
 
@@ -1579,10 +2103,10 @@ msgstr "प्रस्तावित फैक्टरी कार्य य
 msgid "Quality"
 msgstr "गुणवत्ता"
 
-msgid "Quality Complaint"
+msgid "QUALITY COMPLAINT"
 msgstr "गुणवत्ता शिकायत"
 
-msgid "QUALITY COMPLAINT"
+msgid "Quality Complaint"
 msgstr "गुणवत्ता शिकायत"
 
 msgid "Quality Complaint Types"
@@ -1601,6 +2125,9 @@ msgid "Ready to upload"
 msgstr ""
 
 msgid "Real reason behind defect"
+msgstr ""
+
+msgid "Reason for Rejection"
 msgstr ""
 
 msgid "Reason:"
@@ -1624,6 +2151,9 @@ msgstr ""
 msgid "Region"
 msgstr "क्षेत्र"
 
+msgid "Region / Vehicle Country specification."
+msgstr "क्षेत्र / वाहन देश विनिर्देश।"
+
 msgid "Register a new customer complaint with detailed information"
 msgstr "विस्तृत जानकारी के साथ नई ग्राहक शिकायत दर्ज करें"
 
@@ -1632,6 +2162,12 @@ msgstr ""
 
 msgid "Reject / Rework"
 msgstr "अस्वीकार / पुनःकार्य"
+
+msgid "Reject Design"
+msgstr ""
+
+msgid "Reject Design Image"
+msgstr ""
 
 msgid "Reject Plan"
 msgstr ""
@@ -1643,6 +2179,10 @@ msgstr ""
 msgid "Rejected by %(role)s"
 msgstr ""
 
+#, python-format
+msgid "Rejection reason from %(user)s: %(reason)s"
+msgstr ""
+
 msgid "Rejection reconsideration"
 msgstr ""
 
@@ -1652,10 +2192,22 @@ msgstr ""
 msgid "Remove current photo"
 msgstr ""
 
+msgid "Remove file"
+msgstr ""
+
 msgid "Remove linked context"
 msgstr ""
 
 msgid "Remove photo"
+msgstr ""
+
+msgid "Remove this user profile photo?"
+msgstr ""
+
+msgid "Rename"
+msgstr ""
+
+msgid "Rename Folder"
 msgstr ""
 
 msgid "Report date"
@@ -1677,10 +2229,16 @@ msgstr "रिपोर्टकर्ता"
 msgid "Reported by %(reporter)s"
 msgstr ""
 
+msgid "Request approval to delete this vehicle pattern?"
+msgstr ""
+
 msgid "Request revisions or reject"
 msgstr "संशोधन माँगें या अस्वीकार करें"
 
 msgid "Required CSV Format"
+msgstr ""
+
+msgid "Reset"
 msgstr ""
 
 msgid "Reset Filters"
@@ -1688,9 +2246,6 @@ msgstr ""
 
 msgid "Reset Password"
 msgstr "पासवर्ड रीसेट करें"
-
-msgid "Resolved"
-msgstr ""
 
 msgid "Return for Rework"
 msgstr ""
@@ -1717,7 +2272,16 @@ msgstr ""
 msgid "Review Comments"
 msgstr ""
 
+msgid "Review Decision"
+msgstr ""
+
 msgid "Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed."
+msgstr ""
+
+msgid "reviewer tracker"
+msgstr ""
+
+msgid "Rework"
 msgstr ""
 
 msgid "Rework Required"
@@ -1737,6 +2301,12 @@ msgstr ""
 msgid "Round %(round)s"
 msgstr ""
 
+msgid "Sampling"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
 #, python-format
 msgid "Save %(type)s"
 msgstr ""
@@ -1747,10 +2317,16 @@ msgstr "बदलाव सहेजें"
 msgid "Save Details"
 msgstr ""
 
+msgid "Save Link"
+msgstr ""
+
 msgid "Save SKU"
 msgstr ""
 
 msgid "Save Updates And Close Case"
+msgstr ""
+
+msgid "Save Vehicle"
 msgstr ""
 
 #, python-format
@@ -1759,6 +2335,9 @@ msgstr ""
 
 #, python-format
 msgid "Saving %(type)s..."
+msgstr ""
+
+msgid "Saving..."
 msgstr ""
 
 msgid "Search"
@@ -1776,16 +2355,16 @@ msgstr ""
 msgid "Search complaints"
 msgstr "शिकायतें खोजें"
 
-msgid "Search complaints..."
-msgstr "शिकायतें खोजें..."
+msgid "Search Field"
+msgstr ""
 
 msgid "Search field choices"
 msgstr ""
 
-msgid "Search SKUs"
+msgid "Search or start a new chat"
 msgstr ""
 
-msgid "Search SKUs..."
+msgid "Search SKUs"
 msgstr ""
 
 msgid "Search team member..."
@@ -1794,13 +2373,19 @@ msgstr ""
 msgid "Search this keyword in"
 msgstr "इस शब्द को इसमें खोजें"
 
+msgid "Search this page..."
+msgstr ""
+
 msgid "Search values..."
 msgstr "मान खोजें..."
 
 msgid "Search vehicles"
 msgstr ""
 
-msgid "Search vehicles..."
+msgid "Search..."
+msgstr ""
+
+msgid "seats"
 msgstr ""
 
 msgid "Seats"
@@ -1809,14 +2394,32 @@ msgstr "सीटें"
 msgid "Security & Password"
 msgstr ""
 
+msgid "Select"
+msgstr ""
+
 msgid "Select a Team Member"
 msgstr "टीम सदस्य चुनें"
+
+msgid "Select all"
+msgstr ""
 
 msgid "Select All"
 msgstr "सभी चुनें"
 
 msgid "Select Country"
 msgstr "देश चुनें"
+
+msgid "Select Drive..."
+msgstr "ड्राइव चुनें..."
+
+msgid "Select filters to refine complaint list"
+msgstr ""
+
+msgid "Select filters to refine vehicle list"
+msgstr ""
+
+msgid "Select Fitting..."
+msgstr ""
 
 msgid "Select Model"
 msgstr "मॉडल चुनें"
@@ -1827,22 +2430,37 @@ msgstr ""
 msgid "Select SKU"
 msgstr "एसकेयू चुनें"
 
+msgid "Select Sub-Model"
+msgstr ""
+
 msgid "Select Sub-Model (Optional)"
 msgstr "सब-मॉडल चुनें (वैकल्पिक)"
 
 msgid "Select Type"
 msgstr "प्रकार चुनें"
 
-msgid "Select User Group"
-msgstr ""
-
-msgid "Select User Type"
-msgstr ""
-
 msgid "Select Year"
 msgstr "वर्ष चुनें"
 
+msgid "Selected patterns not found."
+msgstr ""
+
 msgid "Send Message"
+msgstr ""
+
+msgid "Send Rejection Feedback"
+msgstr ""
+
+msgid "Sending..."
+msgstr ""
+
+msgid "Serial No"
+msgstr ""
+
+msgid "Serial No is required."
+msgstr ""
+
+msgid "Serial Number"
 msgstr ""
 
 msgid "Series"
@@ -1863,19 +2481,17 @@ msgstr ""
 msgid "Setting updated successfully."
 msgstr ""
 
+msgid "Shipment/Order No"
+msgstr ""
+
 msgid "Show/Hide Password"
+msgstr ""
+
+msgid "Showing"
 msgstr ""
 
 msgid "Sign In"
 msgstr "साइन इन"
-
-#, python-format
-msgid "Skipped %(count)s duplicate layout codes: %(preview)s"
-msgstr ""
-
-#, python-format
-msgid "Skipped %(count)s invalid rows. %(preview)s"
-msgstr ""
 
 msgid "SKU"
 msgstr "एसकेयू"
@@ -1904,10 +2520,34 @@ msgstr ""
 msgid "SKU Master Catalog"
 msgstr "एसकेयू मास्टर कैटलॉग"
 
+msgid "SKU pages"
+msgstr ""
+
 msgid "SKU:"
 msgstr ""
 
 msgid "SKUs"
+msgstr ""
+
+msgid "Sort by Brand"
+msgstr ""
+
+msgid "Sort by Drive"
+msgstr "ड्राइव के अनुसार क्रमबद्ध करें"
+
+msgid "Sort by Measurement Country"
+msgstr "माप देश के अनुसार क्रमबद्ध करें"
+
+msgid "Sort by Model"
+msgstr ""
+
+msgid "Sort by Serial Number"
+msgstr ""
+
+msgid "Sort by Vehicle Country"
+msgstr "वाहन देश के अनुसार क्रमबद्ध करें"
+
+msgid "Specify the pattern issues, fitment mismatch, or corrections required..."
 msgstr ""
 
 msgid "Staff"
@@ -1973,11 +2613,8 @@ msgstr "जमा किया जा रहा है..."
 msgid "Submodel"
 msgstr "सब-मॉडल"
 
-#, python-format
-msgid "Successfully added %(count)s record."
-msgid_plural "Successfully added %(count)s records."
-msgstr[0] ""
-msgstr[1] ""
+msgid "submodels"
+msgstr ""
 
 msgid "Superseded"
 msgstr ""
@@ -1985,10 +2622,16 @@ msgstr ""
 msgid "Superuser"
 msgstr "सुपरयूज़र"
 
+msgid "System"
+msgstr ""
+
 msgid "System Dashboard"
 msgstr ""
 
 msgid "System Statistics"
+msgstr ""
+
+msgid "Tap to chat"
 msgstr ""
 
 msgid "Template, dimension, or cutting issue."
@@ -2030,6 +2673,9 @@ msgstr ""
 msgid "The final active superuser cannot be demoted."
 msgstr ""
 
+msgid "The import conflicted with another database update. Please retry."
+msgstr ""
+
 msgid "The import conflicted with another update. Please retry."
 msgstr ""
 
@@ -2037,6 +2683,18 @@ msgid "The layout code you entered already exists. Please use a unique layout co
 msgstr ""
 
 msgid "The SKU code or description you entered already exists. Please use unique values."
+msgstr ""
+
+msgid "The two password fields did not match."
+msgstr ""
+
+msgid "The uploaded CSV file is empty."
+msgstr ""
+
+msgid "This account is inactive."
+msgstr ""
+
+msgid "This alteration has already been decided."
 msgstr ""
 
 msgid "This approval round is complete"
@@ -2048,11 +2706,17 @@ msgstr ""
 msgid "This complaint is not ready for factory review."
 msgstr "यह शिकायत फैक्टरी समीक्षा के लिए तैयार नहीं है।"
 
-msgid "This Month"
+msgid "This design image has already been reviewed."
+msgstr ""
+
+msgid "This feedback will be posted to the freelancer's chat box & notifications."
 msgstr ""
 
 msgid "This page is restricted to administrators only."
 msgstr "यह पृष्ठ केवल प्रशासकों के लिए है।"
+
+msgid "This user has no profile photo to remove."
+msgstr ""
 
 msgid "This vehicle configuration overlaps with an existing entry:"
 msgstr ""
@@ -2060,10 +2724,16 @@ msgstr ""
 msgid "Timestamp"
 msgstr "समय-मुद्रा"
 
+msgid "To Date"
+msgstr ""
+
 msgid "To reset your password if forgotten, please contact your system administrator."
 msgstr ""
 
 msgid "Toggle filters"
+msgstr ""
+
+msgid "Too many failed login attempts. Your account is temporarily locked for 15 minutes. Please wait before trying again."
 msgstr ""
 
 msgid "Top"
@@ -2091,14 +2761,27 @@ msgid "Type & Material"
 msgstr ""
 
 #, python-format
+msgid "Type a message to %(username)s..."
+msgstr ""
+
+#, python-format
 msgid "Type a message to %(username)s... (Press Enter to send)"
 msgstr ""
 
 msgid "Type:"
 msgstr ""
 
+msgid "Unable to load this section. Please try again."
+msgstr ""
+
 msgid "Unable to load types"
 msgstr "प्रकार लोड नहीं किए जा सके"
+
+msgid "Unable to save changes. Check your connection and try again."
+msgstr ""
+
+msgid "Unable to save user profile."
+msgstr ""
 
 msgid "Unavailable"
 msgstr ""
@@ -2115,10 +2798,10 @@ msgstr ""
 msgid "Update complaint information and manage media files"
 msgstr ""
 
-msgid "Update Order #"
-msgstr "अपडेट ऑर्डर संख्या"
-
 msgid "Update Password"
+msgstr ""
+
+msgid "Update Pattern"
 msgstr ""
 
 msgid "Update Privileges"
@@ -2139,12 +2822,6 @@ msgstr ""
 msgid "Update vehicle configuration and specifications"
 msgstr ""
 
-msgid "Updated Order #"
-msgstr "अपडेटेड ऑर्डर संख्या"
-
-msgid "Upload"
-msgstr "अपलोड"
-
 msgid "Upload a valid image."
 msgstr ""
 
@@ -2152,6 +2829,12 @@ msgid "Upload CSV"
 msgstr "CSV अपलोड करें"
 
 msgid "Upload CSV File"
+msgstr ""
+
+msgid "Upload failed."
+msgstr ""
+
+msgid "Upload Images"
 msgstr ""
 
 msgid "Upload profile photo"
@@ -2176,6 +2859,10 @@ msgid "User"
 msgstr "उपयोगकर्ता"
 
 #, python-format
+msgid "User %(username)s and password were updated."
+msgstr ""
+
+#, python-format
 msgid "User %(username)s and workflow access were updated."
 msgstr ""
 
@@ -2192,7 +2879,7 @@ msgstr ""
 msgid "User not found."
 msgstr ""
 
-msgid "User Type"
+msgid "User profile not found."
 msgstr ""
 
 msgid "Username"
@@ -2210,6 +2897,9 @@ msgstr ""
 msgid "Username must be 150 characters or fewer."
 msgstr ""
 
+msgid "Username or Email"
+msgstr "उपयोगकर्ता नाम या ईमेल"
+
 msgid "Users"
 msgstr "उपयोगकर्ता"
 
@@ -2219,7 +2909,7 @@ msgstr "वाहन"
 msgid "Vehicle & SKU"
 msgstr ""
 
-msgid "Vehicle added successfully."
+msgid "Vehicle Actions"
 msgstr ""
 
 msgid "Vehicle Brands & Models"
@@ -2231,29 +2921,26 @@ msgstr ""
 msgid "Vehicle Country"
 msgstr "वाहन देश"
 
+msgid "Vehicle Country updated successfully."
+msgstr "वाहन देश सफलतापूर्वक अपडेट किया गया।"
+
 msgid "Vehicle deleted successfully."
 msgstr ""
 
-msgid "Vehicle Information"
-msgstr "वाहन जानकारी"
-
-msgid "Vehicle Management"
-msgstr "वाहन प्रबंधन"
-
-msgid "Vehicle Management - Fabro Leather"
+msgid "Vehicle Images"
 msgstr ""
 
-msgid "Vehicle Models"
-msgstr "वाहन मॉडल"
+msgid "Vehicle pages"
+msgstr ""
+
+msgid "Vehicle pages (top)"
+msgstr ""
 
 msgid "Vehicle updated successfully."
 msgstr ""
 
 msgid "Vehicle:"
 msgstr ""
-
-msgid "Vehicles"
-msgstr "वाहन"
 
 msgid "Verification"
 msgstr "सत्यापन"
@@ -2270,16 +2957,19 @@ msgstr ""
 msgid "Verify Execution"
 msgstr ""
 
-msgid "View"
-msgstr "देखें"
-
 msgid "View All"
 msgstr ""
 
 msgid "View all complaints"
 msgstr ""
 
+msgid "View complaint"
+msgstr ""
+
 msgid "View Complaint Details"
+msgstr ""
+
+msgid "View details"
 msgstr ""
 
 msgid "View Details"
@@ -2294,11 +2984,8 @@ msgstr ""
 msgid "Welcome Back"
 msgstr ""
 
-msgid "Where the measurement is taken for this vehicle"
-msgstr ""
-
-msgid "Where the vehicle is manufactured."
-msgstr ""
+msgid "Where the measurement was taken for this vehicle"
+msgstr "इस वाहन का माप जहाँ लिया गया था"
 
 msgid "Workflow Role *"
 msgstr "कार्यप्रवाह भूमिका *"
@@ -2322,6 +3009,9 @@ msgid "Write the proposed action plan from the factory."
 msgstr ""
 
 msgid "Write the real reason behind the defect after reviewing photos/videos."
+msgstr ""
+
+msgid "X-Code"
 msgstr ""
 
 msgid "Year"
@@ -2360,6 +3050,10 @@ msgstr ""
 msgid "Your decision"
 msgstr ""
 
+#, python-format
+msgid "Your design image \"%(title)s\" was approved by %(user)s."
+msgstr ""
+
 msgid "Your password has been changed successfully."
 msgstr "आपका पासवर्ड सफलतापूर्वक बदल गया।"
 
@@ -2376,7 +3070,19 @@ msgstr ""
 msgid "Your review was saved. The remaining member reviews are still pending."
 msgstr ""
 
-msgid "© 2025 Fabro Leather. All rights reserved."
+msgid "Your session has expired. Please refresh the page and sign in again."
+msgstr "आपका सत्र समाप्त हो गया है। कृपया पेज को रीफ्रेश करें और पुनः साइन इन करें।"
+
+msgid "Your session has expired. Please sign in again."
+msgstr "आपका सत्र समाप्त हो गया है। कृपया पुनः साइन इन करें।"
+
+msgid "{user} requested deletion of {count} pattern(s): {patterns}"
+msgstr ""
+
+msgid "{user} updated pattern {serial} ({brand} {model})"
+msgstr ""
+
+msgid "© 2025 Fabro Leather, All rights reserved."
 msgstr ""
 
 msgid "● Online"

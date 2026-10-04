@@ -15,24 +15,53 @@ msgid "%(filename)s — Ready to upload"
 msgstr "%(filename)s — Ready to upload"
 
 #, python-format
-msgid "+%(count)s more"
-msgstr "+%(count)s more"
-
-#, python-format
 msgid "A complaint can contain at most %(count)s media files."
 msgstr "A complaint can contain at most %(count)s media files."
 
 msgid "Action Plan"
 msgstr "Action Plan"
 
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Add Vehicle"
+msgstr "Add Vehicle"
+
+msgid "Add Vehicle Pattern"
+msgstr "Add Vehicle Pattern"
+
+msgid "All Brands"
+msgstr "All Brands"
+
 msgid "All Fields"
 msgstr "All Fields"
+
+msgid "All Measurement Countries"
+msgstr "All Measurement Countries"
+
+msgid "All Models"
+msgstr "All Models"
+
+msgid "All Sub-Models"
+msgstr "All Sub-Models"
+
+msgid "All values shown"
+msgstr "All values shown"
+
+msgid "All Vehicle Countries"
+msgstr "All Vehicle Countries"
+
+msgid "All Years"
+msgstr "All Years"
 
 msgid "An error occurred while submitting your decision."
 msgstr "An error occurred while submitting your decision."
 
 msgid "Approve Plan"
 msgstr "Approve Plan"
+
+msgid "Approved"
+msgstr "Approved"
 
 #, python-format
 msgid "Are you sure you want to delete %(name)s?"
@@ -69,11 +98,20 @@ msgstr "Category"
 msgid "Channel"
 msgstr "Channel"
 
+msgid "Choose File"
+msgstr "Choose File"
+
 msgid "Clear"
 msgstr "Clear"
 
+msgid "Clear / None"
+msgstr "Clear / None"
+
 msgid "Clear All"
 msgstr "Clear All"
+
+msgid "Close"
+msgstr "Close"
 
 msgid "Complaint"
 msgstr "Complaint"
@@ -93,6 +131,9 @@ msgstr "Country"
 msgid "Dashboard"
 msgstr "Dashboard"
 
+msgid "Delete"
+msgstr "Delete"
+
 msgid "Delete group?"
 msgstr "Delete group?"
 
@@ -105,6 +146,9 @@ msgstr "Description"
 msgid "Each media file must be 100 MB or smaller."
 msgstr "Each media file must be 100 MB or smaller."
 
+msgid "Edit Vehicle"
+msgstr "Edit Vehicle"
+
 msgid "Error loading complaint types"
 msgstr "Error loading complaint types"
 
@@ -113,6 +157,9 @@ msgstr "Error loading data"
 
 msgid "Error loading SKUs"
 msgstr "Error loading SKUs"
+
+msgid "Error saving vehicle pattern. Please try again."
+msgstr "Error saving vehicle pattern. Please try again."
 
 msgid "Execution Is Correct"
 msgstr "Execution Is Correct"
@@ -130,8 +177,17 @@ msgstr "Failed to send message."
 msgid "File size: %(size)s MB"
 msgstr "File size: %(size)s MB"
 
+msgid "Fill in vehicle details"
+msgstr "Fill in vehicle details"
+
+msgid "Fitting Confirmation"
+msgstr "Fitting Confirmation"
+
 msgid "Flag"
 msgstr "Flag"
+
+msgid "Hide details"
+msgstr "Hide details"
 
 msgid "Kick this session?"
 msgstr "Kick this session?"
@@ -139,14 +195,29 @@ msgstr "Kick this session?"
 msgid "Kick this user session?"
 msgstr "Kick this user session?"
 
-msgid "Layout Code"
-msgstr "Layout Code"
+msgid "Load older messages"
+msgstr "Load older messages"
+
+msgid "Loading audit logs..."
+msgstr "Loading audit logs..."
+
+msgid "Loading SKU catalog..."
+msgstr "Loading SKU catalog..."
 
 msgid "Loading SKUs..."
 msgstr "Loading SKUs..."
 
 msgid "Loading types..."
 msgstr "Loading types..."
+
+msgid "Loading users directory..."
+msgstr "Loading users directory..."
+
+msgid "Loading vehicle catalog..."
+msgstr "Loading vehicle catalog..."
+
+msgid "Loading..."
+msgstr "Loading..."
 
 msgid "Manufacturing, material, or stitching defect."
 msgstr "Manufacturing, material, or stitching defect."
@@ -163,6 +234,9 @@ msgstr "Needs Correction"
 #, python-format
 msgid "Network error while contacting server: %(error)s"
 msgstr "Network error while contacting server: %(error)s"
+
+msgid "No change history recorded yet for this vehicle pattern."
+msgstr "No change history recorded yet for this vehicle pattern."
 
 msgid "No matching SKUs"
 msgstr "No matching SKUs"
@@ -212,8 +286,23 @@ msgstr "Region"
 msgid "Reject Plan"
 msgstr "Reject Plan"
 
+msgid "Rejected"
+msgstr "Rejected"
+
+msgid "Remove file"
+msgstr "Remove file"
+
+msgid "Remove this user profile photo?"
+msgstr "Remove this user profile photo?"
+
 msgid "Reported By"
 msgstr "Reported By"
+
+msgid "Request approval to delete this vehicle pattern?"
+msgstr "Request approval to delete this vehicle pattern?"
+
+msgid "Reset"
+msgstr "Reset"
 
 msgid "Return for Rework"
 msgstr "Return for Rework"
@@ -222,9 +311,15 @@ msgstr "Return for Rework"
 msgid "Save %(type)s"
 msgstr "Save %(type)s"
 
+msgid "Save Changes"
+msgstr "Save Changes"
+
 #, python-format
 msgid "Saving %(type)s..."
 msgstr "Saving %(type)s..."
+
+msgid "Saving..."
+msgstr "Saving..."
 
 msgid "Search values..."
 msgstr "Search values..."
@@ -238,6 +333,9 @@ msgstr "Select Model"
 msgid "Select SKU"
 msgstr "Select SKU"
 
+msgid "Select Sub-Model"
+msgstr "Select Sub-Model"
+
 msgid "Select Sub-Model (Optional)"
 msgstr "Select Sub-Model (Optional)"
 
@@ -247,11 +345,20 @@ msgstr "Select Type"
 msgid "Select Year"
 msgstr "Select Year"
 
+msgid "Serial No"
+msgstr "Serial No"
+
+msgid "Serial No is required."
+msgstr "Serial No is required."
+
 msgid "Setting updated successfully."
 msgstr "Setting updated successfully."
 
 msgid "SKU Code"
 msgstr "SKU Code"
+
+msgid "Staff"
+msgstr "Staff"
 
 msgid "Start the conversation by sending a text below."
 msgstr "Start the conversation by sending a text below."
@@ -268,6 +375,9 @@ msgstr "Submit Reconsideration Vote"
 msgid "Submitting..."
 msgstr "Submitting..."
 
+msgid "Superuser"
+msgstr "Superuser"
+
 msgid "Template, dimension, or cutting issue."
 msgstr "Template, dimension, or cutting issue."
 
@@ -278,11 +388,24 @@ msgid "To reset your password if forgotten, please contact your system administr
 msgstr "To reset your password if forgotten, please contact your system administrator."
 
 #, python-format
+msgid "Type a message to %(username)s..."
+msgstr "Type a message to %(username)s..."
+
+#, python-format
 msgid "Type a message to %(username)s... (Press Enter to send)"
 msgstr "Type a message to %(username)s... (Press Enter to send)"
 
+msgid "Unable to load this section. Please try again."
+msgstr "Unable to load this section. Please try again."
+
 msgid "Unable to load types"
 msgstr "Unable to load types"
+
+msgid "Unable to save changes. Check your connection and try again."
+msgstr "Unable to save changes. Check your connection and try again."
+
+msgid "Unable to save user profile."
+msgstr "Unable to save user profile."
 
 msgid "Uploading..."
 msgstr "Uploading..."
@@ -295,3 +418,9 @@ msgstr "Vehicle Country"
 
 msgid "Verify Executed Action Plan"
 msgstr "Verify Executed Action Plan"
+
+msgid "View details"
+msgstr "View details"
+
+msgid "X-Code"
+msgstr "X-Code"

@@ -22,6 +22,10 @@ MIGRATION_MODULES = {app: None for app in (
     'admin', 'auth', 'contenttypes', 'sessions', 'authtoken', 'management',
 )}
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+AUTHENTICATION_BACKENDS = [
+    'management.auth_backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

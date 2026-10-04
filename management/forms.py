@@ -88,6 +88,17 @@ class CarDetailsForm(forms.Form):
         empty_label=_("Select Country"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+    DRIVE_CHOICES = [
+        ('', _('Select Drive...')),
+        ('LHD', 'LHD'),
+        ('RHD', 'RHD'),
+    ]
+    drive = forms.ChoiceField(
+        label=_("Drive"),
+        choices=DRIVE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
     
     widgets = {
         'serial_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': _('e.g. S0001')}),
@@ -646,3 +657,36 @@ class GroupCreationForm(forms.ModelForm):
 class AssignUserToGroupForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all())
     group = forms.ModelChoiceField(queryset=Group.objects.all())
+
+
+from django.contrib.auth.forms import AuthenticationForm
+
+
+class EmailOrUsernameAuthenticationForm(AuthenticationForm):
+    """Authentication form accepting either username or email."""
+
+    username = forms.CharField(
+        label=_("Username or Email"),
+        max_length=254,
+        widget=forms.TextInput(attrs={
+            'autocomplete': 'username',
+            'autofocus': True,
+            'class': 'form-input',
+            'placeholder': _('Enter your username or email'),
+        }),
+    )
+
+    error_messages = {
+        'invalid_login': _(
+            'Invalid username, email, or password. Please try again.'
+        ),
+        'inactive': _('This account is inactive.'),
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        super().__init__(request=request, *args, **kwargs)
+        self.fields['username'].max_length = 254
+        self.fields['username'].widget.attrs['maxlength'] = '254'
+        self.fields['username'].label = _('Username or Email')
+        self.fields['username'].widget.attrs['placeholder'] = _('Enter your username or email')
+

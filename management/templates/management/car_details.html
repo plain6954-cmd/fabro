@@ -1356,7 +1356,7 @@
                                             </button>
                                             <span class="tooltip-container">
                                                 <i class="fas fa-info-circle info-icon"></i>
-                                                <span class="tooltip-text">{% translate "Where the vehicle is manufactured." %}</span>
+                                                <span class="tooltip-text">{% translate "Country specification for this vehicle" %}</span>
                                             </span>
                                             <div style="display: flex; align-items: center; gap: 0.2rem; margin-left: auto;">
                                                 <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.72rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
@@ -1372,8 +1372,20 @@
                                             </button>
                                             <span class="tooltip-container">
                                                 <i class="fas fa-info-circle info-icon"></i>
-                                                <span class="tooltip-text">{% translate "Where the measurement is taken for this vehicle" %}</span>
+                                                <span class="tooltip-text">{% translate "Where the measurement was taken for this vehicle" %}</span>
                                             </span>
+                                            <div style="display: flex; align-items: center; gap: 0.2rem; margin-left: auto;">
+                                                <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.72rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
+                                                <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.72rem;"><i class="fas fa-chevron-down"></i></span>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="col-drive" data-filter-col="13">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; width: 100%; white-space: nowrap;">
+                                            <button type="button" class="col-sort-btn" data-sort-key="drive" title="{% translate "Sort by Drive" %}" aria-label="{% translate "Sort by Drive" %}" aria-sort="none">
+                                                <span>{% translate "Drive" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
                                             <div style="display: flex; align-items: center; gap: 0.2rem; margin-left: auto;">
                                                 <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.72rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                                 <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.72rem;"><i class="fas fa-chevron-down"></i></span>
@@ -1389,7 +1401,7 @@
                                             </button>
                                             <span class="tooltip-container">
                                                 <i class="fas fa-info-circle info-icon"></i>
-                                                <span class="tooltip-text">{% translate "Where the vehicle is manufactured." %}</span>
+                                                <span class="tooltip-text">{% translate "Country specification for this vehicle" %}</span>
                                             </span>
                                         </div>
                                     </th>
@@ -1401,8 +1413,16 @@
                                             </button>
                                             <span class="tooltip-container">
                                                 <i class="fas fa-info-circle info-icon"></i>
-                                                <span class="tooltip-text">{% translate "Where the measurement is taken for this vehicle" %}</span>
+                                                <span class="tooltip-text">{% translate "Where the measurement was taken for this vehicle" %}</span>
                                             </span>
+                                        </div>
+                                    </th>
+                                    <th class="col-drive">
+                                        <div style="display: flex; align-items: center; gap: 0.3rem; width: 100%; white-space: nowrap;">
+                                            <button type="button" class="col-sort-btn" data-sort-key="drive" title="{% translate "Sort by Drive" %}" aria-label="{% translate "Sort by Drive" %}" aria-sort="none">
+                                                <span>{% translate "Drive" %}</span>
+                                                <i class="fas fa-sort col-sort-icon"></i>
+                                            </button>
                                         </div>
                                     </th>
                                     {% endif %}
@@ -1449,12 +1469,19 @@
                                         </select>
                                     </td>
                                     <td class="col-country col-measurement-country">
+                                        <select name="measurement_country" class="form-input" form="add-vehicle-form" style="padding: 0.2rem 0.35rem; font-size: 0.75rem; margin: 0; min-height: unset; height: 28px; background-color: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; width: 100%; box-sizing: border-box;">
+                                            <option value="">{% translate "Country" %}</option>
+                                            {% for country in countries %}
+                                                <option value="{{ country.id }}">{{ country.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="col-drive">
                                         <div style="display: flex; align-items: center; gap: 0.35rem; width: 100%;">
-                                            <select name="measurement_country" class="form-input" form="add-vehicle-form" style="padding: 0.2rem 0.35rem; font-size: 0.75rem; margin: 0; min-height: unset; height: 28px; background-color: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; flex: 1 1 auto; min-width: 0; box-sizing: border-box;">
-                                                <option value="">{% translate "Country" %}</option>
-                                                {% for country in countries %}
-                                                    <option value="{{ country.id }}">{{ country.name }}</option>
-                                                {% endfor %}
+                                            <select name="drive" class="form-input" form="add-vehicle-form" style="padding: 0.2rem 0.25rem; font-size: 0.72rem; margin: 0; min-height: unset; height: 28px; background-color: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; flex: 1 1 auto; min-width: 0; box-sizing: border-box;">
+                                                <option value="">{% translate "Drive" %}</option>
+                                                <option value="LHD">LHD</option>
+                                                <option value="RHD">RHD</option>
                                             </select>
                                             <div class="inline-row-actions" style="display: inline-flex; gap: 0.25rem; align-items: center; flex-shrink: 0;">
                                                 <button type="submit" form="add-vehicle-form" class="action-btn edit" title="{% translate "Add Vehicle" %}" style="background-color: var(--primary-color); width: 26px; height: 26px; border-radius: 6px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 2px 6px rgba(229, 57, 53, 0.3); color: #fff;">
@@ -1515,10 +1542,56 @@
                                                 {% endif %}
                                             {% endif %}
                                         </td>
-                                        <td class="col-country col-vehicle-country" title="{{ car.vehicle_country }}">{{ car.vehicle_country }}</td>
-                                        <td class="col-country col-measurement-country" title="{{ car.measurement_country }}">{{ car.measurement_country }}</td>
+                                        <td class="col-country col-vehicle-country" data-vehicle-country-id="{{ car.id }}">
+                                            {% if can_manage_catalog %}
+                                                <button type="button" 
+                                                        class="region-dropdown-btn country-badge {% if car.vehicle_country %}is-{{ car.vehicle_country|lower|slugify }}{% else %}is-none{% endif %}" 
+                                                        data-id="{{ car.id }}" 
+                                                        data-current="{% if car.vehicle_country %}{{ car.vehicle_country }}{% endif %}"
+                                                        title="{% translate "Change Vehicle Country" %}">
+                                                    <span class="country-badge-text">{% if car.vehicle_country %}{{ car.vehicle_country }}{% else %}-{% endif %}</span>
+                                                    <i class="fas fa-caret-down country-badge-caret"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="country-badge {% if car.vehicle_country %}is-{{ car.vehicle_country|lower|slugify }}{% else %}is-none{% endif %}">
+                                                    {% if car.vehicle_country %}{{ car.vehicle_country }}{% else %}-{% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="col-country col-measurement-country" data-measurement-country-id="{{ car.id }}">
+                                            {% if can_manage_catalog %}
+                                                <button type="button" 
+                                                        class="measured-dropdown-btn country-badge {% if car.measurement_country %}is-{{ car.measurement_country|lower|slugify }}{% else %}is-none{% endif %}" 
+                                                        data-id="{{ car.id }}" 
+                                                        data-current="{% if car.measurement_country %}{{ car.measurement_country }}{% endif %}"
+                                                        title="{% translate "Change Measurement Country" %}">
+                                                    <span class="country-badge-text">{% if car.measurement_country %}{{ car.measurement_country }}{% else %}-{% endif %}</span>
+                                                    <i class="fas fa-caret-down country-badge-caret"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="country-badge {% if car.measurement_country %}is-{{ car.measurement_country|lower|slugify }}{% else %}is-none{% endif %}">
+                                                    {% if car.measurement_country %}{{ car.measurement_country }}{% else %}-{% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="col-drive" data-drive-id="{{ car.id }}">
+                                            {% if can_manage_catalog %}
+                                                <button type="button" 
+                                                        class="drive-dropdown-btn drive-badge {% if car.drive == 'LHD' %}is-lhd{% elif car.drive == 'RHD' %}is-rhd{% else %}is-none{% endif %}" 
+                                                        data-id="{{ car.id }}" 
+                                                        data-current="{% if car.drive and car.drive != '-' %}{{ car.drive }}{% endif %}"
+                                                        title="{% translate "Change Drive" %}">
+                                                    <span class="drive-badge-text">{% if car.drive and car.drive != '-' %}{{ car.drive }}{% else %}-{% endif %}</span>
+                                                    <i class="fas fa-caret-down drive-badge-caret"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="drive-badge {% if car.drive == 'LHD' %}is-lhd{% elif car.drive == 'RHD' %}is-rhd{% else %}is-none{% endif %}">
+                                                    {% if car.drive and car.drive != '-' %}{{ car.drive }}{% else %}-{% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </td>
                                         <!-- Mobile Card Presentation: Strictly visible on <= 768px via CSS -->
-                                        <td class="mobile-pattern-card-view" colspan="13">
+                                        <td class="mobile-pattern-card-view" colspan="14">
                                             <div class="pattern-mobile-card">
                                                 <!-- Header: Brand/Model + Serial -->
                                                 <div class="pattern-mobile-card__header">
@@ -1548,6 +1621,10 @@
                                                     <div class="pattern-mobile-info-item">
                                                         <span class="info-item-label">{% translate "X-Code" %}</span>
                                                         <span class="info-item-value xcode-val" title="{{ car.x_code|default:'—' }}">{% if car.x_code and car.x_code != '-' %}{{ car.x_code }}{% else %}—{% endif %}</span>
+                                                    </div>
+                                                    <div class="pattern-mobile-info-item">
+                                                        <span class="info-item-label">{% translate "Drive" %}</span>
+                                                        <span class="info-item-value">{{ car.drive|default:'—' }}</span>
                                                     </div>
                                                 </div>
 
@@ -1690,12 +1767,19 @@
                                             </select>
                                         </td>
                                         <td class="col-country col-measurement-country">
+                                            <select name="measurement_country" class="form-input" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.2rem 0.35rem; font-size: 0.75rem; margin: 0; min-height: unset; height: 28px; background-color: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; width: 100%; box-sizing: border-box;">
+                                                <option value="">{% translate "Country" %}</option>
+                                                {% for country in countries %}
+                                                    <option value="{{ country.id }}" {% if car.measurement_country_id == country.id %}selected{% endif %}>{{ country.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td class="col-drive">
                                             <div style="display: flex; align-items: center; gap: 0.35rem; width: 100%;">
-                                                <select name="measurement_country" class="form-input" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.2rem 0.35rem; font-size: 0.75rem; margin: 0; min-height: unset; height: 28px; background-color: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; flex: 1 1 auto; min-width: 0; box-sizing: border-box;">
-                                                    <option value="">{% translate "Country" %}</option>
-                                                    {% for country in countries %}
-                                                        <option value="{{ country.id }}" {% if car.measurement_country_id == country.id %}selected{% endif %}>{{ country.name }}</option>
-                                                    {% endfor %}
+                                                <select name="drive" class="form-input" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.2rem 0.25rem; font-size: 0.72rem; margin: 0; min-height: unset; height: 28px; background-color: var(--dark-card); color: var(--dark-text); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; flex: 1 1 auto; min-width: 0; box-sizing: border-box;">
+                                                    <option value="">{% translate "Drive" %}</option>
+                                                    <option value="LHD" {% if car.drive == "LHD" %}selected{% endif %}>LHD</option>
+                                                    <option value="RHD" {% if car.drive == "RHD" %}selected{% endif %}>RHD</option>
                                                 </select>
                                                 <div class="inline-row-actions" style="display: inline-flex; gap: 0.25rem; align-items: center; flex-shrink: 0;">
                                                     <button type="button" class="action-btn edit save-btn" onclick="saveInlineEdit('{{ car.id }}')" title="{% translate "Save Vehicle" %}" style="background-color: #10b981; color: #fff; width: 26px; height: 26px; border-radius: 6px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);">
@@ -1829,7 +1913,7 @@
                                 </div>
                             </div>
 
-                            <input type="file" id="directVehicleImageFileInput" multiple accept="image/*" style="display: none;" onchange="handleDirectVehicleImageSelected(this.files)">
+                            <input type="file" id="directVehicleImageFileInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl" style="display: none;" onchange="handleDirectVehicleImageSelected(this.files)">
                             {% endif %}
                         </div>
                     </div>
@@ -1895,7 +1979,7 @@
                                 </button>
                                 <button type="button" class="btn btn-secondary" onclick="document.getElementById('directVehicleImageFileInput').click()">
                                     <i class="fas fa-image"></i>
-                                    <span>{% translate "Add Image" %}</span>
+                                    <span>{% translate "Add File" %}</span>
                                 </button>
                             </div>
                             {% endif %}
@@ -1937,10 +2021,10 @@
                             <span class="paste-hint-badge" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: #cbd5e1; background: rgba(255, 255, 255, 0.07); padding: 0.35rem 0.65rem; border-radius: 6px; border: 1px dashed rgba(255, 255, 255, 0.2);" title="{% translate "Copy any image to clipboard and press Ctrl+V to paste directly into this folder" %}">
                                 <kbd style="background: rgba(0,0,0,0.3); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.72rem; font-family: inherit;">Ctrl+V</kbd>
                             </span>
-                            <input type="file" id="designImageFileInput" multiple accept="image/*" style="display: none;" onchange="handleDesignImageSelected(this.files)">
+                            <input type="file" id="designImageFileInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl" style="display: none;" onchange="handleDesignImageSelected(this.files)">
                             <button type="button" class="btn btn-primary" onclick="document.getElementById('designImageFileInput').click()" title="{% translate "Upload Images" %}" style="height: 2.25rem; padding: 0 0.95rem; font-size: 0.82rem;">
                                 <i class="fas fa-cloud-upload-alt"></i>
-                                <span>{% translate "Upload Images" %}</span>
+                                <span>{% translate "Upload Files" %}</span>
                             </button>
                             <button type="button" class="btn btn-danger icon-btn" onclick="confirmDeleteCurrentFolder()" title="{% translate "Delete Folder" %}" style="width: 2.25rem; height: 2.25rem; font-size: 0.85rem; border-radius: 6px;">
                                 <i class="fas fa-trash"></i>
@@ -2254,7 +2338,9 @@
                     if (typeof currentVehicleId !== 'undefined' && currentVehicleId) {
                         newUrl.searchParams.set('vehicle_id', currentVehicleId);
                     }
-                    newUrl.hash = 'design-options';
+                    if (!newUrl.hash || newUrl.hash === '#pattern-list') {
+                        newUrl.hash = 'design-options';
+                    }
                     history.replaceState(null, '', newUrl.toString());
                 } catch(e) {}
                 if (typeof loadDesignFolders === 'function') {
@@ -2266,7 +2352,7 @@
         }
 
         pageScope.listen(window, 'hashchange', function() {
-            if (window.location.hash === '#design-options') {
+            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-')) {
                 switchPatternTab('design-options');
             } else {
                 switchPatternTab('pattern-list');
@@ -3342,6 +3428,482 @@
                 });
             })();
 
+            // -------------------------------------------------------------------------
+            // Region Spec Dropdown Manager (Interactive dropdown pills)
+            // -------------------------------------------------------------------------
+            (function initRegionSpecDropdown() {
+                let regionMenu = document.getElementById('regionSpecMenu');
+                if (!regionMenu) {
+                    regionMenu = document.createElement('div');
+                    regionMenu.id = 'regionSpecMenu';
+                    regionMenu.className = 'fitting-confirmation-popup country-picker-popup';
+                    regionMenu.style.display = 'none';
+                    regionMenu.innerHTML = `
+                        <div class="fitting-popup-content">
+                            <div class="fitting-popup-options">
+                                <button type="button" class="fitting-option-item" data-value="GCC" title="GCC">
+                                    <span class="country-badge is-gcc" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">GCC</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="USA" title="USA">
+                                    <span class="country-badge is-usa" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">USA</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="Europe" title="Europe">
+                                    <span class="country-badge is-europe" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">Europe</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="North America" title="North America">
+                                    <span class="country-badge is-north-america" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">North America</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="India" title="India">
+                                    <span class="country-badge is-india" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">India</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="China" title="China">
+                                    <span class="country-badge is-china" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">China</span>
+                                </button>
+                            </div>
+                            <div class="fitting-popup-divider"></div>
+                            <button type="button" class="fitting-option-clear" data-value="" title="Clear region">
+                                <i class="fas fa-ban"></i> <span>${window.FabroI18n.gettext('Clear / None')}</span>
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(regionMenu);
+                    pageScope.onCleanup(() => regionMenu.remove());
+                }
+
+                let activeBtn = null;
+
+                function closeRegionMenu() {
+                    if (regionMenu) regionMenu.style.display = 'none';
+                    if (activeBtn) {
+                        activeBtn.classList.remove('is-active');
+                        activeBtn = null;
+                    }
+                }
+
+                function openRegionMenu(btn) {
+                    if (regionMenu.style.display !== 'none' && activeBtn === btn) {
+                        closeRegionMenu();
+                        return;
+                    }
+                    closeRegionMenu();
+
+                    activeBtn = btn;
+                    activeBtn.classList.add('is-active');
+
+                    const currentVal = (btn.getAttribute('data-current') || '').trim().toLowerCase();
+                    regionMenu.querySelectorAll('.fitting-option-item, .fitting-option-clear').forEach(opt => {
+                        const optVal = (opt.getAttribute('data-value') || '').trim().toLowerCase();
+                        opt.classList.toggle('is-selected', optVal === currentVal);
+                    });
+
+                    regionMenu.style.display = 'block';
+                    const rect = btn.getBoundingClientRect();
+                    const menuWidth = regionMenu.offsetWidth || 150;
+                    const menuHeight = regionMenu.offsetHeight || 230;
+
+                    let left = rect.left;
+                    if (left + menuWidth > window.innerWidth - 12) left = window.innerWidth - menuWidth - 12;
+                    if (left < 12) left = 12;
+
+                    let top = rect.bottom + 4;
+                    if (top + menuHeight > window.innerHeight - 10) {
+                        top = Math.max(10, rect.top - menuHeight - 4);
+                    }
+
+                    regionMenu.style.top = `${top}px`;
+                    regionMenu.style.left = `${left}px`;
+                }
+
+                function applyRegionBadge(btn, value) {
+                    const cleanVal = (value || '').trim();
+                    btn.setAttribute('data-current', cleanVal);
+                    const textSpan = btn.querySelector('.country-badge-text');
+                    if (textSpan) textSpan.textContent = cleanVal || '-';
+                    btn.classList.remove(
+                        'is-region', 'is-none',
+                        'is-gcc', 'is-usa', 'is-europe',
+                        'is-north-america', 'is-india', 'is-china', 'is-ksa'
+                    );
+                    if (cleanVal) {
+                        const slug = cleanVal.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                        btn.classList.add(`is-${slug}`);
+                    } else {
+                        btn.classList.add('is-none');
+                    }
+                }
+
+                regionMenu.addEventListener('click', async function(e) {
+                    const optionBtn = e.target.closest('.fitting-option-item, .fitting-option-clear');
+                    if (!optionBtn || !activeBtn) return;
+
+                    const val = optionBtn.getAttribute('data-value') || '';
+                    const yearRangeId = activeBtn.getAttribute('data-id');
+                    const trigger = activeBtn;
+
+                    closeRegionMenu();
+                    if (!yearRangeId) return;
+
+                    const prevVal = trigger.getAttribute('data-current') || '';
+                    applyRegionBadge(trigger, val);
+
+                    try {
+                        let csrfToken = '';
+                        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                        if (csrfInput) csrfToken = csrfInput.value;
+
+                        const resp = await fetch(`/api/year-range/${yearRangeId}/update-vehicle-country/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ vehicle_country: val })
+                        });
+                        const data = await resp.json();
+                        if (data.success) {
+                            applyRegionBadge(trigger, data.vehicle_country);
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(data.vehicle_country ? `Vehicle Country set to ${data.vehicle_country}` : 'Vehicle Country cleared', 'success', 2500);
+                            }
+                        } else {
+                            applyRegionBadge(trigger, prevVal);
+                            alert(data.error || 'Failed to update Vehicle Country.');
+                        }
+                    } catch (err) {
+                        console.error('Error updating vehicle country:', err);
+                        applyRegionBadge(trigger, prevVal);
+                        alert('Error updating Vehicle Country. Please try again.');
+                    }
+                });
+
+                pageScope.listen(document, 'click', function(e) {
+                    const btn = e.target.closest('.region-dropdown-btn');
+                    if (btn) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        openRegionMenu(btn);
+                        return;
+                    }
+                    if (regionMenu && regionMenu.style.display !== 'none' && !regionMenu.contains(e.target)) {
+                        closeRegionMenu();
+                    }
+                });
+
+                pageScope.listen(document, 'keydown', function(e) {
+                    if (e.key === 'Escape') closeRegionMenu();
+                });
+            })();
+
+            // -------------------------------------------------------------------------
+            // Measured In Dropdown Manager (Interactive dropdown pills)
+            // -------------------------------------------------------------------------
+            (function initMeasuredInDropdown() {
+                let measuredMenu = document.getElementById('measuredInMenu');
+                if (!measuredMenu) {
+                    measuredMenu = document.createElement('div');
+                    measuredMenu.id = 'measuredInMenu';
+                    measuredMenu.className = 'fitting-confirmation-popup country-picker-popup';
+                    measuredMenu.style.display = 'none';
+                    measuredMenu.innerHTML = `
+                        <div class="fitting-popup-content">
+                            <div class="fitting-popup-options">
+                                <button type="button" class="fitting-option-item" data-value="KSA" title="KSA">
+                                    <span class="country-badge is-ksa" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">KSA</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="Oman" title="Oman">
+                                    <span class="country-badge is-oman" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">Oman</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="Qatar" title="Qatar">
+                                    <span class="country-badge is-qatar" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">Qatar</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="India" title="India">
+                                    <span class="country-badge is-india" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">India</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="North America" title="North America">
+                                    <span class="country-badge is-north-america" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">North America</span>
+                                </button>
+                            </div>
+                            <div class="fitting-popup-divider"></div>
+                            <button type="button" class="fitting-option-clear" data-value="" title="Clear measurement country">
+                                <i class="fas fa-ban"></i> <span>${window.FabroI18n.gettext('Clear / None')}</span>
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(measuredMenu);
+                    pageScope.onCleanup(() => measuredMenu.remove());
+                }
+
+                let activeBtn = null;
+
+                function closeMeasuredMenu() {
+                    if (measuredMenu) measuredMenu.style.display = 'none';
+                    if (activeBtn) {
+                        activeBtn.classList.remove('is-active');
+                        activeBtn = null;
+                    }
+                }
+
+                function openMeasuredMenu(btn) {
+                    if (measuredMenu.style.display !== 'none' && activeBtn === btn) {
+                        closeMeasuredMenu();
+                        return;
+                    }
+                    closeMeasuredMenu();
+
+                    activeBtn = btn;
+                    activeBtn.classList.add('is-active');
+
+                    const currentVal = (btn.getAttribute('data-current') || '').trim().toLowerCase();
+                    measuredMenu.querySelectorAll('.fitting-option-item, .fitting-option-clear').forEach(opt => {
+                        const optVal = (opt.getAttribute('data-value') || '').trim().toLowerCase();
+                        opt.classList.toggle('is-selected', optVal === currentVal);
+                    });
+
+                    measuredMenu.style.display = 'block';
+                    const rect = btn.getBoundingClientRect();
+                    const menuWidth = measuredMenu.offsetWidth || 150;
+                    const menuHeight = measuredMenu.offsetHeight || 210;
+
+                    let left = rect.left;
+                    if (left + menuWidth > window.innerWidth - 12) left = window.innerWidth - menuWidth - 12;
+                    if (left < 12) left = 12;
+
+                    let top = rect.bottom + 4;
+                    if (top + menuHeight > window.innerHeight - 10) {
+                        top = Math.max(10, rect.top - menuHeight - 4);
+                    }
+
+                    measuredMenu.style.top = `${top}px`;
+                    measuredMenu.style.left = `${left}px`;
+                }
+
+                function applyMeasuredBadge(btn, value) {
+                    const cleanVal = (value || '').trim();
+                    btn.setAttribute('data-current', cleanVal);
+                    const textSpan = btn.querySelector('.country-badge-text');
+                    if (textSpan) textSpan.textContent = cleanVal || '-';
+                    btn.classList.remove(
+                        'is-measured', 'is-none',
+                        'is-ksa', 'is-oman', 'is-qatar',
+                        'is-india', 'is-north-america'
+                    );
+                    if (cleanVal) {
+                        const slug = cleanVal.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                        btn.classList.add(`is-${slug}`);
+                    } else {
+                        btn.classList.add('is-none');
+                    }
+                }
+
+                measuredMenu.addEventListener('click', async function(e) {
+                    const optionBtn = e.target.closest('.fitting-option-item, .fitting-option-clear');
+                    if (!optionBtn || !activeBtn) return;
+
+                    const val = optionBtn.getAttribute('data-value') || '';
+                    const yearRangeId = activeBtn.getAttribute('data-id');
+                    const trigger = activeBtn;
+
+                    closeMeasuredMenu();
+                    if (!yearRangeId) return;
+
+                    const prevVal = trigger.getAttribute('data-current') || '';
+                    applyMeasuredBadge(trigger, val);
+
+                    try {
+                        let csrfToken = '';
+                        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                        if (csrfInput) csrfToken = csrfInput.value;
+
+                        const resp = await fetch(`/api/year-range/${yearRangeId}/update-measurement-country/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ measurement_country: val })
+                        });
+                        const data = await resp.json();
+                        if (data.success) {
+                            applyMeasuredBadge(trigger, data.measurement_country);
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(data.measurement_country ? `Measurement Country set to ${data.measurement_country}` : 'Measurement Country cleared', 'success', 2500);
+                            }
+                        } else {
+                            applyMeasuredBadge(trigger, prevVal);
+                            alert(data.error || 'Failed to update Measurement Country.');
+                        }
+                    } catch (err) {
+                        console.error('Error updating measurement country:', err);
+                        applyMeasuredBadge(trigger, prevVal);
+                        alert('Error updating Measurement Country. Please try again.');
+                    }
+                });
+
+                pageScope.listen(document, 'click', function(e) {
+                    const btn = e.target.closest('.measured-dropdown-btn');
+                    if (btn) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        openMeasuredMenu(btn);
+                        return;
+                    }
+                    if (measuredMenu && measuredMenu.style.display !== 'none' && !measuredMenu.contains(e.target)) {
+                        closeMeasuredMenu();
+                    }
+                });
+
+                pageScope.listen(document, 'keydown', function(e) {
+                    if (e.key === 'Escape') closeMeasuredMenu();
+                });
+            })();
+
+            // -------------------------------------------------------------------------
+            // Drive Dropdown Manager (Interactive dropdown pills)
+            // -------------------------------------------------------------------------
+            (function initDriveDropdown() {
+                let driveMenu = document.getElementById('driveMenu');
+                if (!driveMenu) {
+                    driveMenu = document.createElement('div');
+                    driveMenu.id = 'driveMenu';
+                    driveMenu.className = 'fitting-confirmation-popup drive-picker-popup';
+                    driveMenu.style.display = 'none';
+                    driveMenu.innerHTML = `
+                        <div class="fitting-popup-content">
+                            <div class="fitting-popup-options">
+                                <button type="button" class="fitting-option-item" data-value="LHD" title="Left Hand Drive (LHD)">
+                                    <span class="drive-badge is-lhd" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">LHD</span>
+                                </button>
+                                <button type="button" class="fitting-option-item" data-value="RHD" title="Right Hand Drive (RHD)">
+                                    <span class="drive-badge is-rhd" style="width:100%; justify-content:center; padding:4px 10px; font-size:0.76rem;">RHD</span>
+                                </button>
+                            </div>
+                            <div class="fitting-popup-divider"></div>
+                            <button type="button" class="fitting-option-clear" data-value="" title="Clear drive">
+                                <i class="fas fa-ban"></i> <span>${window.FabroI18n.gettext('Clear / None')}</span>
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(driveMenu);
+                    pageScope.onCleanup(() => driveMenu.remove());
+                }
+
+                let activeBtn = null;
+
+                function closeDriveMenu() {
+                    if (driveMenu) driveMenu.style.display = 'none';
+                    if (activeBtn) {
+                        activeBtn.classList.remove('is-active');
+                        activeBtn = null;
+                    }
+                }
+
+                function openDriveMenu(btn) {
+                    if (driveMenu.style.display !== 'none' && activeBtn === btn) {
+                        closeDriveMenu();
+                        return;
+                    }
+                    closeDriveMenu();
+
+                    activeBtn = btn;
+                    activeBtn.classList.add('is-active');
+
+                    const currentVal = (btn.getAttribute('data-current') || '').trim().toUpperCase();
+                    driveMenu.querySelectorAll('.fitting-option-item, .fitting-option-clear').forEach(opt => {
+                        const optVal = (opt.getAttribute('data-value') || '').trim().toUpperCase();
+                        opt.classList.toggle('is-selected', optVal === currentVal);
+                    });
+
+                    driveMenu.style.display = 'block';
+                    const rect = btn.getBoundingClientRect();
+                    const menuWidth = driveMenu.offsetWidth || 130;
+                    const menuHeight = driveMenu.offsetHeight || 130;
+
+                    let left = rect.left;
+                    if (left + menuWidth > window.innerWidth - 12) left = window.innerWidth - menuWidth - 12;
+                    if (left < 12) left = 12;
+
+                    let top = rect.bottom + 4;
+                    if (top + menuHeight > window.innerHeight - 10) {
+                        top = Math.max(10, rect.top - menuHeight - 4);
+                    }
+
+                    driveMenu.style.top = `${top}px`;
+                    driveMenu.style.left = `${left}px`;
+                }
+
+                function applyDriveBadge(btn, value) {
+                    const cleanVal = (value || '').trim().toUpperCase();
+                    btn.setAttribute('data-current', cleanVal);
+                    const textSpan = btn.querySelector('.drive-badge-text');
+                    if (textSpan) textSpan.textContent = cleanVal || '-';
+                    btn.classList.remove('is-lhd', 'is-rhd', 'is-none');
+                    if (cleanVal === 'LHD') btn.classList.add('is-lhd');
+                    else if (cleanVal === 'RHD') btn.classList.add('is-rhd');
+                    else btn.classList.add('is-none');
+                }
+
+                driveMenu.addEventListener('click', async function(e) {
+                    const optionBtn = e.target.closest('.fitting-option-item, .fitting-option-clear');
+                    if (!optionBtn || !activeBtn) return;
+
+                    const val = optionBtn.getAttribute('data-value') || '';
+                    const yearRangeId = activeBtn.getAttribute('data-id');
+                    const trigger = activeBtn;
+
+                    closeDriveMenu();
+                    if (!yearRangeId) return;
+
+                    const prevVal = trigger.getAttribute('data-current') || '';
+                    applyDriveBadge(trigger, val);
+
+                    try {
+                        let csrfToken = '';
+                        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                        if (csrfInput) csrfToken = csrfInput.value;
+
+                        const resp = await fetch(`/api/year-range/${yearRangeId}/update-drive/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ drive: val })
+                        });
+                        const data = await resp.json();
+                        if (data.success) {
+                            applyDriveBadge(trigger, data.drive);
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(data.drive ? `Drive set to ${data.drive}` : 'Drive cleared', 'success', 2500);
+                            }
+                        } else {
+                            applyDriveBadge(trigger, prevVal);
+                            alert(data.error || 'Failed to update Drive.');
+                        }
+                    } catch (err) {
+                        console.error('Error updating drive:', err);
+                        applyDriveBadge(trigger, prevVal);
+                        alert('Error updating Drive. Please try again.');
+                    }
+                });
+
+                pageScope.listen(document, 'click', function(e) {
+                    const btn = e.target.closest('.drive-dropdown-btn');
+                    if (btn) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        openDriveMenu(btn);
+                        return;
+                    }
+                    if (driveMenu && driveMenu.style.display !== 'none' && !driveMenu.contains(e.target)) {
+                        closeDriveMenu();
+                    }
+                });
+
+                pageScope.listen(document, 'keydown', function(e) {
+                    if (e.key === 'Escape') closeDriveMenu();
+                });
+            })();
+
             // Search Picker logic
             const searchForm = document.getElementById('vehicle-search-form');
             const searchPicker = document.getElementById('vehicle-search-picker');
@@ -3463,7 +4025,7 @@
             if (vParam) {
                 currentVehicleId = vParam;
             }
-            if (window.location.hash === '#design-options' || window.location.search.includes('tab=design-options') || vParam) {
+            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-') || window.location.search.includes('tab=design-options') || vParam) {
                 switchPatternTab('design-options');
             }
         });
@@ -3556,6 +4118,19 @@
                         }
                         filterDesignFolders();
                         renderDirectImagesMatrix();
+
+                        // Auto-restore folder if hash or sessionStorage matches
+                        let targetFolderId = null;
+                        const hashMatch = window.location.hash.match(/^#design-folder-(\d+)$/);
+                        if (hashMatch) {
+                            targetFolderId = parseInt(hashMatch[1], 10);
+                        } else {
+                            const storedId = sessionStorage.getItem('activeDesignFolderId_' + (targetVehicleId || 'all'));
+                            if (storedId) targetFolderId = parseInt(storedId, 10);
+                        }
+                        if (targetFolderId && (!activeDesignFolder || activeDesignFolder.id !== targetFolderId)) {
+                            openDesignFolder(targetFolderId);
+                        }
                     }
                 })
                 .catch(err => { if (err.name !== 'AbortError') console.error('Error loading design folders:', err); });
@@ -3610,15 +4185,14 @@
             grid.innerHTML = folders.map(f => {
                 let previewHtml = '';
                 if (f.preview_images && f.preview_images.length > 0) {
-                    previewHtml = '<div class="folder-preview-quad">';
-                    for (let i = 0; i < 4; i++) {
-                        if (i < f.preview_images.length) {
-                            previewHtml += `<img src="${escapeHtml(f.preview_images[i])}" alt="${escapeHtml(f.name)}" loading="lazy" decoding="async" width="160" height="120">`;
-                        } else {
-                            previewHtml += '<div class="folder-preview-empty-quad"><i class="fas fa-image"></i></div>';
-                        }
+                    previewHtml = `
+                        <div class="folder-preview-single">
+                            <img src="${escapeHtml(f.preview_images[0])}" alt="${escapeHtml(f.name)}" loading="lazy" decoding="async" class="folder-preview-full-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'folder-empty-icon\'><i class=\'fas fa-folder\'></i></div>';">
+                        </div>
+                    `;
+                    if (f.image_count > 1) {
+                        previewHtml += `<span class="folder-preview-badge" title="${f.image_count} {% translate "images" %}"><i class="fas fa-layer-group"></i> ${f.image_count}</span>`;
                     }
-                    previewHtml += '</div>';
                 } else {
                     previewHtml = '<div class="folder-empty-icon"><i class="fas fa-folder"></i></div>';
                 }
@@ -3831,6 +4405,10 @@
 
         // Inside Folder Navigation
         function openDesignFolder(folderId, page = 1) {
+            try {
+                window.location.hash = `#design-folder-${folderId}`;
+                sessionStorage.setItem('activeDesignFolderId_' + (currentVehicleId || 'all'), String(folderId));
+            } catch(e) {}
             pageScope.fetch(`/api/design-folders/${folderId}/?page=${page}`)
                 .then(r => r.json())
                 .then(data => {
@@ -3866,12 +4444,23 @@
             activeDesignFolder = null;
             activeFolderImages = [];
             currentEnlargedIdx = -1;
+            try {
+                window.location.hash = '#design-options';
+                sessionStorage.removeItem('activeDesignFolderId_' + (currentVehicleId || 'all'));
+            } catch(e) {}
             document.getElementById('designFolderDetailView').style.display = 'none';
             document.getElementById('designFoldersView').style.display = 'block';
             loadDesignFolders(currentVehicleId);
         }
 
-        // 2x2 Matrix Rendering
+                function formatDesignFileSize(bytes) {
+            if (!bytes || bytes <= 0) return '';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Matrix Rendering
         function renderDesignMatrix() {
             const dropzone = document.getElementById('designEmptyImagesDropzone');
             const wrapper = document.getElementById('designMatrixWrapper');
@@ -3934,22 +4523,54 @@
                         `;
                     }
 
+                    const fileType = img.file_type || (img.title && img.title.toLowerCase().endsWith('.pdf') ? 'pdf' : ((img.title && /\.(dwg|dxf|step|stp|iges|igs|cad|nc|cut|plt|hpgl)$/i.test(img.title)) ? 'cad' : 'image'));
+                    const fileExt = img.file_ext || (img.title ? img.title.split('.').pop().toUpperCase() : '');
+
+                    let mediaContent = '';
+                    if (fileType === 'pdf') {
+                        mediaContent = `
+                            <div class="matrix-doc-preview is-pdf">
+                                <i class="fas fa-file-pdf matrix-doc-icon"></i>
+                                <span class="matrix-doc-badge">PDF</span>
+                            </div>
+                        `;
+                    } else if (fileType === 'cad') {
+                        mediaContent = `
+                            <div class="matrix-doc-preview is-cad">
+                                <i class="fas fa-drafting-compass matrix-doc-icon"></i>
+                                <span class="matrix-doc-badge">${escapeHtml(fileExt || 'CAD')}</span>
+                            </div>
+                        `;
+                    } else {
+                        mediaContent = `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" class="matrix-card-img" loading="lazy" decoding="async">`;
+                    }
+
+                    const clickHandler = fileType === 'image' 
+                        ? `openEnlargedView(${globalIdx})` 
+                        : `window.open('${escapeHtml(img.original_url || img.url)}', '_blank')`;
+
                     return `
-                        <div class="design-matrix-card" onclick="openEnlargedView(${globalIdx})">
+                        <div class="design-matrix-card ${img.is_new ? 'is-new-item' : ''}" data-image-id="${img.id}" onclick="${clickHandler}">
                             <div class="matrix-card-media">
-                                <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" loading="lazy">
+                                ${mediaContent}
                                 ${statusBadge ? `<div class="matrix-card-badge-wrap">${statusBadge}</div>` : ''}
-                                <div class="matrix-card-overlay">
-                                    <div class="matrix-overlay-top">
-                                        <span class="matrix-zoom-badge"><i class="fas fa-expand-alt"></i> {% translate "Enlarged View" %}</span>
-                                        <div class="matrix-top-actions">${approvalActions}${delBtn}</div>
-                                    </div>
-                                    <div class="matrix-overlay-bottom">
-                                        <div class="matrix-image-title">${escapeHtml(img.title)}</div>
-                                        <div class="matrix-image-meta">${img.uploaded_at}</div>
-                                        ${img.rejection_reason ? `<div class="matrix-rejection-note"><i class="fas fa-info-circle"></i> ${escapeHtml(img.rejection_reason)}</div>` : ''}
-                                    </div>
+                                <div class="matrix-media-hover-bar">
+                                    <span class="matrix-view-btn" title="{% translate "View / Download" %}"><i class="fas ${fileType === 'image' ? 'fa-expand' : 'fa-external-link-alt'}"></i></span>
+                                    ${delBtn}
                                 </div>
+                            </div>
+                            <div class="matrix-card-info">
+                                <div class="matrix-card-title-row">
+                                    <h4 class="matrix-card-title" title="${escapeHtml(img.title)}">${escapeHtml(img.title)}</h4>
+                                </div>
+                                <div class="matrix-card-meta">
+                                    <span class="matrix-file-badge">${escapeHtml(fileExt || 'IMG')}</span>
+                                    <span>${formatDesignFileSize(img.file_size)}</span>
+                                    <span style="opacity: 0.5;">&bull;</span>
+                                    <span>${img.uploaded_at}</span>
+                                </div>
+                                ${approvalActions ? `<div class="matrix-card-approvals">${approvalActions}</div>` : ''}
+                                ${img.rejection_reason ? `<div class="matrix-rejection-note" title="${escapeHtml(img.rejection_reason)}"><i class="fas fa-info-circle"></i> ${escapeHtml(img.rejection_reason)}</div>` : ''}
                             </div>
                         </div>
                     `;
@@ -3977,6 +4598,28 @@
         function handleDesignImageSelected(files) {
             if (!files || !files.length || !activeDesignFolder) return;
 
+            const grid = document.getElementById('designMatrixGrid');
+            const wrapper = document.getElementById('designMatrixWrapper');
+            const dropzone = document.getElementById('designEmptyImagesDropzone');
+            if (dropzone) dropzone.style.display = 'none';
+            if (wrapper) wrapper.style.display = 'block';
+
+            let skeleton = document.getElementById('designUploadingSkeleton');
+            if (!skeleton && grid) {
+                skeleton = document.createElement('div');
+                skeleton.id = 'designUploadingSkeleton';
+                skeleton.className = 'design-matrix-card is-uploading';
+                skeleton.innerHTML = `
+                    <div class="matrix-card-media" style="display:flex;align-items:center;justify-content:center;background:rgba(99,102,241,0.06);height:110px;">
+                        <i class="fas fa-cloud-upload-alt fa-2x" style="color:var(--primary-color, #6366f1);animation:uploadPulse 1.2s infinite;"></i>
+                    </div>
+                    <div class="matrix-card-info" style="padding:0.75rem 0.5rem;text-align:center;">
+                        <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">{% translate "Uploading..." %}</span>
+                    </div>
+                `;
+                grid.prepend(skeleton);
+            }
+
             const formData = new FormData();
             Array.from(files).forEach(file => {
                 formData.append('images', file);
@@ -3990,19 +4633,46 @@
                 headers: { 'X-CSRFToken': getDesignCsrfToken() },
                 body: formData
             })
-            .then(r => r.json())
+            .then(async r => {
+                if (r.redirected && r.url.includes('/login')) {
+                    alert('{% translate "Your session has expired. Please sign in again." %}');
+                    window.location.href = r.url;
+                    return null;
+                }
+                const contentType = r.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    alert('{% translate "Your session has expired. Please refresh the page and sign in again." %}');
+                    return null;
+                }
+                const data = await r.json();
+                if (!r.ok) {
+                    throw new Error(data.message || data.error || `Upload error (HTTP ${r.status})`);
+                }
+                return data;
+            })
             .then(data => {
+                if (skeleton && skeleton.parentNode) skeleton.remove();
+                if (!data) return;
                 if (data.status === 'success') {
                     if (data.images && data.images.length) {
-                        openDesignFolder(activeDesignFolder.id);
+                        data.images.forEach(img => { img.is_new = true; });
+                        activeFolderImages = [...data.images, ...activeFolderImages];
+                        activeFolderTotalImages = data.total_count || activeFolderImages.length;
+                        renderDesignMatrix();
+                        setTimeout(() => {
+                            data.images.forEach(img => { img.is_new = false; });
+                        }, 600);
                     }
                 } else {
                     alert(data.message || '{% translate "Upload failed." %}');
+                    renderDesignMatrix();
                 }
             })
             .catch(err => {
+                if (skeleton && skeleton.parentNode) skeleton.remove();
                 console.error('Upload error:', err);
-                alert('{% translate "Network error during upload." %}');
+                alert(err.message || '{% translate "Network error during upload." %}');
+                renderDesignMatrix();
             });
         }
 
@@ -4168,6 +4838,26 @@
         function handleDirectVehicleImageSelected(files) {
             if (!files || !files.length || !currentVehicleId) return;
 
+            const grid = document.getElementById('directImagesMatrixGrid');
+            const section = document.getElementById('designDirectImagesSection');
+            if (section) section.style.display = 'block';
+
+            let skeleton = document.getElementById('directUploadingSkeleton');
+            if (!skeleton && grid) {
+                skeleton = document.createElement('div');
+                skeleton.id = 'directUploadingSkeleton';
+                skeleton.className = 'design-matrix-card is-uploading';
+                skeleton.innerHTML = `
+                    <div class="matrix-card-media" style="display:flex;align-items:center;justify-content:center;background:rgba(99,102,241,0.06);height:110px;">
+                        <i class="fas fa-cloud-upload-alt fa-2x" style="color:var(--primary-color, #6366f1);animation:uploadPulse 1.2s infinite;"></i>
+                    </div>
+                    <div class="matrix-card-info" style="padding:0.75rem 0.5rem;text-align:center;">
+                        <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">{% translate "Uploading..." %}</span>
+                    </div>
+                `;
+                grid.prepend(skeleton);
+            }
+
             const formData = new FormData();
             Array.from(files).forEach(file => {
                 formData.append('images', file);
@@ -4181,19 +4871,45 @@
                 headers: { 'X-CSRFToken': getDesignCsrfToken() },
                 body: formData
             })
-            .then(r => r.json())
+            .then(async r => {
+                if (r.redirected && r.url.includes('/login')) {
+                    alert('{% translate "Your session has expired. Please sign in again." %}');
+                    window.location.href = r.url;
+                    return null;
+                }
+                const contentType = r.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    alert('{% translate "Your session has expired. Please refresh the page and sign in again." %}');
+                    return null;
+                }
+                const data = await r.json();
+                if (!r.ok) {
+                    throw new Error(data.message || data.error || `Upload error (HTTP ${r.status})`);
+                }
+                return data;
+            })
             .then(data => {
+                if (skeleton && skeleton.parentNode) skeleton.remove();
+                if (!data) return;
                 if (data.status === 'success') {
                     if (data.images && data.images.length) {
-                        loadDesignFolders(currentVehicleId);
+                        data.images.forEach(img => { img.is_new = true; });
+                        directImagesState = [...data.images, ...directImagesState];
+                        renderDirectImagesMatrix();
+                        setTimeout(() => {
+                            data.images.forEach(img => { img.is_new = false; });
+                        }, 600);
                     }
                 } else {
                     alert(data.message || '{% translate "Upload failed." %}');
+                    renderDirectImagesMatrix();
                 }
             })
             .catch(err => {
+                if (skeleton && skeleton.parentNode) skeleton.remove();
                 console.error('Upload error:', err);
-                alert('{% translate "Network error during upload." %}');
+                alert(err.message || '{% translate "Network error during upload." %}');
+                renderDirectImagesMatrix();
             });
         }
 
@@ -4259,22 +4975,54 @@
                         `;
                     }
 
+                    const fileType = img.file_type || (img.title && img.title.toLowerCase().endsWith('.pdf') ? 'pdf' : ((img.title && /\.(dwg|dxf|step|stp|iges|igs|cad|nc|cut|plt|hpgl)$/i.test(img.title)) ? 'cad' : 'image'));
+                    const fileExt = img.file_ext || (img.title ? img.title.split('.').pop().toUpperCase() : '');
+
+                    let mediaContent = '';
+                    if (fileType === 'pdf') {
+                        mediaContent = `
+                            <div class="matrix-doc-preview is-pdf">
+                                <i class="fas fa-file-pdf matrix-doc-icon"></i>
+                                <span class="matrix-doc-badge">PDF</span>
+                            </div>
+                        `;
+                    } else if (fileType === 'cad') {
+                        mediaContent = `
+                            <div class="matrix-doc-preview is-cad">
+                                <i class="fas fa-drafting-compass matrix-doc-icon"></i>
+                                <span class="matrix-doc-badge">${escapeHtml(fileExt || 'CAD')}</span>
+                            </div>
+                        `;
+                    } else {
+                        mediaContent = `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" class="matrix-card-img" loading="lazy" decoding="async">`;
+                    }
+
+                    const clickHandler = fileType === 'image' 
+                        ? `openDirectEnlargedView(${globalIdx})` 
+                        : `window.open('${escapeHtml(img.original_url || img.url)}', '_blank')`;
+
                     return `
-                        <div class="design-matrix-card" onclick="openDirectEnlargedView(${globalIdx})">
+                        <div class="design-matrix-card ${img.is_new ? 'is-new-item' : ''}" data-image-id="${img.id}" onclick="${clickHandler}">
                             <div class="matrix-card-media">
-                                <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" loading="lazy">
+                                ${mediaContent}
                                 ${statusBadge ? `<div class="matrix-card-badge-wrap">${statusBadge}</div>` : ''}
-                                <div class="matrix-card-overlay">
-                                    <div class="matrix-overlay-top">
-                                        <span class="matrix-zoom-badge"><i class="fas fa-expand-alt"></i> {% translate "Enlarged View" %}</span>
-                                        <div class="matrix-top-actions">${approvalActions}${delBtn}</div>
-                                    </div>
-                                    <div class="matrix-overlay-bottom">
-                                        <div class="matrix-image-title">${escapeHtml(img.title)}</div>
-                                        <div class="matrix-image-meta">${img.uploaded_at}</div>
-                                        ${img.rejection_reason ? `<div class="matrix-rejection-note"><i class="fas fa-info-circle"></i> ${escapeHtml(img.rejection_reason)}</div>` : ''}
-                                    </div>
+                                <div class="matrix-media-hover-bar">
+                                    <span class="matrix-view-btn" title="{% translate "View / Download" %}"><i class="fas ${fileType === 'image' ? 'fa-expand' : 'fa-external-link-alt'}"></i></span>
+                                    ${delBtn}
                                 </div>
+                            </div>
+                            <div class="matrix-card-info">
+                                <div class="matrix-card-title-row">
+                                    <h4 class="matrix-card-title" title="${escapeHtml(img.title)}">${escapeHtml(img.title)}</h4>
+                                </div>
+                                <div class="matrix-card-meta">
+                                    <span class="matrix-file-badge">${escapeHtml(fileExt || 'IMG')}</span>
+                                    <span>${formatDesignFileSize(img.file_size)}</span>
+                                    <span style="opacity: 0.5;">&bull;</span>
+                                    <span>${img.uploaded_at}</span>
+                                </div>
+                                ${approvalActions ? `<div class="matrix-card-approvals">${approvalActions}</div>` : ''}
+                                ${img.rejection_reason ? `<div class="matrix-rejection-note" title="${escapeHtml(img.rejection_reason)}"><i class="fas fa-info-circle"></i> ${escapeHtml(img.rejection_reason)}</div>` : ''}
                             </div>
                         </div>
                     `;
@@ -4302,19 +5050,39 @@
         function confirmDeleteDirectImage(imageId) {
             if (!confirm('{% translate "Are you sure you want to delete this image?" %}')) return;
 
-            fetch(`/api/design-images/${imageId}/delete/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getDesignCsrfToken() }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    closeEnlargedView();
-                    loadDesignFolders(currentVehicleId, folderCurrentPage + 1, directMatrixCurrentPage + 1);
-                } else {
-                    alert(data.message || '{% translate "Error deleting image." %}');
+            const card = document.querySelector(`#directImagesMatrixGrid .design-matrix-card[data-image-id="${imageId}"]`);
+            if (card) {
+                card.classList.add('is-deleting');
+            }
+
+            if (currentEnlargedIdx >= 0 && directImagesState[currentEnlargedIdx] && directImagesState[currentEnlargedIdx].id === imageId) {
+                closeEnlargedView();
+            }
+
+            setTimeout(() => {
+                const deletedIdx = directImagesState.findIndex(i => i.id === imageId);
+                if (deletedIdx !== -1) {
+                    directImagesState.splice(deletedIdx, 1);
+                    renderDirectImagesMatrix();
                 }
-            });
+
+                fetch(`/api/design-images/${imageId}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getDesignCsrfToken() }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        alert(data.message || '{% translate "Error deleting image." %}');
+                        loadDesignFolders(currentVehicleId, folderCurrentPage + 1, directMatrixCurrentPage + 1);
+                    }
+                })
+                .catch(err => {
+                    console.error('Delete direct image error:', err);
+                    alert('{% translate "Network error while deleting image." %}');
+                    loadDesignFolders(currentVehicleId, folderCurrentPage + 1, directMatrixCurrentPage + 1);
+                });
+            }, 300);
         }
 
         function openDirectEnlargedView(index) {
@@ -4370,19 +5138,44 @@
         function confirmDeleteImage(imageId) {
             if (!confirm('{% translate "Are you sure you want to delete this image?" %}')) return;
 
-            fetch(`/api/design-images/${imageId}/delete/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getDesignCsrfToken() }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    closeEnlargedView();
-                    openDesignFolder(activeDesignFolder.id, matrixCurrentPage + 1);
-                } else {
-                    alert(data.message || '{% translate "Error deleting image." %}');
+            const card = document.querySelector(`.design-matrix-card[data-image-id="${imageId}"]`);
+            if (card) {
+                card.classList.add('is-deleting');
+            }
+
+            if (currentEnlargedIdx >= 0 && activeFolderImages[currentEnlargedIdx] && activeFolderImages[currentEnlargedIdx].id === imageId) {
+                closeEnlargedView();
+            }
+
+            setTimeout(() => {
+                const deletedIdx = activeFolderImages.findIndex(i => i.id === imageId);
+                if (deletedIdx !== -1) {
+                    activeFolderImages.splice(deletedIdx, 1);
+                    activeFolderTotalImages = Math.max(0, activeFolderTotalImages - 1);
+                    renderDesignMatrix();
                 }
-            });
+
+                fetch(`/api/design-images/${imageId}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getDesignCsrfToken() }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        alert(data.message || '{% translate "Error deleting image." %}');
+                        if (activeDesignFolder) {
+                            openDesignFolder(activeDesignFolder.id, matrixCurrentPage + 1);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Delete error:', err);
+                    alert('{% translate "Network error while deleting image." %}');
+                    if (activeDesignFolder) {
+                        openDesignFolder(activeDesignFolder.id, matrixCurrentPage + 1);
+                    }
+                });
+            }, 300);
         }
 
         function deleteCurrentEnlargedImage() {
@@ -4399,6 +5192,12 @@
         // Enlarged View (Lightbox)
         function openEnlargedView(index) {
             if (index < 0 || index >= activeFolderImages.length) return;
+            const item = activeFolderImages[index];
+            const fileType = item.file_type || (item.title && item.title.toLowerCase().endsWith('.pdf') ? 'pdf' : ((item.title && /\.(dwg|dxf|step|stp|iges|igs|cad|nc|cut|plt|hpgl)$/i.test(item.title)) ? 'cad' : 'image'));
+            if (fileType !== 'image') {
+                window.open(item.original_url || item.url, '_blank');
+                return;
+            }
             currentEnlargedIdx = index;
             const modal = document.getElementById('designEnlargedModal');
             if (modal) {

@@ -276,6 +276,7 @@ class YearRange(models.Model):
     layout_code = models.CharField(max_length=100, unique=True, null=True, blank=True)
     x_code = models.CharField(max_length=100, blank=True, default='', verbose_name=_('X-Code'))
     fitting_confirmation = models.CharField(max_length=100, blank=True, default='', verbose_name=_('Fitting Confirmation'))
+    drive = models.CharField(max_length=10, blank=True, default='', verbose_name=_('Drive'))
     vehicle_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_vehicle_country')
     measurement_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_measurement_country')
     google_drive_url = models.URLField(max_length=500, blank=True, default='', verbose_name=_('Google Drive URL'))
@@ -912,8 +913,8 @@ class PatternDesignFolder(models.Model):
 class PatternDesignImage(models.Model):
     folder = models.ForeignKey(PatternDesignFolder, on_delete=models.CASCADE, null=True, blank=True, related_name='images')
     vehicle = models.ForeignKey(YearRange, on_delete=models.CASCADE, null=True, blank=True, related_name='direct_design_images')
-    image = models.ImageField(upload_to='pattern_designs/%Y/%m/')
-    thumbnail = models.ImageField(upload_to='pattern_design_thumbnails/%Y/%m/', blank=True, default='')
+    image = models.FileField(upload_to='pattern_designs/%Y/%m/')
+    thumbnail = models.FileField(upload_to='pattern_design_thumbnails/%Y/%m/', blank=True, default='')
     title = models.CharField(max_length=255, blank=True, default='')
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)

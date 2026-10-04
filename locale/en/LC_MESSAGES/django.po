@@ -47,15 +47,18 @@ msgid "%(role)s reviews assigned to your account."
 msgstr "%(role)s reviews assigned to your account."
 
 #, python-format
+msgid "%(user)s uploaded %(count)s new 3D design file(s) for review."
+msgstr "%(user)s uploaded %(count)s new 3D design file(s) for review."
+
+#, python-format
 msgid "%(username)s was assigned to %(group)s."
 msgstr "%(username)s was assigned to %(group)s."
 
 msgid "(Required for rejection)"
 msgstr "(Required for rejection)"
 
-#, python-format
-msgid "+%(count)s more"
-msgstr "+%(count)s more"
+msgid "3D Designer Freelancer"
+msgstr "3D Designer Freelancer"
 
 #, python-format
 msgid "A complaint can contain at most %(count)s media files."
@@ -66,6 +69,9 @@ msgstr "A group with that name already exists."
 
 msgid "A production container number is not required for Factory Complaints."
 msgstr "A production container number is not required for Factory Complaints."
+
+msgid "A rejection reason is mandatory."
+msgstr "A rejection reason is mandatory."
 
 msgid "above to add one inline!"
 msgstr "above to add one inline!"
@@ -79,11 +85,11 @@ msgstr "Action"
 msgid "Action In Progress"
 msgstr "Action In Progress"
 
-msgid "Action Plan"
-msgstr "Action Plan"
-
 msgid "Action plan"
 msgstr "Action plan"
+
+msgid "Action Plan"
+msgstr "Action Plan"
 
 msgid "Action plan started. Submit the execution for verification when implementation is complete."
 msgstr "Action plan started. Submit the execution for verification when implementation is complete."
@@ -115,10 +121,6 @@ msgstr "Active Reviews"
 msgid "Active Sessions"
 msgstr "Active Sessions"
 
-#, python-format
-msgid "Active Sessions (%(count)s)"
-msgstr "Active Sessions (%(count)s)"
-
 msgid "Active Users Online"
 msgstr "Active Users Online"
 
@@ -134,6 +136,9 @@ msgstr "Activity Logs"
 msgid "Add"
 msgstr "Add"
 
+msgid "Add (Folder or Image)"
+msgstr "Add (Folder or Image)"
+
 msgid "Add Complaint"
 msgstr "Add Complaint"
 
@@ -143,20 +148,26 @@ msgstr "Add Complaint - Fabro Leather"
 msgid "Add First Complaint"
 msgstr "Add First Complaint"
 
+msgid "Add Folder"
+msgstr "Add Folder"
+
+msgid "Add Image"
+msgstr "Add Image"
+
 msgid "Add New Complaint"
 msgstr "Add New Complaint"
 
 msgid "Add New Media Files"
 msgstr "Add New Media Files"
 
+msgid "Add New Pattern"
+msgstr "Add New Pattern"
+
 msgid "Add New Setting"
 msgstr "Add New Setting"
 
 msgid "Add New SKU (Inline)"
 msgstr "Add New SKU (Inline)"
-
-msgid "Add New Vehicle"
-msgstr "Add New Vehicle"
 
 msgid "Add Setting"
 msgstr "Add Setting"
@@ -167,6 +178,9 @@ msgstr "Add SKU"
 msgid "Add Vehicle"
 msgstr "Add Vehicle"
 
+msgid "Add Vehicle Pattern"
+msgstr "Add Vehicle Pattern"
+
 msgid "Add your first vehicle using the form on the left or upload a CSV file."
 msgstr "Add your first vehicle using the form on the left or upload a CSV file."
 
@@ -176,8 +190,14 @@ msgstr "Admin"
 msgid "Admin Panel"
 msgstr "Admin Panel"
 
+msgid "Admin section pages"
+msgstr "Admin section pages"
+
 msgid "All"
 msgstr "All"
+
+msgid "All Brands"
+msgstr "All Brands"
 
 msgid "All Channels"
 msgstr "All Channels"
@@ -194,11 +214,20 @@ msgstr "All Countries"
 msgid "All Fields"
 msgstr "All Fields"
 
+msgid "All Fitting Statuses"
+msgstr "All Fitting Statuses"
+
 msgid "All History"
 msgstr "All History"
 
 msgid "All marked as read"
 msgstr "All marked as read"
+
+msgid "All Measurement Countries"
+msgstr "All Measurement Countries"
+
+msgid "All Models"
+msgstr "All Models"
 
 msgid "All notifications marked as read."
 msgstr "All notifications marked as read."
@@ -221,11 +250,32 @@ msgstr "All Roles"
 msgid "All Statuses"
 msgstr "All Statuses"
 
+msgid "All Sub-Models"
+msgstr "All Sub-Models"
+
 msgid "All Types"
 msgstr "All Types"
 
+msgid "All values shown"
+msgstr "All values shown"
+
+msgid "All Vehicle Countries"
+msgstr "All Vehicle Countries"
+
+msgid "All Years"
+msgstr "All Years"
+
 msgid "Allowed Pages (comma-separated)"
 msgstr "Allowed Pages (comma-separated)"
+
+msgid "Alteration approved and executed successfully."
+msgstr "Alteration approved and executed successfully."
+
+msgid "Alteration rejected."
+msgstr "Alteration rejected."
+
+msgid "Alteration request submitted. Approval notifications sent to approver roles."
+msgstr "Alteration request submitted. Approval notifications sent to approver roles."
 
 #, python-format
 msgid "An active %(role)s approver already exists."
@@ -234,8 +284,14 @@ msgstr "An active %(role)s approver already exists."
 msgid "An error occurred while submitting your decision."
 msgstr "An error occurred while submitting your decision."
 
+msgid "and all images inside it?"
+msgstr "and all images inside it?"
+
 msgid "Apply Filters"
 msgstr "Apply Filters"
+
+msgid "Apply filters"
+msgstr "Apply filters"
 
 msgid "Approval Feedback"
 msgstr "Approval Feedback"
@@ -248,6 +304,9 @@ msgstr "Approval Inbox"
 
 msgid "Approval Inbox - Fabro Leather"
 msgstr "Approval Inbox - Fabro Leather"
+
+msgid "Approval pages"
+msgstr "Approval pages"
 
 msgid "Approval requests, factory assignments, rework, and closure updates."
 msgstr "Approval requests, factory assignments, rework, and closure updates."
@@ -271,6 +330,9 @@ msgstr "Approvals Workspace - Fabro Leather"
 msgid "Approve"
 msgstr "Approve"
 
+msgid "Approve Design"
+msgstr "Approve Design"
+
 msgid "Approve Plan"
 msgstr "Approve Plan"
 
@@ -293,8 +355,14 @@ msgstr "Approver"
 msgid "Are you sure you want to delete %(name)s?"
 msgstr "Are you sure you want to delete %(name)s?"
 
+msgid "Are you sure you want to delete folder"
+msgstr "Are you sure you want to delete folder"
+
 msgid "Are you sure you want to delete this complaint?"
 msgstr "Are you sure you want to delete this complaint?"
+
+msgid "Are you sure you want to delete this image?"
+msgstr "Are you sure you want to delete this image?"
 
 msgid "Are you sure you want to delete this SKU?"
 msgstr "Are you sure you want to delete this SKU?"
@@ -324,11 +392,26 @@ msgstr "Assigned to Factory"
 msgid "Audit & Activity Logs"
 msgstr "Audit & Activity Logs"
 
+msgid "Auto"
+msgstr "Auto"
+
 msgid "Awaiting Approval"
 msgstr "Awaiting Approval"
 
 msgid "Awaiting Execution Verification"
 msgstr "Awaiting Execution Verification"
+
+msgid "Back to all folders"
+msgstr "Back to all folders"
+
+msgid "Back to chats"
+msgstr "Back to chats"
+
+msgid "Back to Pattern List"
+msgstr "Back to Pattern List"
+
+msgid "Back to Patterns"
+msgstr "Back to Patterns"
 
 msgid "Back to Portal"
 msgstr "Back to Portal"
@@ -336,17 +419,17 @@ msgstr "Back to Portal"
 msgid "Back to Vehicle Management"
 msgstr "Back to Vehicle Management"
 
-msgid "Basic Information"
-msgstr "Basic Information"
+msgid "Batch No"
+msgstr "Batch No"
 
-msgid "Batch / Order"
-msgstr "Batch / Order"
-
-msgid "Batch / Order #"
-msgstr "Batch / Order #"
+msgid "Batch No:"
+msgstr "Batch No:"
 
 msgid "Before Execution"
 msgstr "Before Execution"
+
+msgid "BR"
+msgstr "BR"
 
 msgid "Brand"
 msgstr "Brand"
@@ -374,6 +457,9 @@ msgstr "Brand:"
 
 msgid "Brands"
 msgstr "Brands"
+
+msgid "Bulk Delete Patterns"
+msgstr "Bulk Delete Patterns"
 
 msgid "Bulk import vehicle configurations from CSV file"
 msgstr "Bulk import vehicle configurations from CSV file"
@@ -411,11 +497,20 @@ msgstr "Car Seat Management Portal"
 msgid "Car Seat Management System"
 msgstr "Car Seat Management System"
 
-msgid "Case Details"
-msgstr "Case Details"
-
 msgid "Category"
 msgstr "Category"
+
+msgid "Change Drive"
+msgstr "Change Drive"
+
+msgid "Change Fitting Confirmation"
+msgstr "Change Fitting Confirmation"
+
+msgid "Change Measurement Country"
+msgstr "Change Measurement Country"
+
+msgid "Change Vehicle Country"
+msgstr "Change Vehicle Country"
 
 msgid "Channel"
 msgstr "Channel"
@@ -423,20 +518,32 @@ msgstr "Channel"
 msgid "Channel:"
 msgstr "Channel:"
 
+msgid "Chat"
+msgstr "Chat"
+
 msgid "CHAT"
 msgstr "CHAT"
 
 msgid "Chat Workspace - Fabro Leather"
 msgstr "Chat Workspace - Fabro Leather"
 
+msgid "Chats"
+msgstr "Chats"
+
 msgid "Choose any user from the left directory to open a direct messaging workspace."
 msgstr "Choose any user from the left directory to open a direct messaging workspace."
+
+msgid "Choose File"
+msgstr "Choose File"
 
 msgid "Choose PM, OM, CAD, ED, or MD for an approver."
 msgstr "Choose PM, OM, CAD, ED, or MD for an approver."
 
 msgid "Clear"
 msgstr "Clear"
+
+msgid "Clear / None"
+msgstr "Clear / None"
 
 msgid "Clear All"
 msgstr "Clear All"
@@ -453,14 +560,20 @@ msgstr "Clear filter"
 msgid "Clear Filters"
 msgstr "Clear Filters"
 
+msgid "Clear filters"
+msgstr "Clear filters"
+
 msgid "Clear form"
 msgstr "Clear form"
+
+msgid "Clear Search"
+msgstr "Clear Search"
 
 msgid "Clear search"
 msgstr "Clear search"
 
-msgid "Clear Search"
-msgstr "Clear Search"
+msgid "Click here to upload, click Paste Image, or press Ctrl+V to paste directly from your clipboard. Images will preview in a 2x2 matrix."
+msgstr "Click here to upload, click Paste Image, or press Ctrl+V to paste directly from your clipboard. Images will preview in a 2x2 matrix."
 
 msgid "Click the button below to log back in."
 msgstr "Click the button below to log back in."
@@ -468,8 +581,17 @@ msgstr "Click the button below to log back in."
 msgid "Click to upload"
 msgstr "Click to upload"
 
+msgid "Close"
+msgstr "Close"
+
+msgid "Close (Esc)"
+msgstr "Close (Esc)"
+
 msgid "Close complaint details"
 msgstr "Close complaint details"
+
+msgid "Close filters"
+msgstr "Close filters"
 
 msgid "Closed"
 msgstr "Closed"
@@ -486,9 +608,6 @@ msgstr "Complaint"
 msgid "Complaint And Factory Review"
 msgstr "Complaint And Factory Review"
 
-msgid "Complaint Batch Order:"
-msgstr "Complaint Batch Order:"
-
 msgid "Complaint Context:"
 msgstr "Complaint Context:"
 
@@ -498,11 +617,11 @@ msgstr "Complaint deleted successfully."
 msgid "Complaint Description"
 msgstr "Complaint Description"
 
+msgid "Complaint description is required."
+msgstr "Complaint description is required."
+
 msgid "Complaint details"
 msgstr "Complaint details"
-
-msgid "Complaint Details"
-msgstr "Complaint Details"
 
 msgid "Complaint ID"
 msgstr "Complaint ID"
@@ -525,17 +644,20 @@ msgstr "Complaint media"
 msgid "Complaint Media"
 msgstr "Complaint Media"
 
-msgid "Complaint media must be uploaded directly to Supabase Storage."
-msgstr "Complaint media must be uploaded directly to Supabase Storage."
+msgid "Complaint media must be uploaded directly to object storage."
+msgstr "Complaint media must be uploaded directly to object storage."
+
+msgid "Complaint Product"
+msgstr "Complaint Product"
 
 msgid "Complaint Snapshot"
 msgstr "Complaint Snapshot"
 
-msgid "Complaint type"
-msgstr "Complaint type"
-
 msgid "Complaint Type"
 msgstr "Complaint Type"
+
+msgid "Complaint type"
+msgstr "Complaint type"
 
 msgid "Complaint Types"
 msgstr "Complaint Types"
@@ -558,6 +680,9 @@ msgstr "Complaints List"
 msgid "Complaints Resolved"
 msgstr "Complaints Resolved"
 
+msgid "Complaints This Month"
+msgstr "Complaints This Month"
+
 msgid "Completed Approvals"
 msgstr "Completed Approvals"
 
@@ -576,14 +701,17 @@ msgstr "Confirm new password"
 msgid "Confirm New Password"
 msgstr "Confirm New Password"
 
+msgid "Confirmed"
+msgstr "Confirmed"
+
 msgid "Confirmed Reason"
 msgstr "Confirmed Reason"
 
-msgid "Contact Information"
-msgstr "Contact Information"
-
 msgid "Container number"
 msgstr "Container number"
+
+msgid "Copy any image to clipboard and press Ctrl+V to paste directly into this folder"
+msgstr "Copy any image to clipboard and press Ctrl+V to paste directly into this folder"
 
 msgid "Country"
 msgstr "Country"
@@ -594,8 +722,20 @@ msgstr "Country Executive"
 msgid "Country executives must be assigned to a country."
 msgstr "Country executives must be assigned to a country."
 
+msgid "Country specification for this vehicle"
+msgstr "Country specification for this vehicle"
+
 msgid "Country:"
 msgstr "Country:"
+
+msgid "Create Design Folder"
+msgstr "Create Design Folder"
+
+msgid "Create Folder"
+msgstr "Create Folder"
+
+msgid "Create folders or upload design images directly to organize pattern variations, aesthetic pairings, and stitching references for this vehicle."
+msgstr "Create folders or upload design images directly to organize pattern variations, aesthetic pairings, and stitching references for this vehicle."
 
 msgid "Create Group"
 msgstr "Create Group"
@@ -635,8 +775,14 @@ msgstr "CSV files may contain at most %(count)s data rows."
 msgid "CSV files only (Max 5MB)"
 msgstr "CSV files only (Max 5MB)"
 
+msgid "CSV Import Results:"
+msgstr "CSV Import Results:"
+
 msgid "CSV must use UTF-8 encoding."
 msgstr "CSV must use UTF-8 encoding."
+
+msgid "CSV must use UTF-8 or compatible text encoding."
+msgstr "CSV must use UTF-8 or compatible text encoding."
 
 msgid "CURRENT"
 msgstr "CURRENT"
@@ -681,11 +827,26 @@ msgstr "Delete"
 msgid "Delete Complaint"
 msgstr "Delete Complaint"
 
+msgid "Delete Folder"
+msgstr "Delete Folder"
+
 msgid "Delete group?"
 msgstr "Delete group?"
 
+msgid "Delete Image"
+msgstr "Delete Image"
+
+msgid "Delete image"
+msgstr "Delete image"
+
+msgid "Delete Pattern"
+msgstr "Delete Pattern"
+
 msgid "Delete privilege?"
 msgstr "Delete privilege?"
+
+msgid "Delete Selected"
+msgstr "Delete Selected"
 
 msgid "Delete User"
 msgstr "Delete User"
@@ -696,14 +857,49 @@ msgstr "Department"
 msgid "Description"
 msgstr "Description"
 
-msgid "Direct Messages"
-msgstr "Direct Messages"
+msgid "Design Folders"
+msgstr "Design Folders"
+
+#, python-format
+msgid "Design image \"%(title)s\" was rejected. Reason: %(reason)s"
+msgstr "Design image \"%(title)s\" was rejected. Reason: %(reason)s"
+
+msgid "Design Image Approved"
+msgstr "Design Image Approved"
+
+msgid "Design image approved successfully."
+msgstr "Design image approved successfully."
+
+msgid "Design image rejected. Feedback sent to freelancer."
+msgstr "Design image rejected. Feedback sent to freelancer."
+
+#, python-format
+msgid "Design Image Rejected: %(title)s"
+msgstr "Design Image Rejected: %(title)s"
+
+msgid "Design Options"
+msgstr "Design Options"
+
+msgid "Direct messaging with this user is restricted."
+msgstr "Direct messaging with this user is restricted."
 
 msgid "Dismiss message"
 msgstr "Dismiss message"
 
 msgid "Doors"
 msgstr "Doors"
+
+msgid "doors"
+msgstr "doors"
+
+msgid "Download Image"
+msgstr "Download Image"
+
+msgid "Drive"
+msgstr "Drive"
+
+msgid "Drive updated successfully."
+msgstr "Drive updated successfully."
 
 msgid "Duplicate Layout Code"
 msgstr "Duplicate Layout Code"
@@ -714,11 +910,20 @@ msgstr "Duplicate SKU Found"
 msgid "Duplicate Vehicle Entry"
 msgstr "Duplicate Vehicle Entry"
 
+msgid "e.g. BR1"
+msgstr "e.g. BR1"
+
+msgid "e.g. S0001"
+msgstr "e.g. S0001"
+
 msgid "e.g. Sales, Operations"
 msgstr "e.g. Sales, Operations"
 
 msgid "e.g., BMW, Mercedes"
 msgstr "e.g., BMW, Mercedes"
+
+msgid "e.g., Luxury Diamond Pattern"
+msgstr "e.g., Luxury Diamond Pattern"
 
 msgid "e.g., Sport, Luxury"
 msgstr "e.g., Sport, Luxury"
@@ -771,6 +976,9 @@ msgstr "Email Address *"
 msgid "End"
 msgstr "End"
 
+msgid "Enlarged View"
+msgstr "Enlarged View"
+
 msgid "Enter a new password"
 msgstr "Enter a new password"
 
@@ -779,6 +987,9 @@ msgstr "Enter a new password."
 
 msgid "Enter a valid email address."
 msgstr "Enter a valid email address."
+
+msgid "Enter batch number (optional)"
+msgstr "Enter batch number (optional)"
 
 msgid "Enter current password"
 msgstr "Enter current password"
@@ -792,6 +1003,9 @@ msgstr "Enter first name"
 msgid "Enter last name"
 msgstr "Enter last name"
 
+msgid "Enter layout code"
+msgstr "Enter layout code"
+
 msgid "Enter new password"
 msgstr "Enter new password"
 
@@ -801,17 +1015,23 @@ msgstr "Enter phone number"
 msgid "Enter reason, feedback, or stipulations for factory executive..."
 msgstr "Enter reason, feedback, or stipulations for factory executive..."
 
+msgid "Enter serial number"
+msgstr "Enter serial number"
+
+msgid "Enter shipment or order number (optional)"
+msgstr "Enter shipment or order number (optional)"
+
 msgid "Enter the new production container number"
 msgstr "Enter the new production container number"
 
-msgid "Enter unique layout code"
-msgstr "Enter unique layout code"
+msgid "Enter X-Code"
+msgstr "Enter X-Code"
 
 msgid "Enter your password"
 msgstr "Enter your password"
 
-msgid "Enter your username"
-msgstr "Enter your username"
+msgid "Enter your username or email"
+msgstr "Enter your username or email"
 
 msgid "ERP ADMIN"
 msgstr "ERP ADMIN"
@@ -819,9 +1039,21 @@ msgstr "ERP ADMIN"
 msgid "ERP Admin Suite - Fabro Leather"
 msgstr "ERP Admin Suite - Fabro Leather"
 
+msgid "Error approving image."
+msgstr "Error approving image."
+
 #, python-format
 msgid "Error clearing sessions: %(error)s"
 msgstr "Error clearing sessions: %(error)s"
+
+msgid "Error creating folder."
+msgstr "Error creating folder."
+
+msgid "Error deleting folder."
+msgstr "Error deleting folder."
+
+msgid "Error deleting image."
+msgstr "Error deleting image."
 
 msgid "Error loading complaint types"
 msgstr "Error loading complaint types"
@@ -831,6 +1063,18 @@ msgstr "Error loading data"
 
 msgid "Error loading SKUs"
 msgstr "Error loading SKUs"
+
+msgid "Error reason for each failed row:\n"
+msgstr "Error reason for each failed row:\n"
+
+msgid "Error renaming folder."
+msgstr "Error renaming folder."
+
+msgid "Error saving Google Drive link."
+msgstr "Error saving Google Drive link."
+
+msgid "Error saving vehicle pattern. Please try again."
+msgstr "Error saving vehicle pattern. Please try again."
 
 #, python-format
 msgid "Error terminating session: %(error)s"
@@ -864,11 +1108,11 @@ msgstr "Execution Partially Verified"
 msgid "Execution submitted to the original approvers for verification."
 msgstr "Execution submitted to the original approvers for verification."
 
-msgid "Execution verification"
-msgstr "Execution verification"
-
 msgid "Execution Verification"
 msgstr "Execution Verification"
+
+msgid "Execution verification"
+msgstr "Execution verification"
 
 msgid "Execution verification decision"
 msgstr "Execution verification decision"
@@ -891,20 +1135,17 @@ msgstr "Export CSV"
 msgid "FABRO"
 msgstr "FABRO"
 
-msgid "Fabro Leather"
-msgstr "Fabro Leather"
-
 msgid "Factory"
 msgstr "Factory"
 
 msgid "Factory action plan"
 msgstr "Factory action plan"
 
-msgid "FACTORY COMPLAINT"
-msgstr "FACTORY COMPLAINT"
-
 msgid "Factory Complaint"
 msgstr "Factory Complaint"
+
+msgid "FACTORY COMPLAINT"
+msgstr "FACTORY COMPLAINT"
 
 msgid "Factory Complaint Registrar"
 msgstr "Factory Complaint Registrar"
@@ -912,11 +1153,11 @@ msgstr "Factory Complaint Registrar"
 msgid "Factory Complaint Types"
 msgstr "Factory Complaint Types"
 
-msgid "Factory Executive"
-msgstr "Factory Executive"
-
 msgid "Factory executive"
 msgstr "Factory executive"
+
+msgid "Factory Executive"
+msgstr "Factory Executive"
 
 msgid "Factory Executive:"
 msgstr "Factory Executive:"
@@ -951,8 +1192,14 @@ msgstr "Factory Viewer"
 msgid "Factory:"
 msgstr "Factory:"
 
+msgid "Failed to reject image."
+msgstr "Failed to reject image."
+
 msgid "Failed to send message."
 msgstr "Failed to send message."
+
+msgid "Failed to update vehicle: "
+msgstr "Failed to update vehicle: "
 
 msgid "File must be a CSV."
 msgstr "File must be a CSV."
@@ -963,6 +1210,21 @@ msgstr "File size: %(size)s MB"
 
 msgid "File unavailable"
 msgstr "File unavailable"
+
+msgid "Fill in details below"
+msgstr "Fill in details below"
+
+msgid "Fill in vehicle details"
+msgstr "Fill in vehicle details"
+
+msgid "Filter approvals"
+msgstr "Filter approvals"
+
+msgid "Filter Complaints"
+msgstr "Filter Complaints"
+
+msgid "Filter Vehicles"
+msgstr "Filter Vehicles"
 
 msgid "Filters"
 msgstr "Filters"
@@ -979,17 +1241,50 @@ msgstr "First"
 msgid "First Name"
 msgstr "First Name"
 
+msgid "Fitting"
+msgstr "Fitting"
+
+msgid "Fitting Confirm"
+msgstr "Fitting Confirm"
+
+msgid "Fitting Confirmation"
+msgstr "Fitting Confirmation"
+
+msgid "Fitting confirmation updated successfully."
+msgstr "Fitting confirmation updated successfully."
+
+msgid "Fitting Status"
+msgstr "Fitting Status"
+
 msgid "Flag"
 msgstr "Flag"
 
 msgid "Flag / Detail"
 msgstr "Flag / Detail"
 
+msgid "Folder"
+msgstr "Folder"
+
+msgid "Folder Name"
+msgstr "Folder Name"
+
+msgid "Folder name is required."
+msgstr "Folder name is required."
+
+msgid "Folder name must be 150 characters or fewer."
+msgstr "Folder name must be 150 characters or fewer."
+
+msgid "Folders"
+msgstr "Folders"
+
 msgid "Forgot"
 msgstr "Forgot"
 
 msgid "Forgot Password?"
 msgstr "Forgot Password?"
+
+msgid "From Date"
+msgstr "From Date"
 
 msgid "Full Name"
 msgstr "Full Name"
@@ -1002,6 +1297,18 @@ msgstr "General Info"
 
 msgid "Go to workflow page"
 msgstr "Go to workflow page"
+
+msgid "Google Drive"
+msgstr "Google Drive"
+
+msgid "Google Drive Folder"
+msgstr "Google Drive Folder"
+
+msgid "Google Drive Folder URL"
+msgstr "Google Drive Folder URL"
+
+msgid "Google Drive URL"
+msgstr "Google Drive URL"
 
 msgid "Green light proposed action"
 msgstr "Green light proposed action"
@@ -1022,23 +1329,32 @@ msgstr "Group name is required."
 msgid "Group name must be 150 characters or fewer."
 msgstr "Group name must be 150 characters or fewer."
 
+msgid "Hide details"
+msgstr "Hide details"
+
 msgid "High"
 msgstr "High"
 
 msgid "ID"
 msgstr "ID"
 
+msgid "image"
+msgstr "image"
+
+msgid "Image"
+msgstr "Image"
+
 msgid "Image Preview"
 msgstr "Image Preview"
+
+msgid "images"
+msgstr "images"
 
 msgid "Images and videos"
 msgstr "Images and videos"
 
 msgid "Images and videos (Max 100MB each)"
 msgstr "Images and videos (Max 100MB each)"
-
-msgid "India"
-msgstr "India"
 
 msgid "Initial approval"
 msgstr "Initial approval"
@@ -1049,8 +1365,23 @@ msgstr "Initial Approval"
 msgid "Inspect complaint in full complaint list"
 msgstr "Inspect complaint in full complaint list"
 
-msgid "Invalid username or password. Please try again."
-msgstr "Invalid username or password. Please try again."
+msgid "Invalid decision choice."
+msgstr "Invalid decision choice."
+
+msgid "Invalid Drive value."
+msgstr "Invalid Drive value."
+
+msgid "Invalid fitting confirmation value."
+msgstr "Invalid fitting confirmation value."
+
+msgid "Invalid Measurement Country value."
+msgstr "Invalid Measurement Country value."
+
+msgid "Invalid username, email, or password. Please try again."
+msgstr "Invalid username, email, or password. Please try again."
+
+msgid "Invalid Vehicle Country value."
+msgstr "Invalid Vehicle Country value."
 
 msgid "IP"
 msgstr "IP"
@@ -1078,9 +1409,6 @@ msgstr "Kick this session?"
 msgid "Kick this user session?"
 msgstr "Kick this user session?"
 
-msgid "KSA"
-msgstr "KSA"
-
 msgid "Language"
 msgstr "Language"
 
@@ -1097,9 +1425,6 @@ msgstr "Last login %(date)s"
 msgid "Last Name"
 msgstr "Last Name"
 
-msgid "Layout"
-msgstr "Layout"
-
 msgid "Layout Code"
 msgstr "Layout Code"
 
@@ -1108,6 +1433,9 @@ msgstr "Layout code already exists. Please use a unique layout code."
 
 msgid "Layout Code:"
 msgstr "Layout Code:"
+
+msgid "Link a Google Drive folder for"
+msgstr "Link a Google Drive folder for"
 
 msgid "Linked Context:"
 msgstr "Linked Context:"
@@ -1129,11 +1457,41 @@ msgstr "Live Activity Feed"
 msgid "Live Approver Status Matrix"
 msgstr "Live Approver Status Matrix"
 
+msgid "Load older messages"
+msgstr "Load older messages"
+
+msgid "Loading active sessions..."
+msgstr "Loading active sessions..."
+
+msgid "Loading activity logs..."
+msgstr "Loading activity logs..."
+
+msgid "Loading audit logs..."
+msgstr "Loading audit logs..."
+
+msgid "Loading history..."
+msgstr "Loading history..."
+
+msgid "Loading master settings..."
+msgstr "Loading master settings..."
+
+msgid "Loading SKU catalog..."
+msgstr "Loading SKU catalog..."
+
 msgid "Loading SKUs..."
 msgstr "Loading SKUs..."
 
 msgid "Loading types..."
 msgstr "Loading types..."
+
+msgid "Loading users directory..."
+msgstr "Loading users directory..."
+
+msgid "Loading vehicle catalog..."
+msgstr "Loading vehicle catalog..."
+
+msgid "Loading..."
+msgstr "Loading..."
 
 msgid "Log Back In"
 msgstr "Log Back In"
@@ -1141,8 +1499,8 @@ msgstr "Log Back In"
 msgid "Logged Out"
 msgstr "Logged Out"
 
-msgid "Login - Fabro Leather"
-msgstr "Login - Fabro Leather"
+msgid "Login - Fabro Craft"
+msgstr "Login - Fabro Craft"
 
 msgid "Login Time"
 msgstr "Login Time"
@@ -1164,9 +1522,6 @@ msgstr "Manage Catalog"
 
 msgid "Manage Master Settings"
 msgstr "Manage Master Settings"
-
-msgid "Manage product SKUs and inventory with inline editing & bulk upload capabilities"
-msgstr "Manage product SKUs and inventory with inline editing & bulk upload capabilities"
 
 msgid "Manage User Groups & Privileges"
 msgstr "Manage User Groups & Privileges"
@@ -1205,6 +1560,9 @@ msgstr "MD"
 msgid "Measurement Country"
 msgstr "Measurement Country"
 
+msgid "Measurement Country updated successfully."
+msgstr "Measurement Country updated successfully."
+
 #, python-format
 msgid "Media %(number)s"
 msgstr "Media %(number)s"
@@ -1231,6 +1589,9 @@ msgstr "Message Team Member"
 msgid "Missing required CSV columns: %(columns)s."
 msgstr "Missing required CSV columns: %(columns)s."
 
+msgid "Mobile Navigation"
+msgstr "Mobile Navigation"
+
 msgid "Model"
 msgstr "Model"
 
@@ -1239,6 +1600,9 @@ msgstr "Model Name"
 
 msgid "Model:"
 msgstr "Model:"
+
+msgid "models"
+msgstr "models"
 
 msgid "My Pending Reviews"
 msgstr "My Pending Reviews"
@@ -1252,18 +1616,40 @@ msgstr "Names must be 150 characters or fewer."
 msgid "Needs Correction"
 msgstr "Needs Correction"
 
+msgid "Network error during upload."
+msgstr "Network error during upload."
+
+msgid "Network error occurred."
+msgstr "Network error occurred."
+
 #, python-format
 msgid "Network error while contacting server: %(error)s"
 msgstr "Network error while contacting server: %(error)s"
 
-msgid "New"
-msgstr "New"
+msgid "Network error."
+msgstr "Network error."
+
+msgid "Network error. Please retry."
+msgstr "Network error. Please retry."
 
 msgid "NEW"
 msgstr "NEW"
 
+msgid "New"
+msgstr "New"
+
+msgid "New 3D design upload pending review"
+msgstr "New 3D design upload pending review"
+
+#, python-format
+msgid "New 3D Design Upload: %(title)s"
+msgstr "New 3D Design Upload: %(title)s"
+
 msgid "New approval requests will appear here."
 msgstr "New approval requests will appear here."
+
+msgid "New Folder Name"
+msgstr "New Folder Name"
 
 msgid "New Password"
 msgstr "New Password"
@@ -1273,6 +1659,12 @@ msgstr "New Production Container Number"
 
 msgid "Next"
 msgstr "Next"
+
+msgid "Next 4"
+msgstr "Next 4"
+
+msgid "Next image"
+msgstr "Next image"
 
 msgid "No active sessions."
 msgstr "No active sessions."
@@ -1289,6 +1681,9 @@ msgstr "No Approvals Found"
 msgid "No brands found."
 msgstr "No brands found."
 
+msgid "No change history recorded yet for this vehicle pattern."
+msgstr "No change history recorded yet for this vehicle pattern."
+
 msgid "No complaints available yet."
 msgstr "No complaints available yet."
 
@@ -1298,8 +1693,23 @@ msgstr "No complaints found"
 msgid "No decisions submitted yet."
 msgstr "No decisions submitted yet."
 
-msgid "No Logo"
-msgstr "No Logo"
+msgid "No design images have been uploaded to this folder yet."
+msgstr "No design images have been uploaded to this folder yet."
+
+msgid "No files uploaded."
+msgstr "No files uploaded."
+
+msgid "No Folders or Images Yet"
+msgstr "No Folders or Images Yet"
+
+msgid "No Google Drive folder has been linked for this vehicle yet."
+msgstr "No Google Drive folder has been linked for this vehicle yet."
+
+msgid "No image found in clipboard. Copy an image or take a screenshot, then try again or press Ctrl+V."
+msgstr "No image found in clipboard. Copy an image or take a screenshot, then try again or press Ctrl+V."
+
+msgid "No Images In This Folder"
+msgstr "No Images In This Folder"
 
 msgid "No master settings found."
 msgstr "No master settings found."
@@ -1322,8 +1732,14 @@ msgstr "No media uploaded"
 msgid "No messages yet"
 msgstr "No messages yet"
 
+msgid "No models found."
+msgstr "No models found."
+
 msgid "No notifications yet"
 msgstr "No notifications yet"
+
+msgid "No patterns selected."
+msgstr "No patterns selected."
 
 msgid "No pending approvals requiring your action."
 msgstr "No pending approvals requiring your action."
@@ -1337,11 +1753,14 @@ msgstr "No reviews waiting"
 msgid "No settings for this category"
 msgstr "No settings for this category"
 
+msgid "No SKUs found."
+msgstr "No SKUs found."
+
 msgid "No SKUs found. Click"
 msgstr "No SKUs found. Click"
 
-msgid "No SKUs loaded."
-msgstr "No SKUs loaded."
+msgid "No submodels found."
+msgstr "No submodels found."
 
 msgid "No team members found."
 msgstr "No team members found."
@@ -1355,17 +1774,29 @@ msgstr "No unread messages"
 msgid "No users found."
 msgstr "No users found."
 
+msgid "No users match the current filters."
+msgstr "No users match the current filters."
+
 msgid "No values found"
 msgstr "No values found"
 
 msgid "No vehicles added yet"
 msgstr "No vehicles added yet"
 
+msgid "No year ranges found."
+msgstr "No year ranges found."
+
+msgid "None"
+msgstr "None"
+
 msgid "None (Global)"
 msgstr "None (Global)"
 
 msgid "Note:"
 msgstr "Note:"
+
+msgid "Notification pages"
+msgstr "Notification pages"
 
 msgid "Notifications"
 msgstr "Notifications"
@@ -1384,6 +1815,9 @@ msgstr "Object Detail"
 
 msgid "Object Type"
 msgstr "Object Type"
+
+msgid "of"
+msgstr "of"
 
 msgid "Offline"
 msgstr "Offline"
@@ -1409,8 +1843,20 @@ msgstr "Only a Django superuser can edit another superuser account."
 msgid "Only a Django superuser can reset another superuser password."
 msgstr "Only a Django superuser can reset another superuser password."
 
+msgid "Only approver accounts can decide pattern alterations."
+msgstr "Only approver accounts can decide pattern alterations."
+
+msgid "Only staff users can alter patterns."
+msgstr "Only staff users can alter patterns."
+
+msgid "Only staff users can edit vehicles."
+msgstr "Only staff users can edit vehicles."
+
 msgid "Open"
 msgstr "Open"
+
+msgid "Open Admin Panel"
+msgstr "Open Admin Panel"
 
 msgid "Open Approvals Workspace"
 msgstr "Open Approvals Workspace"
@@ -1420,6 +1866,12 @@ msgstr "Open attached file"
 
 msgid "Open full dedicated review screen"
 msgstr "Open full dedicated review screen"
+
+msgid "Open in Drive"
+msgstr "Open in Drive"
+
+msgid "Open to load models."
+msgstr "Open to load models."
 
 msgid "Optional for approval. Required when rejecting."
 msgstr "Optional for approval. Required when rejecting."
@@ -1433,9 +1885,15 @@ msgstr "Optional when verifying. Required when requesting an execution correctio
 msgid "or drag and drop"
 msgstr "or drag and drop"
 
+msgid "Page"
+msgstr "Page"
+
 #, python-format
 msgid "Page %(page)s of %(pages)s"
 msgstr "Page %(page)s of %(pages)s"
+
+msgid "Page numbers"
+msgstr "Page numbers"
 
 msgid "Parallel Review Progress"
 msgstr "Parallel Review Progress"
@@ -1456,29 +1914,62 @@ msgstr "Password *"
 msgid "Password reset successfully for %(username)s."
 msgstr "Password reset successfully for %(username)s."
 
+msgid "Paste Image"
+msgstr "Paste Image"
+
+msgid "Paste image from clipboard (or press Ctrl+V)"
+msgstr "Paste image from clipboard (or press Ctrl+V)"
+
 msgid "PAT-26070001"
 msgstr "PAT-26070001"
 
 msgid "Pattern"
 msgstr "Pattern"
 
-msgid "Pattern Complaint"
-msgstr "Pattern Complaint"
+msgid "Pattern added successfully."
+msgstr "Pattern added successfully."
+
+msgid "Pattern Change Log"
+msgstr "Pattern Change Log"
 
 msgid "PATTERN COMPLAINT"
 msgstr "PATTERN COMPLAINT"
 
+msgid "Pattern Complaint"
+msgstr "Pattern Complaint"
+
 msgid "Pattern Complaint Types"
 msgstr "Pattern Complaint Types"
 
+msgid "Pattern Master"
+msgstr "Pattern Master"
+
+msgid "Pattern Master - Fabro Leather"
+msgstr "Pattern Master - Fabro Leather"
+
+msgid "Pattern Master Alteration Request"
+msgstr "Pattern Master Alteration Request"
+
+msgid "Patterns"
+msgstr "Patterns"
+
 msgid "Pending"
 msgstr "Pending"
+
+msgid "Pending Approval"
+msgstr "Pending Approval"
 
 msgid "Pending Approvals"
 msgstr "Pending Approvals"
 
 msgid "Pending Final Update"
 msgstr "Pending Final Update"
+
+msgid "Pending Review"
+msgstr "Pending Review"
+
+msgid "Permission denied."
+msgstr "Permission denied."
 
 msgid "Phone"
 msgstr "Phone"
@@ -1498,6 +1989,15 @@ msgstr "Play video"
 msgid "Please enter a review comment explaining the rejection or rework requirement."
 msgstr "Please enter a review comment explaining the rejection or rework requirement."
 
+msgid "Please press Ctrl+V on your keyboard to paste the image directly."
+msgstr "Please press Ctrl+V on your keyboard to paste the image directly."
+
+msgid "Please press Ctrl+V on your keyboard to paste the image."
+msgstr "Please press Ctrl+V on your keyboard to paste the image."
+
+msgid "Please provide a rejection reason."
+msgstr "Please provide a rejection reason."
+
 msgid "Please sign in to your account"
 msgstr "Please sign in to your account"
 
@@ -1507,8 +2007,29 @@ msgstr "PM"
 msgid "PNG, JPG (Max 5MB)"
 msgstr "PNG, JPG (Max 5MB)"
 
+msgid "Post-execution verification matrix"
+msgstr "Post-execution verification matrix"
+
+msgid "Post-execution verification tracker"
+msgstr "Post-execution verification tracker"
+
+msgid "Pre-execution action plan approval matrix"
+msgstr "Pre-execution action plan approval matrix"
+
+msgid "Pre-execution approval tracker"
+msgstr "Pre-execution approval tracker"
+
 msgid "Prev"
 msgstr "Prev"
+
+msgid "Prev 4"
+msgstr "Prev 4"
+
+msgid "Previous"
+msgstr "Previous"
+
+msgid "Previous image"
+msgstr "Previous image"
 
 msgid "Priority"
 msgstr "Priority"
@@ -1525,11 +2046,11 @@ msgstr "Privileges"
 msgid "Privileges (select multiple):"
 msgstr "Privileges (select multiple):"
 
-msgid "Proceed With Action Plan"
-msgstr "Proceed With Action Plan"
-
 msgid "Proceed with Action Plan"
 msgstr "Proceed with Action Plan"
+
+msgid "Proceed With Action Plan"
+msgstr "Proceed With Action Plan"
 
 msgid "Proceed with Plan"
 msgstr "Proceed with Plan"
@@ -1567,6 +2088,9 @@ msgstr "Profile photo must be a JPG, PNG, WEBP, or GIF image."
 msgid "Profile photo must be under 5 MB."
 msgstr "Profile photo must be under 5 MB."
 
+msgid "Profile photo removed successfully."
+msgstr "Profile photo removed successfully."
+
 msgid "Profile Settings"
 msgstr "Profile Settings"
 
@@ -1579,11 +2103,11 @@ msgstr "Proposed Factory Action Plan"
 msgid "Quality"
 msgstr "Quality"
 
-msgid "Quality Complaint"
-msgstr "Quality Complaint"
-
 msgid "QUALITY COMPLAINT"
 msgstr "QUALITY COMPLAINT"
+
+msgid "Quality Complaint"
+msgstr "Quality Complaint"
 
 msgid "Quality Complaint Types"
 msgstr "Quality Complaint Types"
@@ -1602,6 +2126,9 @@ msgstr "Ready to upload"
 
 msgid "Real reason behind defect"
 msgstr "Real reason behind defect"
+
+msgid "Reason for Rejection"
+msgstr "Reason for Rejection"
 
 msgid "Reason:"
 msgstr "Reason:"
@@ -1624,6 +2151,9 @@ msgstr "Reconsiderations"
 msgid "Region"
 msgstr "Region"
 
+msgid "Region / Vehicle Country specification."
+msgstr "Region / Vehicle Country specification."
+
 msgid "Register a new customer complaint with detailed information"
 msgstr "Register a new customer complaint with detailed information"
 
@@ -1632,6 +2162,12 @@ msgstr "Reject"
 
 msgid "Reject / Rework"
 msgstr "Reject / Rework"
+
+msgid "Reject Design"
+msgstr "Reject Design"
+
+msgid "Reject Design Image"
+msgstr "Reject Design Image"
 
 msgid "Reject Plan"
 msgstr "Reject Plan"
@@ -1643,6 +2179,10 @@ msgstr "Rejected"
 msgid "Rejected by %(role)s"
 msgstr "Rejected by %(role)s"
 
+#, python-format
+msgid "Rejection reason from %(user)s: %(reason)s"
+msgstr "Rejection reason from %(user)s: %(reason)s"
+
 msgid "Rejection reconsideration"
 msgstr "Rejection reconsideration"
 
@@ -1652,11 +2192,23 @@ msgstr "Rejection To Reconsider"
 msgid "Remove current photo"
 msgstr "Remove current photo"
 
+msgid "Remove file"
+msgstr "Remove file"
+
 msgid "Remove linked context"
 msgstr "Remove linked context"
 
 msgid "Remove photo"
 msgstr "Remove photo"
+
+msgid "Remove this user profile photo?"
+msgstr "Remove this user profile photo?"
+
+msgid "Rename"
+msgstr "Rename"
+
+msgid "Rename Folder"
+msgstr "Rename Folder"
 
 msgid "Report date"
 msgstr "Report date"
@@ -1677,20 +2229,23 @@ msgstr "Reported by"
 msgid "Reported by %(reporter)s"
 msgstr "Reported by %(reporter)s"
 
+msgid "Request approval to delete this vehicle pattern?"
+msgstr "Request approval to delete this vehicle pattern?"
+
 msgid "Request revisions or reject"
 msgstr "Request revisions or reject"
 
 msgid "Required CSV Format"
 msgstr "Required CSV Format"
 
+msgid "Reset"
+msgstr "Reset"
+
 msgid "Reset Filters"
 msgstr "Reset Filters"
 
 msgid "Reset Password"
 msgstr "Reset Password"
-
-msgid "Resolved"
-msgstr "Resolved"
 
 msgid "Return for Rework"
 msgstr "Return for Rework"
@@ -1717,8 +2272,17 @@ msgstr "Review comment"
 msgid "Review Comments"
 msgstr "Review Comments"
 
+msgid "Review Decision"
+msgstr "Review Decision"
+
 msgid "Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed."
 msgstr "Review the complaint and rejection reason again. Green light is given only when every other required approver chooses to proceed."
+
+msgid "reviewer tracker"
+msgstr "reviewer tracker"
+
+msgid "Rework"
+msgstr "Rework"
 
 msgid "Rework Required"
 msgstr "Rework Required"
@@ -1737,6 +2301,12 @@ msgstr "Round %(number)s"
 msgid "Round %(round)s"
 msgstr "Round %(round)s"
 
+msgid "Sampling"
+msgstr "Sampling"
+
+msgid "Save"
+msgstr "Save"
+
 #, python-format
 msgid "Save %(type)s"
 msgstr "Save %(type)s"
@@ -1747,11 +2317,17 @@ msgstr "Save Changes"
 msgid "Save Details"
 msgstr "Save Details"
 
+msgid "Save Link"
+msgstr "Save Link"
+
 msgid "Save SKU"
 msgstr "Save SKU"
 
 msgid "Save Updates And Close Case"
 msgstr "Save Updates And Close Case"
+
+msgid "Save Vehicle"
+msgstr "Save Vehicle"
 
 #, python-format
 msgid "Saving %(type)s complaint..."
@@ -1760,6 +2336,9 @@ msgstr "Saving %(type)s complaint..."
 #, python-format
 msgid "Saving %(type)s..."
 msgstr "Saving %(type)s..."
+
+msgid "Saving..."
+msgstr "Saving..."
 
 msgid "Search"
 msgstr "Search"
@@ -1776,17 +2355,17 @@ msgstr "Search by name, username, email, phone, role..."
 msgid "Search complaints"
 msgstr "Search complaints"
 
-msgid "Search complaints..."
-msgstr "Search complaints..."
+msgid "Search Field"
+msgstr "Search Field"
 
 msgid "Search field choices"
 msgstr "Search field choices"
 
+msgid "Search or start a new chat"
+msgstr "Search or start a new chat"
+
 msgid "Search SKUs"
 msgstr "Search SKUs"
-
-msgid "Search SKUs..."
-msgstr "Search SKUs..."
 
 msgid "Search team member..."
 msgstr "Search team member..."
@@ -1794,14 +2373,20 @@ msgstr "Search team member..."
 msgid "Search this keyword in"
 msgstr "Search this keyword in"
 
+msgid "Search this page..."
+msgstr "Search this page..."
+
 msgid "Search values..."
 msgstr "Search values..."
 
 msgid "Search vehicles"
 msgstr "Search vehicles"
 
-msgid "Search vehicles..."
-msgstr "Search vehicles..."
+msgid "Search..."
+msgstr "Search..."
+
+msgid "seats"
+msgstr "seats"
 
 msgid "Seats"
 msgstr "Seats"
@@ -1809,14 +2394,32 @@ msgstr "Seats"
 msgid "Security & Password"
 msgstr "Security & Password"
 
+msgid "Select"
+msgstr "Select"
+
 msgid "Select a Team Member"
 msgstr "Select a Team Member"
+
+msgid "Select all"
+msgstr "Select all"
 
 msgid "Select All"
 msgstr "Select All"
 
 msgid "Select Country"
 msgstr "Select Country"
+
+msgid "Select Drive..."
+msgstr "Select Drive..."
+
+msgid "Select filters to refine complaint list"
+msgstr "Select filters to refine complaint list"
+
+msgid "Select filters to refine vehicle list"
+msgstr "Select filters to refine vehicle list"
+
+msgid "Select Fitting..."
+msgstr "Select Fitting..."
 
 msgid "Select Model"
 msgstr "Select Model"
@@ -1827,23 +2430,38 @@ msgstr "Select Priority"
 msgid "Select SKU"
 msgstr "Select SKU"
 
+msgid "Select Sub-Model"
+msgstr "Select Sub-Model"
+
 msgid "Select Sub-Model (Optional)"
 msgstr "Select Sub-Model (Optional)"
 
 msgid "Select Type"
 msgstr "Select Type"
 
-msgid "Select User Group"
-msgstr "Select User Group"
-
-msgid "Select User Type"
-msgstr "Select User Type"
-
 msgid "Select Year"
 msgstr "Select Year"
 
+msgid "Selected patterns not found."
+msgstr "Selected patterns not found."
+
 msgid "Send Message"
 msgstr "Send Message"
+
+msgid "Send Rejection Feedback"
+msgstr "Send Rejection Feedback"
+
+msgid "Sending..."
+msgstr "Sending..."
+
+msgid "Serial No"
+msgstr "Serial No"
+
+msgid "Serial No is required."
+msgstr "Serial No is required."
+
+msgid "Serial Number"
+msgstr "Serial Number"
 
 msgid "Series"
 msgstr "Series"
@@ -1863,19 +2481,17 @@ msgstr "Setting Name"
 msgid "Setting updated successfully."
 msgstr "Setting updated successfully."
 
+msgid "Shipment/Order No"
+msgstr "Shipment/Order No"
+
 msgid "Show/Hide Password"
 msgstr "Show/Hide Password"
 
+msgid "Showing"
+msgstr "Showing"
+
 msgid "Sign In"
 msgstr "Sign In"
-
-#, python-format
-msgid "Skipped %(count)s duplicate layout codes: %(preview)s"
-msgstr "Skipped %(count)s duplicate layout codes: %(preview)s"
-
-#, python-format
-msgid "Skipped %(count)s invalid rows. %(preview)s"
-msgstr "Skipped %(count)s invalid rows. %(preview)s"
 
 msgid "SKU"
 msgstr "SKU"
@@ -1904,11 +2520,35 @@ msgstr "SKU Management - Fabro Leather"
 msgid "SKU Master Catalog"
 msgstr "SKU Master Catalog"
 
+msgid "SKU pages"
+msgstr "SKU pages"
+
 msgid "SKU:"
 msgstr "SKU:"
 
 msgid "SKUs"
 msgstr "SKUs"
+
+msgid "Sort by Brand"
+msgstr "Sort by Brand"
+
+msgid "Sort by Drive"
+msgstr "Sort by Drive"
+
+msgid "Sort by Measurement Country"
+msgstr "Sort by Measurement Country"
+
+msgid "Sort by Model"
+msgstr "Sort by Model"
+
+msgid "Sort by Serial Number"
+msgstr "Sort by Serial Number"
+
+msgid "Sort by Vehicle Country"
+msgstr "Sort by Vehicle Country"
+
+msgid "Specify the pattern issues, fitment mismatch, or corrections required..."
+msgstr "Specify the pattern issues, fitment mismatch, or corrections required..."
 
 msgid "Staff"
 msgstr "Staff"
@@ -1973,11 +2613,8 @@ msgstr "Submitting..."
 msgid "Submodel"
 msgstr "Submodel"
 
-#, python-format
-msgid "Successfully added %(count)s record."
-msgid_plural "Successfully added %(count)s records."
-msgstr[0] "Successfully added %(count)s record."
-msgstr[1] "Successfully added %(count)s records."
+msgid "submodels"
+msgstr "submodels"
 
 msgid "Superseded"
 msgstr "Superseded"
@@ -1985,11 +2622,17 @@ msgstr "Superseded"
 msgid "Superuser"
 msgstr "Superuser"
 
+msgid "System"
+msgstr "System"
+
 msgid "System Dashboard"
 msgstr "System Dashboard"
 
 msgid "System Statistics"
 msgstr "System Statistics"
+
+msgid "Tap to chat"
+msgstr "Tap to chat"
 
 msgid "Template, dimension, or cutting issue."
 msgstr "Template, dimension, or cutting issue."
@@ -2030,6 +2673,9 @@ msgstr "The final active superuser cannot be deleted."
 msgid "The final active superuser cannot be demoted."
 msgstr "The final active superuser cannot be demoted."
 
+msgid "The import conflicted with another database update. Please retry."
+msgstr "The import conflicted with another database update. Please retry."
+
 msgid "The import conflicted with another update. Please retry."
 msgstr "The import conflicted with another update. Please retry."
 
@@ -2038,6 +2684,18 @@ msgstr "The layout code you entered already exists. Please use a unique layout c
 
 msgid "The SKU code or description you entered already exists. Please use unique values."
 msgstr "The SKU code or description you entered already exists. Please use unique values."
+
+msgid "The two password fields did not match."
+msgstr "The two password fields did not match."
+
+msgid "The uploaded CSV file is empty."
+msgstr "The uploaded CSV file is empty."
+
+msgid "This account is inactive."
+msgstr "This account is inactive."
+
+msgid "This alteration has already been decided."
+msgstr "This alteration has already been decided."
 
 msgid "This approval round is complete"
 msgstr "This approval round is complete"
@@ -2048,11 +2706,17 @@ msgstr "This complaint can no longer be edited from the report step."
 msgid "This complaint is not ready for factory review."
 msgstr "This complaint is not ready for factory review."
 
-msgid "This Month"
-msgstr "This Month"
+msgid "This design image has already been reviewed."
+msgstr "This design image has already been reviewed."
+
+msgid "This feedback will be posted to the freelancer's chat box & notifications."
+msgstr "This feedback will be posted to the freelancer's chat box & notifications."
 
 msgid "This page is restricted to administrators only."
 msgstr "This page is restricted to administrators only."
+
+msgid "This user has no profile photo to remove."
+msgstr "This user has no profile photo to remove."
 
 msgid "This vehicle configuration overlaps with an existing entry:"
 msgstr "This vehicle configuration overlaps with an existing entry:"
@@ -2060,11 +2724,17 @@ msgstr "This vehicle configuration overlaps with an existing entry:"
 msgid "Timestamp"
 msgstr "Timestamp"
 
+msgid "To Date"
+msgstr "To Date"
+
 msgid "To reset your password if forgotten, please contact your system administrator."
 msgstr "To reset your password if forgotten, please contact your system administrator."
 
 msgid "Toggle filters"
 msgstr "Toggle filters"
+
+msgid "Too many failed login attempts. Your account is temporarily locked for 15 minutes. Please wait before trying again."
+msgstr "Too many failed login attempts. Your account is temporarily locked for 15 minutes. Please wait before trying again."
 
 msgid "Top"
 msgstr "Top"
@@ -2091,14 +2761,27 @@ msgid "Type & Material"
 msgstr "Type & Material"
 
 #, python-format
+msgid "Type a message to %(username)s..."
+msgstr "Type a message to %(username)s..."
+
+#, python-format
 msgid "Type a message to %(username)s... (Press Enter to send)"
 msgstr "Type a message to %(username)s... (Press Enter to send)"
 
 msgid "Type:"
 msgstr "Type:"
 
+msgid "Unable to load this section. Please try again."
+msgstr "Unable to load this section. Please try again."
+
 msgid "Unable to load types"
 msgstr "Unable to load types"
+
+msgid "Unable to save changes. Check your connection and try again."
+msgstr "Unable to save changes. Check your connection and try again."
+
+msgid "Unable to save user profile."
+msgstr "Unable to save user profile."
 
 msgid "Unavailable"
 msgstr "Unavailable"
@@ -2115,11 +2798,11 @@ msgstr "Update Complaint"
 msgid "Update complaint information and manage media files"
 msgstr "Update complaint information and manage media files"
 
-msgid "Update Order #"
-msgstr "Update Order #"
-
 msgid "Update Password"
 msgstr "Update Password"
+
+msgid "Update Pattern"
+msgstr "Update Pattern"
 
 msgid "Update Privileges"
 msgstr "Update Privileges"
@@ -2139,12 +2822,6 @@ msgstr "Update SKU information and manage media files"
 msgid "Update vehicle configuration and specifications"
 msgstr "Update vehicle configuration and specifications"
 
-msgid "Updated Order #"
-msgstr "Updated Order #"
-
-msgid "Upload"
-msgstr "Upload"
-
 msgid "Upload a valid image."
 msgstr "Upload a valid image."
 
@@ -2153,6 +2830,12 @@ msgstr "Upload CSV"
 
 msgid "Upload CSV File"
 msgstr "Upload CSV File"
+
+msgid "Upload failed."
+msgstr "Upload failed."
+
+msgid "Upload Images"
+msgstr "Upload Images"
 
 msgid "Upload profile photo"
 msgstr "Upload profile photo"
@@ -2176,6 +2859,10 @@ msgid "User"
 msgstr "User"
 
 #, python-format
+msgid "User %(username)s and password were updated."
+msgstr "User %(username)s and password were updated."
+
+#, python-format
 msgid "User %(username)s and workflow access were updated."
 msgstr "User %(username)s and workflow access were updated."
 
@@ -2192,8 +2879,8 @@ msgstr "User Groups"
 msgid "User not found."
 msgstr "User not found."
 
-msgid "User Type"
-msgstr "User Type"
+msgid "User profile not found."
+msgstr "User profile not found."
 
 msgid "Username"
 msgstr "Username"
@@ -2210,6 +2897,9 @@ msgstr "Username is required."
 msgid "Username must be 150 characters or fewer."
 msgstr "Username must be 150 characters or fewer."
 
+msgid "Username or Email"
+msgstr "Username or Email"
+
 msgid "Users"
 msgstr "Users"
 
@@ -2219,8 +2909,8 @@ msgstr "Vehicle"
 msgid "Vehicle & SKU"
 msgstr "Vehicle & SKU"
 
-msgid "Vehicle added successfully."
-msgstr "Vehicle added successfully."
+msgid "Vehicle Actions"
+msgstr "Vehicle Actions"
 
 msgid "Vehicle Brands & Models"
 msgstr "Vehicle Brands & Models"
@@ -2231,29 +2921,26 @@ msgstr "Vehicle Catalog"
 msgid "Vehicle Country"
 msgstr "Vehicle Country"
 
+msgid "Vehicle Country updated successfully."
+msgstr "Vehicle Country updated successfully."
+
 msgid "Vehicle deleted successfully."
 msgstr "Vehicle deleted successfully."
 
-msgid "Vehicle Information"
-msgstr "Vehicle Information"
+msgid "Vehicle Images"
+msgstr "Vehicle Images"
 
-msgid "Vehicle Management"
-msgstr "Vehicle Management"
+msgid "Vehicle pages"
+msgstr "Vehicle pages"
 
-msgid "Vehicle Management - Fabro Leather"
-msgstr "Vehicle Management - Fabro Leather"
-
-msgid "Vehicle Models"
-msgstr "Vehicle Models"
+msgid "Vehicle pages (top)"
+msgstr "Vehicle pages (top)"
 
 msgid "Vehicle updated successfully."
 msgstr "Vehicle updated successfully."
 
 msgid "Vehicle:"
 msgstr "Vehicle:"
-
-msgid "Vehicles"
-msgstr "Vehicles"
 
 msgid "Verification"
 msgstr "Verification"
@@ -2270,17 +2957,20 @@ msgstr "Verify Executed Action Plan"
 msgid "Verify Execution"
 msgstr "Verify Execution"
 
-msgid "View"
-msgstr "View"
-
 msgid "View All"
 msgstr "View All"
 
 msgid "View all complaints"
 msgstr "View all complaints"
 
+msgid "View complaint"
+msgstr "View complaint"
+
 msgid "View Complaint Details"
 msgstr "View Complaint Details"
+
+msgid "View details"
+msgstr "View details"
 
 msgid "View Details"
 msgstr "View Details"
@@ -2294,11 +2984,8 @@ msgstr "Waiting My Vote"
 msgid "Welcome Back"
 msgstr "Welcome Back"
 
-msgid "Where the measurement is taken for this vehicle"
-msgstr "Where the measurement is taken for this vehicle"
-
-msgid "Where the vehicle is manufactured."
-msgstr "Where the vehicle is manufactured."
+msgid "Where the measurement was taken for this vehicle"
+msgstr "Where the measurement was taken for this vehicle"
 
 msgid "Workflow Role *"
 msgstr "Workflow Role *"
@@ -2323,6 +3010,9 @@ msgstr "Write the proposed action plan from the factory."
 
 msgid "Write the real reason behind the defect after reviewing photos/videos."
 msgstr "Write the real reason behind the defect after reviewing photos/videos."
+
+msgid "X-Code"
+msgstr "X-Code"
 
 msgid "Year"
 msgstr "Year"
@@ -2360,6 +3050,10 @@ msgstr "Your CSV file must include the following columns in this exact order:"
 msgid "Your decision"
 msgstr "Your decision"
 
+#, python-format
+msgid "Your design image \"%(title)s\" was approved by %(user)s."
+msgstr "Your design image \"%(title)s\" was approved by %(user)s."
+
 msgid "Your password has been changed successfully."
 msgstr "Your password has been changed successfully."
 
@@ -2376,8 +3070,20 @@ msgstr "Your rejection was saved. Every other required approver was asked to rec
 msgid "Your review was saved. The remaining member reviews are still pending."
 msgstr "Your review was saved. The remaining member reviews are still pending."
 
-msgid "© 2025 Fabro Leather. All rights reserved."
-msgstr "© 2025 Fabro Leather. All rights reserved."
+msgid "Your session has expired. Please refresh the page and sign in again."
+msgstr "Your session has expired. Please refresh the page and sign in again."
+
+msgid "Your session has expired. Please sign in again."
+msgstr "Your session has expired. Please sign in again."
+
+msgid "{user} requested deletion of {count} pattern(s): {patterns}"
+msgstr "{user} requested deletion of {count} pattern(s): {patterns}"
+
+msgid "{user} updated pattern {serial} ({brand} {model})"
+msgstr "{user} updated pattern {serial} ({brand} {model})"
+
+msgid "© 2025 Fabro Leather, All rights reserved."
+msgstr "© 2025 Fabro Leather, All rights reserved."
 
 msgid "● Online"
 msgstr "● Online"

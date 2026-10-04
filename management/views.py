@@ -144,7 +144,10 @@ def _ensure_pattern_thumbnail(design_image):
         design_image.image.open('rb')
         with Image.open(design_image.image) as source:
             source.seek(0)
-            preview = source.convert('RGB')
+            if source.mode in ('RGBA', 'LA') or (source.mode == 'P' and 'transparency' in source.info):
+                preview = source.convert('RGBA')
+            else:
+                preview = source.convert('RGB')
             preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
             output = io.BytesIO()
             preview.save(output, format='WEBP', quality=82, method=6)
@@ -153,9 +156,9 @@ def _ensure_pattern_thumbnail(design_image):
             f'{stem}-{design_image.pk}.webp', ContentFile(output.getvalue()), save=True,
         )
         return design_image.thumbnail.url
-    except (OSError, ValueError, UnidentifiedImageError, S3StorageError):
-        logger.warning('Unable to generate pattern thumbnail for image %s.', design_image.pk, exc_info=True)
-        return ''
+    except Exception as exc:
+        logger.warning('Unable to generate pattern thumbnail for image %s: %s', design_image.pk, exc, exc_info=True)
+        return design_image.image.url if design_image.image else ''
 
 
 def _iter_csv_rows(uploaded_file, required_headers):
@@ -622,6 +625,7 @@ def car_details(request):
                     layout_code=layout_code or None,
                     x_code=x_code_val,
                     fitting_confirmation=fitting_conf_val,
+                    drive=(form.cleaned_data.get("drive") or "").strip(),
                     vehicle_country=form.cleaned_data.get("vehicle_country"),
                     measurement_country=form.cleaned_data.get("measurement_country")
                 )
@@ -893,6 +897,172 @@ def update_fitting_confirmation_api(request, year_range_id):
 
 
 @login_required
+@require_POST
+def update_vehicle_country_api(request, year_range_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({"success": False, "error": _("Permission denied.")}, status=403)
+
+    year_range = get_object_or_404(YearRange, id=year_range_id)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    val = (data.get("vehicle_country") or "").strip()
+    allowed_choices = {'GCC', 'USA', 'Europe', 'North America', 'India', 'China', ''}
+    matched_val = ''
+    for choice in allowed_choices:
+        if choice.lower() == val.lower():
+            matched_val = choice
+            break
+    else:
+        return JsonResponse({"success": False, "error": _("Invalid Vehicle Country value.")}, status=400)
+
+    if matched_val:
+        country_obj, _created = MasterSetting.objects.get_or_create(category='Country', name=matched_val)
+        year_range.vehicle_country = country_obj
+    else:
+        year_range.vehicle_country = None
+
+    year_range.save()
+
+    brand_name = year_range.sub_model.model.brand.name if year_range.sub_model and year_range.sub_model.model and year_range.sub_model.model.brand else ''
+    model_name = year_range.sub_model.model.name if year_range.sub_model and year_range.sub_model.model else ''
+
+    ActivityLog.objects.create(
+        user=request.user,
+        action="updated",
+        object_type="Vehicle Country",
+        object_name=f"{brand_name} {model_name} -> {matched_val or 'Cleared'}"
+    )
+
+    PatternEditLog.objects.create(
+        year_range=year_range,
+        pattern_serial=year_range.serial_number or f"S{year_range.id:04d}",
+        user=request.user,
+        action="vehicle_country_updated",
+        summary=f"Vehicle Country updated to {matched_val or 'Cleared'}",
+        details={'vehicle_country': {'new': matched_val}}
+    )
+
+    return JsonResponse({
+        "success": True,
+        "id": year_range.id,
+        "vehicle_country": year_range.vehicle_country.name if year_range.vehicle_country else "",
+        "message": _("Vehicle Country updated successfully.")
+    })
+
+
+@login_required
+@require_POST
+def update_measurement_country_api(request, year_range_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({"success": False, "error": _("Permission denied.")}, status=403)
+
+    year_range = get_object_or_404(YearRange, id=year_range_id)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    val = (data.get("measurement_country") or "").strip()
+    if val.lower() == 'north armerica':
+        val = 'North America'
+    allowed_choices = {'KSA', 'Oman', 'Qatar', 'India', 'North America', ''}
+    matched_val = ''
+    for choice in allowed_choices:
+        if choice.lower() == val.lower():
+            matched_val = choice
+            break
+    else:
+        return JsonResponse({"success": False, "error": _("Invalid Measurement Country value.")}, status=400)
+
+    if matched_val:
+        country_obj, _created = MasterSetting.objects.get_or_create(category='Country', name=matched_val)
+        year_range.measurement_country = country_obj
+    else:
+        year_range.measurement_country = None
+
+    year_range.save()
+
+    brand_name = year_range.sub_model.model.brand.name if year_range.sub_model and year_range.sub_model.model and year_range.sub_model.model.brand else ''
+    model_name = year_range.sub_model.model.name if year_range.sub_model and year_range.sub_model.model else ''
+
+    ActivityLog.objects.create(
+        user=request.user,
+        action="updated",
+        object_type="Measurement Country",
+        object_name=f"{brand_name} {model_name} -> {matched_val or 'Cleared'}"
+    )
+
+    PatternEditLog.objects.create(
+        year_range=year_range,
+        pattern_serial=year_range.serial_number or f"S{year_range.id:04d}",
+        user=request.user,
+        action="measurement_country_updated",
+        summary=f"Measured in country updated to {matched_val or 'Cleared'}",
+        details={'measurement_country': {'new': matched_val}}
+    )
+
+    return JsonResponse({
+        "success": True,
+        "id": year_range.id,
+        "measurement_country": year_range.measurement_country.name if year_range.measurement_country else "",
+        "message": _("Measurement Country updated successfully.")
+    })
+
+
+@login_required
+@require_POST
+def update_drive_api(request, year_range_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({"success": False, "error": _("Permission denied.")}, status=403)
+
+    year_range = get_object_or_404(YearRange, id=year_range_id)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    val = (data.get("drive") or "").strip().upper()
+    allowed_choices = {'LHD', 'RHD', ''}
+    if val not in allowed_choices:
+        return JsonResponse({"success": False, "error": _("Invalid Drive value.")}, status=400)
+
+    year_range.drive = val
+    year_range.save()
+
+    brand_name = year_range.sub_model.model.brand.name if year_range.sub_model and year_range.sub_model.model and year_range.sub_model.model.brand else ''
+    model_name = year_range.sub_model.model.name if year_range.sub_model and year_range.sub_model.model else ''
+
+    ActivityLog.objects.create(
+        user=request.user,
+        action="updated",
+        object_type="Drive",
+        object_name=f"{brand_name} {model_name} -> {val or 'Cleared'}"
+    )
+
+    PatternEditLog.objects.create(
+        year_range=year_range,
+        pattern_serial=year_range.serial_number or f"S{year_range.id:04d}",
+        user=request.user,
+        action="drive_updated",
+        summary=f"Drive updated to {val or 'Cleared'}",
+        details={'drive': {'new': val}}
+    )
+
+    return JsonResponse({
+        "success": True,
+        "id": year_range.id,
+        "drive": year_range.drive,
+        "message": _("Drive updated successfully.")
+    })
+
+
+@login_required
 def get_next_pattern_serial_api(request):
     country_id = request.GET.get('country_id')
     country = None
@@ -1122,6 +1292,7 @@ def edit_car_detail(request, car_id):
         'number_of_doors': year_range.number_of_doors,
         'vehicle_country': year_range.vehicle_country,
         'measurement_country': year_range.measurement_country,
+        'drive': year_range.drive,
     }
 
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
@@ -1175,6 +1346,7 @@ def edit_car_detail(request, car_id):
                 year_range.layout_code = layout_code
             year_range.x_code = x_code
             year_range.fitting_confirmation = fitting_confirmation
+            year_range.drive = (form.cleaned_data.get("drive") or "").strip()
             year_range.vehicle_country = form.cleaned_data.get("vehicle_country")
             year_range.measurement_country = form.cleaned_data.get("measurement_country")
             serial_number = (form.cleaned_data.get("serial_number") or "").strip()
@@ -1308,12 +1480,16 @@ def get_design_folders_api(request):
             direct_imgs = direct_page.object_list
             for img in direct_imgs:
                 if img.image:
+                    f_type, f_ext = _get_design_file_info(img.title or img.image.name)
+                    t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
                     direct_images_data.append({
                         'id': img.id,
-                        'url': _ensure_pattern_thumbnail(img),
+                        'url': t_url or img.image.url,
                         'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                         'title': img.title or os.path.basename(img.image.name),
                         'file_size': img.file_size,
+                        'file_type': f_type,
+                        'file_ext': f_ext,
                         'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
                         'approval_status': getattr(img, 'approval_status', 'approved'),
                         'rejection_reason': getattr(img, 'rejection_reason', '') or '',
@@ -1416,12 +1592,16 @@ def get_design_folder_detail_api(request, folder_id):
     image_list = []
     for img in image_page.object_list:
         if img.image:
+            f_type, f_ext = _get_design_file_info(img.title or img.image.name)
+            t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
             image_list.append({
                 'id': img.id,
-                'url': _ensure_pattern_thumbnail(img),
+                'url': t_url or img.image.url,
                 'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                 'title': img.title or os.path.basename(img.image.name),
                 'file_size': img.file_size,
+                'file_type': f_type,
+                'file_ext': f_ext,
                 'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
                 'approval_status': getattr(img, 'approval_status', 'approved'),
                 'rejection_reason': getattr(img, 'rejection_reason', '') or '',
@@ -1503,6 +1683,23 @@ def delete_design_folder_api(request, folder_id):
     return JsonResponse({'status': 'success'})
 
 
+ALLOWED_DESIGN_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg',
+    '.pdf',
+    '.dwg', '.dxf', '.step', '.stp', '.iges', '.igs', '.cad', '.nc', '.cut', '.plt', '.hpgl',
+}
+
+
+def _get_design_file_info(file_name):
+    ext = os.path.splitext(file_name or '')[1].lower()
+    if ext == '.pdf':
+        return 'pdf', 'PDF'
+    elif ext in {'.dwg', '.dxf', '.step', '.stp', '.iges', '.igs', '.cad', '.nc', '.cut', '.plt', '.hpgl'}:
+        return 'cad', ext.lstrip('.').upper()
+    else:
+        return 'image', ext.lstrip('.').upper()
+
+
 @login_required
 @require_POST
 def upload_design_images_api(request, folder_id):
@@ -1517,8 +1714,8 @@ def upload_design_images_api(request, folder_id):
     is_freelancer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     initial_status = 'pending' if is_freelancer else 'approved'
 
-    allowed_exts = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
-    max_size = 30 * 1024 * 1024  # 30MB
+    allowed_exts = ALLOWED_DESIGN_EXTENSIONS
+    max_size = 50 * 1024 * 1024  # 50MB
     created_images = []
 
     for file_obj in files:
@@ -1528,23 +1725,53 @@ def upload_design_images_api(request, folder_id):
         if file_obj.size > max_size:
             continue
 
+        f_type, f_ext = _get_design_file_info(file_obj.name)
+        thumbnail_file = None
+        if f_type == 'image':
+            try:
+                file_obj.seek(0)
+                with Image.open(file_obj) as source:
+                    if source.mode in ('RGBA', 'LA') or (source.mode == 'P' and 'transparency' in source.info):
+                        preview = source.convert('RGBA')
+                    else:
+                        preview = source.convert('RGB')
+                    preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                    out = io.BytesIO()
+                    preview.save(out, format='WEBP', quality=82, method=6)
+                    stem = os.path.splitext(os.path.basename(file_obj.name))[0][:80]
+                    thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                file_obj.seek(0)
+            except Exception as exc:
+                logger.warning('Direct thumbnail generation failed for %s: %s', file_obj.name, exc)
+                try:
+                    file_obj.seek(0)
+                except Exception:
+                    pass
+
         design_img = PatternDesignImage(
             folder=folder,
             image=file_obj,
+            thumbnail=thumbnail_file or '',
             title=file_obj.name,
             file_size=file_obj.size,
             uploaded_by=request.user,
             approval_status=initial_status,
         )
         design_img.save()
-        thumbnail_url = _ensure_pattern_thumbnail(design_img)
+        thumbnail_url = design_img.thumbnail.url if design_img.thumbnail else design_img.image.url
         created_images.append({
             'id': design_img.id,
-            'url': thumbnail_url,
+            'url': thumbnail_url or design_img.image.url,
+            'original_url': reverse('pattern_design_image_download', args=[design_img.pk]),
             'title': design_img.title,
             'file_size': design_img.file_size,
+            'file_type': f_type,
+            'file_ext': f_ext,
             'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
             'approval_status': design_img.approval_status,
+            'rejection_reason': '',
+            'can_approve': False,
+            'uploaded_by': request.user.username,
         })
 
     if is_freelancer and created_images:
@@ -1587,8 +1814,8 @@ def upload_vehicle_design_images_api(request, vehicle_id):
     is_freelancer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     initial_status = 'pending' if is_freelancer else 'approved'
 
-    allowed_exts = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
-    max_size = 30 * 1024 * 1024  # 30MB
+    allowed_exts = ALLOWED_DESIGN_EXTENSIONS
+    max_size = 50 * 1024 * 1024  # 50MB
     created_images = []
 
     for file_obj in files:
@@ -1598,24 +1825,54 @@ def upload_vehicle_design_images_api(request, vehicle_id):
         if file_obj.size > max_size:
             continue
 
+        f_type, f_ext = _get_design_file_info(file_obj.name)
+        thumbnail_file = None
+        if f_type == 'image':
+            try:
+                file_obj.seek(0)
+                with Image.open(file_obj) as source:
+                    if source.mode in ('RGBA', 'LA') or (source.mode == 'P' and 'transparency' in source.info):
+                        preview = source.convert('RGBA')
+                    else:
+                        preview = source.convert('RGB')
+                    preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                    out = io.BytesIO()
+                    preview.save(out, format='WEBP', quality=82, method=6)
+                    stem = os.path.splitext(os.path.basename(file_obj.name))[0][:80]
+                    thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                file_obj.seek(0)
+            except Exception as exc:
+                logger.warning('Direct thumbnail generation failed for %s: %s', file_obj.name, exc)
+                try:
+                    file_obj.seek(0)
+                except Exception:
+                    pass
+
         design_img = PatternDesignImage(
             vehicle=vehicle,
             folder=None,
             image=file_obj,
+            thumbnail=thumbnail_file or '',
             title=file_obj.name,
             file_size=file_obj.size,
             uploaded_by=request.user,
             approval_status=initial_status,
         )
         design_img.save()
-        thumbnail_url = _ensure_pattern_thumbnail(design_img)
+        thumbnail_url = design_img.thumbnail.url if design_img.thumbnail else design_img.image.url
         created_images.append({
             'id': design_img.id,
-            'url': thumbnail_url,
+            'url': thumbnail_url or design_img.image.url,
+            'original_url': reverse('pattern_design_image_download', args=[design_img.pk]),
             'title': design_img.title,
             'file_size': design_img.file_size,
+            'file_type': f_type,
+            'file_ext': f_ext,
             'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
             'approval_status': design_img.approval_status,
+            'rejection_reason': '',
+            'can_approve': False,
+            'uploaded_by': request.user.username,
         })
 
     if is_freelancer and created_images:
