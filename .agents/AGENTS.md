@@ -151,3 +151,128 @@ This document serves as the authoritative specification for the **FABRO Leather 
 * **Audit Edit Logs:** Field-level changes to report fields and approval decisions are preserved in `ComplaintEditLog`.
 * **Timeline Events:** Every workflow transition writes a human-readable event to `ComplaintTimeline`.
 
+---
+
+## 7. Notification & Web Push Synchronization
+
+Web Push is ALREADY implemented in Fabro.
+Do NOT rebuild, duplicate, or replace the existing Web Push architecture.
+
+For EVERY future workflow or business-logic change, perform a Notification Impact Check.
+This applies especially to:
+- assignments and reassignments
+- approval requests
+- approvals
+- declines/rejections
+- reviewer comments
+- designer submissions
+- designer resubmissions
+- complaint status changes
+- workflow status transitions
+- completion/closure
+- user-role changes
+- permission changes
+- URLs used as notification destinations
+
+After implementing a workflow change, determine:
+1. Does another user need to know this happened?
+2. Has the notification recipient changed?
+3. Has the notification trigger changed?
+4. Has the notification message changed?
+5. Has the notification destination URL changed?
+6. Has authorization/visibility of the destination changed?
+7. Should the event create an in-app notification?
+8. Should the event create a Web Push notification?
+9. Could the change cause duplicate notifications?
+10. Are existing notification tests still correct?
+
+If there is NO notification impact:
+Do not modify the notification system unnecessarily.
+Report: `NOTIFICATION IMPACT: None`
+
+If there IS an impact:
+Update the EXISTING Fabro notification architecture.
+Do NOT create:
+- another PushSubscription model
+- another Web Push service
+- another service worker
+- another VAPID configuration
+- duplicate subscription endpoints
+- parallel notification architecture
+
+Inspect and reuse the existing implementation.
+Keep:
+```
+Business Event
+    ├── In-App Notification
+    └── Web Push when appropriate
+```
+Recipients must always be calculated server-side from the actual workflow.
+Never trust frontend-supplied recipient IDs.
+Use `request.user` and existing role/relationship logic where appropriate.
+Notifications representing database changes should only be triggered after successful commits.
+Reuse `transaction.on_commit()`, `send_push_on_commit()`, or the existing equivalent where appropriate.
+Push failure must NEVER break the underlying Fabro operation.
+Avoid duplicate notifications caused by multiple:
+- views
+- signals
+- services
+- model hooks
+There should be one authoritative notification trigger for each business event.
+Keep Web Push payloads privacy-safe.
+Detailed comments, customer information, internal notes, phone numbers, or other sensitive information should remain inside authenticated Fabro pages.
+Notification destination URLs must remain same-origin and must still pass normal Django authentication and authorization.
+A notification NEVER grants access to its destination.
+
+### Designer Approval Notification Rule
+The Designer approval workflow has a permanent notification requirement.
+
+Designer submits/resubmits a design:
+* Recipients: CAD + ED
+* Channels: In-App + existing Web Push
+
+CAD approves/declines:
+* Recipient: Designer who submitted the design
+* Channels: In-App + existing Web Push
+
+ED approves/declines:
+* Recipient: Designer who submitted the design
+* Channels: In-App + existing Web Push
+
+CAD and ED are independent reviewers.
+Decline requires a comment.
+The Designer must be able to view the CAD and ED decisions and comments inside Fabro.
+Do not include the complete reviewer comment in Web Push.
+Overall approval requires: CAD Approved + ED Approved.
+Either reviewer declining means changes are required.
+A revised/resubmitted design must enter a new/current review cycle. Previous approvals must not accidentally count as approval of the revised design.
+Resubmission must notify CAD + ED again.
+
+### Required Testing
+Whenever a workflow modification affects notifications, update tests to verify:
+- correct recipient
+- unrelated users are not notified
+- correct in-app notification
+- correct Web Push trigger
+- correct destination
+- no duplicate notification
+- authorization still enforced
+- push failure does not break the workflow
+Mock external Web Push delivery during automated tests.
+
+### Completion Requirement
+Before declaring any workflow task complete, report:
+`NOTIFICATION IMPACT: None`
+or:
+`NOTIFICATION IMPACT: Updated`
+If updated, report:
+Event:
+Recipient(s):
+In-App:
+Web Push:
+Destination:
+Trigger:
+Tests:
+This Notification Impact Check is mandatory for all future Fabro workflow changes.
+
+

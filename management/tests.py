@@ -5588,6 +5588,16 @@ class DeploymentSettingsTests(SimpleTestCase):
 
 class Freelance3DDesignerWorkflowTests(TestCase):
     def setUp(self):
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        self.upload_patcher = patch('management.storage_backends.upload_content', return_value='ok')
+        self.url_patcher = patch('management.storage_backends.create_signed_download_url', return_value='/media/test.gif')
+        self.download_patcher = patch('management.storage_backends.download_content', return_value=tiny_gif)
+        self.upload_mock = self.upload_patcher.start()
+        self.url_mock = self.url_patcher.start()
+        self.download_mock = self.download_patcher.start()
+        self.addCleanup(self.upload_patcher.stop)
+        self.addCleanup(self.url_patcher.stop)
+        self.addCleanup(self.download_patcher.stop)
         from .models import (
             Brand, Model, SubModel, YearRange,
             PatternDesignFolder, PatternDesignImage,
@@ -5689,7 +5699,7 @@ class Freelance3DDesignerWorkflowTests(TestCase):
         notif_recipients = set(Notification.objects.filter(notification_type='design_approval').values_list('recipient__username', flat=True))
         self.assertIn(self.cad_user.username, notif_recipients)
         self.assertIn(self.ed_user.username, notif_recipients)
-        self.assertIn(self.md_user.username, notif_recipients)
+        self.assertNotIn(self.md_user.username, notif_recipients)
         self.assertNotIn(self.country_user.username, notif_recipients)
 
     def test_visibility_gating_for_pending_images(self):
@@ -5746,11 +5756,20 @@ class Freelance3DDesignerWorkflowTests(TestCase):
         res = self.client.post(reverse('approve_design_image_api', args=[img.id]))
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()['status'], 'success')
-        self.assertEqual(res.json()['approval_status'], 'approved')
+        self.assertEqual(res.json()['approval_status'], 'pending')
+
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'pending')
+
+        # ED approver also approves -> overall approved!
+        self.client.force_login(self.ed_user)
+        res_ed = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.assertEqual(res_ed.status_code, 200)
+        self.assertEqual(res_ed.json()['approval_status'], 'approved')
 
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'approved')
-        self.assertEqual(img.approved_by, self.cad_user)
+        self.assertEqual(img.approved_by, self.ed_user)
         self.assertIsNotNone(img.approved_at)
 
         repeat_res = self.client.post(reverse('approve_design_image_api', args=[img.id]))
@@ -5767,7 +5786,7 @@ class Freelance3DDesignerWorkflowTests(TestCase):
         # Notification sent to freelancer
         notif = Notification.objects.filter(recipient=self.freelancer, notification_type='design_approval').first()
         self.assertIsNotNone(notif)
-        self.assertIn('Approved', notif.title)
+        self.assertIn('Review Completed', notif.title)
 
         # Once approved, regular users can view it
         self.client.force_login(self.country_user)
@@ -5827,7 +5846,7 @@ class Freelance3DDesignerWorkflowTests(TestCase):
             recipient=self.freelancer,
             notification_type='design_approval'
         ).latest('created_at')
-        self.assertIn('Rejected', notif.title)
+        self.assertIn('Review Completed', notif.title)
         self.assertIn(rejection_reason, notif.message)
 
     def test_freelancer_chat_scoped_to_md_ed_cad_and_admin_only(self):

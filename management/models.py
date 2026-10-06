@@ -806,6 +806,7 @@ class Notification(models.Model):
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='workflow_notifications')
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     alteration = models.ForeignKey(PatternAlteration, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    design_image = models.ForeignKey('PatternDesignImage', on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     title = models.CharField(max_length=150)
     message = models.TextField(blank=True)
     notification_type = models.CharField(max_length=50, default='workflow')
@@ -963,6 +964,93 @@ class PatternDesignImage(models.Model):
         if self.vehicle:
             return f"Design Image {self.pk} for Vehicle {self.vehicle_id}"
         return f"Design Image {self.pk}"
+
+    @property
+    def latest_approval(self):
+        return self.approval_requests.order_by('-cycle').first()
+
+    @property
+    def current_cad_status(self):
+        appr = self.latest_approval
+        return appr.cad_status if appr else ('approved' if self.approval_status == 'approved' else 'pending')
+
+    @property
+    def current_cad_comment(self):
+        appr = self.latest_approval
+        return appr.cad_comment if appr else ''
+
+    @property
+    def current_ed_status(self):
+        appr = self.latest_approval
+        return appr.ed_status if appr else ('approved' if self.approval_status == 'approved' else 'pending')
+
+    @property
+    def current_ed_comment(self):
+        appr = self.latest_approval
+        return appr.ed_comment if appr else ''
+
+
+class PatternDesignApproval(models.Model):
+    design_image = models.ForeignKey(
+        PatternDesignImage,
+        on_delete=models.CASCADE,
+        related_name='approval_requests',
+    )
+    designer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='designer_approval_requests',
+    )
+    cycle = models.PositiveIntegerField(default=1)
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('partially_approved', 'Partially Approved'),
+        ('approved', 'Approved'),
+        ('rejected', 'Changes Required'),
+    ]
+    status = models.CharField(
+        max_length=25,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True,
+    )
+
+    cad_reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cad_design_reviews',
+    )
+    cad_status = models.CharField(max_length=20, default='pending')
+    cad_comment = models.TextField(blank=True, default='')
+    cad_decided_at = models.DateTimeField(null=True, blank=True)
+
+    ed_reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ed_design_reviews',
+    )
+    ed_status = models.CharField(max_length=20, default='pending')
+    ed_comment = models.TextField(blank=True, default='')
+    ed_decided_at = models.DateTimeField(null=True, blank=True)
+
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+        unique_together = [('design_image', 'cycle')]
+        indexes = [
+            models.Index(fields=['design_image', 'cycle'], name='idx_design_appr_cycle'),
+            models.Index(fields=['status', '-submitted_at'], name='idx_design_appr_status'),
+        ]
+
+    def __str__(self):
+        return f"PatternDesignApproval(image={self.design_image_id}, cycle={self.cycle}, status={self.status})"
+
 
 
 class PushSubscription(models.Model):

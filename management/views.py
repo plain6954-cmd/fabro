@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.auth.password_validation import validate_password
@@ -73,6 +74,7 @@ from .models import (
     PatternAlteration,
     PatternDesignFolder,
     PatternDesignImage,
+    PatternDesignApproval,
     PatternEditLog,
     SKU,
     SubModel,
@@ -129,6 +131,12 @@ from .services.s3_storage import (
     create_signed_download_url,
 )
 from .services.push_notifications import send_push_on_commit
+from .services.design_approvals import (
+    get_approvers_for_role,
+    submit_design_for_approval,
+    record_design_review_decision,
+    get_latest_approval_request,
+)
 from .services.cache_versions import cache_version
 
 
@@ -1777,22 +1785,9 @@ def upload_design_images_api(request, folder_id):
         })
 
     if is_freelancer and created_images:
-        vehicle = folder.vehicle
-        v_title = str(vehicle) if vehicle else folder.name
-        approver_users = User.objects.filter(
-            is_active=True,
-            workflow_profile__approval_role__in=[ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD],
-        ).exclude(id=request.user.id)
-        for app_user in approver_users:
-            Notification.objects.create(
-                recipient=app_user,
-                title=_("New 3D Design Upload: %(title)s") % {'title': v_title},
-                message=_("%(user)s uploaded %(count)s new 3D design file(s) for review.") % {
-                    'user': request.user.username,
-                    'count': len(created_images),
-                },
-                notification_type='design_approval',
-            )
+        for c_img in created_images:
+            db_img = PatternDesignImage.objects.get(id=c_img['id'])
+            submit_design_for_approval(db_img, request.user)
 
     return JsonResponse({
         'status': 'success',
@@ -1878,21 +1873,9 @@ def upload_vehicle_design_images_api(request, vehicle_id):
         })
 
     if is_freelancer and created_images:
-        v_title = str(vehicle)
-        approver_users = User.objects.filter(
-            is_active=True,
-            workflow_profile__approval_role__in=[ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD],
-        ).exclude(id=request.user.id)
-        for app_user in approver_users:
-            Notification.objects.create(
-                recipient=app_user,
-                title=_("New 3D Design Upload: %(title)s") % {'title': v_title},
-                message=_("%(user)s uploaded %(count)s new 3D design file(s) for review.") % {
-                    'user': request.user.username,
-                    'count': len(created_images),
-                },
-                notification_type='design_approval',
-            )
+        for c_img in created_images:
+            db_img = PatternDesignImage.objects.get(id=c_img['id'])
+            submit_design_for_approval(db_img, request.user)
 
     return JsonResponse({
         'status': 'success',
@@ -1946,39 +1929,29 @@ def delete_design_image_api(request, image_id):
 @login_required
 @require_POST
 def approve_design_image_api(request, image_id):
-    if not _can_approve_design_assets(request.user):
-        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     img = get_object_or_404(PatternDesignImage, id=image_id)
-    if img.approval_status != 'pending':
-        return JsonResponse({'status': 'error', 'message': _('This design image has already been reviewed.')}, status=409)
-    img.approval_status = 'approved'
-    img.approved_by = request.user
-    img.approved_at = now()
-    img.rejected_by = None
-    img.rejected_at = None
-    img.rejection_reason = ''
-    img.save()
+    comment = request.POST.get('comment', '') or ''
+    if not comment:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            comment = data.get('comment', '') or ''
+        except Exception:
+            pass
 
-    if img.uploaded_by and img.uploaded_by != request.user:
-        Notification.objects.create(
-            recipient=img.uploaded_by,
-            title=_("Design Image Approved"),
-            message=_("Your design image \"%(title)s\" was approved by %(user)s.") % {
-                'title': img.title or os.path.basename(img.image.name),
-                'user': request.user.get_full_name() or request.user.username,
-            },
-            notification_type='design_approval',
-        )
+    try:
+        approval, img = record_design_review_decision(img, request.user, 'approved', comment)
+    except PermissionDenied as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
+    except ValidationError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except ValueError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
 
-    ActivityLog.objects.create(
-        user=request.user,
-        action='approved',
-        object_type='Design Image',
-        object_name=img.title or str(img.id),
-    )
     return JsonResponse({
         'status': 'success',
-        'approval_status': 'approved',
+        'approval_status': img.approval_status,
+        'cad_status': approval.cad_status,
+        'ed_status': approval.ed_status,
         'message': _('Design image approved successfully.')
     })
 
@@ -1986,61 +1959,218 @@ def approve_design_image_api(request, image_id):
 @login_required
 @require_POST
 def reject_design_image_api(request, image_id):
-    if not _can_approve_design_assets(request.user):
-        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     img = get_object_or_404(PatternDesignImage, id=image_id)
-    if img.approval_status != 'pending':
-        return JsonResponse({'status': 'error', 'message': _('This design image has already been reviewed.')}, status=409)
-
     try:
         data = json.loads(request.body.decode('utf-8'))
     except Exception:
         data = request.POST
 
-    reason = (data.get('reason') or '').strip()
-    if not reason:
-        return JsonResponse({'status': 'error', 'message': _('A rejection reason is mandatory.')}, status=400)
+    reason = (data.get('reason') or data.get('comment') or '').strip()
 
-    img.approval_status = 'rejected'
-    img.rejected_by = request.user
-    img.rejected_at = now()
-    img.rejection_reason = reason
-    img.approved_by = None
-    img.approved_at = None
-    img.save()
+    try:
+        approval, img = record_design_review_decision(img, request.user, 'rejected', reason)
+    except PermissionDenied as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
+    except ValidationError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except ValueError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
 
-    if img.uploaded_by and img.uploaded_by != request.user:
-        chat_msg_text = _("Design image \"%(title)s\" was rejected. Reason: %(reason)s") % {
-            'title': img.title or os.path.basename(img.image.name),
-            'reason': reason,
-        }
-        ChatMessage.objects.create(
-            sender=request.user,
-            recipient=img.uploaded_by,
-            message=chat_msg_text,
-        )
-        Notification.objects.create(
-            recipient=img.uploaded_by,
-            title=_("Design Image Rejected: %(title)s") % {'title': img.title or os.path.basename(img.image.name)},
-            message=_("Rejection reason from %(user)s: %(reason)s") % {
-                'user': request.user.get_full_name() or request.user.username,
-                'reason': reason,
-            },
-            notification_type='design_approval',
-        )
-
-    ActivityLog.objects.create(
-        user=request.user,
-        action='rejected',
-        object_type='Design Image',
-        object_name=f"{img.title or str(img.id)}: {reason[:80]}",
-    )
     return JsonResponse({
         'status': 'success',
-        'approval_status': 'rejected',
+        'approval_status': img.approval_status,
         'rejection_reason': reason,
-        'message': _('Design image rejected. Feedback sent to freelancer.')
+        'cad_status': approval.cad_status,
+        'ed_status': approval.ed_status,
+        'message': _('Design image rejected with feedback.')
     })
+
+
+@login_required
+@require_POST
+def resubmit_design_image_api(request, image_id):
+    img = get_object_or_404(PatternDesignImage, id=image_id)
+    if img.uploaded_by_id != request.user.id and not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': _('Only the submitting designer can resubmit.')}, status=403)
+    if img.approval_status != 'rejected':
+        return JsonResponse({'status': 'error', 'message': _('Only rejected designs can be resubmitted.')}, status=400)
+
+    # Optional replacement file
+    replacement_file = request.FILES.get('image')
+    if replacement_file:
+        img.image = replacement_file
+        img.file_size = replacement_file.size
+        f_type, _ext = _get_design_file_info(replacement_file.name)
+        if f_type == 'image':
+            try:
+                replacement_file.seek(0)
+                with Image.open(replacement_file) as source:
+                    preview = source.convert('RGB')
+                    preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                    out = io.BytesIO()
+                    preview.save(out, format='WEBP', quality=82)
+                    stem = os.path.splitext(os.path.basename(replacement_file.name))[0][:80]
+                    img.thumbnail = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                replacement_file.seek(0)
+            except Exception:
+                pass
+        img.save()
+
+    approval = submit_design_for_approval(img, request.user, is_resubmission=True)
+    return JsonResponse({
+        'status': 'success',
+        'approval_status': img.approval_status,
+        'cycle': approval.cycle,
+        'message': _('Design resubmitted successfully for CAD and ED review.')
+    })
+
+
+@login_required
+def design_approvals_list(request):
+    user = request.user
+    prof = getattr(user, 'workflow_profile', None)
+    is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    approval_role = getattr(prof, 'approval_role', None) if prof else None
+
+    # Base queryset: only images with approval requests
+    qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).select_related(
+        'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
+    ).prefetch_related('approval_requests').distinct().order_by('-uploaded_at')
+
+    if is_designer:
+        qs = qs.filter(uploaded_by=user)
+
+    active_tab = request.GET.get('tab', 'pending')
+
+    if active_tab == 'approved':
+        qs = qs.filter(approval_status='approved')
+    elif active_tab == 'rejected':
+        qs = qs.filter(approval_status='rejected')
+    elif active_tab == 'pending':
+        if approval_role == ApprovalRoles.CAD:
+            qs = qs.filter(approval_requests__cad_status='pending', approval_status__in=['pending', 'partially_approved']).exclude(uploaded_by=user)
+        elif approval_role == ApprovalRoles.ED:
+            qs = qs.filter(approval_requests__ed_status='pending', approval_status__in=['pending', 'partially_approved']).exclude(uploaded_by=user)
+        else:
+            qs = qs.filter(approval_status='pending')
+
+    pending_count = PatternDesignImage.objects.filter(
+        approval_requests__isnull=False,
+        approval_status='pending'
+    ).distinct().count()
+    if approval_role == ApprovalRoles.CAD:
+        pending_count = PatternDesignImage.objects.filter(
+            approval_requests__cad_status='pending',
+            approval_status__in=['pending', 'partially_approved']
+        ).exclude(uploaded_by=user).distinct().count()
+    elif approval_role == ApprovalRoles.ED:
+        pending_count = PatternDesignImage.objects.filter(
+            approval_requests__ed_status='pending',
+            approval_status__in=['pending', 'partially_approved']
+        ).exclude(uploaded_by=user).distinct().count()
+
+    context = {
+        'designs': qs,
+        'active_tab': active_tab,
+        'pending_count': pending_count,
+        'is_designer': is_designer,
+        'can_review_as_cad': (approval_role == ApprovalRoles.CAD),
+        'can_review_as_ed': (approval_role == ApprovalRoles.ED),
+    }
+    return render(request, 'management/design_approvals_list.html', context)
+
+
+@login_required
+def design_approval_detail(request, image_id):
+    design_image = get_object_or_404(
+        PatternDesignImage.objects.select_related(
+            'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
+        ).prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer'),
+        id=image_id
+    )
+    user = request.user
+    prof = getattr(user, 'workflow_profile', None)
+    is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    approval_role = getattr(prof, 'approval_role', None) if prof else None
+
+    # Access control: Freelancers can only view their own designs
+    if is_designer and design_image.uploaded_by_id != user.id:
+        raise PermissionDenied(_("You can only view your own submitted designs."))
+
+    # Handle POST submission from form
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'review':
+            decision = request.POST.get('decision')
+            comment = request.POST.get('comment', '')
+            try:
+                record_design_review_decision(design_image, user, decision, comment)
+                messages.success(request, _("Your review decision has been recorded."))
+            except Exception as exc:
+                messages.error(request, str(exc))
+            return redirect('design_approval_detail', image_id=design_image.id)
+        elif action == 'resubmit':
+            if design_image.uploaded_by_id != user.id and not user.is_superuser:
+                raise PermissionDenied(_("Only the submitting designer can resubmit."))
+            if design_image.approval_status != 'rejected':
+                messages.error(request, _("Only designs with changes requested can be resubmitted."))
+                return redirect('design_approval_detail', image_id=design_image.id)
+
+            replacement_file = request.FILES.get('image')
+            if replacement_file:
+                design_image.image = replacement_file
+                design_image.file_size = replacement_file.size
+                f_type, _ext = _get_design_file_info(replacement_file.name)
+                if f_type == 'image':
+                    try:
+                        replacement_file.seek(0)
+                        with Image.open(replacement_file) as source:
+                            preview = source.convert('RGB')
+                            preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                            out = io.BytesIO()
+                            preview.save(out, format='WEBP', quality=82)
+                            stem = os.path.splitext(os.path.basename(replacement_file.name))[0][:80]
+                            design_image.thumbnail = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                        replacement_file.seek(0)
+                    except Exception:
+                        pass
+                design_image.save()
+
+            submit_design_for_approval(design_image, user, is_resubmission=True)
+            messages.success(request, _("Design resubmitted successfully for CAD and ED review."))
+            return redirect('design_approval_detail', image_id=design_image.id)
+
+    latest_approval = design_image.latest_approval
+    history_cycles = list(design_image.approval_requests.all().order_by('-cycle'))
+
+    can_review_cad = bool(
+        approval_role == ApprovalRoles.CAD
+        and latest_approval
+        and latest_approval.cad_status == 'pending'
+        and design_image.uploaded_by_id != user.id
+    )
+    can_review_ed = bool(
+        approval_role == ApprovalRoles.ED
+        and latest_approval
+        and latest_approval.ed_status == 'pending'
+        and design_image.uploaded_by_id != user.id
+    )
+    can_resubmit = bool(
+        design_image.uploaded_by_id == user.id
+        and design_image.approval_status == 'rejected'
+    )
+
+    context = {
+        'design_image': design_image,
+        'latest_approval': latest_approval,
+        'history_cycles': history_cycles,
+        'is_designer': is_designer,
+        'can_review_as_cad': can_review_cad,
+        'can_review_as_ed': can_review_ed,
+        'can_resubmit': can_resubmit,
+    }
+    return render(request, 'management/design_approval_detail.html', context)
+
 
 
 @login_required
@@ -3544,7 +3674,9 @@ def open_notification(request, notification_id):
     complaint = notification.complaint
     if not complaint:
         if notification.notification_type == 'design_approval':
-            return redirect('car_details')
+            if notification.design_image_id:
+                return redirect('design_approval_detail', image_id=notification.design_image_id)
+            return redirect('design_approvals_list')
         if notification.notification_type == 'chat':
             return redirect('chat_view')
         return redirect('notification_list')

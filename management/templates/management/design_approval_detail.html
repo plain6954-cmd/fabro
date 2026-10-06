@@ -1,0 +1,330 @@
+{% load static i18n %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
+<head>
+{% endif %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% translate "Review Design" %} — {{ design_image.title }} — Fabro</title>
+    {% include 'management/includes/favicons.html' %}
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+{% if is_htmx_request %}
+</template>
+{% else %}
+</head>
+<body>
+    {% include 'management/base.html' %}
+{% endif %}
+
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
+<div class="workflow-container" style="max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem;">
+    <!-- Navigation / Breadcrumbs -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--dark-text-secondary, #94a3b8);">
+            <a href="{% url 'design_approvals_list' %}" style="color: #3b82f6; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="fas fa-arrow-left"></i> {% translate "Approvals Queue" %}
+            </a>
+            <span>/</span>
+            <span>{% translate "Design Review" %}</span>
+        </div>
+        <div>
+            <a href="{% url 'pattern_design_image_download' design_image.id %}" class="workflow-btn secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: 6px;">
+                <i class="fas fa-download"></i> {% translate "Download File" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Two-Column Layout -->
+    <div style="display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem; align-items: start;" class="design-review-grid">
+        <!-- Left: Image Preview & Details -->
+        <div style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden;">
+            <div style="background: rgba(0, 0, 0, 0.3); padding: 1rem; display: flex; align-items: center; justify-content: center; min-height: 340px; position: relative;">
+                {% if design_image.image %}
+                    <img src="{{ design_image.image.url }}" alt="{{ design_image.title }}" style="max-width: 100%; max-height: 480px; object-fit: contain; border-radius: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div style="display: none; align-items: center; justify-content: center; flex-direction: column; gap: 0.75rem; color: #94a3b8; padding: 2rem;">
+                        <i class="fas fa-file-alt" style="font-size: 3.5rem;"></i>
+                        <span>{{ design_image.title }}</span>
+                    </div>
+                {% else %}
+                    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.75rem; color: #94a3b8; padding: 2rem;">
+                        <i class="fas fa-drafting-compass" style="font-size: 3.5rem;"></i>
+                        <span>{% translate "No preview available" %}</span>
+                    </div>
+                {% endif %}
+
+                <!-- Overall Status Badge -->
+                <div style="position: absolute; top: 1rem; right: 1rem;">
+                    {% if design_image.approval_status == 'approved' %}
+                        <span style="background: #10b981; color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);">
+                            <i class="fas fa-check-circle"></i> {% translate "APPROVED" %}
+                        </span>
+                    {% elif design_image.approval_status == 'rejected' %}
+                        <span style="background: #ef4444; color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);">
+                            <i class="fas fa-times-circle"></i> {% translate "CHANGES REQUIRED" %}
+                        </span>
+                    {% else %}
+                        <span style="background: #f59e0b; color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);">
+                            <i class="fas fa-clock"></i> {% translate "PENDING REVIEW" %}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="padding: 1.25rem;">
+                <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0 0 0.75rem 0; color: var(--dark-text, #f8fafc);">
+                    {{ design_image.title }}
+                </h2>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.82rem; color: var(--dark-text-secondary, #94a3b8); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem;">
+                    <div>
+                        <span style="opacity: 0.75;">{% translate "Submitted by" %}:</span>
+                        <div style="font-weight: 600; color: var(--dark-text, #f8fafc); margin-top: 0.15rem;">
+                            <i class="fas fa-user"></i> {{ design_image.uploaded_by.username|default:"—" }}
+                        </div>
+                    </div>
+                    <div>
+                        <span style="opacity: 0.75;">{% translate "Submission Date" %}:</span>
+                        <div style="font-weight: 600; color: var(--dark-text, #f8fafc); margin-top: 0.15rem;">
+                            <i class="fas fa-calendar-alt"></i> {{ design_image.uploaded_at|date:"M d, Y H:i" }}
+                        </div>
+                    </div>
+                    {% if design_image.vehicle %}
+                    <div>
+                        <span style="opacity: 0.75;">{% translate "Vehicle" %}:</span>
+                        <div style="font-weight: 600; color: var(--dark-text, #f8fafc); margin-top: 0.15rem;">
+                            <i class="fas fa-car"></i> {{ design_image.vehicle }}
+                        </div>
+                    </div>
+                    {% elif design_image.folder %}
+                    <div>
+                        <span style="opacity: 0.75;">{% translate "Design Folder" %}:</span>
+                        <div style="font-weight: 600; color: var(--dark-text, #f8fafc); margin-top: 0.15rem;">
+                            <i class="fas fa-folder"></i> {{ design_image.folder.name }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <span style="opacity: 0.75;">{% translate "Revision Cycle" %}:</span>
+                        <div style="font-weight: 600; color: #3b82f6; margin-top: 0.15rem;">
+                            #{{ latest_approval.cycle|default:1 }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Independent Review Matrices & Decision Forms -->
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <!-- Review Summary Header -->
+            <div style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1.25rem;">
+                <h3 style="font-size: 1rem; font-weight: 700; margin: 0 0 0.5rem 0; color: var(--dark-text, #f8fafc); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-tasks" style="color: #3b82f6;"></i>
+                    {% translate "Dual Approval Matrix (CAD + ED)" %}
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--dark-text-secondary, #94a3b8); margin: 0;">
+                    {% translate "Both CAD and ED reviewers must independently approve this design before it becomes fully approved." %}
+                </p>
+            </div>
+
+            <!-- CAD Review Card -->
+            <div style="background: var(--dark-surface, #1e293b); border: 1px solid {% if latest_approval.cad_status == 'approved' %}rgba(16, 185, 129, 0.3){% elif latest_approval.cad_status == 'rejected' %}rgba(239, 68, 68, 0.3){% else %}rgba(255, 255, 255, 0.08){% endif %}; border-radius: 12px; padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 6px;">CAD</span>
+                        <strong style="font-size: 0.95rem; color: var(--dark-text, #f8fafc);">{% translate "CAD Review" %}</strong>
+                    </div>
+                    <div>
+                        {% if latest_approval.cad_status == 'approved' %}
+                            <span style="color: #10b981; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <i class="fas fa-check-circle"></i> {% translate "Approved" %}
+                            </span>
+                        {% elif latest_approval.cad_status == 'rejected' %}
+                            <span style="color: #ef4444; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <i class="fas fa-times-circle"></i> {% translate "Declined" %}
+                            </span>
+                        {% else %}
+                            <span style="color: #f59e0b; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <i class="fas fa-clock"></i> {% translate "Pending" %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if latest_approval.cad_status != 'pending' %}
+                    <div style="font-size: 0.78rem; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.5rem;">
+                        {% translate "Reviewed by" %} <strong style="color: var(--dark-text, #f8fafc);">{{ latest_approval.cad_reviewer.username|default:"CAD Reviewer" }}</strong>
+                        {% if latest_approval.cad_decided_at %}• {{ latest_approval.cad_decided_at|date:"M d, Y H:i" }}{% endif %}
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.2); border-left: 3px solid {% if latest_approval.cad_status == 'approved' %}#10b981{% else %}#ef4444{% endif %}; border-radius: 4px; padding: 0.65rem 0.85rem; font-size: 0.85rem; color: var(--dark-text, #f8fafc);">
+                        {{ latest_approval.cad_comment|default:"No comment provided." }}
+                    </div>
+                {% else %}
+                    <!-- CAD Review Action Form (Visible to CAD approver only) -->
+                    {% if can_review_as_cad %}
+                    <form method="POST" id="cadReviewForm" style="margin-top: 0.75rem;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="review">
+                        <div style="margin-bottom: 0.75rem;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
+                                {% translate "CAD Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Mandatory if declining" %})</span>
+                            </label>
+                            <textarea name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
+                                <i class="fas fa-check"></i> {% translate "Approve Design" %}
+                            </button>
+                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return validateDecline('cadCommentInput');" style="background: #ef4444; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
+                                <i class="fas fa-times"></i> {% translate "Decline Design" %}
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p style="font-size: 0.82rem; color: var(--dark-text-secondary, #94a3b8); margin: 0; font-style: italic;">
+                        {% translate "Awaiting decision from authorized CAD approver." %}
+                    </p>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- ED Review Card -->
+            <div style="background: var(--dark-surface, #1e293b); border: 1px solid {% if latest_approval.ed_status == 'approved' %}rgba(16, 185, 129, 0.3){% elif latest_approval.ed_status == 'rejected' %}rgba(239, 68, 68, 0.3){% else %}rgba(255, 255, 255, 0.08){% endif %}; border-radius: 12px; padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="background: rgba(168, 85, 247, 0.15); color: #a855f7; font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 6px;">ED</span>
+                        <strong style="font-size: 0.95rem; color: var(--dark-text, #f8fafc);">{% translate "ED Review" %}</strong>
+                    </div>
+                    <div>
+                        {% if latest_approval.ed_status == 'approved' %}
+                            <span style="color: #10b981; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <i class="fas fa-check-circle"></i> {% translate "Approved" %}
+                            </span>
+                        {% elif latest_approval.ed_status == 'rejected' %}
+                            <span style="color: #ef4444; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <i class="fas fa-times-circle"></i> {% translate "Declined" %}
+                            </span>
+                        {% else %}
+                            <span style="color: #f59e0b; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <i class="fas fa-clock"></i> {% translate "Pending" %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if latest_approval.ed_status != 'pending' %}
+                    <div style="font-size: 0.78rem; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.5rem;">
+                        {% translate "Reviewed by" %} <strong style="color: var(--dark-text, #f8fafc);">{{ latest_approval.ed_reviewer.username|default:"ED Reviewer" }}</strong>
+                        {% if latest_approval.ed_decided_at %}• {{ latest_approval.ed_decided_at|date:"M d, Y H:i" }}{% endif %}
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.2); border-left: 3px solid {% if latest_approval.ed_status == 'approved' %}#10b981{% else %}#ef4444{% endif %}; border-radius: 4px; padding: 0.65rem 0.85rem; font-size: 0.85rem; color: var(--dark-text, #f8fafc);">
+                        {{ latest_approval.ed_comment|default:"No comment provided." }}
+                    </div>
+                {% else %}
+                    <!-- ED Review Action Form (Visible to ED approver only) -->
+                    {% if can_review_as_ed %}
+                    <form method="POST" id="edReviewForm" style="margin-top: 0.75rem;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="review">
+                        <div style="margin-bottom: 0.75rem;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
+                                {% translate "ED Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Mandatory if declining" %})</span>
+                            </label>
+                            <textarea name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
+                                <i class="fas fa-check"></i> {% translate "Approve Design" %}
+                            </button>
+                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return validateDecline('edCommentInput');" style="background: #ef4444; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
+                                <i class="fas fa-times"></i> {% translate "Decline Design" %}
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p style="font-size: 0.82rem; color: var(--dark-text-secondary, #94a3b8); margin: 0; font-style: italic;">
+                        {% translate "Awaiting decision from authorized ED approver." %}
+                    </p>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Resubmission Card for Designer (when changes requested) -->
+            {% if can_resubmit %}
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 1.25rem;">
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: #f87171; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="fas fa-redo"></i> {% translate "Revise & Resubmit Design" %}
+                </h4>
+                <p style="font-size: 0.8rem; color: var(--dark-text-secondary, #94a3b8); margin: 0 0 1rem 0;">
+                    {% translate "Review the feedback above, make required alterations, and upload an updated design revision. Resubmitting will notify both CAD and ED reviewers for a new approval round." %}
+                </p>
+
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="resubmit">
+                    <div style="margin-bottom: 0.85rem;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text, #f8fafc); margin-bottom: 0.35rem;">
+                            {% translate "Upload Revised File (Optional replacement)" %}
+                        </label>
+                        <input type="file" name="image" style="font-size: 0.8rem; color: #94a3b8;">
+                    </div>
+                    <button type="submit" class="workflow-btn primary" style="background: #2563eb; color: #fff; font-size: 0.82rem; padding: 0.5rem 1.2rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem;">
+                        <i class="fas fa-paper-plane"></i> {% translate "Resubmit for CAD & ED Review" %}
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Revision History (if multiple cycles) -->
+            {% if history_cycles and history_cycles|length > 1 %}
+            <div style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1.25rem;">
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--dark-text, #f8fafc); margin: 0 0 0.75rem 0;">
+                    <i class="fas fa-history" style="color: #64748b;"></i> {% translate "Revision History" %}
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for cycle_item in history_cycles %}
+                    <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.78rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                            <strong>{% translate "Revision" %} #{{ cycle_item.cycle }}</strong>
+                            <span style="color: #94a3b8;">{{ cycle_item.submitted_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div style="display: flex; gap: 1rem; color: #94a3b8;">
+                            <span>CAD: <strong style="color: {% if cycle_item.cad_status == 'approved' %}#10b981{% elif cycle_item.cad_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ cycle_item.get_cad_status_display|default:cycle_item.cad_status }}</strong></span>
+                            <span>ED: <strong style="color: {% if cycle_item.ed_status == 'approved' %}#10b981{% elif cycle_item.ed_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ cycle_item.get_ed_status_display|default:cycle_item.ed_status }}</strong></span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function validateDecline(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el || !el.value.trim()) {
+        alert('{% translate "A comment is mandatory when declining a design." %}');
+        if (el) el.focus();
+        return false;
+    }
+    return confirm('{% translate "Are you sure you want to decline this design and request changes?" %}');
+}
+</script>
+
+<style>
+@media (max-width: 860px) {
+    .design-review-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+    </div>
+{% if not is_htmx_request %}
+</body>
+</html>
+{% endif %}
