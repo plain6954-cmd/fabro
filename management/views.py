@@ -34,7 +34,7 @@ from django.utils.timezone import now
 from django.utils import translation
 from django.utils.translation import gettext as _, ngettext
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.gzip import gzip_page
 from PIL import Image, UnidentifiedImageError
 
@@ -112,6 +112,7 @@ from .services.workflow import (
     submit_factory_review,
     is_workflow_admin,
     visible_complaints_for_user,
+    notify_factory_assignment,
 )
 from .services.media_uploads import (
     MAX_COMPLAINT_MEDIA_FILES,
@@ -127,6 +128,7 @@ from .services.s3_storage import (
     S3StorageError,
     create_signed_download_url,
 )
+from .services.push_notifications import send_push_on_commit
 from .services.cache_versions import cache_version
 
 
@@ -2918,6 +2920,10 @@ def edit_complaint(request, complaint_id):
                         media_added=len(upload_ids) if settings.USE_S3_STORAGE else len(uploaded_files),
                         media_removed=removed_media_count,
                     )
+                    if 'assigned_factory_executive' in changes:
+                        _old_exec, _new_exec = changes['assigned_factory_executive']
+                        if _new_exec and _new_exec != _old_exec:
+                            notify_factory_assignment(complaint, _new_exec)
                     ActivityLog.objects.create(
                         user=request.user,
                         action='updated',
@@ -5166,6 +5172,14 @@ def chat_send_api(request):
         message=notif_msg,
         notification_type='chat'
     )
+    chat_url = f'/chat/?complaint={complaint.complaint_id}&user={request.user.id}' if complaint else f'/chat/?user={request.user.id}'
+    send_push_on_commit(
+        user=recipient,
+        title=notif_title,
+        body=notif_msg,
+        url=chat_url,
+        tag=f'chat-{request.user.id}',
+    )
 
     return JsonResponse({
         'status': 'ok',
@@ -5178,5 +5192,127 @@ def chat_send_api(request):
             'complaint_id': chat_msg.complaint.complaint_id if chat_msg.complaint else None,
             'created_at': chat_msg.created_at.strftime('%b %d, %H:%M'),
         }
+    })
+
+
+@require_GET
+def service_worker_view(request):
+    """
+    Serve the dedicated Web Push Service Worker from root scope.
+    """
+    sw_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'sw.js')
+    if not os.path.exists(sw_path):
+        content = (
+            "self.addEventListener('push', e => { "
+            "const d = e.data ? e.data.json() : {}; "
+            "e.waitUntil(self.registration.showNotification(d.title || 'Fabro', { body: d.body || '', data: d.data || {} })); "
+            "});"
+        )
+    else:
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+    response = HttpResponse(content, content_type='application/javascript; charset=utf-8')
+    response['Service-Worker-Allowed'] = '/'
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+
+@login_required
+@require_POST
+def push_subscribe_view(request):
+    """
+    Register or update a browser PushSubscription for the authenticated user.
+    Server-side authoritative user assignment: Always uses request.user.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON request body.'}, status=400)
+
+    endpoint = (data.get('endpoint') or '').strip()
+    keys = data.get('keys') or {}
+    p256dh = (keys.get('p256dh') or '').strip()
+    auth = (keys.get('auth') or '').strip()
+
+    if not endpoint or not p256dh or not auth:
+        return JsonResponse({'success': False, 'error': 'Missing required subscription fields.'}, status=400)
+
+    # Basic protocol security validation
+    if not (endpoint.startswith('https://') or endpoint.startswith('http://127.0.0.1') or endpoint.startswith('http://localhost')):
+        return JsonResponse({'success': False, 'error': 'Invalid endpoint protocol.'}, status=400)
+
+    from management.models import PushSubscription
+
+    # Server-side user assignment: Always uses request.user, never trust client input.
+    # Handles shared computer / browser account switching safely.
+    sub, created = PushSubscription.objects.get_or_create(
+        endpoint=endpoint,
+        defaults={
+            'user': request.user,
+            'p256dh': p256dh,
+            'auth': auth,
+            'user_agent': request.META.get('HTTP_USER_AGENT', '')[:500],
+            'is_active': True,
+            'failure_count': 0,
+        }
+    )
+    if not created:
+        sub.user = request.user
+        sub.p256dh = p256dh
+        sub.auth = auth
+        sub.user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
+        sub.is_active = True
+        sub.failure_count = 0
+        sub.save(update_fields=['user', 'p256dh', 'auth', 'user_agent', 'is_active', 'failure_count', 'updated_at'])
+
+    return JsonResponse({'success': True, 'subscribed': True})
+
+
+@login_required
+@require_POST
+def push_unsubscribe_view(request):
+    """
+    Deactivate a browser PushSubscription belonging to the current user.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+    except Exception:
+        data = {}
+
+    endpoint = (data.get('endpoint') or '').strip()
+    from management.models import PushSubscription
+
+    qs = PushSubscription.objects.filter(user=request.user)
+    if endpoint:
+        qs = qs.filter(endpoint=endpoint)
+
+    updated_count = qs.update(is_active=False)
+
+    return JsonResponse({'success': True, 'unsubscribed': True, 'count': updated_count})
+
+
+@login_required
+@require_GET
+def push_status_view(request):
+    """
+    Return push configuration and subscription status for the current user.
+    """
+    endpoint = request.GET.get('endpoint', '').strip()
+    vapid_public_key = getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '').strip()
+
+    from management.models import PushSubscription
+
+    user_subs = PushSubscription.objects.filter(user=request.user, is_active=True)
+    if endpoint:
+        is_subscribed = user_subs.filter(endpoint=endpoint).exists()
+    else:
+        is_subscribed = user_subs.exists()
+
+    return JsonResponse({
+        'success': True,
+        'configured': bool(vapid_public_key),
+        'vapid_public_key': vapid_public_key,
+        'is_subscribed': is_subscribed,
     })
 

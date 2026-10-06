@@ -74,6 +74,27 @@
             </div>
         </header>
 
+        <div class="fabro-push-widget" style="margin-bottom: 1rem; padding: 0.85rem 1.15rem; background: var(--dark-surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+                <i class="fas fa-bell push-status-icon" style="font-size: 1.1rem; color: #3b82f6;"></i>
+                <div>
+                    <div class="push-status-text" style="font-weight: 600; font-size: 0.88rem;">{% translate "Checking notifications..." %}</div>
+                    <div class="push-status-desc" style="font-size: 0.78rem; opacity: 0.75;">{% translate "Receive instant browser alerts for assigned complaints and approvals." %}</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="workflow-btn push-btn-enable" style="display: none; background: #2563eb; color: #fff; padding: 0.4rem 0.85rem; font-size: 0.78rem;">
+                    <i class="fas fa-bell"></i> {% translate "Enable Browser Notifications" %}
+                </button>
+                <button type="button" class="workflow-btn secondary push-btn-disable" style="display: none; padding: 0.4rem 0.85rem; font-size: 0.78rem;">
+                    <i class="fas fa-bell-slash"></i> {% translate "Disable" %}
+                </button>
+                <button type="button" class="workflow-btn push-btn-retry" style="display: none; background: #f59e0b; color: #fff; padding: 0.4rem 0.85rem; font-size: 0.78rem;">
+                    <i class="fas fa-redo"></i> {% translate "Retry" %}
+                </button>
+            </div>
+        </div>
+
         <section class="workflow-panel">
             {% if notifications %}
                 <div class="notification-list-page">

@@ -963,3 +963,29 @@ class PatternDesignImage(models.Model):
         if self.vehicle:
             return f"Design Image {self.pk} for Vehicle {self.vehicle_id}"
         return f"Design Image {self.pk}"
+
+
+class PushSubscription(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='push_subscriptions',
+    )
+    endpoint = models.TextField(unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=500, blank=True, default='')
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    failure_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'is_active'], name='idx_push_user_active'),
+        ]
+
+    def __str__(self):
+        return f"PushSubscription(user={self.user_id}, active={self.is_active})"

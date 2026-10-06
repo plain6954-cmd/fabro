@@ -70,7 +70,7 @@
         /* 3-Column Grid matching sketch */
         .profile-grid-compact {
             display: grid;
-            grid-template-columns: 290px minmax(340px, 1fr) minmax(340px, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 1rem;
             align-items: stretch;
         }
@@ -682,6 +682,45 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- 4. BROWSER NOTIFICATIONS CARD -->
+            <div class="profile-card">
+                <div class="section-header">
+                    <span class="section-title">
+                        <i class="fas fa-bell"></i> {% translate "Browser Notifications" %}
+                    </span>
+                </div>
+
+                <div class="fabro-push-widget" style="display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
+                    <div style="padding: 0.5rem 0;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(59, 130, 246, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas fa-bell push-status-icon" style="font-size: 1.15rem; color: #3b82f6;"></i>
+                            </div>
+                            <div>
+                                <div class="push-status-text" style="font-weight: 600; font-size: 0.95rem;">
+                                    {% translate "Checking notifications..." %}
+                                </div>
+                            </div>
+                        </div>
+                        <p class="push-status-desc" style="font-size: 0.82rem; color: var(--dark-text-secondary); margin: 0; line-height: 1.45;">
+                            {% translate "Receive instant browser notifications on this device when complaints are assigned to you or require attention." %}
+                        </p>
+                    </div>
+
+                    <div class="btn-group" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
+                        <button type="button" class="btn push-btn-enable" style="display: none; background: #2563eb; color: #ffffff; border: none; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600; border-radius: 8px; cursor: pointer; align-items: center; gap: 0.45rem; min-height: 38px;" aria-label="{% translate "Enable notifications" %}">
+                            <i class="fas fa-bell"></i> <span>{% translate "Enable notifications" %}</span>
+                        </button>
+                        <button type="button" class="btn push-btn-disable" style="display: none; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600; border-radius: 8px; cursor: pointer; align-items: center; gap: 0.45rem; min-height: 38px;" aria-label="{% translate "Disable notifications" %}">
+                            <i class="fas fa-bell-slash"></i> <span>{% translate "Disable notifications" %}</span>
+                        </button>
+                        <button type="button" class="btn push-btn-retry" style="display: none; background: #f59e0b; color: #ffffff; border: none; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 600; border-radius: 8px; cursor: pointer; align-items: center; gap: 0.45rem; min-height: 38px;" aria-label="{% translate "Retry" %}">
+                            <i class="fas fa-redo"></i> <span>{% translate "Retry" %}</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- 3. SECURITY & PASSWORD CARD -->

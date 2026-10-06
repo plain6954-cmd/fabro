@@ -425,3 +425,8 @@ REST_FRAMEWORK = {
     },
 }
 
+# Browser Web Push Notifications (VAPID) Settings
+WEBPUSH_VAPID_PUBLIC_KEY = os.getenv('WEBPUSH_VAPID_PUBLIC_KEY', '').strip()
+WEBPUSH_VAPID_PRIVATE_KEY = os.getenv('WEBPUSH_VAPID_PRIVATE_KEY', '').strip()
+WEBPUSH_VAPID_SUBJECT = os.getenv('WEBPUSH_VAPID_SUBJECT', '').strip() or 'mailto:admin@fabroleather.com'
+

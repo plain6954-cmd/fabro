@@ -28,3 +28,4 @@ whitenoise==6.9.0
 python-decouple==3.8.0
 gunicorn==23.0.0
 redis==5.2.1
+pywebpush==2.5.0

@@ -468,13 +468,40 @@ def add_timeline_event(complaint, action_type, title, description='', user=None)
 def notify_user(recipient, title, message='', complaint=None, notification_type='workflow'):
     if not recipient:
         return None
-    return Notification.objects.create(
+    notification = Notification.objects.create(
         recipient=recipient,
         complaint=complaint,
         title=title,
         message=message,
         notification_type=notification_type,
     )
+    try:
+        from management.services.push_notifications import send_push_on_commit
+        url = '/'
+        if complaint:
+            if notification_type in ['approval', 'reconsideration', 'execution_verification']:
+                url = '/approvals/'
+            elif notification_type == 'assignment' or complaint.workflow_status in [WorkflowStatuses.ASSIGNED_TO_FACTORY, WorkflowStatuses.FACTORY_REVIEW]:
+                url = f'/complaint/factory-review/{complaint.complaint_id}/'
+            elif notification_type == 'action_in_progress':
+                url = f'/complaint/execute/{complaint.complaint_id}/'
+            else:
+                url = '/complaints/'
+        elif notification_type == 'pattern_approval':
+            url = '/notifications/'
+
+        tag = f'complaint-{complaint.complaint_id}' if complaint else f'fabro-{notification_type}'
+        send_push_on_commit(
+            user=recipient,
+            title=title,
+            body=message,
+            url=url,
+            tag=tag,
+        )
+    except Exception as exc:
+        logger.warning("Could not queue Web Push for user %s: %s", getattr(recipient, 'id', None), exc)
+
+    return notification
 
 
 def notify_factory_assignment(complaint, assignee):
