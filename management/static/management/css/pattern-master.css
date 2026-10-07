@@ -3307,6 +3307,16 @@
             color: #ffffff;
             border: 1px solid rgba(251, 191, 36, 0.6);
         }
+        .matrix-status-pill.is-partial {
+            background: rgba(217, 119, 6, 0.92);
+            color: #ffffff;
+            border: 1px solid rgba(245, 158, 11, 0.6);
+        }
+        .matrix-status-pill.is-approved {
+            background: rgba(16, 185, 129, 0.92);
+            color: #ffffff;
+            border: 1px solid rgba(52, 211, 153, 0.6);
+        }
         .matrix-status-pill.is-rejected {
             background: rgba(225, 29, 72, 0.92);
             color: #ffffff;
@@ -4866,3 +4876,7 @@
                 flex: 0 0 40px !important;
             }
         }
+tr[id^="row-view-"] { cursor: pointer; }
+tr[id^="row-view-"]:focus-visible { outline: 2px solid var(--primary-color, #6366f1); outline-offset: -2px; }
+.design-folder-card:focus-visible,
+.design-matrix-card:focus-visible { outline: 2px solid var(--primary-color, #6366f1); outline-offset: 2px; }

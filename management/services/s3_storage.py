@@ -20,7 +20,9 @@ def _get_client_config():
     return Config(
         signature_version=signature_version,
         s3={'addressing_style': addressing_style},
-        retries={'max_attempts': 3, 'mode': 'standard'},
+        connect_timeout=3,
+        read_timeout=5,
+        retries={'max_attempts': 1, 'mode': 'standard'},
     )
 
 

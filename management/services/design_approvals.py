@@ -27,6 +27,7 @@ def get_approvers_for_role(approval_role):
     """
     return list(User.objects.filter(
         is_active=True,
+        workflow_profile__role=WorkflowRoles.APPROVER,
         workflow_profile__approval_role=approval_role,
     ).distinct())
 
@@ -44,8 +45,13 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
     Both CAD and ED reviewers will receive in-app and Web Push notifications.
     """
     with transaction.atomic():
+        # Serialize review-cycle changes on the design row. The caller's copy
+        # may be stale after another tab has already resubmitted it.
+        design_image = PatternDesignImage.objects.select_for_update().get(pk=design_image.pk)
         if is_resubmission:
             latest = get_latest_approval_request(design_image)
+            if not latest or latest.status != 'rejected' or design_image.approval_status != 'rejected':
+                raise ValidationError(_("Only a rejected current review can be resubmitted."))
             next_cycle = (latest.cycle + 1) if latest else 1
             approval = PatternDesignApproval.objects.create(
                 design_image=design_image,
@@ -77,6 +83,8 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
                     'ed_status': 'pending',
                 }
             )
+            if not created:
+                return approval
             design_image.approval_status = 'pending'
             design_image.save(update_fields=['approval_status'])
             action_label = 'submitted'
@@ -162,7 +170,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     reviewer_role = getattr(prof, 'approval_role', None) if prof else None
 
     # Reviewer must have an approval role of CAD or ED
-    if reviewer_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
+    if not prof or prof.role != WorkflowRoles.APPROVER or reviewer_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
         raise PermissionDenied(_("Only authorized CAD or ED approvers may review designs."))
 
     # Designer cannot approve their own design
@@ -183,14 +191,10 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
         raise ValidationError(_("A comment is mandatory when declining a design."))
 
     with transaction.atomic():
+        design_image = PatternDesignImage.objects.select_for_update().get(pk=design_image.pk)
         approval = get_latest_approval_request(design_image)
         if not approval:
-            approval = PatternDesignApproval.objects.create(
-                design_image=design_image,
-                designer=design_image.uploaded_by or reviewer_user,
-                cycle=1,
-                status='pending',
-            )
+            raise ValidationError(_("This design has not been submitted for review."))
 
         now = timezone.now()
 
@@ -224,9 +228,19 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
         elif approval.cad_status == 'rejected' or approval.ed_status == 'rejected':
             approval.status = 'rejected'
             design_image.approval_status = 'rejected'
-            design_image.rejected_by = reviewer_user
+            rejection_parts = []
+            primary_rejecter = None
+            if approval.cad_status == 'rejected':
+                primary_rejecter = approval.cad_reviewer or reviewer_user
+                rejection_parts.append(f"CAD: {approval.cad_comment}" if approval.ed_status == 'rejected' else approval.cad_comment)
+            if approval.ed_status == 'rejected':
+                if not primary_rejecter or reviewer_role == ApprovalRoles.ED:
+                    primary_rejecter = approval.ed_reviewer or reviewer_user
+                rejection_parts.append(f"ED: {approval.ed_comment}" if approval.cad_status == 'rejected' else approval.ed_comment)
+
+            design_image.rejected_by = primary_rejecter or reviewer_user
             design_image.rejected_at = now
-            design_image.rejection_reason = comment_clean
+            design_image.rejection_reason = " | ".join(rejection_parts) if rejection_parts else comment_clean
             design_image.approved_by = None
             design_image.approved_at = None
         else:

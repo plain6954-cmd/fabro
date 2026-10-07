@@ -920,6 +920,7 @@ class PatternDesignImage(models.Model):
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_design_images')
+    client_upload_key = models.CharField(max_length=120, null=True, blank=True, unique=True, editable=False)
     APPROVAL_CHOICES = [
         ('pending', 'Pending Approval'),
         ('approved', 'Approved'),
@@ -967,6 +968,9 @@ class PatternDesignImage(models.Model):
 
     @property
     def latest_approval(self):
+        prefetched = getattr(self, '_prefetched_objects_cache', {}).get('approval_requests')
+        if prefetched is not None:
+            return max(prefetched, key=lambda approval: approval.cycle, default=None)
         return self.approval_requests.order_by('-cycle').first()
 
     @property
@@ -1077,3 +1081,26 @@ class PushSubscription(models.Model):
 
     def __str__(self):
         return f"PushSubscription(user={self.user_id}, active={self.is_active})"
+
+
+class VehicleDriveLink(models.Model):
+    vehicle = models.ForeignKey(YearRange, on_delete=models.CASCADE, related_name='drive_links')
+    url = models.URLField(max_length=500, verbose_name=_('Drive URL'))
+    title = models.CharField(max_length=255, blank=True, default='', verbose_name=_('Title / Description'))
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_drive_links',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        indexes = [
+            models.Index(fields=['vehicle', '-created_at'], name='idx_v_drive_link_created'),
+        ]
+
+    def __str__(self):
+        return self.title or self.url

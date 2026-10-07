@@ -42,7 +42,7 @@
     <div style="display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem; align-items: start;" class="design-review-grid">
         <!-- Left: Image Preview & Details -->
         <div style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden;">
-            <div style="background: rgba(0, 0, 0, 0.3); padding: 1rem; display: flex; align-items: center; justify-content: center; min-height: 340px; position: relative;">
+            <div class="design-review-media-wrap" style="background: rgba(0, 0, 0, 0.3); padding: 1rem; display: flex; align-items: center; justify-content: center; min-height: 260px; position: relative;">
                 {% if design_image.image %}
                     <img src="{{ design_image.image.url }}" alt="{{ design_image.title }}" style="max-width: 100%; max-height: 480px; object-fit: contain; border-radius: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="display: none; align-items: center; justify-content: center; flex-direction: column; gap: 0.75rem; color: #94a3b8; padding: 2rem;">
@@ -58,13 +58,17 @@
 
                 <!-- Overall Status Badge -->
                 <div style="position: absolute; top: 1rem; right: 1rem;">
-                    {% if design_image.approval_status == 'approved' %}
+                    {% if latest_approval.status == 'approved' or design_image.approval_status == 'approved' %}
                         <span style="background: #10b981; color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);">
                             <i class="fas fa-check-circle"></i> {% translate "APPROVED" %}
                         </span>
-                    {% elif design_image.approval_status == 'rejected' %}
+                    {% elif latest_approval.status == 'rejected' or design_image.approval_status == 'rejected' %}
                         <span style="background: #ef4444; color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);">
                             <i class="fas fa-times-circle"></i> {% translate "CHANGES REQUIRED" %}
+                        </span>
+                    {% elif latest_approval.status == 'partially_approved' or design_image.approval_status == 'partially_approved' %}
+                        <span style="background: #3b82f6; color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);">
+                            <i class="fas fa-hourglass-half"></i> {% translate "PARTIALLY APPROVED" %}
                         </span>
                     {% else %}
                         <span style="background: #f59e0b; color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);">
@@ -174,7 +178,7 @@
                             </label>
                             <textarea name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
                         </div>
-                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        <div class="design-review-buttons-wrap" style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
                                 <i class="fas fa-check"></i> {% translate "Approve Design" %}
                             </button>
@@ -235,7 +239,7 @@
                             </label>
                             <textarea name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
                         </div>
-                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        <div class="design-review-buttons-wrap" style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
                                 <i class="fas fa-check"></i> {% translate "Approve Design" %}
                             </button>
@@ -320,6 +324,25 @@ function validateDecline(inputId) {
 @media (max-width: 860px) {
     .design-review-grid {
         grid-template-columns: 1fr !important;
+    }
+}
+@media (max-width: 568px) {
+    .design-review-buttons-wrap {
+        flex-direction: column !important;
+    }
+    .design-review-buttons-wrap button,
+    .design-review-buttons-wrap a {
+        width: 100% !important;
+        justify-content: center !important;
+        min-height: 44px !important;
+        text-align: center !important;
+    }
+    .design-review-media-wrap {
+        min-height: 200px !important;
+        padding: 0.5rem !important;
+    }
+    .workflow-container {
+        padding: 1rem 0.5rem !important;
     }
 }
 </style>

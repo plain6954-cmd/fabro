@@ -4,6 +4,8 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from management.models import (
@@ -359,7 +361,7 @@ class DesignApprovalWorkflowTests(TestCase):
                 content_type='application/json'
             )
 
-        ed_notif = Notification.objects.filter(recipient=self.designer, design_image=img).latest('created_at')
+        ed_notif = Notification.objects.filter(recipient=self.designer, design_image=img).latest('created_at', 'id')
         self.assertIn('ED', ed_notif.title)
 
         # Web Push mock verified for designer
@@ -524,3 +526,153 @@ class DesignApprovalWorkflowTests(TestCase):
 
         # Other designer did NOT receive notification
         self.assertFalse(Notification.objects.filter(recipient=self.other_designer, design_image=img).exists())
+
+    # Test 26: CAD rejects then ED approves: CAD is correctly credited as rejecter
+    def test_26_cad_rejects_ed_approves_rejection_attribution(self):
+        img = self._create_sample_design_image()
+        from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
+        submit_design_for_approval(img, self.designer)
+
+        record_design_review_decision(img, self.cad_user, 'rejected', 'Wrong stitch line')
+        record_design_review_decision(img, self.ed_user, 'approved', 'Engineering geometry is fine')
+
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'rejected')
+        self.assertEqual(img.rejected_by, self.cad_user)
+        self.assertEqual(img.rejection_reason, 'Wrong stitch line')
+        approval = img.latest_approval
+        self.assertEqual(approval.cad_status, 'rejected')
+        self.assertEqual(approval.ed_status, 'approved')
+        self.assertEqual(approval.cad_comment, 'Wrong stitch line')
+        self.assertEqual(approval.ed_comment, 'Engineering geometry is fine')
+
+    # Test 27: Both CAD and ED reject: both comments combined in rejection_reason
+    def test_27_both_cad_and_ed_reject_combines_comments(self):
+        img = self._create_sample_design_image()
+        from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
+        submit_design_for_approval(img, self.designer)
+
+        record_design_review_decision(img, self.cad_user, 'rejected', 'CAD issue')
+        record_design_review_decision(img, self.ed_user, 'rejected', 'ED issue')
+
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'rejected')
+        self.assertIn('CAD: CAD issue', img.rejection_reason)
+        self.assertIn('ED: ED issue', img.rejection_reason)
+
+    # Test 28: CAD rejects first, ED still sees item in pending queue
+    def test_28_cad_rejects_first_item_remains_pending_for_ed_queue(self):
+        img = self._create_sample_design_image()
+        from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
+        submit_design_for_approval(img, self.designer)
+
+        record_design_review_decision(img, self.cad_user, 'rejected', 'CAD rejected first')
+
+        self.client.force_login(self.ed_user)
+        res = self.client.get(reverse('design_approvals_list') + '?status=pending')
+        self.assertEqual(res.status_code, 200)
+        items = list(res.context['items'])
+        self.assertIn(img, items)
+
+    # Test 29: Resubmit with new photo replaces image and resets cycle
+    def test_29_resubmit_with_new_photo(self):
+        img = self._create_sample_design_image()
+        from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
+        submit_design_for_approval(img, self.designer)
+        record_design_review_decision(img, self.cad_user, 'rejected', 'Needs thicker margin')
+
+        new_photo = SimpleUploadedFile(
+            'revised_cushion.jpg',
+            b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9',
+            content_type='image/jpeg'
+        )
+
+        self.client.force_login(self.designer)
+        res = self.client.post(
+            reverse('resubmit_design_image_api', args=[img.id]),
+            {'image': new_photo, 'title': 'Revised Cushion Front'},
+        )
+        self.assertEqual(res.status_code, 200)
+        img.refresh_from_db()
+        self.assertEqual(img.title, 'Revised Cushion Front')
+        self.assertEqual(img.latest_approval.cycle, 2)
+        self.assertEqual(img.latest_approval.cad_status, 'pending')
+        self.assertEqual(img.latest_approval.ed_status, 'pending')
+        self.assertEqual(img.approval_status, 'pending')
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_upload_retry_returns_same_image_without_duplicate_notifications(self, mock_push):
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        self.client.force_login(self.designer)
+        url = reverse('upload_vehicle_design_images_api', args=[self.vehicle.pk])
+        def upload():
+            return self.client.post(
+                url,
+                {'images': SimpleUploadedFile('retry.gif', tiny_gif, content_type='image/gif')},
+                HTTP_X_UPLOAD_ID='audit-retry-123',
+            )
+        with self.captureOnCommitCallbacks(execute=True):
+            first = upload()
+        with self.captureOnCommitCallbacks(execute=True):
+            second = upload()
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.json()['images'][0]['id'], second.json()['images'][0]['id'])
+        self.assertEqual(PatternDesignImage.objects.filter(vehicle=self.vehicle).count(), 1)
+        self.assertEqual(Notification.objects.filter(design_image_id=first.json()['images'][0]['id']).count(), 2)
+        self.assertEqual(mock_push.call_count, 2)
+
+    @patch('management.views.submit_design_for_approval', side_effect=RuntimeError('simulated failure'))
+    def test_failed_upload_rolls_back_records_and_reports_server_error(self, unused_mock):
+        tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        self.client.force_login(self.designer)
+        response = self.client.post(
+            reverse('upload_vehicle_design_images_api', args=[self.vehicle.pk]),
+            {'images': SimpleUploadedFile('failure.gif', tiny_gif, content_type='image/gif')},
+            HTTP_X_UPLOAD_ID='audit-failure-123',
+        )
+        self.assertEqual(response.status_code, 503)
+        self.assertNotIn('session', response.json()['message'].lower())
+        self.assertFalse(PatternDesignImage.objects.filter(vehicle=self.vehicle).exists())
+        self.assertFalse(Notification.objects.filter(notification_type='design_approval').exists())
+
+    def test_stale_resubmit_does_not_create_another_cycle(self):
+        from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
+        image = self._create_sample_design_image()
+        submit_design_for_approval(image, self.designer)
+        record_design_review_decision(image, self.cad_user, 'rejected', 'Needs revision')
+        self.client.force_login(self.designer)
+        url = reverse('resubmit_design_image_api', args=[image.pk])
+        self.assertEqual(self.client.post(url).status_code, 200)
+        self.assertEqual(self.client.post(url).status_code, 409)
+        self.assertEqual(image.approval_requests.count(), 2)
+
+    def test_pending_design_download_and_review_are_role_scoped(self):
+        from management.services.design_approvals import submit_design_for_approval
+        image = self._create_sample_design_image()
+        submit_design_for_approval(image, self.designer)
+        self.client.force_login(self.other_designer)
+        self.assertEqual(self.client.get(reverse('design_approval_detail', args=[image.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse('pattern_design_image_download', args=[image.pk])).status_code, 404)
+        self.client.force_login(self.country_user)
+        self.assertEqual(self.client.get(reverse('design_approvals_list')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('design_approval_detail', args=[image.pk])).status_code, 403)
+
+    def test_prefetched_review_matrix_avoids_per_card_queries(self):
+        images = [PatternDesignImage.objects.create(
+            vehicle=self.vehicle, image=f'pattern_designs/audit-{index}.png',
+            uploaded_by=self.designer, approval_status='pending',
+        ) for index in range(12)]
+        for image in images:
+            PatternDesignApproval.objects.create(design_image=image, designer=self.designer, cycle=1)
+        prefetched = list(PatternDesignImage.objects.filter(pk__in=[image.pk for image in images]).prefetch_related('approval_requests'))
+        with CaptureQueriesContext(connection) as previous_pattern:
+            for image in prefetched:
+                image.approval_requests.order_by('-cycle').first()
+        with CaptureQueriesContext(connection) as current_pattern:
+            for image in prefetched:
+                self.assertIsNotNone(image.latest_approval)
+                self.assertEqual(image.current_cad_status, 'pending')
+                self.assertEqual(image.current_ed_status, 'pending')
+        self.assertEqual(len(previous_pattern), 12)
+        self.assertEqual(len(current_pattern), 0)

@@ -3257,7 +3257,7 @@ class S3StorageBackendAndServiceTests(TestCase):
             upload_content('test.png', b'data')
         self.assertIn('AccessDenied', str(cm.exception))
 
-        client_mock.delete_objects.side_effect = ClientError(
+        client_mock.delete_object.side_effect = ClientError(
             {'Error': {'Code': 'AccessDenied', 'Message': 'Access Denied'}},
             'DeleteObjects',
         )
@@ -5714,6 +5714,8 @@ class Freelance3DDesignerWorkflowTests(TestCase):
             uploaded_by=self.freelancer,
             approval_status='pending',
         )
+        from management.services.design_approvals import submit_design_for_approval
+        submit_design_for_approval(img, self.freelancer)
 
         # 1. Freelancer who uploaded can view
         self.client.force_login(self.freelancer)
@@ -5745,6 +5747,8 @@ class Freelance3DDesignerWorkflowTests(TestCase):
             uploaded_by=self.freelancer,
             approval_status='pending',
         )
+        from management.services.design_approvals import submit_design_for_approval
+        submit_design_for_approval(img, self.freelancer)
 
         # Unauthorized user cannot approve
         self.client.force_login(self.country_user)
@@ -5805,6 +5809,8 @@ class Freelance3DDesignerWorkflowTests(TestCase):
             uploaded_by=self.freelancer,
             approval_status='pending',
         )
+        from management.services.design_approvals import submit_design_for_approval
+        submit_design_for_approval(img, self.freelancer)
 
         self.client.force_login(self.ed_user)
 

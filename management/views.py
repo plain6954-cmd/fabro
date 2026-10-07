@@ -37,6 +37,7 @@ from django.utils.translation import gettext as _, ngettext
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.gzip import gzip_page
+from django.views.decorators.csrf import ensure_csrf_cookie
 from PIL import Image, UnidentifiedImageError
 
 from .forms import (
@@ -79,6 +80,7 @@ from .models import (
     SKU,
     SubModel,
     UserProfile,
+    VehicleDriveLink,
     WorkflowRoles,
     WorkflowStatuses,
     YearRange,
@@ -169,6 +171,8 @@ def _ensure_pattern_thumbnail(design_image):
     except Exception as exc:
         logger.warning('Unable to generate pattern thumbnail for image %s: %s', design_image.pk, exc, exc_info=True)
         return design_image.image.url if design_image.image else ''
+    finally:
+        design_image.image.close()
 
 
 def _iter_csv_rows(uploaded_file, required_headers):
@@ -232,6 +236,25 @@ def _can_approve_design_assets(user):
             or prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
         )
     )
+
+
+def _can_user_review_design_image(user, img):
+    if not user or not user.is_authenticated:
+        return False
+    if img.uploaded_by_id == user.id:
+        return False
+    prof = getattr(user, 'workflow_profile', None)
+    appr_role = getattr(prof, 'approval_role', None) if prof else None
+    if not prof or prof.role != WorkflowRoles.APPROVER or appr_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
+        return False
+    appr = getattr(img, 'latest_approval', None)
+    if not appr:
+        return False
+    if appr_role == ApprovalRoles.CAD:
+        return appr.cad_status == 'pending'
+    if appr_role == ApprovalRoles.ED:
+        return appr.ed_status == 'pending'
+    return False
 
 
 def _visible_design_images_qs(user, base_qs):
@@ -395,7 +418,10 @@ def complaint_media_download(request, media_id):
 
 @login_required
 def pattern_design_image_download(request, image_id):
-    design_image = get_object_or_404(PatternDesignImage, pk=image_id)
+    design_image = get_object_or_404(
+        _visible_design_images_qs(request.user, PatternDesignImage.objects.all()),
+        pk=image_id,
+    )
     if not design_image.image:
         return HttpResponse('Image is unavailable.', status=404)
     return redirect(design_image.image.url)
@@ -558,6 +584,7 @@ def _get_pagination_bubbles(current_page, total_pages, on_each_side=2, on_ends=1
 
 
 @login_required
+@ensure_csrf_cookie
 @gzip_page
 def car_details(request):
     search_query = request.GET.get('search', '').strip()
@@ -1459,6 +1486,41 @@ def edit_car_detail(request, car_id):
     })
 
 
+def _serialize_drive_link(link):
+    return {
+        'id': link.id,
+        'title': link.title or 'Google Drive Folder',
+        'url': link.url,
+        'created_at': link.created_at.strftime('%b %d, %Y') if getattr(link, 'created_at', None) else '',
+    }
+
+
+def _validated_drive_url(value):
+    url = (value or '').strip()
+    if not url:
+        return ''
+    if not (url.startswith('http://') or url.startswith('https://')):
+        url = 'https://' + url
+    from urllib.parse import urlsplit
+    parsed = urlsplit(url)
+    if parsed.scheme != 'https' or parsed.hostname != 'drive.google.com' or len(url) > 500:
+        raise ValidationError(_('Enter an HTTPS Google Drive link of at most 500 characters.'))
+    return url
+
+
+def _get_vehicle_drive_links_data(vehicle):
+    links = list(vehicle.drive_links.all().order_by('-created_at', '-id'))
+    data = [_serialize_drive_link(l) for l in links]
+    if not data and vehicle.google_drive_url:
+        data = [{
+            'id': 0,
+            'title': 'Google Drive Folder',
+            'url': vehicle.google_drive_url,
+            'created_at': '',
+        }]
+    return data
+
+
 @login_required
 def get_design_folders_api(request):
     vehicle_id = request.GET.get('vehicle_id')
@@ -1480,9 +1542,9 @@ def get_design_folders_api(request):
                 'year_range': years,
                 'sub_model': sub_name,
                 'google_drive_url': yr.google_drive_url or '',
+                'drive_links': _get_vehicle_drive_links_data(yr),
             }
-            can_approve = _can_approve_design_assets(request.user)
-            folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(image_total=Count('images'))
+            folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(image_total=Count('images')).order_by('-created_at', '-pk')
             direct_page = Paginator(
                 _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at')),
                 4,
@@ -1503,7 +1565,7 @@ def get_design_folders_api(request):
                         'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
                         'approval_status': getattr(img, 'approval_status', 'approved'),
                         'rejection_reason': getattr(img, 'rejection_reason', '') or '',
-                        'can_approve': can_approve and getattr(img, 'approval_status', 'approved') == 'pending',
+                        'can_approve': _can_user_review_design_image(request.user, img),
                         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
                     })
         except YearRange.DoesNotExist:
@@ -1544,8 +1606,8 @@ def get_design_folders_api(request):
         'can_approve_designs': _can_approve_design_assets(request.user),
         'direct_images': direct_images_data,
         'vehicle': vehicle_info,
-        'folder_pagination': {'page': folder_page.number, 'pages': folder_page.paginator.num_pages},
-        'image_pagination': {'page': direct_page.number, 'pages': direct_page.paginator.num_pages},
+        'folder_pagination': {'page': folder_page.number, 'pages': folder_page.paginator.num_pages, 'total': folder_page.paginator.count},
+        'image_pagination': {'page': direct_page.number, 'pages': direct_page.paginator.num_pages, 'total': direct_page.paginator.count},
     })
 
 
@@ -1615,7 +1677,7 @@ def get_design_folder_detail_api(request, folder_id):
                 'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
                 'approval_status': getattr(img, 'approval_status', 'approved'),
                 'rejection_reason': getattr(img, 'rejection_reason', '') or '',
-                'can_approve': can_approve and getattr(img, 'approval_status', 'approved') == 'pending',
+                'can_approve': _can_user_review_design_image(request.user, img),
                 'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
             })
 
@@ -1645,7 +1707,7 @@ def get_design_folder_detail_api(request, folder_id):
         },
         'can_approve_designs': can_approve,
         'images': image_list,
-        'pagination': {'page': image_page.number, 'pages': image_page.paginator.num_pages},
+        'pagination': {'page': image_page.number, 'pages': image_page.paginator.num_pages, 'total': image_page.paginator.count},
     })
 
 
@@ -1710,178 +1772,206 @@ def _get_design_file_info(file_name):
         return 'image', ext.lstrip('.').upper()
 
 
+def _serialize_uploaded_design(image):
+    file_type, file_ext = _get_design_file_info(image.image.name)
+    return {
+        'id': image.pk,
+        'url': image.thumbnail.url if image.thumbnail else image.image.url,
+        'original_url': reverse('pattern_design_image_download', args=[image.pk]),
+        'title': image.title,
+        'file_size': image.file_size,
+        'file_type': file_type,
+        'file_ext': file_ext,
+        'uploaded_at': image.uploaded_at.strftime('%b %d, %Y %H:%M'),
+        'approval_status': image.approval_status,
+        'rejection_reason': image.rejection_reason,
+        'can_approve': False,
+        'uploaded_by': image.uploaded_by.username if image.uploaded_by else '',
+    }
+
+
+def _upload_design_files(request, *, folder=None, vehicle=None):
+    """Validate and store one upload batch, with retry identity and rollback."""
+    if not _can_manage_design_assets(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    files = request.FILES.getlist('images') or request.FILES.getlist('image')
+    if not files:
+        return JsonResponse({'status': 'error', 'message': _('No files uploaded.')}, status=400)
+    if len(files) > 10:
+        return JsonResponse({'status': 'error', 'message': _('Upload at most 10 files at once.')}, status=400)
+    for file_obj in files:
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        if ext not in ALLOWED_DESIGN_EXTENSIONS or not 0 < file_obj.size <= 50 * 1024 * 1024:
+            return JsonResponse({
+                'status': 'error',
+                'message': _('Unsupported or empty file, or file exceeds the 50 MB limit.'),
+            }, status=400)
+
+    upload_id = request.headers.get('X-Upload-Id', '')
+    if upload_id and not re.fullmatch(r'[A-Za-z0-9-]{1,72}', upload_id):
+        return JsonResponse({'status': 'error', 'message': _('Invalid upload ID.')}, status=400)
+    scope = f'f{folder.pk}' if folder else f'v{vehicle.pk}'
+    keys = [f'{request.user.pk}-{scope}-{upload_id}-{index}' for index in range(len(files))] if upload_id else []
+    count_qs = folder.images if folder else PatternDesignImage.objects.filter(vehicle=vehicle, folder__isnull=True)
+
+    def existing_response():
+        if not keys:
+            return None
+        existing = list(PatternDesignImage.objects.filter(client_upload_key__in=keys).select_related('uploaded_by'))
+        if not existing:
+            return None
+        if len(existing) != len(keys) or any(
+            image.uploaded_by_id != request.user.pk or image.folder_id != (folder.pk if folder else None)
+            or image.vehicle_id != (vehicle.pk if vehicle else None)
+            or image.file_size != files[keys.index(image.client_upload_key)].size
+            for image in existing
+        ):
+            return JsonResponse({'status': 'error', 'message': _('Upload ID already used for different files.')}, status=409)
+        ordered = sorted(existing, key=lambda image: keys.index(image.client_upload_key))
+        return JsonResponse({
+            'status': 'success', 'uploaded_count': len(ordered),
+            'images': [_serialize_uploaded_design(image) for image in ordered],
+            'total_count': count_qs.count(),
+        })
+
+    prior = existing_response()
+    if prior is not None:
+        return prior
+
+    is_freelancer = getattr(getattr(request.user, 'workflow_profile', None), 'role', '') == WorkflowRoles.FREELANCE_3D_DESIGNER
+    created = []
+    try:
+        with transaction.atomic():
+            for index, file_obj in enumerate(files):
+                file_type, file_extension = _get_design_file_info(file_obj.name)
+                thumbnail_file = None
+                if file_type == 'image' and os.path.splitext(file_obj.name)[1].lower() != '.svg':
+                    try:
+                        file_obj.seek(0)
+                        with Image.open(file_obj) as source:
+                            source.verify()
+                        file_obj.seek(0)
+                        with Image.open(file_obj) as source:
+                            preview = source.convert('RGBA' if source.mode in ('RGBA', 'LA') else 'RGB')
+                            preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                            out = io.BytesIO()
+                            preview.save(out, format='WEBP', quality=82)
+                            stem = os.path.splitext(os.path.basename(file_obj.name))[0][:80]
+                            thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                    except (UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
+                        raise ValidationError(_('Invalid image file.')) from exc
+                    finally:
+                        file_obj.seek(0)
+
+                image = PatternDesignImage(
+                    folder=folder, vehicle=vehicle, image=file_obj,
+                    thumbnail=thumbnail_file or '',
+                    title=(request.POST.get('title', '').strip() if len(files) == 1 else '')[:255] or file_obj.name[:255],
+                    file_size=file_obj.size, uploaded_by=request.user,
+                    approval_status='pending' if is_freelancer else 'approved',
+                    client_upload_key=keys[index] if keys else None,
+                )
+                created.append(image)
+                image.save()
+                if is_freelancer:
+                    submit_design_for_approval(image, request.user)
+            response = JsonResponse({
+                'status': 'success', 'uploaded_count': len(created),
+                'images': [_serialize_uploaded_design(image) for image in created],
+                'total_count': count_qs.count(),
+            })
+        return response
+    except ValidationError as exc:
+        error_status, error_message = 400, str(exc.messages[0])
+    except IntegrityError:
+        retry = existing_response()
+        if retry is not None:
+            return retry
+        error_status, error_message = 409, _('Upload was already processed. Please refresh the list.')
+    except Exception:
+        logger.exception('Design upload failed')
+        error_status, error_message = 503, _('Upload could not be saved. Please try again.')
+
+    # File stores do not participate in database transactions. Remove files
+    # written before an error so a retry does not leave orphaned private media.
+    for image in created:
+        for field in (image.thumbnail, image.image):
+            if field and getattr(field, '_committed', False) and field.name:
+                try:
+                    default_storage.delete(field.name)
+                except Exception:
+                    logger.warning('Could not remove failed design upload %s', field.name)
+    return JsonResponse({'status': 'error', 'message': error_message}, status=error_status)
+
+
 @login_required
 @require_POST
 def upload_design_images_api(request, folder_id):
-    if not _can_manage_design_assets(request.user):
-        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     folder = get_object_or_404(PatternDesignFolder, id=folder_id)
-    files = request.FILES.getlist('images')
-    if not files:
-        return JsonResponse({'status': 'error', 'message': _('No files uploaded.')}, status=400)
-
-    prof = getattr(request.user, 'workflow_profile', None)
-    is_freelancer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
-    initial_status = 'pending' if is_freelancer else 'approved'
-
-    allowed_exts = ALLOWED_DESIGN_EXTENSIONS
-    max_size = 50 * 1024 * 1024  # 50MB
-    created_images = []
-
-    for file_obj in files:
-        ext = os.path.splitext(file_obj.name)[1].lower()
-        if ext not in allowed_exts:
-            continue
-        if file_obj.size > max_size:
-            continue
-
-        f_type, f_ext = _get_design_file_info(file_obj.name)
-        thumbnail_file = None
-        if f_type == 'image':
-            try:
-                file_obj.seek(0)
-                with Image.open(file_obj) as source:
-                    if source.mode in ('RGBA', 'LA') or (source.mode == 'P' and 'transparency' in source.info):
-                        preview = source.convert('RGBA')
-                    else:
-                        preview = source.convert('RGB')
-                    preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
-                    out = io.BytesIO()
-                    preview.save(out, format='WEBP', quality=82, method=6)
-                    stem = os.path.splitext(os.path.basename(file_obj.name))[0][:80]
-                    thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
-                file_obj.seek(0)
-            except Exception as exc:
-                logger.warning('Direct thumbnail generation failed for %s: %s', file_obj.name, exc)
-                try:
-                    file_obj.seek(0)
-                except Exception:
-                    pass
-
-        design_img = PatternDesignImage(
-            folder=folder,
-            image=file_obj,
-            thumbnail=thumbnail_file or '',
-            title=file_obj.name,
-            file_size=file_obj.size,
-            uploaded_by=request.user,
-            approval_status=initial_status,
-        )
-        design_img.save()
-        thumbnail_url = design_img.thumbnail.url if design_img.thumbnail else design_img.image.url
-        created_images.append({
-            'id': design_img.id,
-            'url': thumbnail_url or design_img.image.url,
-            'original_url': reverse('pattern_design_image_download', args=[design_img.pk]),
-            'title': design_img.title,
-            'file_size': design_img.file_size,
-            'file_type': f_type,
-            'file_ext': f_ext,
-            'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
-            'approval_status': design_img.approval_status,
-            'rejection_reason': '',
-            'can_approve': False,
-            'uploaded_by': request.user.username,
-        })
-
-    if is_freelancer and created_images:
-        for c_img in created_images:
-            db_img = PatternDesignImage.objects.get(id=c_img['id'])
-            submit_design_for_approval(db_img, request.user)
-
-    return JsonResponse({
-        'status': 'success',
-        'uploaded_count': len(created_images),
-        'images': created_images,
-        'total_count': folder.images.count(),
-    })
+    return _upload_design_files(request, folder=folder)
 
 
 @login_required
 @require_POST
 def upload_vehicle_design_images_api(request, vehicle_id):
-    if not _can_manage_design_assets(request.user):
-        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     vehicle = get_object_or_404(YearRange, id=vehicle_id)
-    files = request.FILES.getlist('images')
-    if not files:
-        return JsonResponse({'status': 'error', 'message': _('No files uploaded.')}, status=400)
+    return _upload_design_files(request, vehicle=vehicle)
 
-    prof = getattr(request.user, 'workflow_profile', None)
-    is_freelancer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
-    initial_status = 'pending' if is_freelancer else 'approved'
 
-    allowed_exts = ALLOWED_DESIGN_EXTENSIONS
-    max_size = 50 * 1024 * 1024  # 50MB
-    created_images = []
-
-    for file_obj in files:
-        ext = os.path.splitext(file_obj.name)[1].lower()
-        if ext not in allowed_exts:
-            continue
-        if file_obj.size > max_size:
-            continue
-
-        f_type, f_ext = _get_design_file_info(file_obj.name)
-        thumbnail_file = None
-        if f_type == 'image':
-            try:
-                file_obj.seek(0)
-                with Image.open(file_obj) as source:
-                    if source.mode in ('RGBA', 'LA') or (source.mode == 'P' and 'transparency' in source.info):
-                        preview = source.convert('RGBA')
-                    else:
-                        preview = source.convert('RGB')
-                    preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
-                    out = io.BytesIO()
-                    preview.save(out, format='WEBP', quality=82, method=6)
-                    stem = os.path.splitext(os.path.basename(file_obj.name))[0][:80]
-                    thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
-                file_obj.seek(0)
-            except Exception as exc:
-                logger.warning('Direct thumbnail generation failed for %s: %s', file_obj.name, exc)
-                try:
-                    file_obj.seek(0)
-                except Exception:
-                    pass
-
-        design_img = PatternDesignImage(
-            vehicle=vehicle,
-            folder=None,
-            image=file_obj,
-            thumbnail=thumbnail_file or '',
-            title=file_obj.name,
-            file_size=file_obj.size,
-            uploaded_by=request.user,
-            approval_status=initial_status,
-        )
-        design_img.save()
-        thumbnail_url = design_img.thumbnail.url if design_img.thumbnail else design_img.image.url
-        created_images.append({
-            'id': design_img.id,
-            'url': thumbnail_url or design_img.image.url,
-            'original_url': reverse('pattern_design_image_download', args=[design_img.pk]),
-            'title': design_img.title,
-            'file_size': design_img.file_size,
-            'file_type': f_type,
-            'file_ext': f_ext,
-            'uploaded_at': design_img.uploaded_at.strftime('%b %d, %Y %H:%M'),
-            'approval_status': design_img.approval_status,
-            'rejection_reason': '',
-            'can_approve': False,
-            'uploaded_by': request.user.username,
+@login_required
+def vehicle_drive_links_api(request, vehicle_id):
+    vehicle = get_object_or_404(YearRange, id=vehicle_id)
+    if request.method == 'GET':
+        return JsonResponse({
+            'status': 'success',
+            'links': _get_vehicle_drive_links_data(vehicle),
         })
+    elif request.method == 'POST':
+        if not _can_manage_design_assets(request.user):
+            return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+        url = (request.POST.get('url') or '').strip()
+        title = (request.POST.get('title') or '').strip()
+        if not url:
+            return JsonResponse({'status': 'error', 'message': _('Please enter a valid URL.')}, status=400)
+        try:
+            url = _validated_drive_url(url)
+        except ValidationError as exc:
+            return JsonResponse({'status': 'error', 'message': exc.messages[0]}, status=400)
+        if len(title) > 255:
+            return JsonResponse({'status': 'error', 'message': _('Drive link or title is too long.')}, status=400)
+        link = VehicleDriveLink.objects.create(
+            vehicle=vehicle,
+            url=url,
+            title=title or 'Google Drive Folder',
+            created_by=request.user,
+        )
+        if not vehicle.google_drive_url:
+            vehicle.google_drive_url = url
+            vehicle.save(update_fields=['google_drive_url'])
+        return JsonResponse({
+            'status': 'success',
+            'link': _serialize_drive_link(link),
+            'links': _get_vehicle_drive_links_data(vehicle),
+        })
+    return JsonResponse({'status': 'error', 'message': _('Method not allowed.')}, status=405)
 
-    if is_freelancer and created_images:
-        for c_img in created_images:
-            db_img = PatternDesignImage.objects.get(id=c_img['id'])
-            submit_design_for_approval(db_img, request.user)
 
+@login_required
+@require_POST
+def delete_vehicle_drive_link_api(request, link_id):
+    if not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': _('Only superusers can delete Drive links.')}, status=403)
+    link = get_object_or_404(VehicleDriveLink, id=link_id)
+    vehicle = link.vehicle
+    deleted_url = link.url
+    link.delete()
+    if vehicle.google_drive_url == deleted_url:
+        remaining = vehicle.drive_links.first()
+        vehicle.google_drive_url = remaining.url if remaining else ''
+        vehicle.save(update_fields=['google_drive_url'])
     return JsonResponse({
         'status': 'success',
-        'uploaded_count': len(created_images),
-        'images': created_images,
-        'total_count': PatternDesignImage.objects.filter(vehicle=vehicle, folder__isnull=True).count(),
+        'links': _get_vehicle_drive_links_data(vehicle),
     })
 
 
@@ -1891,12 +1981,23 @@ def update_vehicle_google_drive_api(request, vehicle_id):
     if not _can_manage_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     vehicle = get_object_or_404(YearRange, id=vehicle_id)
-    drive_url = (request.POST.get('google_drive_url') or '').strip()
+    try:
+        drive_url = _validated_drive_url(request.POST.get('google_drive_url'))
+    except ValidationError as exc:
+        return JsonResponse({'status': 'error', 'message': exc.messages[0]}, status=400)
     vehicle.google_drive_url = drive_url
     vehicle.save(update_fields=['google_drive_url'])
+    if drive_url and not vehicle.drive_links.filter(url=drive_url).exists():
+        VehicleDriveLink.objects.create(
+            vehicle=vehicle,
+            url=drive_url,
+            title='Google Drive Folder',
+            created_by=request.user,
+        )
     return JsonResponse({
         'status': 'success',
-        'google_drive_url': vehicle.google_drive_url
+        'google_drive_url': vehicle.google_drive_url,
+        'links': _get_vehicle_drive_links_data(vehicle),
     })
 
 
@@ -1986,42 +2087,77 @@ def reject_design_image_api(request, image_id):
     })
 
 
+def _resubmit_design(img, user, replacement_file=None, title=''):
+    """Advance exactly one rejected review cycle, even from stale tabs."""
+    new_files = []
+    try:
+        with transaction.atomic():
+            img = PatternDesignImage.objects.select_for_update().get(pk=img.pk)
+            if img.uploaded_by_id != user.id and not user.is_superuser:
+                raise PermissionDenied(_("Only the submitting designer can resubmit."))
+            if img.approval_status != 'rejected':
+                raise ValidationError(_("Only rejected designs can be resubmitted."))
+            if replacement_file:
+                ext = os.path.splitext(replacement_file.name)[1].lower()
+                if ext not in ALLOWED_DESIGN_EXTENSIONS or not 0 < replacement_file.size <= 50 * 1024 * 1024:
+                    raise ValidationError(_("Unsupported or empty file, or file exceeds the 50 MB limit."))
+                old_image, old_thumb = img.image.name, img.thumbnail.name
+                img.image = replacement_file
+                img.file_size = replacement_file.size
+                img.thumbnail = ''
+                if ext in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'}:
+                    try:
+                        replacement_file.seek(0)
+                        with Image.open(replacement_file) as source:
+                            preview = source.convert('RGB')
+                            preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                            out = io.BytesIO()
+                            preview.save(out, format='WEBP', quality=82)
+                            stem = os.path.splitext(os.path.basename(replacement_file.name))[0][:80]
+                            img.thumbnail = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                    except (UnidentifiedImageError, OSError, ValueError):
+                        logger.warning('Replacement image has no usable thumbnail: %s', replacement_file.name)
+                    finally:
+                        replacement_file.seek(0)
+                new_files.append((img, old_image, old_thumb))
+            if title:
+                img.title = title[:255]
+            if replacement_file or title:
+                img.save()
+            approval = submit_design_for_approval(img, user, is_resubmission=True)
+        return approval
+    except Exception:
+        for changed, old_image, old_thumb in new_files:
+            for field, old_name in ((changed.image, old_image), (changed.thumbnail, old_thumb)):
+                if field and field.name and field.name != old_name and getattr(field, '_committed', False):
+                    try:
+                        default_storage.delete(field.name)
+                    except Exception:
+                        logger.warning('Could not clean up failed resubmission media %s', field.name)
+        raise
+
+
 @login_required
 @require_POST
 def resubmit_design_image_api(request, image_id):
     img = get_object_or_404(PatternDesignImage, id=image_id)
-    if img.uploaded_by_id != request.user.id and not request.user.is_superuser:
-        return JsonResponse({'status': 'error', 'message': _('Only the submitting designer can resubmit.')}, status=403)
-    if img.approval_status != 'rejected':
-        return JsonResponse({'status': 'error', 'message': _('Only rejected designs can be resubmitted.')}, status=400)
-
-    # Optional replacement file
-    replacement_file = request.FILES.get('image')
-    if replacement_file:
-        img.image = replacement_file
-        img.file_size = replacement_file.size
-        f_type, _ext = _get_design_file_info(replacement_file.name)
-        if f_type == 'image':
-            try:
-                replacement_file.seek(0)
-                with Image.open(replacement_file) as source:
-                    preview = source.convert('RGB')
-                    preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
-                    out = io.BytesIO()
-                    preview.save(out, format='WEBP', quality=82)
-                    stem = os.path.splitext(os.path.basename(replacement_file.name))[0][:80]
-                    img.thumbnail = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
-                replacement_file.seek(0)
-            except Exception:
-                pass
-        img.save()
-
-    approval = submit_design_for_approval(img, request.user, is_resubmission=True)
+    try:
+        approval = _resubmit_design(
+            img, request.user,
+            replacement_file=request.FILES.get('image'),
+            title=request.POST.get('title', '').strip(),
+        )
+    except PermissionDenied as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
+    except ValidationError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc.messages[0])}, status=409)
+    except Exception:
+        logger.exception('Design resubmission failed')
+        return JsonResponse({'status': 'error', 'message': _('Resubmission could not be saved. Please try again.')}, status=503)
     return JsonResponse({
-        'status': 'success',
-        'approval_status': img.approval_status,
+        'status': 'success', 'approval_status': 'pending',
         'cycle': approval.cycle,
-        'message': _('Design resubmitted successfully for CAD and ED review.')
+        'message': _('Design resubmitted successfully for CAD and ED review.'),
     })
 
 
@@ -2031,16 +2167,30 @@ def design_approvals_list(request):
     prof = getattr(user, 'workflow_profile', None)
     is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     approval_role = getattr(prof, 'approval_role', None) if prof else None
+    if not (is_designer or request.user.is_superuser or
+            (prof and prof.role == WorkflowRoles.ADMIN) or
+            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED))):
+        raise PermissionDenied(_("You cannot access design approvals."))
+
+    latest_appr_cad = Subquery(
+        PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('cad_status')[:1]
+    )
+    latest_appr_ed = Subquery(
+        PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('ed_status')[:1]
+    )
 
     # Base queryset: only images with approval requests
     qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).select_related(
         'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
+    ).annotate(
+        latest_cad_status=latest_appr_cad,
+        latest_ed_status=latest_appr_ed,
     ).prefetch_related('approval_requests').distinct().order_by('-uploaded_at')
 
     if is_designer:
         qs = qs.filter(uploaded_by=user)
 
-    active_tab = request.GET.get('tab', 'pending')
+    active_tab = request.GET.get('tab') or request.GET.get('status') or 'pending'
 
     if active_tab == 'approved':
         qs = qs.filter(approval_status='approved')
@@ -2048,29 +2198,39 @@ def design_approvals_list(request):
         qs = qs.filter(approval_status='rejected')
     elif active_tab == 'pending':
         if approval_role == ApprovalRoles.CAD:
-            qs = qs.filter(approval_requests__cad_status='pending', approval_status__in=['pending', 'partially_approved']).exclude(uploaded_by=user)
+            qs = qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
         elif approval_role == ApprovalRoles.ED:
-            qs = qs.filter(approval_requests__ed_status='pending', approval_status__in=['pending', 'partially_approved']).exclude(uploaded_by=user)
+            qs = qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
         else:
             qs = qs.filter(approval_status='pending')
 
-    pending_count = PatternDesignImage.objects.filter(
-        approval_requests__isnull=False,
-        approval_status='pending'
-    ).distinct().count()
+    base_count_qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).annotate(
+        latest_cad_status=latest_appr_cad,
+        latest_ed_status=latest_appr_ed,
+    )
+    if is_designer:
+        base_count_qs = base_count_qs.filter(uploaded_by=user)
+
     if approval_role == ApprovalRoles.CAD:
-        pending_count = PatternDesignImage.objects.filter(
-            approval_requests__cad_status='pending',
-            approval_status__in=['pending', 'partially_approved']
-        ).exclude(uploaded_by=user).distinct().count()
+        pending_count = base_count_qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
     elif approval_role == ApprovalRoles.ED:
-        pending_count = PatternDesignImage.objects.filter(
-            approval_requests__ed_status='pending',
-            approval_status__in=['pending', 'partially_approved']
-        ).exclude(uploaded_by=user).distinct().count()
+        pending_count = base_count_qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
+    else:
+        pending_count = base_count_qs.filter(approval_status='pending').distinct().count()
+
+    page = Paginator(qs, 24).get_page(request.GET.get('page'))
+    # Annotate only the visible page, avoiding a full-table render and review N+1.
+    for item in page.object_list:
+        item.can_review_by_user = False
+        if approval_role == ApprovalRoles.CAD and getattr(item, 'latest_cad_status', '') == 'pending' and item.uploaded_by_id != user.id:
+            item.can_review_by_user = True
+        elif approval_role == ApprovalRoles.ED and getattr(item, 'latest_ed_status', '') == 'pending' and item.uploaded_by_id != user.id:
+            item.can_review_by_user = True
 
     context = {
-        'designs': qs,
+        'designs': page.object_list,
+        'items': page.object_list,
+        'page_obj': page,
         'active_tab': active_tab,
         'pending_count': pending_count,
         'is_designer': is_designer,
@@ -2092,6 +2252,10 @@ def design_approval_detail(request, image_id):
     prof = getattr(user, 'workflow_profile', None)
     is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     approval_role = getattr(prof, 'approval_role', None) if prof else None
+    if not (is_designer or request.user.is_superuser or
+            (prof and prof.role == WorkflowRoles.ADMIN) or
+            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED))):
+        raise PermissionDenied(_("You cannot access design approvals."))
 
     # Access control: Freelancers can only view their own designs
     if is_designer and design_image.uploaded_by_id != user.id:
@@ -2110,34 +2274,18 @@ def design_approval_detail(request, image_id):
                 messages.error(request, str(exc))
             return redirect('design_approval_detail', image_id=design_image.id)
         elif action == 'resubmit':
-            if design_image.uploaded_by_id != user.id and not user.is_superuser:
-                raise PermissionDenied(_("Only the submitting designer can resubmit."))
-            if design_image.approval_status != 'rejected':
-                messages.error(request, _("Only designs with changes requested can be resubmitted."))
-                return redirect('design_approval_detail', image_id=design_image.id)
-
-            replacement_file = request.FILES.get('image')
-            if replacement_file:
-                design_image.image = replacement_file
-                design_image.file_size = replacement_file.size
-                f_type, _ext = _get_design_file_info(replacement_file.name)
-                if f_type == 'image':
-                    try:
-                        replacement_file.seek(0)
-                        with Image.open(replacement_file) as source:
-                            preview = source.convert('RGB')
-                            preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
-                            out = io.BytesIO()
-                            preview.save(out, format='WEBP', quality=82)
-                            stem = os.path.splitext(os.path.basename(replacement_file.name))[0][:80]
-                            design_image.thumbnail = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
-                        replacement_file.seek(0)
-                    except Exception:
-                        pass
-                design_image.save()
-
-            submit_design_for_approval(design_image, user, is_resubmission=True)
-            messages.success(request, _("Design resubmitted successfully for CAD and ED review."))
+            try:
+                _resubmit_design(
+                    design_image, user,
+                    replacement_file=request.FILES.get('image'),
+                    title=request.POST.get('title', '').strip(),
+                )
+                messages.success(request, _("Design resubmitted successfully for CAD and ED review."))
+            except (PermissionDenied, ValidationError) as exc:
+                messages.error(request, str(exc))
+            except Exception:
+                logger.exception('Design resubmission failed')
+                messages.error(request, _("Resubmission could not be saved. Please try again."))
             return redirect('design_approval_detail', image_id=design_image.id)
 
     latest_approval = design_image.latest_approval

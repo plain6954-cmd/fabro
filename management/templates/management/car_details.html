@@ -277,6 +277,21 @@
                 top: auto !important;
                 bottom: calc(100% + 6px) !important;
             }
+            .vehicle-drive-link-row:hover {
+                background: rgba(255, 255, 255, 0.08) !important;
+                border-color: rgba(66, 133, 244, 0.35) !important;
+            }
+            .drive-link-del-btn:hover {
+                opacity: 1 !important;
+                background: rgba(239, 68, 68, 0.2) !important;
+            }
+            #vehicleDriveLinksScrollContainer::-webkit-scrollbar {
+                width: 5px;
+            }
+            #vehicleDriveLinksScrollContainer::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 4px;
+            }
             .card-action-item {
                 display: inline-flex !important;
                 align-items: center !important;
@@ -1496,7 +1511,7 @@
                                 </tr>
                                 {% endif %}
                                 {% for car in car_data %}
-                                    <tr id="row-view-{{ car.id }}" data-car-id="{{ car.id }}">
+                                    <tr id="row-view-{{ car.id }}" data-car-id="{{ car.id }}" tabindex="0" aria-label="{% translate 'Open design options for' %} {{ car.brand }} {{ car.model }}">
                                         <td class="col-select">
                                             <input type="checkbox" class="pattern-checkbox pattern-row-select" 
                                                    data-id="{{ car.id }}" 
@@ -1852,6 +1867,9 @@
 
         <!-- Design options (Folders & 2x2 Matrix Image Gallery) -->
         <div id="tab-pane-design-options" class="pattern-tab-pane" style="display: none;">
+            <form id="designOptionsGlobalCsrf" style="display: none;" aria-hidden="true">
+                {% csrf_token %}
+            </form>
             <div class="design-options-section">
                 <!-- VIEW 1: Folders Dashboard -->
                 <div id="designFoldersView">
@@ -1882,17 +1900,65 @@
                                 <i class="fas fa-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--dark-text-secondary); pointer-events: none;"></i>
                             </div>
 
-                            <!-- Google Drive Button -->
-                            <button type="button" class="btn btn-secondary google-drive-btn" id="vehicleGoogleDriveBtn" onclick="handleGoogleDriveClick()" title="{% translate "Google Drive" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); transition: all 0.2s ease;">
-                                <svg class="google-drive-svg" width="18" height="18" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                                    <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                                    <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" fill="#00ac47"/>
-                                    <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 10.15z" fill="#ea4335"/>
-                                    <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                                    <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                                    <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                                </svg>
-                            </button>
+                            <!-- Google Drive Button & Dropdown -->
+                            <div style="position: relative;" id="vehicleGoogleDriveDropdownContainer">
+                                <button type="button" class="btn btn-secondary google-drive-btn" id="vehicleGoogleDriveBtn" onclick="toggleGoogleDriveDropdown(event)" title="{% translate "Google Drive Links" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); transition: all 0.2s ease;">
+                                    <svg class="google-drive-svg" width="18" height="18" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                        <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" fill="#00ac47"/>
+                                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 10.15z" fill="#ea4335"/>
+                                        <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                        <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                    </svg>
+                                </button>
+
+                                <div class="google-drive-dropdown-menu" id="vehicleGoogleDriveDropdownMenu" style="display: none; position: absolute; right: 0; top: calc(100% + 6px); background: #1a1a20; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 10px; box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7); width: 330px; z-index: 1055; overflow: hidden;">
+                                    <!-- Dropdown Header -->
+                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);">
+                                        <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 600; color: #fff;">
+                                            <svg width="15" height="15" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                                <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" fill="#00ac47"/>
+                                                <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 10.15z" fill="#ea4335"/>
+                                                <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                                <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                                <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                            </svg>
+                                            <span>{% translate "Google Drive Links" %}</span>
+                                        </div>
+                                        <span class="badge" id="vehicleDriveLinksCountBadge" style="font-size: 0.68rem; padding: 0.1rem 0.45rem; background: rgba(255, 255, 255, 0.08); border-radius: 8px; color: var(--dark-text-secondary); display: none;">0</span>
+                                    </div>
+
+                                    {% if can_manage_design_assets %}
+                                    <!-- Design asset managers can link vehicle Drive folders. -->
+                                    <div id="googleDriveAddSection" style="padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
+                                        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                            <input type="text" id="vehicleDriveLinkTitleInput" class="form-input" placeholder="{% translate "Title / Label (optional)" %}" style="font-size: 0.78rem; padding: 0.35rem 0.55rem; height: 30px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #fff; width: 100%; box-sizing: border-box;">
+                                            <div style="display: flex; gap: 0.35rem;">
+                                                <input type="url" id="vehicleDriveLinkUrlInput" class="form-input" placeholder="{% translate "Paste Drive URL..." %}" style="flex: 1; min-width: 0; font-size: 0.78rem; padding: 0.35rem 0.55rem; height: 30px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #fff; box-sizing: border-box;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitAddDriveLink();}">
+                                                <button type="button" id="vehicleDriveLinkAddBtn" class="btn btn-primary" onclick="submitAddDriveLink()" title="{% translate "Add Link" %}" style="height: 30px; padding: 0 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 6px; white-space: nowrap; flex-shrink: 0;">
+                                                    <i class="fas fa-plus"></i>
+                                                    <span>{% translate "Add" %}</span>
+                                                </button>
+                                            </div>
+                                            <div id="vehicleDriveLinkError" style="color: #ef4444; font-size: 0.72rem; display: none; margin-top: 0.1rem;"></div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Scrollable Menu with all links -->
+                                    <div id="vehicleDriveLinksScrollContainer" style="max-height: 220px; overflow-y: auto; padding: 0.45rem; scrollbar-width: thin;">
+                                        <div id="vehicleDriveLinksList" style="display: flex; flex-direction: column; gap: 0.3rem;">
+                                            <!-- Dynamically populated links -->
+                                        </div>
+                                        <div id="vehicleDriveLinksEmpty" style="display: none; padding: 1.2rem 0.6rem; text-align: center; color: var(--dark-text-secondary); font-size: 0.78rem;">
+                                            <i class="fab fa-google-drive" style="font-size: 1.3rem; opacity: 0.35; margin-bottom: 0.35rem; display: block;"></i>
+                                            <span>{% translate "No Drive links added yet." %}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             {% if can_manage_design_assets %}
                             <!-- Add Dropdown (Simple Plus Button) -->
@@ -2299,6 +2365,43 @@
     <script>
     (() => {
         const pageScope = window.fabroCreatePageScope();
+
+        // Design Options State (declared early to prevent Temporal Dead Zone ReferenceErrors)
+        let currentVehicleId = new URLSearchParams(window.location.search).get('vehicle_id') || null;
+        let currentVehicleName = '';
+        let currentGoogleDriveUrl = '';
+        let currentVehicleDriveLinks = [];
+        let designFoldersState = [];
+        let directImagesState = [];
+        let directImagesTotalCount = 0;
+        let activeDesignFolder = null;
+        let activeFolderImages = [];
+        let matrixCurrentPage = 0;
+        let directMatrixCurrentPage = 0;
+        let folderCurrentPage = 0;
+        let folderTotalPages = 1;
+        let matrixTotalPages = 1;
+        let directMatrixTotalPages = 1;
+        let activeFolderTotalImages = 0;
+        const MATRIX_PAGE_SIZE = 4;
+        let currentEnlargedIdx = -1;
+        let renameTargetFolderId = null;
+        const designUploadsInFlight = new Set();
+
+        function designUploadId(scope, files) {
+            const identity = Array.from(files).map(file => `${file.name}:${file.size}:${file.lastModified}`).join('|');
+            const key = `fabro-design-upload:${scope}:${identity}`;
+            try {
+                let id = sessionStorage.getItem(key);
+                if (!id) {
+                    id = crypto.randomUUID();
+                    sessionStorage.setItem(key, id);
+                }
+                return id;
+            } catch (error) {
+                return crypto.randomUUID();
+            }
+        }
 
         function closeDuplicateModal() {
             const modal = document.getElementById("duplicateModal");
@@ -4022,9 +4125,6 @@
             // Check hash or query param on page load
             const urlParams = new URLSearchParams(window.location.search);
             const vParam = urlParams.get('vehicle_id');
-            if (vParam) {
-                currentVehicleId = vParam;
-            }
             if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-') || window.location.search.includes('tab=design-options') || vParam) {
                 switchPatternTab('design-options');
             }
@@ -4033,23 +4133,6 @@
         // ========================================================
         // Design Options: Folders & 2x2 Image Matrix Controller
         // ========================================================
-        let designFoldersState = [];
-        let directImagesState = [];
-        let activeDesignFolder = null;
-        let activeFolderImages = [];
-        let matrixCurrentPage = 0;
-        let directMatrixCurrentPage = 0;
-        let folderCurrentPage = 0;
-        let folderTotalPages = 1;
-        let matrixTotalPages = 1;
-        let directMatrixTotalPages = 1;
-        let activeFolderTotalImages = 0;
-        const MATRIX_PAGE_SIZE = 4;
-        let currentEnlargedIdx = -1;
-        let renameTargetFolderId = null;
-        let currentVehicleId = null;
-        let currentVehicleName = '';
-        let currentGoogleDriveUrl = '';
 
         function openVehicleDesignSettings(vehicleId, vehicleName) {
             currentVehicleId = vehicleId;
@@ -4066,7 +4149,6 @@
             if (foldersView) foldersView.style.display = 'block';
 
             switchPatternTab('design-options');
-            loadDesignFolders(currentVehicleId);
         }
 
         function updateVehicleSubheadings(name) {
@@ -4078,8 +4160,12 @@
         }
 
         function getDesignCsrfToken() {
-            const el = document.querySelector('[name=csrfmiddlewaretoken]');
-            return el ? el.value : '';
+            const el = document.querySelector('#designOptionsGlobalCsrf [name=csrfmiddlewaretoken]')
+                || document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el && el.value) return el.value;
+            const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+            if (match) return decodeURIComponent(match[1]);
+            return '';
         }
 
         function escapeHtml(text) {
@@ -4102,6 +4188,7 @@
                     if (data.status === 'success') {
                         designFoldersState = data.folders || [];
                         directImagesState = data.direct_images || [];
+                        directImagesTotalCount = data.image_pagination?.total ?? directImagesState.length;
                         folderCurrentPage = Math.max(0, (data.folder_pagination?.page || 1) - 1);
                         folderTotalPages = Math.max(1, data.folder_pagination?.pages || 1);
                         directMatrixCurrentPage = Math.max(0, (data.image_pagination?.page || 1) - 1);
@@ -4112,7 +4199,8 @@
                                 updateVehicleSubheadings(data.vehicle.name);
                             }
                             currentGoogleDriveUrl = data.vehicle.google_drive_url || '';
-                            updateGoogleDriveButtonState();
+                            currentVehicleDriveLinks = data.vehicle.drive_links || [];
+                            renderVehicleDriveLinks();
                         } else if (currentVehicleName) {
                             updateVehicleSubheadings(currentVehicleName);
                         }
@@ -4212,7 +4300,7 @@
                 }
 
                 return `
-                    <div class="design-folder-card" onclick="openDesignFolder(${f.id})">
+                    <div class="design-folder-card" role="button" tabindex="0" onclick="openDesignFolder(${f.id})" onkeydown="if(event.target===this && (event.key==='Enter' || event.key===' ')){event.preventDefault();openDesignFolder(${f.id});}">
                         <div class="design-folder-preview">
                             ${previewHtml}
                         </div>
@@ -4504,6 +4592,10 @@
                     let statusBadge = '';
                     if (img.approval_status === 'pending') {
                         statusBadge = `<span class="matrix-status-pill is-pending"><i class="fas fa-clock"></i> {% translate "Pending Review" %}</span>`;
+                    } else if (img.approval_status === 'partially_approved') {
+                        statusBadge = `<span class="matrix-status-pill is-partial"><i class="fas fa-hourglass-half"></i> {% translate "Partially Approved" %}</span>`;
+                    } else if (img.approval_status === 'approved') {
+                        statusBadge = `<span class="matrix-status-pill is-approved"><i class="fas fa-check-circle"></i> {% translate "Approved" %}</span>`;
                     } else if (img.approval_status === 'rejected') {
                         const rReason = img.rejection_reason ? escapeHtml(img.rejection_reason) : '';
                         statusBadge = `<span class="matrix-status-pill is-rejected" title="${rReason}"><i class="fas fa-times-circle"></i> {% translate "Rejected" %}</span>`;
@@ -4550,7 +4642,7 @@
                         : `window.open('${escapeHtml(img.original_url || img.url)}', '_blank')`;
 
                     return `
-                        <div class="design-matrix-card ${img.is_new ? 'is-new-item' : ''}" data-image-id="${img.id}" onclick="${clickHandler}">
+                        <div class="design-matrix-card ${img.is_new ? 'is-new-item' : ''}" data-image-id="${img.id}" role="button" tabindex="0" onclick="${clickHandler}" onkeydown="if(event.target===this && (event.key==='Enter' || event.key===' ')){event.preventDefault();this.click();}">
                             <div class="matrix-card-media">
                                 ${mediaContent}
                                 ${statusBadge ? `<div class="matrix-card-badge-wrap">${statusBadge}</div>` : ''}
@@ -4597,6 +4689,10 @@
         // Image Upload
         function handleDesignImageSelected(files) {
             if (!files || !files.length || !activeDesignFolder) return;
+            const uploadScope = `folder-${activeDesignFolder.id}`;
+            if (designUploadsInFlight.has(uploadScope)) return;
+            designUploadsInFlight.add(uploadScope);
+            const uploadId = designUploadId(uploadScope, files);
 
             const grid = document.getElementById('designMatrixGrid');
             const wrapper = document.getElementById('designMatrixWrapper');
@@ -4630,7 +4726,8 @@
 
             fetch(`/api/design-folders/${activeDesignFolder.id}/upload/`, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': getDesignCsrfToken() },
+                headers: { 'X-CSRFToken': getDesignCsrfToken(), 'X-Upload-Id': uploadId },
+                credentials: 'same-origin',
                 body: formData
             })
             .then(async r => {
@@ -4641,8 +4738,17 @@
                 }
                 const contentType = r.headers.get('content-type') || '';
                 if (!contentType.includes('application/json')) {
-                    alert('{% translate "Your session has expired. Please refresh the page and sign in again." %}');
-                    return null;
+                    if (r.status === 401) {
+                        alert('{% translate "Your session has expired. Please sign in again." %}');
+                        window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                        return null;
+                    } else if (r.status === 403) {
+                        throw new Error('{% translate "Security token invalid. Refresh this page and retry." %}');
+                    } else if (r.status === 413) {
+                        throw new Error('{% translate "File size exceeds server limit." %}');
+                    } else {
+                        throw new Error(`{% translate "Upload failed" %} (HTTP ${r.status})`);
+                    }
                 }
                 const data = await r.json();
                 if (!r.ok) {
@@ -4651,13 +4757,14 @@
                 return data;
             })
             .then(data => {
-                if (skeleton && skeleton.parentNode) skeleton.remove();
                 if (!data) return;
                 if (data.status === 'success') {
                     if (data.images && data.images.length) {
                         data.images.forEach(img => { img.is_new = true; });
-                        activeFolderImages = [...data.images, ...activeFolderImages];
-                        activeFolderTotalImages = data.total_count || activeFolderImages.length;
+                        matrixCurrentPage = 0;
+                        activeFolderImages = [...data.images, ...activeFolderImages.filter(existing => !data.images.some(img => img.id === existing.id))].slice(0, MATRIX_PAGE_SIZE);
+                        activeFolderTotalImages = data.total_count ?? ((activeFolderTotalImages || 0) + data.images.length);
+                        matrixTotalPages = Math.max(1, Math.ceil(activeFolderTotalImages / MATRIX_PAGE_SIZE));
                         renderDesignMatrix();
                         setTimeout(() => {
                             data.images.forEach(img => { img.is_new = false; });
@@ -4669,10 +4776,13 @@
                 }
             })
             .catch(err => {
-                if (skeleton && skeleton.parentNode) skeleton.remove();
                 console.error('Upload error:', err);
                 alert(err.message || '{% translate "Network error during upload." %}');
                 renderDesignMatrix();
+            })
+            .finally(() => {
+                if (skeleton && skeleton.parentNode) skeleton.remove();
+                designUploadsInFlight.delete(uploadScope);
             });
         }
 
@@ -4730,72 +4840,169 @@
         }
 
         pageScope.listen(document, 'click', function(e) {
-            const menu = document.getElementById('designAddDropdownMenu');
-            const container = document.getElementById('designAddDropdownContainer');
-            if (menu && menu.style.display === 'block') {
-                if (!container || !container.contains(e.target)) {
-                    menu.style.display = 'none';
+            const addMenu = document.getElementById('designAddDropdownMenu');
+            const addContainer = document.getElementById('designAddDropdownContainer');
+            if (addMenu && addMenu.style.display === 'block') {
+                if (!addContainer || !addContainer.contains(e.target)) {
+                    addMenu.style.display = 'none';
+                }
+            }
+
+            const driveMenu = document.getElementById('vehicleGoogleDriveDropdownMenu');
+            const driveContainer = document.getElementById('vehicleGoogleDriveDropdownContainer');
+            if (driveMenu && driveMenu.style.display === 'block') {
+                if (!driveContainer || !driveContainer.contains(e.target)) {
+                    driveMenu.style.display = 'none';
                 }
             }
         });
 
-        function handleGoogleDriveClick() {
-            if (currentGoogleDriveUrl) {
-                window.open(currentGoogleDriveUrl, '_blank', 'noopener,noreferrer');
+        function toggleGoogleDriveDropdown(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const addMenu = document.getElementById('designAddDropdownMenu');
+            if (addMenu) addMenu.style.display = 'none';
+
+            const menu = document.getElementById('vehicleGoogleDriveDropdownMenu');
+            if (!menu) return;
+            const isHidden = (menu.style.display === 'none' || !menu.style.display);
+            if (isHidden) {
+                menu.style.display = 'block';
+                const urlInput = document.getElementById('vehicleDriveLinkUrlInput');
+                if (urlInput) setTimeout(() => urlInput.focus(), 50);
             } else {
-                const canManage = {% if can_manage_design_assets %}true{% else %}false{% endif %};
-                if (canManage) {
-                    openGoogleDriveModal();
+                menu.style.display = 'none';
+            }
+        }
+
+        function closeGoogleDriveDropdown() {
+            const menu = document.getElementById('vehicleGoogleDriveDropdownMenu');
+            if (menu) menu.style.display = 'none';
+            const err = document.getElementById('vehicleDriveLinkError');
+            if (err) { err.textContent = ''; err.style.display = 'none'; }
+        }
+
+        function renderVehicleDriveLinks() {
+            const list = document.getElementById('vehicleDriveLinksList');
+            const empty = document.getElementById('vehicleDriveLinksEmpty');
+            const badge = document.getElementById('vehicleDriveLinksCountBadge');
+            const btn = document.getElementById('vehicleGoogleDriveBtn');
+            const count = currentVehicleDriveLinks ? currentVehicleDriveLinks.length : 0;
+
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+
+            if (btn) {
+                if (count > 0) {
+                    btn.setAttribute('title', `{% translate "Google Drive Links" %} (${count})`);
+                    btn.style.borderColor = 'rgba(38, 132, 252, 0.55)';
+                    btn.style.background = 'rgba(38, 132, 252, 0.15)';
                 } else {
-                    alert('{% translate "No Google Drive folder has been linked for this vehicle yet." %}');
+                    btn.setAttribute('title', '{% translate "Google Drive Links" %}');
+                    btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    btn.style.background = 'rgba(255, 255, 255, 0.06)';
                 }
             }
+
+            if (!list) return;
+            list.innerHTML = '';
+
+            if (count === 0) {
+                if (empty) empty.style.display = 'block';
+                return;
+            }
+
+            if (empty) empty.style.display = 'none';
+            const isSuperuser = {% if request.user.is_superuser %}true{% else %}false{% endif %};
+
+            currentVehicleDriveLinks.forEach(link => {
+                const item = document.createElement('div');
+                item.className = 'vehicle-drive-link-row';
+                item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; padding: 0.45rem 0.55rem; border-radius: 6px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); transition: all 0.15s ease;';
+
+                const a = document.createElement('a');
+                a.href = link.url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.title = `${link.title || 'Google Drive Folder'} - ${link.url}`;
+                a.style.cssText = 'flex: 1; min-width: 0; text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;';
+
+                const icon = document.createElement('i');
+                icon.className = 'fab fa-google-drive';
+                icon.style.cssText = 'color: #4285f4; font-size: 0.95rem; flex-shrink: 0;';
+                a.appendChild(icon);
+
+                const textCol = document.createElement('div');
+                textCol.style.cssText = 'flex: 1; min-width: 0; line-height: 1.25;';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.style.cssText = 'font-size: 0.8rem; font-weight: 500; color: #f3f4f6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+                titleDiv.textContent = link.title || 'Google Drive Folder';
+                textCol.appendChild(titleDiv);
+
+                const urlDiv = document.createElement('div');
+                urlDiv.style.cssText = 'font-size: 0.68rem; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.75;';
+                urlDiv.textContent = link.url;
+                textCol.appendChild(urlDiv);
+
+                a.appendChild(textCol);
+
+                const extIcon = document.createElement('i');
+                extIcon.className = 'fas fa-external-link-alt';
+                extIcon.style.cssText = 'font-size: 0.68rem; color: #6b7280; flex-shrink: 0; margin-left: 0.2rem;';
+                a.appendChild(extIcon);
+
+                item.appendChild(a);
+
+                if (isSuperuser && link.id) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'drive-link-del-btn';
+                    delBtn.title = '{% translate "Delete link" %}';
+                    delBtn.style.cssText = 'background: none; border: none; color: #ef4444; opacity: 0.65; cursor: pointer; padding: 0.25rem 0.35rem; border-radius: 4px; font-size: 0.72rem; transition: opacity 0.15s; flex-shrink: 0;';
+                    delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    delBtn.addEventListener('click', (ev) => deleteVehicleDriveLink(link.id, ev));
+                    item.appendChild(delBtn);
+                }
+
+                list.appendChild(item);
+            });
         }
 
-        function openGoogleDriveModal() {
-            const input = document.getElementById('googleDriveUrlInput');
-            const vehSpan = document.getElementById('googleDriveVehicleNameDisplay');
-            const openDirectBtn = document.getElementById('googleDriveOpenDirectBtn');
-            const err = document.getElementById('googleDriveError');
+        function submitAddDriveLink() {
+            if (!currentVehicleId) {
+                alert('{% translate "Please select a vehicle first." %}');
+                return;
+            }
+            const urlInput = document.getElementById('vehicleDriveLinkUrlInput');
+            const titleInput = document.getElementById('vehicleDriveLinkTitleInput');
+            const btn = document.getElementById('vehicleDriveLinkAddBtn');
+            const err = document.getElementById('vehicleDriveLinkError');
 
-            if (input) input.value = currentGoogleDriveUrl || '';
-            if (vehSpan) vehSpan.textContent = currentVehicleName || '';
+            const url = (urlInput?.value || '').trim();
+            const title = (titleInput?.value || '').trim();
+
+            if (!url) {
+                if (err) {
+                    err.textContent = '{% translate "Please enter a valid URL." %}';
+                    err.style.display = 'block';
+                }
+                if (urlInput) urlInput.focus();
+                return;
+            }
+
             if (err) { err.textContent = ''; err.style.display = 'none'; }
-            if (openDirectBtn) {
-                openDirectBtn.style.display = currentGoogleDriveUrl ? 'inline-flex' : 'none';
-            }
-
-            const modal = document.getElementById('googleDriveModal');
-            if (modal) {
-                modal.style.display = 'block';
-                setTimeout(() => input && input.focus(), 50);
-            }
-        }
-
-        function closeGoogleDriveModal() {
-            const modal = document.getElementById('googleDriveModal');
-            if (modal) modal.style.display = 'none';
-        }
-
-        function openCurrentGoogleDriveInNewTab() {
-            if (currentGoogleDriveUrl) {
-                window.open(currentGoogleDriveUrl, '_blank', 'noopener,noreferrer');
-            }
-        }
-
-        function submitSaveGoogleDrive() {
-            if (!currentVehicleId) return;
-            const input = document.getElementById('googleDriveUrlInput');
-            const err = document.getElementById('googleDriveError');
-            const btn = document.getElementById('saveGoogleDriveBtn');
-            const url = (input?.value || '').trim();
-
             if (btn) btn.disabled = true;
 
             const formData = new FormData();
-            formData.append('google_drive_url', url);
+            formData.append('url', url);
+            if (title) formData.append('title', title);
 
-            fetch(`/api/vehicles/${currentVehicleId}/google-drive/`, {
+            fetch(`/api/vehicles/${currentVehicleId}/drive-links/`, {
                 method: 'POST',
                 headers: { 'X-CSRFToken': getDesignCsrfToken() },
                 body: formData
@@ -4804,39 +5011,72 @@
             .then(data => {
                 if (btn) btn.disabled = false;
                 if (data.status === 'success') {
-                    currentGoogleDriveUrl = data.google_drive_url || '';
-                    updateGoogleDriveButtonState();
-                    closeGoogleDriveModal();
-                    if (currentGoogleDriveUrl) {
-                        window.open(currentGoogleDriveUrl, '_blank', 'noopener,noreferrer');
+                    if (urlInput) urlInput.value = '';
+                    if (titleInput) titleInput.value = '';
+                    currentVehicleDriveLinks = data.links || [];
+                    if (currentVehicleDriveLinks.length > 0) {
+                        currentGoogleDriveUrl = currentVehicleDriveLinks[0].url;
                     }
+                    renderVehicleDriveLinks();
                 } else {
-                    if (err) { err.textContent = data.message || '{% translate "Error saving Google Drive link." %}'; err.style.display = 'block'; }
+                    if (err) {
+                        err.textContent = data.message || '{% translate "Error adding Drive link." %}';
+                        err.style.display = 'block';
+                    }
                 }
             })
             .catch(e => {
                 if (btn) btn.disabled = false;
-                if (err) { err.textContent = '{% translate "Network error." %}'; err.style.display = 'block'; }
+                if (err) {
+                    err.textContent = '{% translate "Network error." %}';
+                    err.style.display = 'block';
+                }
             });
         }
 
-        function updateGoogleDriveButtonState() {
-            const btn = document.getElementById('vehicleGoogleDriveBtn');
-            if (!btn) return;
-            if (currentGoogleDriveUrl) {
-                btn.setAttribute('title', `{% translate "Google Drive" %}: ${currentGoogleDriveUrl}`);
-                btn.style.borderColor = 'rgba(38, 132, 252, 0.45)';
-                btn.style.background = 'rgba(38, 132, 252, 0.12)';
-            } else {
-                btn.setAttribute('title', '{% translate "Google Drive" %}');
-                btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                btn.style.background = 'rgba(255, 255, 255, 0.06)';
+        function deleteVehicleDriveLink(linkId, e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
             }
+            if (!confirm('{% translate "Are you sure you want to remove this Drive link?" %}')) {
+                return;
+            }
+
+            fetch(`/api/vehicles/drive-links/${linkId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getDesignCsrfToken() }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentVehicleDriveLinks = data.links || [];
+                    currentGoogleDriveUrl = currentVehicleDriveLinks.length > 0 ? currentVehicleDriveLinks[0].url : '';
+                    renderVehicleDriveLinks();
+                } else {
+                    alert(data.message || '{% translate "Error deleting Drive link." %}');
+                }
+            })
+            .catch(e => {
+                alert('{% translate "Network error." %}');
+            });
+        }
+
+        function handleGoogleDriveClick(e) {
+            toggleGoogleDriveDropdown(e);
+        }
+
+        function updateGoogleDriveButtonState() {
+            renderVehicleDriveLinks();
         }
 
         // Direct Vehicle Images Controller
         function handleDirectVehicleImageSelected(files) {
             if (!files || !files.length || !currentVehicleId) return;
+            const uploadScope = `vehicle-${currentVehicleId}`;
+            if (designUploadsInFlight.has(uploadScope)) return;
+            designUploadsInFlight.add(uploadScope);
+            const uploadId = designUploadId(uploadScope, files);
 
             const grid = document.getElementById('directImagesMatrixGrid');
             const section = document.getElementById('designDirectImagesSection');
@@ -4868,7 +5108,8 @@
 
             fetch(`/api/vehicles/${currentVehicleId}/design-images/upload/`, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': getDesignCsrfToken() },
+                headers: { 'X-CSRFToken': getDesignCsrfToken(), 'X-Upload-Id': uploadId },
+                credentials: 'same-origin',
                 body: formData
             })
             .then(async r => {
@@ -4879,8 +5120,17 @@
                 }
                 const contentType = r.headers.get('content-type') || '';
                 if (!contentType.includes('application/json')) {
-                    alert('{% translate "Your session has expired. Please refresh the page and sign in again." %}');
-                    return null;
+                    if (r.status === 401) {
+                        alert('{% translate "Your session has expired. Please sign in again." %}');
+                        window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                        return null;
+                    } else if (r.status === 403) {
+                        throw new Error('{% translate "Security token invalid. Refresh this page and retry." %}');
+                    } else if (r.status === 413) {
+                        throw new Error('{% translate "File size exceeds server limit." %}');
+                    } else {
+                        throw new Error(`{% translate "Upload failed" %} (HTTP ${r.status})`);
+                    }
                 }
                 const data = await r.json();
                 if (!r.ok) {
@@ -4889,12 +5139,14 @@
                 return data;
             })
             .then(data => {
-                if (skeleton && skeleton.parentNode) skeleton.remove();
                 if (!data) return;
                 if (data.status === 'success') {
                     if (data.images && data.images.length) {
                         data.images.forEach(img => { img.is_new = true; });
-                        directImagesState = [...data.images, ...directImagesState];
+                        directMatrixCurrentPage = 0;
+                        directImagesState = [...data.images, ...directImagesState.filter(existing => !data.images.some(img => img.id === existing.id))].slice(0, MATRIX_PAGE_SIZE);
+                        directImagesTotalCount = data.total_count ?? ((directImagesTotalCount || 0) + data.images.length);
+                        directMatrixTotalPages = Math.max(1, Math.ceil(directImagesTotalCount / MATRIX_PAGE_SIZE));
                         renderDirectImagesMatrix();
                         setTimeout(() => {
                             data.images.forEach(img => { img.is_new = false; });
@@ -4906,10 +5158,13 @@
                 }
             })
             .catch(err => {
-                if (skeleton && skeleton.parentNode) skeleton.remove();
                 console.error('Upload error:', err);
                 alert(err.message || '{% translate "Network error during upload." %}');
                 renderDirectImagesMatrix();
+            })
+            .finally(() => {
+                if (skeleton && skeleton.parentNode) skeleton.remove();
+                designUploadsInFlight.delete(uploadScope);
             });
         }
 
@@ -4921,17 +5176,25 @@
             const prevBtn = document.getElementById('prevDirectMatrixBtn');
             const nextBtn = document.getElementById('nextDirectMatrixBtn');
             const pBar = document.getElementById('directImagesPaginationBar');
+            const emptyState = document.getElementById('designFoldersEmptyState');
 
             if (!section) return;
 
-            if (badge) badge.textContent = directMatrixTotalPages > 1 ? `${directMatrixCurrentPage + 1}/${directMatrixTotalPages}` : directImagesState.length;
+            const totalDirectCount = (typeof directImagesTotalCount === 'number') ? directImagesTotalCount : directImagesState.length;
+            if (badge) badge.textContent = totalDirectCount;
 
             if (directImagesState.length === 0) {
                 section.style.display = 'none';
+                if (emptyState && (!designFoldersState || designFoldersState.length === 0)) {
+                    emptyState.style.display = 'block';
+                }
                 return;
             }
 
             section.style.display = 'block';
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
 
             const totalImages = directImagesState.length;
             const totalPages = directMatrixTotalPages;
@@ -4956,6 +5219,10 @@
                     let statusBadge = '';
                     if (img.approval_status === 'pending') {
                         statusBadge = `<span class="matrix-status-pill is-pending"><i class="fas fa-clock"></i> {% translate "Pending Review" %}</span>`;
+                    } else if (img.approval_status === 'partially_approved') {
+                        statusBadge = `<span class="matrix-status-pill is-partial"><i class="fas fa-hourglass-half"></i> {% translate "Partially Approved" %}</span>`;
+                    } else if (img.approval_status === 'approved') {
+                        statusBadge = `<span class="matrix-status-pill is-approved"><i class="fas fa-check-circle"></i> {% translate "Approved" %}</span>`;
                     } else if (img.approval_status === 'rejected') {
                         const rReason = img.rejection_reason ? escapeHtml(img.rejection_reason) : '';
                         statusBadge = `<span class="matrix-status-pill is-rejected" title="${rReason}"><i class="fas fa-times-circle"></i> {% translate "Rejected" %}</span>`;
@@ -5002,7 +5269,7 @@
                         : `window.open('${escapeHtml(img.original_url || img.url)}', '_blank')`;
 
                     return `
-                        <div class="design-matrix-card ${img.is_new ? 'is-new-item' : ''}" data-image-id="${img.id}" onclick="${clickHandler}">
+                        <div class="design-matrix-card ${img.is_new ? 'is-new-item' : ''}" data-image-id="${img.id}" role="button" tabindex="0" onclick="${clickHandler}" onkeydown="if(event.target===this && (event.key==='Enter' || event.key===' ')){event.preventDefault();this.click();}">
                             <div class="matrix-card-media">
                                 ${mediaContent}
                                 ${statusBadge ? `<div class="matrix-card-badge-wrap">${statusBadge}</div>` : ''}
@@ -5063,6 +5330,9 @@
                 const deletedIdx = directImagesState.findIndex(i => i.id === imageId);
                 if (deletedIdx !== -1) {
                     directImagesState.splice(deletedIdx, 1);
+                    if (typeof directImagesTotalCount === 'number') {
+                        directImagesTotalCount = Math.max(0, directImagesTotalCount - 1);
+                    }
                     renderDirectImagesMatrix();
                 }
 
@@ -5272,14 +5542,14 @@
                     if (activeFolderImages && activeFolderImages.length) {
                         const target = activeFolderImages.find(x => x.id === imageId);
                         if (target) {
-                            target.approval_status = 'approved';
+                            target.approval_status = data.approval_status || 'approved';
                             target.can_approve = false;
                         }
                     }
                     if (directImagesState && directImagesState.length) {
                         const target = directImagesState.find(x => x.id === imageId);
                         if (target) {
-                            target.approval_status = 'approved';
+                            target.approval_status = data.approval_status || 'approved';
                             target.can_approve = false;
                         }
                     }
@@ -5442,7 +5712,7 @@
             if (e.key === 'Escape') {
                 closeAddFolderModal();
                 closeRenameFolderModal();
-                closeGoogleDriveModal();
+                closeGoogleDriveDropdown();
                 closeRejectDesignModal();
             }
 
@@ -6205,38 +6475,54 @@
         }
 
         // Row checkbox changes
-        document.addEventListener('change', (e) => {
+        pageScope.listen(document, 'change', (e) => {
             if (e.target.classList.contains('pattern-row-select')) {
                 updateSelectionUI();
             }
         });
 
-        // Clicking the entire row toggles checkbox selection
-        document.addEventListener('click', (e) => {
+        const isPatternRowControl = (target) => Boolean(target.closest(
+            'button, a, input, select, textarea, label, summary, [role="button"], [role="menu"], [contenteditable="true"]'
+        ));
+        let rowTouchStart = null;
+        pageScope.listen(document, 'touchstart', (e) => {
+            const row = e.target.closest('tr[id^="row-view-"]');
+            if (!row || !e.touches.length) return;
+            rowTouchStart = { id: row.id, x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }, { passive: true });
+        pageScope.listen(document, 'touchend', (e) => {
+            if (!rowTouchStart || !e.changedTouches.length) return;
+            const touch = e.changedTouches[0];
+            if (Math.hypot(touch.clientX - rowTouchStart.x, touch.clientY - rowTouchStart.y) > 12) {
+                const row = document.getElementById(rowTouchStart.id);
+                if (row) {
+                    row.dataset.ignoreNextClick = 'true';
+                    setTimeout(() => { delete row.dataset.ignoreNextClick; }, 350);
+                }
+            }
+            rowTouchStart = null;
+        }, { passive: true });
+        const openPatternRow = (row) => {
+            const checkbox = row.querySelector('.pattern-row-select');
+            if (checkbox) openVehicleDesignSettings(checkbox.dataset.id, checkbox.dataset.designTitle);
+        };
+        pageScope.listen(document, 'click', (e) => {
             const row = e.target.closest('tr[id^="row-view-"]');
             if (!row) return;
-
-            // Ignore clicks on interactive controls
-            if (e.target.closest('button, a, select, textarea, label, .fitting-dropdown-btn, .action-btn, .pattern-card-actions-menu, .pattern-card-more-btn, .fitting-menu')) {
+            if (row.dataset.ignoreNextClick === 'true') {
+                delete row.dataset.ignoreNextClick;
                 return;
             }
-
-            // If user clicked directly on an input (like the checkbox itself), let native event handle it
-            if (e.target.closest('input')) {
-                return;
-            }
-
-            // If user highlighted text to copy, do not toggle
+            if (isPatternRowControl(e.target)) return;
             const selection = window.getSelection();
-            if (selection && selection.toString().trim().length > 0) {
-                return;
-            }
-
-            const cb = row.querySelector('.pattern-row-select');
-            if (cb) {
-                cb.checked = !cb.checked;
-                updateSelectionUI();
-            }
+            if (selection && selection.toString().trim()) return;
+            openPatternRow(row);
+        });
+        pageScope.listen(document, 'keydown', (e) => {
+            const row = e.target.closest('tr[id^="row-view-"]');
+            if (!row || e.target !== row || !['Enter', ' '].includes(e.key)) return;
+            e.preventDefault();
+            openPatternRow(row);
         });
 
         // Master select all
@@ -6395,7 +6681,7 @@
             console.error('Error initializing selection UI:', e);
         }
 
-        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, handleGoogleDriveClick, openGoogleDriveModal, closeGoogleDriveModal, openCurrentGoogleDriveInNewTab, submitSaveGoogleDrive, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI});
+        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, toggleGoogleDriveDropdown, closeGoogleDriveDropdown, submitAddDriveLink, deleteVehicleDriveLink, renderVehicleDriveLinks, handleGoogleDriveClick, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI});
     })();
     </script>
 

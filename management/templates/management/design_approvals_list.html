@@ -69,7 +69,7 @@
 
     <!-- Approvals Grid / Table -->
     {% if designs %}
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 1.25rem;">
         {% for item in designs %}
         <div style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;">
             <!-- Thumbnail / Preview -->
@@ -91,13 +91,17 @@
 
                 <!-- Overall Status Badge -->
                 <div style="position: absolute; top: 0.65rem; right: 0.65rem;">
-                    {% if item.approval_status == 'approved' %}
+                    {% if item.latest_approval.status == 'approved' or item.approval_status == 'approved' %}
                         <span style="background: rgba(16, 185, 129, 0.9); color: #fff; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
                             <i class="fas fa-check-circle"></i> {% translate "Approved" %}
                         </span>
-                    {% elif item.approval_status == 'rejected' %}
+                    {% elif item.latest_approval.status == 'rejected' or item.approval_status == 'rejected' %}
                         <span style="background: rgba(239, 68, 68, 0.9); color: #fff; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
                             <i class="fas fa-times-circle"></i> {% translate "Changes Required" %}
+                        </span>
+                    {% elif item.latest_approval.status == 'partially_approved' or item.approval_status == 'partially_approved' %}
+                        <span style="background: rgba(59, 130, 246, 0.9); color: #fff; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <i class="fas fa-hourglass-half"></i> {% translate "Partially Approved" %}
                         </span>
                     {% else %}
                         <span style="background: rgba(245, 158, 11, 0.9); color: #fff; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
@@ -174,7 +178,7 @@
                 <!-- Action Button -->
                 <div>
                     <a href="{% url 'design_approval_detail' item.id %}" class="workflow-btn primary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.45rem 0.75rem; font-size: 0.82rem; border-radius: 8px; width: 100%; box-sizing: border-box;">
-                        {% if can_review_as_cad or can_review_as_ed %}
+                        {% if item.can_review_by_user %}
                             <i class="fas fa-clipboard-check"></i> {% translate "Review Design" %}
                         {% else %}
                             <i class="fas fa-eye"></i> {% translate "View Details" %}
@@ -191,6 +195,13 @@
         <h3 style="font-size: 1.1rem; color: var(--dark-text, #f8fafc); margin: 0 0 0.5rem 0;">{% translate "No designs found" %}</h3>
         <p style="color: var(--dark-text-secondary, #94a3b8); font-size: 0.85rem; margin: 0;">{% translate "There are currently no 3D designs in this view." %}</p>
     </div>
+    {% endif %}
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="{% translate 'Design pages' %}" style="display:flex;justify-content:center;align-items:center;gap:1rem;margin:1.5rem 0;">
+        {% if page_obj.has_previous %}<a class="workflow-btn secondary" href="?tab={{ active_tab|urlencode }}&amp;page={{ page_obj.previous_page_number }}">{% translate 'Previous' %}</a>{% endif %}
+        <span>{% translate 'Page' %} {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="workflow-btn secondary" href="?tab={{ active_tab|urlencode }}&amp;page={{ page_obj.next_page_number }}">{% translate 'Next' %}</a>{% endif %}
+    </nav>
     {% endif %}
 </div>
     </div>

@@ -9,13 +9,13 @@ from .services.s3_storage import (
     upload_content,
 )
 
-
 class S3Storage(Storage):
-    """Django storage adapter for S3-compatible object storage.
+    """Django storage adapter for the configured private S3-compatible store.
 
     Complaint attachments use signed browser uploads and never call ``_save`` in
     production. This adapter keeps ImageField-backed logos/profile photos durable
-    in the configured S3 bucket.
+    in the configured S3 bucket. A failed write must never become a public
+    local media URL or a database record pointing at an unavailable file.
     """
 
     def _save(self, name, content):
