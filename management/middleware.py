@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.utils.cache import patch_vary_headers
-from django.utils import translation
+from django.utils import translation, timezone
+import zoneinfo
 from django.db import connection
 import logging
 import time
@@ -52,6 +53,17 @@ class UserProfileLocaleMiddleware:
                 language = 'en'
             translation.activate(language)
             request.LANGUAGE_CODE = language
+
+            user_tz = getattr(profile, 'timezone', None) or 'Asia/Kolkata'
+            try:
+                timezone.activate(zoneinfo.ZoneInfo(user_tz))
+            except Exception:
+                try:
+                    timezone.activate(user_tz)
+                except Exception:
+                    timezone.activate(zoneinfo.ZoneInfo('Asia/Kolkata'))
+        else:
+            timezone.deactivate()
         response = self.get_response(request)
         patch_vary_headers(response, ('Cookie',))
         return response

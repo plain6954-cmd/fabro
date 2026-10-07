@@ -31,7 +31,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.utils.text import get_valid_filename
+from django.utils import timezone
 from django.utils.timezone import now
+from .timezones import get_all_timezones, is_valid_timezone
 from django.utils import translation
 from django.utils.translation import gettext as _, ngettext
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -1155,9 +1157,9 @@ def pattern_logs_api(request, year_range_id):
             'action': log.action,
             'summary': log.summary or log.action.capitalize(),
             'details': log.details,
-            'created_at': log.created_at.strftime('%Y-%m-%d %H:%M'),
-            'date': log.created_at.strftime('%b %d, %Y'),
-            'time': log.created_at.strftime('%H:%M'),
+            'created_at': timezone.localtime(log.created_at).strftime('%Y-%m-%d %H:%M'),
+            'date': timezone.localtime(log.created_at).strftime('%b %d, %Y'),
+            'time': timezone.localtime(log.created_at).strftime('%H:%M'),
         })
     return JsonResponse({
         'success': True,
@@ -1491,7 +1493,7 @@ def _serialize_drive_link(link):
         'id': link.id,
         'title': link.title or 'Google Drive Folder',
         'url': link.url,
-        'created_at': link.created_at.strftime('%b %d, %Y') if getattr(link, 'created_at', None) else '',
+        'created_at': timezone.localtime(link.created_at).strftime('%b %d, %Y') if getattr(link, 'created_at', None) else '',
     }
 
 
@@ -1562,7 +1564,7 @@ def get_design_folders_api(request):
                         'file_size': img.file_size,
                         'file_type': f_type,
                         'file_ext': f_ext,
-                        'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+                        'uploaded_at': timezone.localtime(img.uploaded_at).strftime('%b %d, %Y %H:%M'),
                         'approval_status': getattr(img, 'approval_status', 'approved'),
                         'rejection_reason': getattr(img, 'rejection_reason', '') or '',
                         'can_approve': _can_user_review_design_image(request.user, img),
@@ -1596,7 +1598,7 @@ def get_design_folders_api(request):
             'name': f.name,
             'description': f.description,
             'image_count': f.image_total,
-            'created_at': f.created_at.strftime('%b %d, %Y'),
+            'created_at': timezone.localtime(f.created_at).strftime('%b %d, %Y'),
             'preview_images': previews_by_folder.get(f.pk, []),
             'vehicle_id': f.vehicle_id,
         })
@@ -1648,7 +1650,7 @@ def create_design_folder_api(request):
             'name': folder.name,
             'description': folder.description,
             'image_count': 0,
-            'created_at': folder.created_at.strftime('%b %d, %Y'),
+            'created_at': timezone.localtime(folder.created_at).strftime('%b %d, %Y'),
             'preview_images': [],
             'vehicle_id': folder.vehicle_id,
         }
@@ -1674,7 +1676,7 @@ def get_design_folder_detail_api(request, folder_id):
                 'file_size': img.file_size,
                 'file_type': f_type,
                 'file_ext': f_ext,
-                'uploaded_at': img.uploaded_at.strftime('%b %d, %Y %H:%M'),
+                'uploaded_at': timezone.localtime(img.uploaded_at).strftime('%b %d, %Y %H:%M'),
                 'approval_status': getattr(img, 'approval_status', 'approved'),
                 'rejection_reason': getattr(img, 'rejection_reason', '') or '',
                 'can_approve': _can_user_review_design_image(request.user, img),
@@ -1701,7 +1703,7 @@ def get_design_folder_detail_api(request, folder_id):
             'name': folder.name,
             'description': folder.description,
             'image_count': visible_images.count(),
-            'created_at': folder.created_at.strftime('%b %d, %Y'),
+            'created_at': timezone.localtime(folder.created_at).strftime('%b %d, %Y'),
             'vehicle_id': folder.vehicle_id,
             'vehicle': vehicle_info,
         },
@@ -1782,7 +1784,7 @@ def _serialize_uploaded_design(image):
         'file_size': image.file_size,
         'file_type': file_type,
         'file_ext': file_ext,
-        'uploaded_at': image.uploaded_at.strftime('%b %d, %Y %H:%M'),
+        'uploaded_at': timezone.localtime(image.uploaded_at).strftime('%b %d, %Y %H:%M'),
         'approval_status': image.approval_status,
         'rejection_reason': image.rejection_reason,
         'can_approve': False,
@@ -5091,6 +5093,11 @@ def profile_settings(request):
                 profile, profile_created = UserProfile.objects.get_or_create(user=user)
                 profile.phone_number = phone_number
                 profile_fields = ['phone_number']
+                selected_tz = (request.POST.get('timezone') or '').strip()
+                if selected_tz and is_valid_timezone(selected_tz):
+                    profile.timezone = selected_tz
+                    profile_fields.append('timezone')
+                    request.session['django_timezone'] = selected_tz
                 if request.POST.get('remove_photo') == '1':
                     profile.photo = None
                     profile_fields.append('photo')
@@ -5098,6 +5105,7 @@ def profile_settings(request):
                     profile.photo = profile_photo
                     profile_fields.append('photo')
                 profile.save(update_fields=profile_fields)
+                user._workflow_profile = profile
             
             ActivityLog.objects.create(
                 user=request.user,
@@ -5109,6 +5117,26 @@ def profile_settings(request):
             messages.success(request, _("Your profile details have been updated successfully."))
             return redirect('profile_settings')
             
+        elif 'update_timezone' in request.POST:
+            selected_tz = (request.POST.get('timezone') or '').strip()
+            if selected_tz and is_valid_timezone(selected_tz):
+                profile = get_user_profile(user)
+                profile.timezone = selected_tz
+                profile.save(update_fields=['timezone'])
+                user._workflow_profile = profile
+                request.session['django_timezone'] = selected_tz
+
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action='updated timezone',
+                    object_type='User',
+                    object_name=user.username
+                )
+                messages.success(request, _('Your time zone has been updated successfully.'))
+            else:
+                messages.error(request, _('Please select a valid time zone.'))
+            return redirect('profile_settings')
+
         elif 'change_password' in request.POST:
             password_form = PasswordChangeForm(user, request.POST)
             if password_form.is_valid():
@@ -5130,8 +5158,12 @@ def profile_settings(request):
                         messages.error(request, f"{field.capitalize()}: {error}")
     
     password_form = PasswordChangeForm(user)
+    profile = get_user_profile(user)
+    current_timezone = getattr(profile, 'timezone', None) or 'Asia/Kolkata'
     return render(request, 'management/profile_settings.html', {
         'password_form': password_form,
+        'available_timezones': get_all_timezones(),
+        'current_timezone': current_timezone,
     })
 
 
@@ -5358,7 +5390,7 @@ def chat_users_api(request):
         last_msg_str = ""
         last_msg_text = ""
         if ud['last_message']:
-            last_msg_str = ud['last_message'].created_at.strftime('%b %d')
+            last_msg_str = timezone.localtime(ud['last_message'].created_at).strftime('%b %d')
             last_msg_text = ud['last_message'].message[:60]
         total_unread += ud['unread_count']
         data.append({
@@ -5406,7 +5438,7 @@ def chat_messages_api(request, user_id):
             'is_self': m.sender_id == request.user.id,
             'message': m.message,
             'complaint_id': m.complaint.complaint_id if m.complaint else None,
-            'created_at': m.created_at.strftime('%b %d, %H:%M'),
+            'created_at': timezone.localtime(m.created_at).strftime('%b %d, %H:%M'),
         })
     return JsonResponse({'status': 'ok', 'messages': data, 'has_more': has_more})
 
@@ -5470,7 +5502,7 @@ def chat_send_api(request):
             'is_self': True,
             'message': chat_msg.message,
             'complaint_id': chat_msg.complaint.complaint_id if chat_msg.complaint else None,
-            'created_at': chat_msg.created_at.strftime('%b %d, %H:%M'),
+            'created_at': timezone.localtime(chat_msg.created_at).strftime('%b %d, %H:%M'),
         }
     })
 

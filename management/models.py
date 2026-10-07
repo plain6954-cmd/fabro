@@ -380,6 +380,11 @@ class UserProfile(models.Model):
         choices=LANGUAGE_CHOICES,
         default='en',
     )
+    timezone = models.CharField(
+        max_length=64,
+        default='Asia/Kolkata',
+        blank=True,
+    )
 
     @property
     def avatar_url(self):

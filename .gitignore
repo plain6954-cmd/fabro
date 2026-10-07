@@ -20,6 +20,10 @@ test-results/
 playwright-report/
 media/complaint_media/
 media/profile_photos/
+media/pattern_design_thumbnails/
+media/pattern_designs/
+media/test_folder/
+output/
 .e2e.sqlite3
 .e2e-media/
 "db.sqlite3" 
