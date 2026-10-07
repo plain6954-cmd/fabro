@@ -452,6 +452,51 @@
             color: #dc2626;
         }
 
+        .profile-notification-stack {
+            position: fixed;
+            top: 72px;
+            right: clamp(1rem, 2vw, 2.5rem);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .profile-notification-stack .save-status-pill {
+            pointer-events: auto;
+            background: rgba(24, 24, 27, 0.95);
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            color: #34d399;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 14px rgba(16, 185, 129, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.48rem 1.05rem;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        .profile-notification-stack .save-status-pill.error {
+            background: rgba(24, 24, 27, 0.95);
+            border-color: rgba(239, 68, 68, 0.45);
+            color: #f87171;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 14px rgba(239, 68, 68, 0.2);
+        }
+
+        body.light-mode .profile-notification-stack .save-status-pill {
+            background: #ffffff;
+            border-color: #86efac;
+            color: #15803d;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 12px rgba(16, 185, 129, 0.15);
+        }
+
+        body.light-mode .profile-notification-stack .save-status-pill.error {
+            background: #ffffff;
+            border-color: #fca5a5;
+            color: #b91c1c;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 12px rgba(239, 68, 68, 0.15);
+        }
         @keyframes fadeInPill {
             from {
                 opacity: 0;
@@ -586,6 +631,17 @@
 
     <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <div class="profile-page-wrapper">
+        {% if messages %}
+        <div class="profile-notification-stack" id="profileNotificationStack" aria-live="polite">
+            {% for message in messages %}
+                <div class="save-status-pill {{ message.tags }}">
+                    <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <div class="profile-header-row">
             <div>
                 <h1 class="profile-title">
@@ -709,14 +765,6 @@
                     </div>
 
                     <div class="btn-group">
-                        {% for message in messages %}
-                            {% if "password" not in message|lower and "timezone" not in message|lower and "time zone" not in message|lower %}
-                                <div class="save-status-pill {{ message.tags }}">
-                                    <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
-                                    <span>{{ message }}</span>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
                         <button type="submit" class="btn-icon-save" title="{% translate "Save Details" %}" aria-label="{% translate "Save Details" %}">
                             <i class="fas fa-save"></i>
                         </button>
@@ -797,16 +845,8 @@
                         </div>
 
                         <div class="btn-group" style="margin-top: 0.6rem;">
-                            {% for message in messages %}
-                                {% if "timezone" in message|lower or "time zone" in message|lower %}
-                                    <div class="save-status-pill {{ message.tags }}">
-                                        <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
-                                        <span>{{ message }}</span>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                            <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.95rem; font-size: 0.8rem; font-weight: 600; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.4rem; min-height: 34px; background: var(--primary-color); color: #fff; border: none; cursor: pointer;" title="{% translate "Save Time Zone" %}" aria-label="{% translate "Save Time Zone" %}">
-                                <i class="fas fa-save"></i> <span>{% translate "Save Time Zone" %}</span>
+                            <button type="submit" class="btn-icon-save" title="{% translate "Save Time Zone" %}" aria-label="{% translate "Save Time Zone" %}">
+                                <i class="fas fa-save"></i>
                             </button>
                         </div>
                     </form>
@@ -861,14 +901,6 @@
                     </div>
 
                     <div class="btn-group">
-                        {% for message in messages %}
-                            {% if "password" in message|lower %}
-                                <div class="save-status-pill {{ message.tags }}">
-                                    <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
-                                    <span>{{ message }}</span>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
                         <button type="button" class="btn-forgot-pwd" onclick="alert(window.FabroI18n.gettext('To reset your password if forgotten, please contact your system administrator.'))" title="{% translate "Forgot Password?" %}">
                             <i class="fas fa-question-circle"></i> {% translate "Forgot" %}
                         </button>
@@ -945,8 +977,21 @@
             }
         }
 
-        // Auto-dismiss save status pill after 3 seconds
+        // Auto-dismiss save status pill after 3 seconds & align below profile button
         window.fabroOnPageLoad(() => {
+            const stack = document.getElementById('profileNotificationStack');
+            const trigger = document.querySelector('.profile-trigger');
+            if (stack && trigger) {
+                const alignStack = () => {
+                    const rect = trigger.getBoundingClientRect();
+                    stack.style.top = (rect.bottom + 8) + 'px';
+                    const rightOffset = Math.max(16, window.innerWidth - rect.right);
+                    stack.style.right = rightOffset + 'px';
+                };
+                alignStack();
+                window.addEventListener('resize', alignStack);
+            }
+
             const pills = document.querySelectorAll('.save-status-pill');
             if (pills.length > 0) {
                 setTimeout(() => {
