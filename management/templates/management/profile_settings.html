@@ -710,7 +710,7 @@
 
                     <div class="btn-group">
                         {% for message in messages %}
-                            {% if "password" not in message|lower %}
+                            {% if "password" not in message|lower and "timezone" not in message|lower and "time zone" not in message|lower %}
                                 <div class="save-status-pill {{ message.tags }}">
                                     <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
                                     <span>{{ message }}</span>
