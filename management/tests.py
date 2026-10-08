@@ -2706,6 +2706,16 @@ class FabroBackendTests(TestCase):
         self.assertIn('actionBtnDesign', car_html)
         self.assertNotIn('id="actionBtnAddComplaint"', car_html)
 
+    def test_pattern_row_selection_behavior(self):
+        self.login()
+        res = self.client.get(reverse('car_details'))
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+        self.assertIn('selectPatternRow', html)
+        self.assertNotIn('openPatternRow', html)
+        self.assertIn('Select vehicle', html)
+        self.assertNotIn('Open design options for', html)
+
     def test_admin_can_create_and_edit_freelance_3d_designer_user(self):
         admin_user = self.create_workflow_user('admin_tester', WorkflowRoles.ADMIN)
         self.client.force_login(admin_user)

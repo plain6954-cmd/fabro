@@ -1511,7 +1511,7 @@
                                 </tr>
                                 {% endif %}
                                 {% for car in car_data %}
-                                    <tr id="row-view-{{ car.id }}" data-car-id="{{ car.id }}" tabindex="0" aria-label="{% translate 'Open design options for' %} {{ car.brand }} {{ car.model }}">
+                                    <tr id="row-view-{{ car.id }}" data-car-id="{{ car.id }}" tabindex="0" aria-label="{% translate 'Select vehicle' %} {{ car.brand }} {{ car.model }}">
                                         <td class="col-select">
                                             <input type="checkbox" class="pattern-checkbox pattern-row-select" 
                                                    data-id="{{ car.id }}" 
@@ -6502,9 +6502,25 @@
             }
             rowTouchStart = null;
         }, { passive: true });
-        const openPatternRow = (row) => {
+        const selectPatternRow = (row, isMultiModifier = false) => {
             const checkbox = row.querySelector('.pattern-row-select');
-            if (checkbox) openVehicleDesignSettings(checkbox.dataset.id, checkbox.dataset.designTitle);
+            if (!checkbox) return;
+            const allCheckboxes = document.querySelectorAll('tr[id^="row-view-"] .pattern-row-select');
+            const selected = getSelectedCheckboxes();
+
+            if (isMultiModifier) {
+                // Ctrl / Cmd modifier: toggle this row without clearing others
+                checkbox.checked = !checkbox.checked;
+            } else if (checkbox.checked && selected.length === 1 && selected[0] === checkbox) {
+                // Clicking the already-selected single vehicle unselects it
+                checkbox.checked = false;
+            } else {
+                // Clicking a vehicle selects ONLY that vehicle
+                allCheckboxes.forEach(cb => {
+                    cb.checked = (cb === checkbox);
+                });
+            }
+            updateSelectionUI();
         };
         pageScope.listen(document, 'click', (e) => {
             const row = e.target.closest('tr[id^="row-view-"]');
@@ -6516,13 +6532,13 @@
             if (isPatternRowControl(e.target)) return;
             const selection = window.getSelection();
             if (selection && selection.toString().trim()) return;
-            openPatternRow(row);
+            selectPatternRow(row, Boolean(e.ctrlKey || e.metaKey));
         });
         pageScope.listen(document, 'keydown', (e) => {
             const row = e.target.closest('tr[id^="row-view-"]');
             if (!row || e.target !== row || !['Enter', ' '].includes(e.key)) return;
             e.preventDefault();
-            openPatternRow(row);
+            selectPatternRow(row, Boolean(e.ctrlKey || e.metaKey));
         });
 
         // Master select all
@@ -6681,7 +6697,7 @@
             console.error('Error initializing selection UI:', e);
         }
 
-        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, toggleGoogleDriveDropdown, closeGoogleDriveDropdown, submitAddDriveLink, deleteVehicleDriveLink, renderVehicleDriveLinks, handleGoogleDriveClick, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI});
+        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, toggleGoogleDriveDropdown, closeGoogleDriveDropdown, submitAddDriveLink, deleteVehicleDriveLink, renderVehicleDriveLinks, handleGoogleDriveClick, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI, selectPatternRow});
     })();
     </script>
 
