@@ -109,7 +109,7 @@ Do not run migrations for this release; it adds no schema change.
 
 ## VAPID and real-delivery checks
 
-`python manage.py check_web_push` is read-only and prints only booleans: whether each setting exists, whether the public and private keys have usable formats, whether they match, and whether Django considers Web Push configured. Django uses `fabro_leather.settings`; process environment variables take precedence over the checkout's `.env`. Compose supplies `.env.production` through `env_file`. The systemd example supplies an external `EnvironmentFile`.
+`python manage.py check_web_push` is read-only and prints only booleans: whether each variable is present in the process environment, whether each effective setting exists, whether the public and private keys have usable formats, whether they match, and whether Django considers Web Push configured. The subject has a Django fallback, so its environment-presence flag may be false even when the effective setting is present. Django uses `fabro_leather.settings`; process environment variables take precedence over the checkout's `.env`. Compose supplies `.env.production` through `env_file`. The systemd example supplies an external `EnvironmentFile`.
 
 If either key is absent, first recover the currently deployed pair from the approved secret backup. Check whether active `PushSubscription` rows exist before considering any new pair. Replacing the pair invalidates those browsers' current subscriptions. The public key is a URL-safe base64 P-256 uncompressed point; the private key accepted by `py_vapid` is URL-safe base64 of the raw 32-byte scalar or DER key. Keep it in the private environment only. Never print it or commit it.
 

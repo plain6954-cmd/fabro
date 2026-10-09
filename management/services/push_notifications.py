@@ -1,6 +1,7 @@
 import json
 import logging
 import base64
+import os
 from functools import lru_cache
 from django.conf import settings
 from django.db import transaction
@@ -19,7 +20,13 @@ def get_vapid_configuration_status():
     private_key = getattr(settings, 'WEBPUSH_VAPID_PRIVATE_KEY', '').strip()
     public_key = getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '').strip()
     subject = getattr(settings, 'WEBPUSH_VAPID_SUBJECT', '').strip()
-    return dict(_vapid_diagnostics(public_key, private_key, subject))
+    status = dict(_vapid_diagnostics(public_key, private_key, subject))
+    status.update({
+        'public_key_environment_present': bool(os.environ.get('WEBPUSH_VAPID_PUBLIC_KEY')),
+        'private_key_environment_present': bool(os.environ.get('WEBPUSH_VAPID_PRIVATE_KEY')),
+        'subject_environment_present': bool(os.environ.get('WEBPUSH_VAPID_SUBJECT')),
+    })
+    return status
 
 
 @lru_cache(maxsize=8)

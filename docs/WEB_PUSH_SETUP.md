@@ -51,7 +51,7 @@ Check what Django actually loaded without printing either key:
 python manage.py check_web_push
 ```
 
-The command reports booleans for each variable's presence, each key's format, whether they match, and whether Django recognizes Web Push as configured. It never prints key material. `configured: True` confirms that the public key is a P-256 VAPID key and matches the private key. The authenticated `/notifications/push/status/` endpoint then returns `configured: true` and the public key only. Never paste a production private key into browser tools, logs, tickets, or chat.
+The command reports booleans for each variable's presence in the process environment, the effective Django settings, each key's format, whether they match, and whether Django recognizes Web Push as configured. The subject has a Django fallback, so `subject_exists` can be true while `subject_environment_present` is false. The command never prints key material. `configured: True` confirms that the public key is a P-256 VAPID key and matches the private key. The authenticated `/notifications/push/status/` endpoint then returns `configured: true` and the public key only. Never paste a production private key into browser tools, logs, tickets, or chat.
 
 ---
 

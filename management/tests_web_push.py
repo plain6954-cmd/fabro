@@ -545,6 +545,7 @@ class WebPushNotificationTests(TestCase):
         self.assertTrue(status['private_key_valid'])
         self.assertTrue(status['keys_match'])
         self.assertTrue(status['configured'])
+        self.assertIn('subject_environment_present', status)
         output = StringIO()
         call_command('check_web_push', stdout=output)
         self.assertIn('configured: True', output.getvalue())
