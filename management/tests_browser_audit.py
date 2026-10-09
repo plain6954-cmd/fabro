@@ -3,6 +3,7 @@
 import io
 import json
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -11,7 +12,7 @@ os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import Client
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 from PIL import Image
 
 from management.models import (
@@ -117,7 +118,13 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         row.locator('.pattern-row-select').check()
         self.assertNotIn('vehicle_id=', admin.url)
         row.locator('.col-brand').click()
-        admin.wait_for_function(f"location.search.includes('vehicle_id={self.vehicle.pk}')")
+        expect(row.locator('.pattern-row-select')).not_to_be_checked()
+        self.assertNotIn('vehicle_id=', admin.url)
+        row.locator('.col-brand').click()
+        expect(row.locator('.pattern-row-select')).to_be_checked()
+        admin.locator('#patternActionsToggleBtn').click()
+        admin.locator('#actionBtnDesign').click()
+        expect(admin).to_have_url(re.compile(rf'[?&]vehicle_id={self.vehicle.pk}(?:[&#]|$)'))
         self.assertTrue(admin.locator('#tab-pane-design-options').is_visible())
         admin.screenshot(path=str(ARTIFACTS / 'pattern-master-desktop.png'))
 
@@ -132,7 +139,7 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
             designer.locator('#directVehicleImageFileInput').set_input_files(str(upload_path))
         self.assertEqual(upload.value.status, 200, upload.value.text())
         designer.locator('#directImagesMatrixGrid .design-matrix-card:not(.is-uploading)').wait_for()
-        designer.wait_for_function("document.querySelector('#designDirectImagesCountBadge')?.textContent.trim() === '1'")
+        expect(designer.locator('#designDirectImagesCountBadge')).to_have_text('1')
         self.assertEqual(designer.locator('#directUploadingSkeleton').count(), 0)
         self.assertFalse(any('session has expired' in message.lower() for message in dialogs))
         image = PatternDesignImage.objects.get(uploaded_by=self.users['designer'])
@@ -146,17 +153,17 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         self.assertEqual(retry.value.status, 200)
         self.assertEqual(retry.value.json()['images'][0]['id'], image.pk)
         self.assertEqual(PatternDesignImage.objects.filter(vehicle=self.vehicle).count(), 1)
-        designer.wait_for_function("!document.querySelector('#directUploadingSkeleton')")
+        expect(designer.locator('#directUploadingSkeleton')).to_have_count(0)
         invalid_path = ARTIFACTS / 'invalid-design.txt'
         invalid_path.write_text('not a design image')
         with designer.expect_response(lambda response: '/design-images/upload/' in response.url) as invalid:
             designer.locator('#directVehicleImageFileInput').set_input_files(str(invalid_path))
         self.assertEqual(invalid.value.status, 400)
-        designer.wait_for_function("!document.querySelector('#directUploadingSkeleton')")
+        expect(designer.locator('#directUploadingSkeleton')).to_have_count(0)
         self.assertTrue(any('unsupported' in message.lower() for message in dialogs))
         self.assertFalse(any('session has expired' in message.lower() for message in dialogs))
         designer.reload()
-        designer.wait_for_function("document.querySelector('#designDirectImagesCountBadge')?.textContent.trim() === '1'")
+        expect(designer.locator('#designDirectImagesCountBadge')).to_have_text('1')
         self.assertTrue(designer.locator('#directImagesMatrixGrid .design-matrix-card').first.is_visible())
 
         # Separate Chrome sessions exercise the independent reviewer forms.
@@ -242,7 +249,11 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
             self.assertEqual(response.status, 200, role)
             self.assertTrue(page.locator(f'#row-view-{self.vehicle.pk}').count(), role)
             page.locator(f'#row-view-{self.vehicle.pk} .col-brand').click()
-            page.wait_for_function(f"location.search.includes('vehicle_id={self.vehicle.pk}')")
+            expect(page.locator(f'#row-view-{self.vehicle.pk} .pattern-row-select')).to_be_checked()
+            self.assertNotIn('vehicle_id=', page.url)
+            page.locator('#patternActionsToggleBtn').click()
+            page.locator('#actionBtnDesign').click()
+            expect(page).to_have_url(re.compile(rf'[?&]vehicle_id={self.vehicle.pk}(?:[&#]|$)'))
             page.wait_for_load_state('networkidle')
             page.goto(f'{self.live_server_url}/car-details/')
             response = page.goto(f'{self.live_server_url}/design-approvals/')
@@ -252,7 +263,7 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
             complaint_allowed = role in {'admin', 'cad', 'ed', 'pm', 'om', 'md', 'country', 'factory'}
             if complaint_allowed:
                 self.assertEqual(response.status, 200, (role, page.url))
-                self.assertEqual(urlparse(page.url).path, '/approvals/', role)
+                self.assertEqual(urlparse(page.url).path, '/approvals/', (role, response.url))
             else:
                 self.assertTrue(response.status == 403 or urlparse(page.url).path in {'/login/', '/'},
                                 (role, response.status, page.url))
@@ -389,5 +400,5 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         self.assertNotIn('vehicle_id=', page.url)
         self.assertTrue(page.locator(f'#cardActionsMenu-{self.vehicle.pk}').is_visible())
         page.locator(f'#cardActionsMenu-{self.vehicle.pk} .action-design').click()
-        page.wait_for_function(f"location.search.includes('vehicle_id={self.vehicle.pk}')")
+        expect(page).to_have_url(re.compile(rf'[?&]vehicle_id={self.vehicle.pk}(?:[&#]|$)'))
         self.assertTrue(page.locator('#tab-pane-design-options').is_visible())

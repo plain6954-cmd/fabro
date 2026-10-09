@@ -1,6 +1,5 @@
 # pyrefly: ignore [missing-import]
 from django.urls import path
-from django.contrib.auth.views import LogoutView
 from .security import RateLimitedLoginView
 from . import views
 from .api_views import (
@@ -59,7 +58,7 @@ urlpatterns = [
     path('api/chat/send/', views.chat_send_api, name='chat_send_api'),
     path('complaint/delete/<str:complaint_id>/', views.delete_complaint, name='delete_complaint'),
     path('login/', RateLimitedLoginView.as_view(template_name='management/login.html'), name='login'),
-    path('logout/', LogoutView.as_view(template_name='management/logout_success.html'), name='logout'),
+    path('logout/', views.PushAwareLogoutView.as_view(), name='logout'),
     path('logout-success/', views.logout_success, name='logout_success'),
     path('language/set/', views.set_portal_language, name='set_portal_language'),
     path('complaints/', views.complaint_list, name='complaint_list'),

@@ -41,25 +41,17 @@ WEBPUSH_VAPID_SUBJECT=mailto:admin@fabroleather.com
 
 ---
 
-## 3. How to Generate VAPID Keys
+## 3. Verify the deployed key pair
 
-You can generate a fresh VAPID key pair using Python in your virtual environment:
+Preserve the existing production VAPID pair. Replacing it can invalidate browser subscriptions. On the application server, set `WEBPUSH_VAPID_PUBLIC_KEY` and `WEBPUSH_VAPID_PRIVATE_KEY` in the deployment's private environment or `.env`; set `WEBPUSH_VAPID_SUBJECT` to a `mailto:` or `https://` contact. The environment of the running Django process takes precedence over `.env`. Restart that process after changing its configuration.
 
-```powershell
-.\env\Scripts\python.exe -c "from py_vapid import Vapid; v = Vapid(); v.generate_keys(); print('PUBLIC KEY:\n', v.public_key.decode('utf-8')); print('PRIVATE KEY:\n', v.private_key.decode('utf-8'))"
+Check what Django actually loaded without printing either key:
+
+```bash
+python manage.py check_web_push
 ```
 
-Or via Python interactive shell:
-
-```python
-from py_vapid import Vapid
-vapid = Vapid()
-vapid.generate_keys()
-print("WEBPUSH_VAPID_PUBLIC_KEY=" + vapid.public_key.decode("utf-8"))
-print("WEBPUSH_VAPID_PRIVATE_KEY=" + vapid.private_key.decode("utf-8"))
-```
-
-Copy the generated public and private keys into your `.env` configuration.
+The command reports booleans for each variable's presence, each key's format, whether they match, and whether Django recognizes Web Push as configured. It never prints key material. `configured: True` confirms that the public key is a P-256 VAPID key and matches the private key. The authenticated `/notifications/push/status/` endpoint then returns `configured: true` and the public key only. Never paste a production private key into browser tools, logs, tickets, or chat.
 
 ---
 
@@ -95,13 +87,7 @@ python manage.py collectstatic --noinput
 ```
 
 ### Step 4: Restart the Application Server
-Restart Gunicorn or your ASGI/WSGI web server so the new settings and URLs take effect:
-
-```bash
-sudo systemctl restart fabro
-# or for local development scripts:
-.\start_fabro.bat
-```
+Restart the actual application process after verifying whether the server runs the repository's Docker Compose setup or a systemd service. The service example in this repository uses placeholders and does not establish the live service name. See [the Scaleway release runbook](deployment/WEB_PUSH_SCALEWAY_RELEASE.md).
 
 ---
 
@@ -148,6 +134,6 @@ python manage.py shell -c "from django.contrib.auth import get_user_model; from 
 | **Notifications blocked** | Permission was denied in browser | Open site settings in your browser (lock icon in address bar) and set Notifications to "Allow". |
 | **Notifications unavailable** | Unsupported browser or older device | Use modern Chrome, Edge, Firefox, or Safari (16.4+ on iOS/macOS). |
 | **Secure connection required** | Accessed via plain HTTP | Access site using HTTPS or `http://localhost`. |
-| **Something went wrong (Not configured)** | VAPID keys missing in `.env` | Ensure `WEBPUSH_VAPID_PUBLIC_KEY`, `WEBPUSH_VAPID_PRIVATE_KEY`, and `WEBPUSH_VAPID_SUBJECT` are set and server restarted. |
+| **Server setup required** | Missing, invalid, or mismatched VAPID keys | Check the loaded settings and preserve the existing production pair. Restart Django after correcting its private environment. |
 | **Push delivery failure (410/404)** | Browser subscription revoked or expired | The portal automatically deactivates expired subscriptions (`is_active=False`). Re-enable notifications from Profile Settings. |
 | **Service worker registration failed** | Script blocked or wrong path | Confirm `/sw.js` loads with status 200 and header `Service-Worker-Allowed: /`. |

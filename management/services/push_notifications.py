@@ -1,5 +1,7 @@
 import json
 import logging
+import base64
+from functools import lru_cache
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -8,11 +10,64 @@ logger = logging.getLogger(__name__)
 
 
 def is_web_push_configured():
-    """Check if VAPID keys and subject are configured in settings."""
+    """Check that the configured public key belongs to the usable private key."""
+    return get_vapid_configuration_status()['configured']
+
+
+def get_vapid_configuration_status():
+    """Return only safe booleans about the loaded Django VAPID settings."""
     private_key = getattr(settings, 'WEBPUSH_VAPID_PRIVATE_KEY', '').strip()
     public_key = getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '').strip()
     subject = getattr(settings, 'WEBPUSH_VAPID_SUBJECT', '').strip()
-    return bool(private_key and public_key and subject)
+    return dict(_vapid_diagnostics(public_key, private_key, subject))
+
+
+@lru_cache(maxsize=8)
+def _vapid_diagnostics(public_key, private_key, subject):
+    status = {
+        'public_key_exists': bool(public_key),
+        'private_key_exists': bool(private_key),
+        'subject_exists': bool(subject),
+        'public_key_valid': False,
+        'private_key_valid': False,
+        'keys_match': False,
+        'configured': False,
+    }
+    subject_valid = subject.startswith('mailto:') or subject.startswith('https://')
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from py_vapid import Vapid
+
+        supplied = None
+        if public_key:
+            try:
+                supplied = base64.urlsafe_b64decode(public_key + '=' * (-len(public_key) % 4))
+                ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), supplied)
+                status['public_key_valid'] = True
+            except Exception:
+                pass
+        derived = None
+        if private_key:
+            try:
+                parsed = Vapid.from_string(private_key).private_key
+                status['private_key_valid'] = (
+                    isinstance(parsed, ec.EllipticCurvePrivateKey)
+                    and isinstance(parsed.curve, ec.SECP256R1)
+                )
+                if status['private_key_valid']:
+                    derived = parsed.public_key().public_bytes(
+                        serialization.Encoding.X962,
+                        serialization.PublicFormat.UncompressedPoint,
+                    )
+            except Exception:
+                pass
+        status['keys_match'] = bool(status['public_key_valid'] and status['private_key_valid'] and supplied == derived)
+        status['configured'] = bool(status['keys_match'] and subject_valid)
+    except Exception:
+        # Do not log key material or parsing exceptions containing credentials.
+        pass
+    return status
 
 
 def get_vapid_claims():
@@ -23,14 +78,16 @@ def get_vapid_claims():
 
 def build_push_payload(title, body, url=None, tag=None, data=None):
     """Build a sanitized JSON payload for the push notification."""
-    # Ensure safe same-origin URL fallback
-    safe_url = url if url and str(url).startswith('/') else '/'
+    def local_path(value):
+        return isinstance(value, str) and value.startswith('/') and not value.startswith('//') and '\\' not in value
+
+    safe_url = url if local_path(url) else '/'
 
     payload_data = {'url': safe_url}
     if data and isinstance(data, dict):
         payload_data.update(data)
         # Never allow overriding url with an external destination
-        if not str(payload_data.get('url', '')).startswith('/'):
+        if not local_path(payload_data.get('url')):
             payload_data['url'] = '/'
 
     payload = {

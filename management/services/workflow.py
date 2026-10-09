@@ -494,7 +494,7 @@ def notify_user(recipient, title, message='', complaint=None, notification_type=
         send_push_on_commit(
             user=recipient,
             title=title,
-            body=message,
+            body='Open Fabro to view this update.',
             url=url,
             tag=tag,
         )

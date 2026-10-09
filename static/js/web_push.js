@@ -53,6 +53,58 @@
     };
 
     let swRegistrationPromise = null;
+    let refreshPromise = null;
+
+    async function fetchPushStatus(endpoint) {
+        let response;
+        try {
+            const query = endpoint ? `?endpoint=${encodeURIComponent(endpoint)}` : '';
+            response = await fetch(`/notifications/push/status/${query}`, {
+                headers: { 'Accept': 'application/json' }, credentials: 'same-origin',
+            });
+        } catch (_) {
+            throw new Error('Network error while checking browser notifications. Please retry.');
+        }
+        if (response.redirected || !response.ok) {
+            throw new Error(response.status === 401 || response.status === 403 || response.redirected
+                ? 'Please sign in again to manage browser notifications.'
+                : 'Could not check browser notifications. Please retry.');
+        }
+        return response.json();
+    }
+
+    async function saveSubscription(sub) {
+        const response = await fetch('/notifications/push/subscribe/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken(), 'Accept': 'application/json' },
+            credentials: 'same-origin', body: JSON.stringify(sub.toJSON()),
+        });
+        if (response.redirected || !response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(response.redirected
+                ? 'Please sign in again to manage browser notifications.'
+                : data.error || 'Could not save this browser subscription. Please retry.');
+        }
+    }
+
+    function usesCurrentVapidKey(sub) {
+        const previous = sub && sub.options && sub.options.applicationServerKey;
+        if (!previous) return true;
+        const expected = urlBase64ToUint8Array(state.vapidPublicKey);
+        const actual = new Uint8Array(previous);
+        return actual.length === expected.length && actual.every((byte, index) => byte === expected[index]);
+    }
+
+    async function deactivateEndpoint(endpoint) {
+        const response = await fetch('/notifications/push/unsubscribe/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken(), 'Accept': 'application/json' },
+            credentials: 'same-origin', body: JSON.stringify({ endpoint }),
+        });
+        if (response.redirected || !response.ok) {
+            throw new Error('Could not disable notifications on the server. Please retry.');
+        }
+    }
 
     // Get or register Service Worker safely
     async function getServiceWorkerRegistration() {
@@ -72,6 +124,17 @@
 
     // Refresh push state comprehensively
     async function refreshPushNotificationState() {
+        if (state.isLoading) return state;
+        if (refreshPromise) return refreshPromise;
+        refreshPromise = refreshPushNotificationStateOnce();
+        try {
+            return await refreshPromise;
+        } finally {
+            refreshPromise = null;
+        }
+    }
+
+    async function refreshPushNotificationStateOnce() {
         const caps = getBrowserCapabilities();
 
         if (!caps.isSecureContext) {
@@ -108,29 +171,21 @@
             state.subscription = currentSub;
 
             // Check backend registration status
-            const endpointParam = currentSub ? `?endpoint=${encodeURIComponent(currentSub.endpoint)}` : '';
-            const statusResp = await fetch(`/notifications/push/status/${endpointParam}`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
-            });
-
-            if (statusResp.ok) {
-                const data = await statusResp.json();
-                state.isConfigured = Boolean(data.configured);
-                state.vapidPublicKey = data.vapid_public_key || '';
-
-                if (currentSub && data.is_subscribed) {
-                    state.status = 'subscribed';
-                } else {
-                    state.status = 'not-subscribed';
-                }
+            const data = await fetchPushStatus(currentSub && currentSub.endpoint);
+            state.isConfigured = Boolean(data.configured);
+            state.vapidPublicKey = data.vapid_public_key || '';
+            if (!state.isConfigured) {
+                state.status = 'server-unconfigured';
+            } else if (currentSub && !usesCurrentVapidKey(currentSub)) {
+                state.status = 'not-subscribed';
+            } else if (currentSub && !data.is_subscribed && state.permission === 'granted') {
+                // Existing browser subscriptions follow the signed-in account.
+                await saveSubscription(currentSub);
+                state.status = 'subscribed';
             } else {
-                state.status = currentSub ? 'subscribed' : 'not-subscribed';
+                state.status = currentSub && data.is_subscribed ? 'subscribed' : 'not-subscribed';
             }
+            state.errorMessage = '';
         } catch (err) {
             console.warn('[Fabro Push] State refresh error:', err);
             state.status = 'error';
@@ -143,6 +198,7 @@
 
     // Enable notifications on intentional user gesture
     async function enablePushNotifications() {
+        if (state.isLoading) return false;
         state.isLoading = true;
         notifyStateChange();
 
@@ -155,12 +211,20 @@
         }
 
         try {
-            // 1. Request permission
-            const perm = await Notification.requestPermission();
+            // Confirm server configuration before showing a browser permission prompt.
+            const config = await fetchPushStatus();
+            state.isConfigured = Boolean(config.configured);
+            state.vapidPublicKey = config.vapid_public_key || '';
+            if (!state.isConfigured || !state.vapidPublicKey) {
+                state.status = 'server-unconfigured';
+                return false;
+            }
+
+            const perm = state.permission === 'granted' ? 'granted' : await Notification.requestPermission();
             state.permission = perm;
 
             if (perm !== 'granted') {
-                state.status = 'permission-denied';
+                state.status = perm === 'denied' ? 'permission-denied' : 'not-subscribed';
                 state.isLoading = false;
                 notifyStateChange();
                 return false;
@@ -170,25 +234,13 @@
             const reg = await getServiceWorkerRegistration();
             await navigator.serviceWorker.ready;
 
-            // 3. Fetch VAPID public key if not cached
-            if (!state.vapidPublicKey) {
-                const statusResp = await fetch('/notifications/push/status/', {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                });
-                if (statusResp.ok) {
-                    const statusData = await statusResp.json();
-                    state.vapidPublicKey = statusData.vapid_public_key || '';
-                }
-            }
-
-            if (!state.vapidPublicKey) {
-                throw new Error('Web Push is not configured on the server.');
-            }
-
-            // 4. Subscribe with PushManager
+            // Subscribe with PushManager
             let sub = await reg.pushManager.getSubscription();
+            if (sub && !usesCurrentVapidKey(sub)) {
+                await deactivateEndpoint(sub.endpoint);
+                await sub.unsubscribe();
+                sub = null;
+            }
             if (!sub) {
                 const convertedKey = urlBase64ToUint8Array(state.vapidPublicKey);
                 sub = await reg.pushManager.subscribe({
@@ -198,25 +250,7 @@
             }
 
             state.subscription = sub;
-            const subData = sub.toJSON();
-
-            // 5. Send subscription to Django backend
-            const csrfToken = getCsrfToken();
-            const subscribeResp = await fetch('/notifications/push/subscribe/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                    'Accept': 'application/json',
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify(subData),
-            });
-
-            if (!subscribeResp.ok) {
-                const errData = await subscribeResp.json().catch(() => ({}));
-                throw new Error(errData.error || 'Failed to save subscription on server.');
-            }
+            await saveSubscription(sub);
 
             state.status = 'subscribed';
             state.isLoading = false;
@@ -229,11 +263,15 @@
             state.isLoading = false;
             notifyStateChange();
             return false;
+        } finally {
+            state.isLoading = false;
+            notifyStateChange();
         }
     }
 
     // Disable notifications
     async function disablePushNotifications() {
+        if (state.isLoading) return false;
         state.isLoading = true;
         notifyStateChange();
 
@@ -242,22 +280,9 @@
             if (reg) {
                 const sub = await reg.pushManager.getSubscription();
                 if (sub) {
-                    const endpoint = sub.endpoint;
-                    // Unsubscribe browser PushManager
-                    await sub.unsubscribe().catch(() => {});
-
-                    // Notify Django backend
-                    const csrfToken = getCsrfToken();
-                    await fetch('/notifications/push/unsubscribe/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken,
-                            'Accept': 'application/json',
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({ endpoint: endpoint }),
-                    }).catch(() => {});
+                    // Deactivate server ownership before dropping the browser endpoint.
+                    await deactivateEndpoint(sub.endpoint);
+                    await sub.unsubscribe();
                 }
             }
 
@@ -323,6 +348,13 @@
                     if (btnEnable) btnEnable.style.display = 'inline-flex';
                     break;
 
+                case 'server-unconfigured':
+                    statusEl.textContent = 'Server setup required';
+                    if (descEl) descEl.textContent = 'Browser notifications are not configured on the server. Contact an administrator.';
+                    if (iconEl) iconEl.className = 'fas fa-exclamation-triangle push-status-icon text-warning';
+                    if (btnRetry) btnRetry.style.display = 'inline-flex';
+                    break;
+
                 case 'permission-denied':
                     statusEl.textContent = 'Notifications blocked';
                     if (descEl) descEl.textContent = 'Notifications are blocked in this browser. Enable them in your browser site settings.';
@@ -385,7 +417,7 @@
             const retryBtn = e.target.closest('.push-btn-retry');
             if (retryBtn) {
                 e.preventDefault();
-                enablePushNotifications();
+                refreshPushNotificationState();
                 return;
             }
         });

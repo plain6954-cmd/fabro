@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.views import LogoutView
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group, Permission, User
@@ -5488,7 +5489,7 @@ def chat_send_api(request):
     send_push_on_commit(
         user=recipient,
         title=notif_title,
-        body=notif_msg,
+        body='Open Fabro to read this message.',
         url=chat_url,
         tag=f'chat-{request.user.id}',
     )
@@ -5542,6 +5543,12 @@ def push_subscribe_view(request):
     except Exception:
         return JsonResponse({'success': False, 'error': 'Invalid JSON request body.'}, status=400)
 
+    if not isinstance(data, dict) or not isinstance(data.get('keys'), dict):
+        return JsonResponse({'success': False, 'error': 'Invalid subscription fields.'}, status=400)
+    if not all(isinstance(value, str) for value in (
+        data.get('endpoint'), data['keys'].get('p256dh'), data['keys'].get('auth'),
+    )):
+        return JsonResponse({'success': False, 'error': 'Invalid subscription fields.'}, status=400)
     endpoint = (data.get('endpoint') or '').strip()
     keys = data.get('keys') or {}
     p256dh = (keys.get('p256dh') or '').strip()
@@ -5549,6 +5556,10 @@ def push_subscribe_view(request):
 
     if not endpoint or not p256dh or not auth:
         return JsonResponse({'success': False, 'error': 'Missing required subscription fields.'}, status=400)
+
+    from management.services.push_notifications import is_web_push_configured
+    if not is_web_push_configured():
+        return JsonResponse({'success': False, 'error': 'Browser notifications are not configured on the server.'}, status=503)
 
     # Basic protocol security validation
     if not (endpoint.startswith('https://') or endpoint.startswith('http://127.0.0.1') or endpoint.startswith('http://localhost')):
@@ -5578,7 +5589,15 @@ def push_subscribe_view(request):
         sub.failure_count = 0
         sub.save(update_fields=['user', 'p256dh', 'auth', 'user_agent', 'is_active', 'failure_count', 'updated_at'])
 
-    return JsonResponse({'success': True, 'subscribed': True})
+    response = JsonResponse({'success': True, 'subscribed': True})
+    # A signed, browser-local subscription reference lets logout deactivate this
+    # device without silencing the user's other devices.
+    from django.core import signing
+    response.set_cookie(
+        'fabro_push_subscription', signing.dumps(sub.pk, salt='fabro-push-subscription'),
+        httponly=True, secure=request.is_secure() or not settings.DEBUG, samesite='Lax',
+    )
+    return response
 
 
 @login_required
@@ -5601,7 +5620,9 @@ def push_unsubscribe_view(request):
 
     updated_count = qs.update(is_active=False)
 
-    return JsonResponse({'success': True, 'unsubscribed': True, 'count': updated_count})
+    response = JsonResponse({'success': True, 'unsubscribed': True, 'count': updated_count})
+    response.delete_cookie('fabro_push_subscription', samesite='Lax')
+    return response
 
 
 @login_required
@@ -5611,20 +5632,49 @@ def push_status_view(request):
     Return push configuration and subscription status for the current user.
     """
     endpoint = request.GET.get('endpoint', '').strip()
-    vapid_public_key = getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '').strip()
+    from management.services.push_notifications import is_web_push_configured
+    configured = is_web_push_configured()
+    vapid_public_key = getattr(settings, 'WEBPUSH_VAPID_PUBLIC_KEY', '').strip() if configured else ''
 
-    from management.models import PushSubscription
-
-    user_subs = PushSubscription.objects.filter(user=request.user, is_active=True)
-    if endpoint:
-        is_subscribed = user_subs.filter(endpoint=endpoint).exists()
-    else:
-        is_subscribed = user_subs.exists()
+    is_subscribed = False
+    if configured:
+        from management.models import PushSubscription
+        user_subs = PushSubscription.objects.filter(user=request.user, is_active=True)
+        is_subscribed = user_subs.filter(endpoint=endpoint).exists() if endpoint else user_subs.exists()
 
     return JsonResponse({
         'success': True,
-        'configured': bool(vapid_public_key),
+        'configured': configured,
         'vapid_public_key': vapid_public_key,
         'is_subscribed': is_subscribed,
     })
+
+
+class PushAwareLogoutView(LogoutView):
+    """Deactivate only this browser's endpoint before ending its session."""
+
+    template_name = 'management/logout_success.html'
+
+    def post(self, request, *args, **kwargs):
+        from django.core import signing
+        from management.models import PushSubscription
+
+        subscription_id = None
+        try:
+            subscription_id = signing.loads(
+                request.COOKIES.get('fabro_push_subscription', ''),
+                salt='fabro-push-subscription',
+            )
+        except signing.BadSignature:
+            pass
+        if request.user.is_authenticated:
+            if isinstance(subscription_id, int):
+                PushSubscription.objects.filter(user=request.user, pk=subscription_id).update(is_active=False)
+            elif request.POST.get('push_endpoint'):
+                PushSubscription.objects.filter(
+                    user=request.user, endpoint=request.POST['push_endpoint'],
+                ).update(is_active=False)
+        response = super().post(request, *args, **kwargs)
+        response.delete_cookie('fabro_push_subscription', samesite='Lax')
+        return response
 

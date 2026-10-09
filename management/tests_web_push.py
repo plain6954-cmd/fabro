@@ -3,16 +3,22 @@ Automated unit and integration tests for Web Push Notifications in Fabro Leather
 All external push network calls are strictly mocked.
 """
 import json
+import base64
+from io import StringIO
 from unittest.mock import MagicMock, patch
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.core.management import call_command
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from management.models import (
     ApprovalRoles,
     Complaint,
+    Notification,
     PushSubscription,
     UserProfile,
     WorkflowRoles,
@@ -20,6 +26,7 @@ from management.models import (
 )
 from management.services.push_notifications import (
     build_push_payload,
+    get_vapid_configuration_status,
     is_web_push_configured,
     send_push_to_subscription,
     send_push_to_user,
@@ -33,7 +40,22 @@ from management.services.workflow import (
 
 User = get_user_model()
 
+_test_private = ec.generate_private_key(ec.SECP256R1())
+TEST_VAPID_PRIVATE_KEY = base64.urlsafe_b64encode(
+    _test_private.private_numbers().private_value.to_bytes(32, 'big')
+).decode().rstrip('=')
+TEST_VAPID_PUBLIC_KEY = base64.urlsafe_b64encode(
+    _test_private.public_key().public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint,
+    )
+).decode().rstrip('=')
 
+
+@override_settings(
+    WEBPUSH_VAPID_PUBLIC_KEY=TEST_VAPID_PUBLIC_KEY,
+    WEBPUSH_VAPID_PRIVATE_KEY=TEST_VAPID_PRIVATE_KEY,
+    WEBPUSH_VAPID_SUBJECT='mailto:admin@example.com',
+)
 class WebPushNotificationTests(TestCase):
     def setUp(self):
         self.client = Client()
@@ -237,8 +259,8 @@ class WebPushNotificationTests(TestCase):
         )
 
         with self.settings(
-            WEBPUSH_VAPID_PUBLIC_KEY="test_pub",
-            WEBPUSH_VAPID_PRIVATE_KEY="test_priv",
+            WEBPUSH_VAPID_PUBLIC_KEY=TEST_VAPID_PUBLIC_KEY,
+            WEBPUSH_VAPID_PRIVATE_KEY=TEST_VAPID_PRIVATE_KEY,
             WEBPUSH_VAPID_SUBJECT="mailto:admin@example.com",
         ):
             success = send_push_to_subscription(sub, '{"title": "test"}')
@@ -268,8 +290,8 @@ class WebPushNotificationTests(TestCase):
         )
 
         with self.settings(
-            WEBPUSH_VAPID_PUBLIC_KEY="test_pub",
-            WEBPUSH_VAPID_PRIVATE_KEY="test_priv",
+            WEBPUSH_VAPID_PUBLIC_KEY=TEST_VAPID_PUBLIC_KEY,
+            WEBPUSH_VAPID_PRIVATE_KEY=TEST_VAPID_PRIVATE_KEY,
             WEBPUSH_VAPID_SUBJECT="mailto:admin@example.com",
         ):
             success = send_push_to_subscription(sub, '{"title": "test"}')
@@ -357,8 +379,8 @@ class WebPushNotificationTests(TestCase):
         )
 
         with self.settings(
-            WEBPUSH_VAPID_PUBLIC_KEY="test_pub",
-            WEBPUSH_VAPID_PRIVATE_KEY="test_priv",
+            WEBPUSH_VAPID_PUBLIC_KEY=TEST_VAPID_PUBLIC_KEY,
+            WEBPUSH_VAPID_PRIVATE_KEY=TEST_VAPID_PRIVATE_KEY,
             WEBPUSH_VAPID_SUBJECT="mailto:admin@example.com",
         ):
             result = send_push_to_user(self.user_a, "Title", "Body")
@@ -434,8 +456,8 @@ class WebPushNotificationTests(TestCase):
         )
 
         with self.settings(
-            WEBPUSH_VAPID_PUBLIC_KEY="test_pub",
-            WEBPUSH_VAPID_PRIVATE_KEY="test_priv",
+            WEBPUSH_VAPID_PUBLIC_KEY=TEST_VAPID_PUBLIC_KEY,
+            WEBPUSH_VAPID_PRIVATE_KEY=TEST_VAPID_PRIVATE_KEY,
             WEBPUSH_VAPID_SUBJECT="mailto:admin@example.com",
         ):
             result = send_push_to_user(self.user_a, "Multi-device test", "Checking delivery")
@@ -476,12 +498,13 @@ class WebPushNotificationTests(TestCase):
     # 19. Push status endpoint
     def test_push_status_endpoint(self):
         self.client.login(username="user_a", password=self.password)
-        with self.settings(WEBPUSH_VAPID_PUBLIC_KEY="test_public_key_abc"):
+        with self.settings(WEBPUSH_VAPID_PUBLIC_KEY=TEST_VAPID_PUBLIC_KEY):
             response = self.client.get(reverse("push_status"))
             self.assertEqual(response.status_code, 200)
             data = response.json()
             self.assertTrue(data.get("configured"))
-            self.assertEqual(data.get("vapid_public_key"), "test_public_key_abc")
+            self.assertEqual(data.get("vapid_public_key"), TEST_VAPID_PUBLIC_KEY)
+            self.assertNotIn(TEST_VAPID_PRIVATE_KEY, response.content.decode())
             self.assertFalse(data.get("is_subscribed"))
 
             # After subscribing
@@ -495,3 +518,102 @@ class WebPushNotificationTests(TestCase):
             response2 = self.client.get(reverse("push_status"))
             data2 = response2.json()
             self.assertTrue(data2.get("is_subscribed"))
+
+    def test_status_hides_public_key_when_pair_missing_or_mismatched(self):
+        self.client.force_login(self.user_a)
+        other_private = ec.generate_private_key(ec.SECP256R1())
+        mismatch = base64.urlsafe_b64encode(
+            other_private.private_numbers().private_value.to_bytes(32, 'big')
+        ).decode().rstrip('=')
+        for private_key in ('', 'not-a-private-key', mismatch):
+            with self.subTest(private_key_present=bool(private_key)):
+                with self.settings(WEBPUSH_VAPID_PRIVATE_KEY=private_key):
+                    data = self.client.get(reverse('push_status')).json()
+                    self.assertFalse(data['configured'])
+                    self.assertEqual(data['vapid_public_key'], '')
+                    self.assertNotIn('private_key', data)
+                    response = self.client.post(
+                        reverse('push_subscribe'), json.dumps(self.sample_sub_data),
+                        content_type='application/json',
+                    )
+                    self.assertEqual(response.status_code, 503)
+        self.assertFalse(PushSubscription.objects.exists())
+
+    def test_read_only_vapid_diagnostics_never_print_keys(self):
+        status = get_vapid_configuration_status()
+        self.assertTrue(status['public_key_valid'])
+        self.assertTrue(status['private_key_valid'])
+        self.assertTrue(status['keys_match'])
+        self.assertTrue(status['configured'])
+        output = StringIO()
+        call_command('check_web_push', stdout=output)
+        self.assertIn('configured: True', output.getvalue())
+        self.assertNotIn(TEST_VAPID_PRIVATE_KEY, output.getvalue())
+        self.assertNotIn(TEST_VAPID_PUBLIC_KEY, output.getvalue())
+        with self.settings(WEBPUSH_VAPID_PRIVATE_KEY=''):
+            status = get_vapid_configuration_status()
+            self.assertFalse(status['private_key_exists'])
+            self.assertFalse(status['keys_match'])
+            self.assertFalse(status['configured'])
+
+    def test_push_status_requires_authentication(self):
+        response = self.client.get(reverse('push_status'))
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn(TEST_VAPID_PUBLIC_KEY, response.content.decode())
+
+    def test_logout_deactivates_only_current_browser_subscription(self):
+        self.client.force_login(self.user_a)
+        response = self.client.post(
+            reverse('push_subscribe'), json.dumps(self.sample_sub_data),
+            content_type='application/json',
+        )
+        self.assertIn('fabro_push_subscription', response.cookies)
+        other = PushSubscription.objects.create(
+            user=self.user_a, endpoint='https://example.com/other-device',
+            p256dh='key', auth='auth', is_active=True,
+        )
+        self.client.post(reverse('logout'))
+        self.assertFalse(PushSubscription.objects.get(endpoint=self.sample_sub_data['endpoint']).is_active)
+        other.refresh_from_db()
+        self.assertTrue(other.is_active)
+
+    def test_shared_browser_status_is_scoped_to_signed_in_user(self):
+        self.client.force_login(self.user_a)
+        self.client.post(
+            reverse('push_subscribe'), json.dumps(self.sample_sub_data),
+            content_type='application/json',
+        )
+        self.client.force_login(self.user_b)
+        response = self.client.get(
+            reverse('push_status'), {'endpoint': self.sample_sub_data['endpoint']},
+        )
+        self.assertFalse(response.json()['is_subscribed'])
+        self.client.post(
+            reverse('push_subscribe'), json.dumps(self.sample_sub_data),
+            content_type='application/json',
+        )
+        self.assertEqual(PushSubscription.objects.get(endpoint=self.sample_sub_data['endpoint']).user, self.user_b)
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_workflow_push_omits_sensitive_in_app_message(self, mock_send):
+        with self.captureOnCommitCallbacks(execute=True):
+            notify_user(self.user_a, 'Review required', 'Private reviewer comment: confidential')
+        self.assertEqual(Notification.objects.filter(recipient=self.user_a).count(), 1)
+        self.assertIn('confidential', Notification.objects.get(recipient=self.user_a).message)
+        self.assertEqual(mock_send.call_args.args[0], self.user_a)
+        self.assertNotIn('confidential', mock_send.call_args.args[2])
+
+    def test_protocol_relative_push_destination_is_rejected(self):
+        payload = json.loads(build_push_payload('Update', 'Open Fabro', url='//example.com/steal'))
+        self.assertEqual(payload['data']['url'], '/')
+        payload = json.loads(build_push_payload('Update', 'Open Fabro', data={'url': '/\\example.com/steal'}))
+        self.assertEqual(payload['data']['url'], '/')
+
+    def test_malformed_subscription_types_are_rejected(self):
+        self.client.force_login(self.user_a)
+        for payload in ([], {'endpoint': 123, 'keys': {}}, {'endpoint': 'https://example.com', 'keys': []}):
+            with self.subTest(payload=payload):
+                response = self.client.post(
+                    reverse('push_subscribe'), json.dumps(payload), content_type='application/json',
+                )
+                self.assertEqual(response.status_code, 400)

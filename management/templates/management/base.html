@@ -5,7 +5,7 @@
 <script src="{% static 'js/fabro-i18n.js' %}?v=20260903-ltr-force-v2"></script>
 <script src="{% static 'js/fabro-page.js' %}?v=20260912-1"></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
-<script src="{% static 'js/web_push.js' %}?v=20261006-1" defer></script>
+<script src="{% static 'js/web_push.js' %}?v=20261009-1" defer></script>
 <script>
     document.documentElement.dir = 'ltr';
     document.documentElement.setAttribute('dir', 'ltr');
@@ -1910,7 +1910,10 @@
                 ? window.FabroI18n.gettext("Are you sure you want to log out?")
                 : "Are you sure you want to log out?";
             if (confirm(logoutMsg)) {
-                document.getElementById('logout-form').submit();
+                const form = document.getElementById('logout-form');
+                const endpoint = window.FabroPush && window.FabroPush.getState().subscription;
+                if (endpoint) form.querySelector('[name="push_endpoint"]').value = endpoint.endpoint;
+                form.submit();
             }
         };
 
@@ -2697,6 +2700,7 @@
 
                 <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">
                     {% csrf_token %}
+                    <input type="hidden" name="push_endpoint" value="">
                 </form>
                 <a href="#" class="dropdown-item" onclick="logout(); return false;">
                     <i class="fas fa-sign-out-alt"></i>
