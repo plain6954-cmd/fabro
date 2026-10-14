@@ -526,7 +526,9 @@
 
                     </section>
                 </div>
-
+                {% if active_tab == 'users' and section_page_obj and section_page_obj.has_other_pages %}
+                {% include 'management/includes/admin_section_pagination.html' with page_obj=section_page_obj pagination_bubbles=section_pagination_bubbles tab_key='users' %}
+                {% endif %}
             </div>
 
             <!-- ========================================================
@@ -563,6 +565,9 @@
                         </tbody>
                     </table>
                 </div>
+                {% if active_tab == 'skus' and section_page_obj and section_page_obj.has_other_pages %}
+                {% include 'management/includes/admin_section_pagination.html' with page_obj=section_page_obj pagination_bubbles=section_pagination_bubbles tab_key='skus' %}
+                {% endif %}
             </div>
 
             <!-- ========================================================
@@ -599,6 +604,9 @@
                         {% endfor %}
                     </div>
                 </div>
+                {% if active_tab == 'brands' and section_page_obj and section_page_obj.has_other_pages %}
+                {% include 'management/includes/admin_section_pagination.html' with page_obj=section_page_obj pagination_bubbles=section_pagination_bubbles tab_key='brands' %}
+                {% endif %}
             </div>
 
             <!-- ========================================================
@@ -695,6 +703,9 @@
                         </tbody>
                     </table>
                 </div>
+                {% if active_tab == 'sessions' and section_page_obj and section_page_obj.has_other_pages %}
+                {% include 'management/includes/admin_section_pagination.html' with page_obj=section_page_obj pagination_bubbles=section_pagination_bubbles tab_key='sessions' %}
+                {% endif %}
             </div>
 
             <!-- ========================================================
@@ -734,51 +745,10 @@
                         </tbody>
                     </table>
                 </div>
+                {% if active_tab == 'logs' and section_page_obj and section_page_obj.has_other_pages %}
+                {% include 'management/includes/admin_section_pagination.html' with page_obj=section_page_obj pagination_bubbles=section_pagination_bubbles tab_key='logs' %}
+                {% endif %}
             </div>
-
-            {% if section_page_obj and section_page_obj.has_other_pages %}
-            <nav id="admin-section-pagination" class="pattern-pagination erp-pagination" aria-label="{% translate 'Admin section pages' %}">
-                {% if section_page_obj.has_previous %}
-                <a class="pattern-pagination__control pattern-pagination__control--previous" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.previous_page_number }}#{{ active_tab }}" aria-label="{% translate 'Prev' %}">
-                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
-                    <span>{% translate "Prev" %}</span>
-                </a>
-                {% else %}
-                <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
-                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
-                    <span>{% translate "Prev" %}</span>
-                </span>
-                {% endif %}
-
-                <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
-                    {% for p in section_pagination_bubbles %}
-                        {% if p == '...' or p == '…' or p == '.' %}
-                            <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
-                        {% elif p == section_page_obj.number %}
-                            <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
-                        {% else %}
-                            <a class="pattern-pagination__bubble" href="?section={{ active_tab }}&amp;section_page={{ p }}#{{ active_tab }}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
-                        {% endif %}
-                    {% empty %}
-                        <span class="pattern-pagination__bubble is-active" aria-current="page">{{ section_page_obj.number }}</span>
-                    {% endfor %}
-                </div>
-
-                {% if section_page_obj.has_next %}
-                <a class="pattern-pagination__control pattern-pagination__control--next" href="?section={{ active_tab }}&amp;section_page={{ section_page_obj.next_page_number }}#{{ active_tab }}" aria-label="{% translate 'Next' %}">
-                    <span>{% translate "Next" %}</span>
-                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                </a>
-                {% else %}
-                <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
-                    <span>{% translate "Next" %}</span>
-                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                </span>
-                {% endif %}
-            </nav>
-            {% else %}
-            <nav id="admin-section-pagination" class="pattern-pagination erp-pagination" aria-label="{% translate 'Admin section pages' %}" style="display: none;"></nav>
-            {% endif %}
         </main>
     </div>
 
@@ -1032,6 +1002,7 @@
         country: 'all'
     };
     window.erpLoadedSections = new Set(['{{ active_tab|default:"dashboard"|escapejs }}']);
+    window.erpLoadedSectionPages = new Map([['{{ active_tab|default:"dashboard"|escapejs }}', new URLSearchParams(window.location.search).get('section_page') || '1']]);
     window.erpSectionRequests = new Map();
 
     function initAdminPanel() {
@@ -1042,16 +1013,16 @@
         const urlParams = new URLSearchParams(window.location.search);
         const hasExplicitQuery = urlParams.has('section');
 
-        if (hashTab && document.getElementById('tab-' + hashTab)) {
-            initialTab = hashTab;
-        } else if (hasExplicitQuery && serverTab) {
+        if (hasExplicitQuery && serverTab) {
             initialTab = serverTab;
+        } else if (hashTab && document.getElementById('tab-' + hashTab)) {
+            initialTab = hashTab;
         } else if (localStorage.getItem('fabro_erp_active_tab') && document.getElementById('tab-' + localStorage.getItem('fabro_erp_active_tab'))) {
             initialTab = localStorage.getItem('fabro_erp_active_tab');
         } else if (serverTab) {
             initialTab = serverTab;
         }
-        switchErpTab(initialTab);
+        switchErpTab(initialTab, { historyMode: 'replace', preservePage: hasExplicitQuery });
 
         const editUserToReopen = '{{ edit_user_id|default:""|escapejs }}';
         if (editUserToReopen) {
@@ -1114,7 +1085,7 @@
     }
 
     // Tab Switching
-    async function switchErpTab(tabKey) {
+    async function switchErpTab(tabKey, { historyMode = 'push', preservePage = false, skipLoad = false } = {}) {
         if (!tabKey) tabKey = 'dashboard';
         tabKey = tabKey.replace(/^#/, '');
 
@@ -1131,8 +1102,22 @@
         document.querySelectorAll('.erp-sidebar-btn').forEach(el => el.classList.remove('active'));
 
         targetPane.classList.add('active');
-        window.location.hash = tabKey;
         localStorage.setItem('fabro_erp_active_tab', tabKey);
+
+        if (historyMode !== 'none') {
+            const currentUrl = new URL(window.location.href);
+            if (tabKey === 'dashboard') {
+                currentUrl.searchParams.delete('section');
+            } else {
+                currentUrl.searchParams.set('section', tabKey);
+            }
+            if (!preservePage) currentUrl.searchParams.delete('section_page');
+            currentUrl.hash = tabKey;
+            const nextUrl = currentUrl.pathname + currentUrl.search + currentUrl.hash;
+            if (nextUrl !== window.location.pathname + window.location.search + window.location.hash) {
+                window.history[historyMode === 'replace' ? 'replaceState' : 'pushState']({ tab: tabKey }, '', nextUrl);
+            }
+        }
 
         const sideBtn = document.getElementById('side-' + tabKey);
         if (sideBtn) {
@@ -1148,7 +1133,7 @@
             }
         });
 
-        if (tabKey !== 'dashboard' && !window.erpLoadedSections.has(tabKey)) {
+        if (!skipLoad && tabKey !== 'dashboard' && (!window.erpLoadedSections.has(tabKey) || (!preservePage && window.erpLoadedSectionPages.get(tabKey) !== '1'))) {
             targetPane.setAttribute('aria-busy', 'true');
             const controller = new AbortController();
             window.erpSectionRequests.get(tabKey)?.abort();
@@ -1186,25 +1171,29 @@
             }
 
             try {
-                const response = await fetch(`/admin_panel/?section=${encodeURIComponent(tabKey)}`, {
+                const adminPath = window.location.pathname.endsWith('/') ? window.location.pathname : (window.location.pathname + '/');
+                const response = await fetch(`${adminPath}?section=${encodeURIComponent(tabKey)}`, {
                     credentials: 'same-origin',
                     headers: {'HX-Request': 'true'},
                     signal: controller.signal,
                 });
                 if (!response.ok) throw new Error(`Admin section request failed (${response.status})`);
                 const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+                if (response.redirected || doc.querySelector('form input[name="password"]') || doc.querySelector('.login-container')) {
+                    window.location.href = response.url || '/login/';
+                    return;
+                }
                 const incoming = doc.getElementById('tab-' + tabKey);
                 if (!incoming) throw new Error('Admin section response is incomplete');
                 if (controller.signal.aborted || window.erpActiveTab !== tabKey) return;
                 incoming.classList.add('active');
                 targetPane.replaceWith(incoming);
-                const incomingPagination = doc.getElementById('admin-section-pagination');
-                const currentPagination = document.getElementById('admin-section-pagination');
-                if (incomingPagination && currentPagination) currentPagination.replaceWith(incomingPagination);
+                window.htmx?.process(incoming);
                 const incomingSessions = doc.getElementById('nav-sessions-count');
                 const currentSessions = document.getElementById('nav-sessions-count');
                 if (incomingSessions && currentSessions) currentSessions.textContent = incomingSessions.textContent;
                 window.erpLoadedSections.add(tabKey);
+                window.erpLoadedSectionPages.set(tabKey, '1');
                 if (tabKey === 'users') {
                     restoreUserFilters();
                     filterUserCards();
@@ -1222,6 +1211,89 @@
             }
         }
     }
+
+    async function loadAdminSectionPage(section, page, { historyMode = 'push' } = {}) {
+        const targetPane = document.getElementById('tab-' + section);
+        if (!targetPane) return;
+
+        targetPane.setAttribute('aria-busy', 'true');
+        const controller = new AbortController();
+        window.erpSectionRequests.get(section)?.abort();
+        window.erpSectionRequests.set(section, controller);
+
+        try {
+            const adminPath = window.location.pathname.endsWith('/') ? window.location.pathname : (window.location.pathname + '/');
+            const response = await fetch(`${adminPath}?section=${encodeURIComponent(section)}&section_page=${encodeURIComponent(page)}`, {
+                credentials: 'same-origin',
+                headers: {'HX-Request': 'true'},
+                signal: controller.signal,
+            });
+            if (!response.ok) throw new Error(`Admin pagination request failed (${response.status})`);
+            const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+            if (response.redirected || doc.querySelector('form input[name="password"]') || doc.querySelector('.login-container')) {
+                window.location.href = response.url || '/login/';
+                return;
+            }
+            const incoming = doc.getElementById('tab-' + section);
+            if (!incoming || controller.signal.aborted || window.erpActiveTab !== section) return;
+
+            incoming.classList.add('active');
+            targetPane.replaceWith(incoming);
+            window.htmx?.process(incoming);
+            window.erpLoadedSections.add(section);
+            window.erpLoadedSectionPages.set(section, String(page));
+
+            if (historyMode !== 'none') {
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('section', section);
+                newUrl.searchParams.set('section_page', page);
+                newUrl.hash = section;
+                window.history[historyMode === 'replace' ? 'replaceState' : 'pushState']({ section, page }, '', newUrl.pathname + newUrl.search + newUrl.hash);
+            }
+
+            const scrollable = incoming.querySelector('[style*="overflow-y:auto"], .erp-table-pane, .erp-users-content-pane');
+            if (scrollable) scrollable.scrollTop = 0;
+            if (section === 'users') {
+                restoreUserFilters();
+                filterUserCards();
+            }
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('Pagination load error:', err);
+                window.location.href = `?section=${encodeURIComponent(section)}&section_page=${encodeURIComponent(page)}#${encodeURIComponent(section)}`;
+            }
+        } finally {
+            if (window.erpSectionRequests.get(section) === controller) {
+                window.erpSectionRequests.delete(section);
+                document.getElementById('tab-' + section)?.removeAttribute('aria-busy');
+            }
+        }
+    }
+
+    // Intercept pagination clicks for seamless, smooth page navigation
+    document.addEventListener('click', function(e) {
+        const paginationLink = e.target.closest('.erp-pagination a[data-section][data-page]');
+        if (!paginationLink) return;
+        e.preventDefault();
+        loadAdminSectionPage(paginationLink.dataset.section, paginationLink.dataset.page);
+    });
+
+    // Handle Browser History (Back / Forward)
+    window.addEventListener('popstate', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sectionFromUrl = urlParams.get('section');
+        const hashTab = window.location.hash ? window.location.hash.replace('#', '') : '';
+        const targetTab = sectionFromUrl || hashTab || 'dashboard';
+        const pageFromUrl = urlParams.get('section_page');
+        if (pageFromUrl && sectionFromUrl) {
+            switchErpTab(targetTab, { historyMode: 'none', skipLoad: true });
+            if (window.erpLoadedSectionPages.get(targetTab) !== pageFromUrl) {
+                loadAdminSectionPage(targetTab, pageFromUrl, { historyMode: 'none' });
+            }
+        } else if (targetTab) {
+            switchErpTab(targetTab, { historyMode: 'none' });
+        }
+    });
 
     // Toggle Users View: Kanban vs List
     function toggleUsersView(viewType) {

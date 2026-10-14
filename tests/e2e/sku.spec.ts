@@ -17,7 +17,7 @@ test('SKU page supports add, search, edit and delete', async ({ page }) => {
   await page.locator('button[name="add_sku"]').click({ force: true });
   await expect(page.locator(`#skuTableBody tr[id^="sku-row-"]`, { hasText: sample.skuCode })).toBeVisible();
 
-  await page.getByPlaceholder(/Search SKUs/i).fill(sample.skuCode);
+  await page.getByRole('textbox', { name: 'Search SKUs' }).fill(sample.skuCode);
   await expect(page.locator('#sku-search-options')).toBeVisible();
   await expect(page.locator('#sku-search-options')).toContainText('All Fields');
   await expect(page.locator('#sku-search-options')).toContainText('SKU Code');

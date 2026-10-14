@@ -22,6 +22,7 @@ from rest_framework.authtoken.models import Token
 from PIL import Image
 
 from .models import (
+    ActivityLog,
     Brand,
     ChatMessage,
     Complaint,
@@ -5365,6 +5366,37 @@ class AdminPanelUsersSectionTests(TestCase):
         self.assertIn('pattern-pagination__control--next', html_body)
         # Verify old clunky text pagination buttons are not used
         self.assertNotIn('class="btn-erp-new" href="?section=skus', html_body)
+        self.assertIn('data-section="skus"', html_body)
+
+    def test_pagination_is_scoped_to_section_and_not_on_dashboard(self):
+        SKU.objects.bulk_create([
+            SKU(code=f'SKU-TEST-PAG-{i:03d}', description=f'Test SKU {i}')
+            for i in range(1, 61)
+        ])
+        ActivityLog.objects.bulk_create([
+            ActivityLog(user=self.admin, action='created', object_type='SKU', object_name=f'SKU-{i}')
+            for i in range(1, 61)
+        ])
+        self.client.force_login(self.admin)
+
+        # 1. Dashboard must never have pagination
+        dash_res = self.client.get(reverse('admin_panel'), {'section': 'dashboard'})
+        dash_body = dash_res.content.decode('utf-8').split('<script>\n    // Faceted')[0]
+        self.assertNotIn('pattern-pagination', dash_body)
+
+        # 2. SKUs section has pagination inside tab-skus
+        skus_res = self.client.get(reverse('admin_panel'), {'section': 'skus'})
+        skus_body = skus_res.content.decode('utf-8').split('<script>\n    // Faceted')[0]
+        tab_skus_html = skus_body.split('id="tab-skus"')[1].split('id="tab-brands"')[0]
+        self.assertIn('pattern-pagination', tab_skus_html)
+        self.assertIn('data-section="skus"', tab_skus_html)
+
+        # 3. Logs section has pagination inside tab-logs
+        logs_res = self.client.get(reverse('admin_panel'), {'section': 'logs'})
+        logs_body = logs_res.content.decode('utf-8').split('<script>\n    // Faceted')[0]
+        tab_logs_html = logs_body.split('id="tab-logs"')[1].split('</main>')[0]
+        self.assertIn('pattern-pagination', tab_logs_html)
+        self.assertIn('data-section="logs"', tab_logs_html)
 
     def test_active_sessions_count_always_available_and_rendered(self):
         self.client.force_login(self.admin)

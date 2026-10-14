@@ -1,0 +1,42 @@
+{% load i18n %}
+{% if page_obj and page_obj.has_other_pages %}
+<nav class="pattern-pagination erp-pagination" aria-label="{% translate 'Admin section pages' %}" data-section="{{ tab_key }}">
+    {% if page_obj.has_previous %}
+    <a class="pattern-pagination__control pattern-pagination__control--previous" href="?section={{ tab_key }}&amp;section_page={{ page_obj.previous_page_number }}#{{ tab_key }}" data-section="{{ tab_key }}" data-page="{{ page_obj.previous_page_number }}" aria-label="{% translate 'Prev' %}">
+        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        <span>{% translate "Prev" %}</span>
+    </a>
+    {% else %}
+    <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
+        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        <span>{% translate "Prev" %}</span>
+    </span>
+    {% endif %}
+
+    <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
+        {% for p in pagination_bubbles %}
+            {% if p == '...' or p == '…' or p == '.' %}
+                <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
+            {% elif p == page_obj.number %}
+                <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
+            {% else %}
+                <a class="pattern-pagination__bubble" href="?section={{ tab_key }}&amp;section_page={{ p }}#{{ tab_key }}" data-section="{{ tab_key }}" data-page="{{ p }}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
+            {% endif %}
+        {% empty %}
+            <span class="pattern-pagination__bubble is-active" aria-current="page">{{ page_obj.number }}</span>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_next %}
+    <a class="pattern-pagination__control pattern-pagination__control--next" href="?section={{ tab_key }}&amp;section_page={{ page_obj.next_page_number }}#{{ tab_key }}" data-section="{{ tab_key }}" data-page="{{ page_obj.next_page_number }}" aria-label="{% translate 'Next' %}">
+        <span>{% translate "Next" %}</span>
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </a>
+    {% else %}
+    <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
+        <span>{% translate "Next" %}</span>
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </span>
+    {% endif %}
+</nav>
+{% endif %}

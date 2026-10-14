@@ -8,7 +8,7 @@ from django.utils import timezone
 from wsgiref.simple_server import make_server
 from management.models import (
     Brand, Model, SubModel, YearRange, SKU, MasterSetting, Complaint, UserProfile,
-    WorkflowRoles, ApprovalRoles,
+    WorkflowRoles, ApprovalRoles, ActivityLog,
 )
 from management.services.workflow import submit_factory_review
 
@@ -28,7 +28,7 @@ for category, name in (
 brand = Brand.objects.create(name='OFFLINE BRAND')
 model = Model.objects.create(brand=brand, name='OFFLINE MODEL')
 submodel = SubModel.objects.create(model=model, name='Standard')
-for number in range(55):
+for number in range(65):
     YearRange.objects.create(
         sub_model=submodel, year_start=2000 + number, year_end=2001 + number,
         layout_code=f'OFFLINE-{number}', serial_number=f'I{number:04d}',
@@ -36,6 +36,9 @@ for number in range(55):
         number_of_seats=5, number_of_doors=4,
     )
     SKU.objects.create(code=f'OFFLINE-SKU-{number}', description='Synthetic browser fixture')
+    ActivityLog.objects.create(
+        user=admin, action='created', object_type='SKU', object_name=f'OFFLINE-SKU-{number}',
+    )
 for role in (ApprovalRoles.PM, ApprovalRoles.OM, ApprovalRoles.CAD):
     approver = User.objects.create_user(f'offline-{role.lower()}')
     profile = approver.workflow_profile

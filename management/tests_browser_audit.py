@@ -258,12 +258,15 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
             page.goto(f'{self.live_server_url}/car-details/')
             response = page.goto(f'{self.live_server_url}/design-approvals/')
             allowed = role in {'admin', 'designer', 'other_designer', 'cad', 'ed'}
-            self.assertEqual(response.status, 200 if allowed else 403, role)
+            self.assertEqual(response.status, 200 if allowed else 403,
+                             (role, page.url, page.locator('body').inner_text()[:1200]))
             response = page.goto(f'{self.live_server_url}/approvals/')
             complaint_allowed = role in {'admin', 'cad', 'ed', 'pm', 'om', 'md', 'country', 'factory'}
             if complaint_allowed:
-                self.assertEqual(response.status, 200, (role, page.url))
-                self.assertEqual(urlparse(page.url).path, '/approvals/', (role, response.url))
+                self.assertEqual(response.status, 200,
+                                 (role, page.url, page.locator('body').inner_text()[:1200]))
+                self.assertEqual(urlparse(page.url).path, '/approvals/',
+                                 (role, response.url, page.locator('body').inner_text()[:1200]))
             else:
                 self.assertTrue(response.status == 403 or urlparse(page.url).path in {'/login/', '/'},
                                 (role, response.status, page.url))
