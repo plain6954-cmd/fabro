@@ -257,7 +257,7 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
             page.wait_for_load_state('networkidle')
             page.goto(f'{self.live_server_url}/car-details/')
             response = page.goto(f'{self.live_server_url}/design-approvals/')
-            allowed = role in {'admin', 'designer', 'other_designer', 'cad', 'ed'}
+            allowed = role in {'admin', 'designer', 'other_designer', 'cad', 'ed', 'pm'}
             self.assertEqual(response.status, 200 if allowed else 403,
                              (role, page.url, page.locator('body').inner_text()[:1200]))
             response = page.goto(f'{self.live_server_url}/approvals/')
@@ -317,16 +317,24 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
                     if '/api/design-folders/?' in request.url else None)
             cdp = page.context.new_cdp_session(page)
             events = []
+            trace_complete = []
             cdp.on('Tracing.dataCollected', lambda payload: events.extend(payload.get('value', [])))
+            cdp.on('Tracing.tracingComplete', lambda payload: trace_complete.append(payload))
             cdp.send('Tracing.start', {
                 'categories': 'devtools.timeline,blink.user_timing',
                 'transferMode': 'ReportEvents',
             })
-            response = page.goto(f'{self.live_server_url}{route}')
-            self.assertEqual(response.status, 200)
-            page.wait_for_load_state('networkidle')
-            cdp.send('Tracing.end')
-            page.wait_for_timeout(300)
+            try:
+                response = page.goto(f'{self.live_server_url}{route}')
+                self.assertEqual(response.status, 200)
+                page.wait_for_load_state('networkidle')
+            finally:
+                cdp.send('Tracing.end')
+            for _ in range(100):
+                if trace_complete:
+                    break
+                page.wait_for_timeout(50)
+            self.assertTrue(trace_complete, 'Chrome did not complete the performance trace')
             tasks = [event.get('dur', 0) / 1000 for event in events
                      if event.get('name') in {'RunTask', 'ThreadControllerImpl::RunTask'}
                      and event.get('dur', 0) >= 50_000]
