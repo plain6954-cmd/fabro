@@ -104,6 +104,40 @@ test('HTMX navigation preserves the shell, updates history and returns partial H
   await diagnostics.assertClean();
 });
 
+test('Pattern Master controls remain usable after repeated shell navigation', async ({ page }) => {
+  const diagnostics = attachPageDiagnostics(page);
+  await page.goto(routes.dashboard);
+  await page.evaluate(() => {
+    (window as typeof window & { __initialDocument?: Document }).__initialDocument = document;
+  });
+  let patternRequests = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === routes.vehicles
+        && request.headers()['hx-request'] === 'true') patternRequests += 1;
+  });
+
+  for (let cycle = 0; cycle < 5; cycle += 1) {
+    await page.locator(`.nav-links a.nav-link[href="${routes.vehicles}"]`).click();
+    await expect(page.getByRole('heading', { name: /Pattern Master/i })).toBeVisible();
+    await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
+    expect(await page.evaluate(() =>
+      (window as typeof window & { __initialDocument?: Document }).__initialDocument === document
+    )).toBe(true);
+    const firstRow = page.locator('tr[id^="row-view-"]').first();
+    await firstRow.locator('.pattern-row-select').check();
+    await page.locator('#patternActionsToggleBtn').click();
+    await expect(page.locator('#patternActionsDrawer')).toHaveClass(/is-open/);
+    await page.locator('#patternActionsToggleBtn').click();
+    await page.locator(`.nav-links a.nav-link[href="${routes.dashboard}"]`).click();
+    await expect(page.getByRole('heading', { name: /System Dashboard/i })).toBeVisible();
+  }
+
+  expect(patternRequests).toBe(5);
+  await page.goto(routes.vehicles);
+  await expect(page.getByRole('heading', { name: /Pattern Master/i })).toBeVisible();
+  await diagnostics.assertClean();
+});
+
 test('every eligible navbar destination uses partial navigation', async ({ page }) => {
   const diagnostics = attachPageDiagnostics(page);
   await page.goto(routes.dashboard);
@@ -253,6 +287,41 @@ test('a slower stale HTMX response cannot replace a newer navigation', async ({ 
   await expect(page).toHaveURL(routes.complaints);
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Pattern Master/i })).toHaveCount(0);
+});
+
+test('a failed navigation request keeps the current page usable', async ({ page }) => {
+  await page.goto(routes.dashboard);
+  await page.route(`**${routes.vehicles}`, async (route) => {
+    if (route.request().headers()['hx-request'] === 'true') {
+      await route.abort('internetdisconnected');
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.locator(`.nav-links a.nav-link[href="${routes.vehicles}"]`).click();
+  await expect(page.getByRole('heading', { name: /System Dashboard/i })).toBeVisible();
+  await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#global-toast-stack')).toContainText('Navigation failed');
+  await expect(page).toHaveURL(routes.dashboard);
+});
+
+test('navigation gives click feedback before a slow response arrives', async ({ page }) => {
+  await page.goto(routes.dashboard);
+  let releaseResponse!: () => void;
+  const gate = new Promise<void>((resolve) => { releaseResponse = resolve; });
+  await page.route(`**${routes.vehicles}`, async (route) => {
+    if (route.request().headers()['hx-request'] === 'true') await gate;
+    await route.continue();
+  });
+
+  await page.locator(`.nav-links a.nav-link[href="${routes.vehicles}"]`)
+    .evaluate((link: HTMLAnchorElement) => link.click());
+  await expect(page.locator('body')).toHaveClass(/fabro-navigation-pending/);
+  await expect(page.locator('.fabro-navigation-progress')).toHaveCSS('opacity', '1');
+  releaseResponse();
+  await expect(page.getByRole('heading', { name: /Pattern Master/i })).toBeVisible();
+  await expect(page.locator('body')).not.toHaveClass(/fabro-navigation-pending/);
 });
 
 test('navigation remains stable at desktop, tablet and mobile widths', async ({ page }) => {

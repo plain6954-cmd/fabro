@@ -6553,7 +6553,7 @@
         }
 
         // Close actions drawer if clicked outside
-        document.addEventListener('click', (e) => {
+        pageScope.listen(document, 'click', (e) => {
             if (patternActionsWrapper && !patternActionsWrapper.contains(e.target) && !e.target.closest('.pattern-checkbox')) {
                 if (patternActionsDrawer && patternActionsDrawer.classList.contains('is-open')) {
                     patternActionsDrawer.classList.remove('is-open');

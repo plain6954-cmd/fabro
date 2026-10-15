@@ -738,7 +738,8 @@ def car_details(request):
                 Q(measurement_country__name__icontains=search_query)
             )
 
-    vehicle_paginator = Paginator(yr_qs, 50)
+    # Each record renders a desktop row, mobile card, and editor controls.
+    vehicle_paginator = Paginator(yr_qs, 20)
     vehicle_page = vehicle_paginator.get_page(request.GET.get('page'))
     can_see_pending_designs = _can_approve_design_assets(request.user) or (getattr(getattr(request.user, 'workflow_profile', None), 'role', '') == WorkflowRoles.FREELANCE_3D_DESIGNER)
     car_data = []
@@ -779,7 +780,7 @@ def car_details(request):
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
 
     can_manage_catalog = _can_manage_catalog(request.user)
-    next_serial_number = get_next_pattern_serial()
+    next_serial_number = get_next_pattern_serial() if can_manage_catalog else None
     pagination_params = request.GET.copy()
     pagination_params.pop('page', None)
     pagination_bubbles = _get_pagination_bubbles(
@@ -2981,7 +2982,8 @@ def complaint_list(request):
     country_data = list(country_counts.values())
 
     # Paginate complaints to prevent multi-second DOM rendering and per-row N+1 overhead
-    paginator = Paginator(complaints, 25)
+    # Each complaint includes detail and workflow markup; keep initial DOM bounded.
+    paginator = Paginator(complaints, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     pagination_query = QueryDict('', mutable=True)

@@ -33,7 +33,7 @@ class PerformancePaginationTests(TestCase):
     def test_pattern_master_limits_initial_vehicle_page(self):
         response = self.client.get(reverse('car_details'))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context['car_data']), 50)
+        self.assertEqual(len(response.context['car_data']), 20)
         self.assertEqual(response.context['page_obj'].paginator.count, 60)
         self.assertNotIn('design_folders', response.context)
 

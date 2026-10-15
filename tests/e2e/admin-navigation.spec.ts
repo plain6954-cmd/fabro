@@ -21,6 +21,21 @@ test('rapid admin tab changes keep only the latest section active', async ({ pag
   await expect(page.locator('#tab-skus')).toHaveClass(/\bactive\b/);
 });
 
+test('admin section loading keeps the document mounted', async ({ page }) => {
+  await login(page);
+  await page.goto(routes.adminPanel);
+  await page.evaluate(() => {
+    (window as typeof window & { __adminDocument?: Document }).__adminDocument = document;
+  });
+
+  await page.locator('#side-skus').click();
+  await expect(page.locator('#tab-skus')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#tab-skus tbody')).toContainText('PW-SKU-SEED');
+  expect(await page.evaluate(() =>
+    (window as typeof window & { __adminDocument?: Document }).__adminDocument === document
+  )).toBe(true);
+});
+
 test('admin sections remain within the viewport on small screens', async ({ page }) => {
   await login(page);
   for (const width of [320, 390, 768]) {
