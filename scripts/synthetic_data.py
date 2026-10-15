@@ -34,8 +34,11 @@ def assert_isolated_database():
     from django.db import connection
 
     root = Path(settings.BASE_DIR).resolve()
-    target = (root / 'output' / 'navigation-synthetic.sqlite3').resolve()
-    media = (root / 'output' / 'navigation-synthetic-media').resolve()
+    existing_local = getattr(settings, 'SYNTHETIC_NAV_TARGET', '') == 'existing-local-db'
+    if existing_local and root.name != 'fast-navigation-htmx':
+        raise RuntimeError('Existing-local fixture is restricted to the feature worktree.')
+    target = (root / ('db.sqlite3' if existing_local else 'output/navigation-synthetic.sqlite3')).resolve()
+    media = (root / 'output' / ('navigation-local-media' if existing_local else 'navigation-synthetic-media')).resolve()
     if (not getattr(settings, 'SYNTHETIC_NAV_DB', False)
             or root.name not in {'fast-navigation-htmx', 'fast-navigation-baseline'}
             or root.parent.name != 'output'
@@ -50,7 +53,12 @@ def assert_isolated_database():
 
 def local_credentials(root, account_names):
     """Keep generated per-account passwords in an ignored local-only file."""
-    path = root / 'output' / 'navigation-synthetic-credentials.json'
+    from django.conf import settings
+
+    credential_name = ('navigation-local-credentials.json'
+                       if getattr(settings, 'SYNTHETIC_NAV_TARGET', '') == 'existing-local-db'
+                       else 'navigation-synthetic-credentials.json')
+    path = root / 'output' / credential_name
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         payload = json.loads(path.read_text(encoding='utf8'))
@@ -60,7 +68,7 @@ def local_credentials(root, account_names):
     from django.contrib.auth import get_user_model
     if get_user_model().objects.filter(username__in=account_names).exists():
         raise RuntimeError('Synthetic users exist but their local credential file is missing; '
-                           'restore it or recreate the disposable fixture database.')
+                           'restore the credential file before reseeding.')
     passwords = {name: secrets.token_urlsafe(32) for name in account_names}
     payload = {'purpose': 'Local disposable FABRO navigation fixture', 'users': passwords}
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -97,6 +105,7 @@ def placeholder(relative_path, number, size):
 
 
 def seed():
+    from django.conf import settings
     from django.contrib.auth import get_user_model
     from django.core.cache import cache
     from django.db import connection, transaction
@@ -117,15 +126,16 @@ def seed():
         f'{ComplaintTypes.PREFIXES[synthetic_types[(number - 1) % 4]]}-2610{(number - 1) // 4 + 1:04d}'
         for number in range(1, COMPLAINTS + 1)
     }
+    existing_local = getattr(settings, 'SYNTHETIC_NAV_TARGET', '') == 'existing-local-db'
     unexpected = {
-        'users': get_user_model().objects.exclude(username__startswith=PREFIX).exists(),
+        'users': not existing_local and get_user_model().objects.exclude(username__startswith=PREFIX).exists(),
         'brands': Brand.objects.exclude(name__startswith='SYNTHETIC BRAND').exists(),
         'patterns': YearRange.objects.exclude(layout_code__startswith='NAVSYN-').exists(),
         'skus': SKU.objects.exclude(code__startswith='NAVSYN-SKU-').exists(),
         'complaints': Complaint.objects.exclude(complaint_id__in=synthetic_complaint_ids).exists(),
         'designs': PatternDesignImage.objects.exclude(
             client_upload_key__startswith='navsyn-design-').exists(),
-        'master_settings': not set(MasterSetting.objects.values_list('category', 'name')).issubset(
+        'master_settings': not existing_local and not set(MasterSetting.objects.values_list('category', 'name')).issubset(
             {(category, name) for category, names in MASTER_VALUES.items() for name in names}),
     }
     if any(unexpected.values()):
@@ -450,5 +460,5 @@ def seed():
     }
     return {'database': str(Path(connection.settings_dict['NAME']).resolve()),
             'database_bytes': Path(connection.settings_dict['NAME']).stat().st_size,
-            'media_root': str((root / 'output' / 'navigation-synthetic-media').resolve()),
+            'media_root': str(Path(settings.MEDIA_ROOT).resolve()),
             'credentials_file': str(credential_path), 'counts': counts}
