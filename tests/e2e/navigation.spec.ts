@@ -100,7 +100,107 @@ test('HTMX navigation preserves the shell, updates history and returns partial H
   await expect(page).toHaveURL(routes.vehicles);
   await expect(page.getByRole('heading', { name: /Pattern Master/i })).toBeVisible();
 
-  await expect(page.locator('.nav-links a.nav-link[href="/chat/"]')).not.toHaveAttribute('hx-get');
+  await expect(page.locator('.nav-links a.nav-link[href="/chat/"]')).toHaveAttribute('hx-get');
+  await diagnostics.assertClean();
+});
+
+test('Chat stays in the shell and keeps messaging usable after repeated navigation', async ({ page, context }) => {
+  const diagnostics = attachPageDiagnostics(page);
+  await page.goto(routes.dashboard);
+  await page.evaluate(() => {
+    (window as typeof window & { __initialDocument?: Document }).__initialDocument = document;
+  });
+  let openedTabs = 0;
+  context.on('page', () => { openedTabs += 1; });
+
+  const chatLink = page.locator('.nav-links a.nav-link[href="/chat/"]');
+  const partialResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === '/chat/' && response.request().headers()['hx-request'] === 'true'
+  );
+  await chatLink.click();
+  expect((await (await partialResponse).text())).toContain('data-fabro-page-head');
+  await expect(page).toHaveURL('/chat/');
+  await expect(page.locator('#user-search')).toBeVisible();
+  expect(openedTabs).toBe(0);
+  expect(await page.evaluate(() =>
+    (window as typeof window & { __initialDocument?: Document }).__initialDocument === document
+  )).toBe(true);
+
+  await page.locator('#filter-unread-btn').click();
+  await expect(page.locator('#filter-unread-btn')).toHaveClass(/active/);
+  await page.locator('#filter-all-btn').click();
+  const factoryUser = page.locator('.chat-user-item[data-username="fabro_e2e_factory"]');
+  const factoryId = await factoryUser.getAttribute('data-user-id');
+  await factoryUser.click();
+  await expect(page.locator('#message-input')).toBeVisible();
+  const message = `HTMX chat smoke ${Date.now()}`;
+  await page.locator('#message-input').fill(message);
+  await page.locator('#send-btn').click();
+  await expect(page.locator('.msg-bubble', { hasText: message })).toHaveCount(1);
+
+  const cadUser = page.locator('.chat-user-item[data-username="fabro_e2e_cad"]');
+  const cadId = await cadUser.getAttribute('data-user-id');
+  await cadUser.click();
+  await expect(page.locator('#header-username')).toHaveText('fabro_e2e_cad');
+  await page.goBack();
+  await expect(page).toHaveURL(`/chat/?user=${factoryId}`);
+  await expect(page.locator('#header-username')).toHaveText('fabro_e2e_factory');
+  await page.goForward();
+  await expect(page).toHaveURL(`/chat/?user=${cadId}`);
+  await expect(page.locator('#header-username')).toHaveText('fabro_e2e_cad');
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    await page.locator(`.nav-links a.nav-link[href="${routes.vehicles}"]`).click();
+    await expect(page).toHaveURL(routes.vehicles);
+    await chatLink.click();
+    await expect(page).toHaveURL('/chat/');
+    await expect(page.locator('#user-search')).toBeVisible();
+  }
+  await page.goBack();
+  await expect(page).toHaveURL(routes.vehicles);
+  await page.goForward();
+  await expect(page).toHaveURL('/chat/');
+  expect(openedTabs).toBe(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.chat-user-item').first().click();
+  await expect(page.locator('.chat-container')).toHaveClass(/mobile-chat-open/);
+  await page.locator('#chat-back-btn').click();
+  await expect(page.locator('.chat-container')).not.toHaveClass(/mobile-chat-open/);
+  await diagnostics.assertClean();
+});
+
+test('Pattern Master controls remain usable after repeated shell navigation', async ({ page }) => {
+  const diagnostics = attachPageDiagnostics(page);
+  await page.goto(routes.dashboard);
+  await page.evaluate(() => {
+    (window as typeof window & { __initialDocument?: Document }).__initialDocument = document;
+  });
+  let patternRequests = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === routes.vehicles
+        && request.headers()['hx-request'] === 'true') patternRequests += 1;
+  });
+
+  for (let cycle = 0; cycle < 5; cycle += 1) {
+    await page.locator(`.nav-links a.nav-link[href="${routes.vehicles}"]`).click();
+    await expect(page.getByRole('heading', { name: /Pattern Master/i })).toBeVisible();
+    await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
+    expect(await page.evaluate(() =>
+      (window as typeof window & { __initialDocument?: Document }).__initialDocument === document
+    )).toBe(true);
+    const firstRow = page.locator('tr[id^="row-view-"]').first();
+    await firstRow.locator('.pattern-row-select').check();
+    await page.locator('#patternActionsToggleBtn').click();
+    await expect(page.locator('#patternActionsDrawer')).toHaveClass(/is-open/);
+    await page.locator('#patternActionsToggleBtn').click();
+    await page.locator(`.nav-links a.nav-link[href="${routes.dashboard}"]`).click();
+    await expect(page.getByRole('heading', { name: /System Dashboard/i })).toBeVisible();
+  }
+
+  expect(patternRequests).toBe(5);
+  await page.goto(routes.vehicles);
+  await expect(page.getByRole('heading', { name: /Pattern Master/i })).toBeVisible();
   await diagnostics.assertClean();
 });
 
@@ -253,6 +353,41 @@ test('a slower stale HTMX response cannot replace a newer navigation', async ({ 
   await expect(page).toHaveURL(routes.complaints);
   await expect(page.getByRole('heading', { name: /Complaint Management/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Pattern Master/i })).toHaveCount(0);
+});
+
+test('a failed navigation request keeps the current page usable', async ({ page }) => {
+  await page.goto(routes.dashboard);
+  await page.route(`**${routes.vehicles}`, async (route) => {
+    if (route.request().headers()['hx-request'] === 'true') {
+      await route.abort('internetdisconnected');
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.locator(`.nav-links a.nav-link[href="${routes.vehicles}"]`).click();
+  await expect(page.getByRole('heading', { name: /System Dashboard/i })).toBeVisible();
+  await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#global-toast-stack')).toContainText('Navigation failed');
+  await expect(page).toHaveURL(routes.dashboard);
+});
+
+test('navigation gives click feedback before a slow response arrives', async ({ page }) => {
+  await page.goto(routes.dashboard);
+  let releaseResponse!: () => void;
+  const gate = new Promise<void>((resolve) => { releaseResponse = resolve; });
+  await page.route(`**${routes.vehicles}`, async (route) => {
+    if (route.request().headers()['hx-request'] === 'true') await gate;
+    await route.continue();
+  });
+
+  await page.locator(`.nav-links a.nav-link[href="${routes.vehicles}"]`)
+    .evaluate((link: HTMLAnchorElement) => link.click());
+  await expect(page.locator('body')).toHaveClass(/fabro-navigation-pending/);
+  await expect(page.locator('.fabro-navigation-progress')).toHaveCSS('opacity', '1');
+  releaseResponse();
+  await expect(page.getByRole('heading', { name: /Pattern Master/i })).toBeVisible();
+  await expect(page.locator('body')).not.toHaveClass(/fabro-navigation-pending/);
 });
 
 test('navigation remains stable at desktop, tablet and mobile widths', async ({ page }) => {

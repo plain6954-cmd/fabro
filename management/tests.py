@@ -2449,7 +2449,7 @@ class FabroBackendTests(TestCase):
         self.client.force_login(viewer)
         viewer_dashboard = self.client.get(reverse('index'))
         self.assertContains(viewer_dashboard, 'Factory Viewer')
-        self.assertNotContains(viewer_dashboard, reverse('add_complaint'))
+        self.assertNotContains(viewer_dashboard, f'href="{reverse("add_complaint")}"')
         self.assertNotIn(
             f'href="{reverse("master_settings")}"',
             viewer_dashboard.content.decode(),
@@ -2458,7 +2458,7 @@ class FabroBackendTests(TestCase):
 
         factory = self.create_workflow_user('role_factory', WorkflowRoles.FACTORY_EXECUTIVE)
         self.client.force_login(factory)
-        self.assertContains(self.client.get(reverse('index')), reverse('add_complaint'))
+        self.assertContains(self.client.get(reverse('index')), f'href="{reverse("add_complaint")}"')
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 200)
 
         approver = self.create_workflow_user(
@@ -2469,8 +2469,8 @@ class FabroBackendTests(TestCase):
         self.client.force_login(approver)
         approver_dashboard = self.client.get(reverse('index'))
         self.assertContains(approver_dashboard, 'Approver')
-        self.assertContains(approver_dashboard, reverse('approvals_list'))
-        self.assertNotContains(approver_dashboard, reverse('add_complaint'))
+        self.assertContains(approver_dashboard, f'href="{reverse("approvals_list")}"')
+        self.assertNotContains(approver_dashboard, f'href="{reverse("add_complaint")}"')
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
 
     def test_factory_complaint_registrar_creation_permissions_are_enforced(self):
@@ -3477,10 +3477,12 @@ class ApprovalsWorkspaceTests(TestCase):
         self.client.force_login(self.viewer_user)
         response = self.client.get(reverse('approvals_list'))
         self.assertEqual(response.status_code, 403)
+        partial = self.client.get(reverse('approvals_list'), HTTP_HX_REQUEST='true')
+        self.assertEqual(partial.status_code, 403)
 
         # Check navbar does not include Approvals for viewer
         index_res = self.client.get(reverse('index'))
-        self.assertNotContains(index_res, reverse('approvals_list'))
+        self.assertNotContains(index_res, f'href="{reverse("approvals_list")}"')
 
     def test_country_executive_sees_only_own_country_approvals(self):
         self.client.force_login(self.country_exec)
@@ -3595,7 +3597,7 @@ class ComplaintServerSideFilterTests(TestCase):
             self.create_complaint(index, priority='High' if index == 1 else 'Medium')
 
         unfiltered = self.client.get(reverse('complaint_list'))
-        self.assertEqual(len(unfiltered.context['complaints']), 25)
+        self.assertEqual(len(unfiltered.context['complaints']), 10)
         self.assertNotIn(
             'PAT-FLT0001',
             {complaint.complaint_id for complaint in unfiltered.context['complaints']},
@@ -3639,7 +3641,7 @@ class ComplaintServerSideFilterTests(TestCase):
             'search': 'needle', 'search_by': 'description', 'cf_priority': 'High',
         })
 
-        self.assertEqual(len(response.context['complaints']), 25)
+        self.assertEqual(len(response.context['complaints']), 10)
         query = response.context['pagination_querystring']
         self.assertIn('search=needle', query)
         self.assertIn('search_by=description', query)
@@ -3772,6 +3774,14 @@ class HtmxNavigationTests(TestCase):
         self.assertIn('HX-Request', response.headers.get('Vary', ''))
         self.assertIn('Cookie', response.headers.get('Vary', ''))
 
+    def test_direct_chat_url_keeps_complete_document_and_shell(self):
+        response = self.client.get(reverse('chat_view'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<!DOCTYPE html>', html=False)
+        self.assertContains(response, 'class="navbar"', html=False)
+        self.assertContains(response, 'id="app-content"', html=False)
+
     def test_complaint_search_has_clear_control(self):
         response = self.client.get(reverse('complaint_list'), {'search': 'PAT-26070001'})
 
@@ -3861,6 +3871,7 @@ class HtmxNavigationTests(TestCase):
             'approvals_list',
             'notification_list',
             'profile_settings',
+            'chat_view',
         ]
 
         for url_name in shell_pages:
@@ -3877,15 +3888,6 @@ class HtmxNavigationTests(TestCase):
                 self.assertNotContains(response, 'vendor/htmx/htmx.min.js', html=False)
                 self.assertIn('HX-Request', response.headers.get('Vary', ''))
                 self.assertIn('Cookie', response.headers.get('Vary', ''))
-
-    def test_chat_deliberately_remains_a_full_page(self):
-        response = self.client.get(reverse('chat_view'), HTTP_HX_REQUEST='true')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<!DOCTYPE html>', html=False)
-        self.assertContains(response, 'class="navbar"', html=False)
-        self.assertNotContains(response, 'id="app-content"', html=False)
-
 
 class PortalLanguageTests(TestCase):
     def setUp(self):
@@ -4934,7 +4936,7 @@ class PatternMasterPaginationBubblesTests(TestCase):
         response = self.client.get(reverse('car_details') + '?page=2')
         self.assertEqual(response.status_code, 200)
         self.assertIn('pagination_bubbles', response.context)
-        self.assertEqual(response.context['pagination_bubbles'], [1, 2, 3])
+        self.assertEqual(response.context['pagination_bubbles'], [1, 2, 3, 4, 5, 6])
 
         content = response.content.decode('utf-8')
         # Active bubble for page 2

@@ -558,6 +558,35 @@
             transition: opacity 120ms ease;
         }
 
+        .fabro-navigation-progress {
+            position: fixed;
+            inset: 0 auto auto 0;
+            z-index: 10001;
+            width: 35%;
+            height: 3px;
+            background: #e53935;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate3d(-100%, 0, 0);
+        }
+
+        body.fabro-navigation-pending .fabro-navigation-progress {
+            opacity: 1;
+            animation: fabroNavigationProgress 1.3s ease-in-out infinite;
+        }
+
+        @keyframes fabroNavigationProgress {
+            to { transform: translate3d(300%, 0, 0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            body.fabro-navigation-pending .fabro-navigation-progress {
+                animation: none;
+                transform: none;
+                width: 100%;
+            }
+        }
+
         body.light-mode .fabro-page-transition-layer {
             background: rgba(255, 255, 255, 0.98);
         }
@@ -2126,7 +2155,6 @@
                 '/admin-panel/',
                 '/admin_panel/',
                 '/api/',
-                '/chat/',
                 '/login/',
                 '/logout/',
                 '/logout-success/',
@@ -2136,10 +2164,25 @@
             const blockedSegments = [
                 '/delete-',
                 '/delete/',
+                '/download/',
                 '/export_',
                 '/mark-all-read/',
                 '/open/',
                 '/terminate-',
+            ];
+            // Only templates with a scoped #app-content and page-head contract
+            // can be swapped. Unknown routes retain ordinary browser behavior.
+            const shellPaths = new Set([
+                '/', '/car-details/', '/complaints/', '/chat/', '/add-complaint/',
+                '/add-sku/', '/approvals/', '/approvals/inbox/',
+                '/notifications/', '/master-settings/', '/profile/',
+                '/design-approvals/', '/upload-cars/',
+            ]);
+            const shellDetailPaths = [
+                /^\/approvals\/\d+\/$/,
+                /^\/design-approvals\/\d+\/$/,
+                /^\/complaint\/(?:edit|factory-review|execute)\/[^/]+\/$/,
+                /^\/edit-(?:car|sku|master-setting)\/\d+\/$/,
             ];
 
             const isSafeShellNavigation = (anchor) => {
@@ -2158,7 +2201,9 @@
                 }
 
                 return !blockedPrefixes.some((prefix) => url.pathname.startsWith(prefix))
-                    && !blockedSegments.some((segment) => url.pathname.includes(segment));
+                    && !blockedSegments.some((segment) => url.pathname.includes(segment))
+                    && (shellPaths.has(url.pathname)
+                        || shellDetailPaths.some((pattern) => pattern.test(url.pathname)));
             };
 
             const enhanceLinks = (root) => {
@@ -2192,6 +2237,7 @@
                     activeRequest = xhr;
                 }
                 document.body.setAttribute('aria-busy', 'true');
+                document.body.classList.add('fabro-navigation-pending');
                 window.__fabroPageRouting = true;
                 return token;
             };
@@ -2202,7 +2248,7 @@
 
             const resetNavigationState = () => {
                 window.__fabroPageRouting = false;
-                document.body.classList.remove('fabro-page-exiting', 'fabro-ajax-routing');
+                document.body.classList.remove('fabro-page-exiting', 'fabro-ajax-routing', 'fabro-navigation-pending');
                 document.body.removeAttribute('aria-busy');
                 pendingNavigation = null;
                 activeRequest = null;
@@ -2245,7 +2291,16 @@
             });
 
             const stagePageHead = (responseText) => {
-                const responseDocument = new DOMParser().parseFromString(responseText, 'text/html');
+                // HTMX parses the destination body separately. Only parse the
+                // small page-head template here, including for history restores.
+                const pageHeadStart = responseText.indexOf('<template data-fabro-page-head');
+                const historyHeadStart = responseText.indexOf('<template data-fabro-history-head');
+                const headStart = pageHeadStart >= 0 ? pageHeadStart : historyHeadStart;
+                const headEnd = headStart >= 0 ? responseText.indexOf('</template>', headStart) : -1;
+                const headHtml = headEnd >= 0
+                    ? responseText.slice(headStart, headEnd + '</template>'.length)
+                    : responseText;
+                const responseDocument = new DOMParser().parseFromString(headHtml, 'text/html');
                 const headTemplate = responseDocument.querySelector('template[data-fabro-page-head], template[data-fabro-history-head]');
                 if (!headTemplate) {
                     return null;
@@ -2398,6 +2453,12 @@
                     window.location.assign(responseUrl.href);
                     return;
                 }
+                const contentType = event.detail.xhr.getResponseHeader('Content-Type') || '';
+                if (!/^text\/html(?:\s*;|$)/i.test(contentType)) {
+                    event.detail.shouldSwap = false;
+                    window.location.assign(responseUrl.href);
+                    return;
+                }
                 const transaction = stagePageHead(event.detail.xhr.responseText);
                 if (!transaction) {
                     event.detail.shouldSwap = false;
@@ -2454,7 +2515,7 @@
             document.body.addEventListener('htmx:responseError', (event) => {
                 const token = requestTokens.get(event.detail.xhr);
                 if (token && token !== navigationToken) return;
-                if (event.detail.elt.matches('a[hx-get]')) {
+                if (event.detail.elt?.matches?.('a[hx-get]')) {
                     window.location.assign(event.detail.elt.href);
                 } else {
                     resetNavigationState();
@@ -2462,7 +2523,14 @@
             });
             document.body.addEventListener('htmx:sendError', (event) => {
                 const token = requestTokens.get(event.detail.xhr);
-                if (!token || token === navigationToken) resetNavigationState();
+                if (!token || token === navigationToken) {
+                    resetNavigationState();
+                    if (token && typeof window.showToast === 'function') {
+                        const message = window.FabroI18n?.gettext?.('Navigation failed. Check your connection and try again.')
+                            || 'Navigation failed. Check your connection and try again.';
+                        window.showToast(message, 'error');
+                    }
+                }
             });
 
             enhanceLinks(document);
@@ -2520,6 +2588,7 @@
 
     <template id="chat-badge-template"><span class="nav-chat-badge" data-shell-badge="chat"></span></template>
     <template id="approvals-badge-template"><span class="nav-chat-badge" data-shell-badge="approvals" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);"></span></template>
+    <div class="fabro-navigation-progress" aria-hidden="true"></div>
     <div class="fabro-page-transition-layer" aria-hidden="true">
         <div class="fabro-loader-grid">
             <div class="square" id="sq1"></div>
@@ -2549,7 +2618,7 @@
                 <i class="fas fa-drafting-compass"></i>
                 <span>{% translate "My Designs" %}</span>
             </a>
-            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
                 <i class="fas fa-comments"></i>
                 <span>{% translate "CHAT" %}</span>
                 {% if unread_chat_count %}
@@ -2598,7 +2667,7 @@
                 <span>{% translate "3D Approvals" %}</span>
             </a>
             {% endif %}
-            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
                 <i class="fas fa-comments"></i>
                 <span>{% translate "CHAT" %}</span>
                 {% if unread_chat_count %}
@@ -2721,7 +2790,7 @@
             <i class="fas fa-car"></i>
             <span>{% translate "Patterns" %}</span>
         </a>
-        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
             <i class="fas fa-comments"></i>
             <span>{% translate "Chat" %}</span>
             {% if unread_chat_count %}
@@ -2755,7 +2824,7 @@
             <span>{% translate "Add" %}</span>
         </a>
         {% endif %}
-        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
             <i class="fas fa-comments"></i>
             <span>{% translate "Chat" %}</span>
             {% if unread_chat_count %}

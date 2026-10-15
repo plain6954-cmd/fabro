@@ -989,7 +989,7 @@
                     stack.style.right = rightOffset + 'px';
                 };
                 alignStack();
-                window.addEventListener('resize', alignStack);
+                pageScope.listen(window, 'resize', alignStack);
             }
 
             const pills = document.querySelectorAll('.save-status-pill');

@@ -1179,7 +1179,8 @@
                 });
                 if (!response.ok) throw new Error(`Admin section request failed (${response.status})`);
                 const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
-                if (response.redirected || doc.querySelector('form input[name="password"]') || doc.querySelector('.login-container')) {
+                // The admin create-user form also has a password input.
+                if (response.redirected || doc.querySelector('.login-container')) {
                     window.location.href = response.url || '/login/';
                     return;
                 }
@@ -1230,7 +1231,7 @@
             });
             if (!response.ok) throw new Error(`Admin pagination request failed (${response.status})`);
             const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
-            if (response.redirected || doc.querySelector('form input[name="password"]') || doc.querySelector('.login-container')) {
+            if (response.redirected || doc.querySelector('.login-container')) {
                 window.location.href = response.url || '/login/';
                 return;
             }

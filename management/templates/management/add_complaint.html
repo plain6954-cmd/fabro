@@ -1186,7 +1186,9 @@
             if ('ResizeObserver' in window) {
                 const navbar = document.querySelector('.navbar');
                 if (navbar) {
-                    new ResizeObserver(syncComplaintTypeStickyOffset).observe(navbar);
+                    const observer = new ResizeObserver(syncComplaintTypeStickyOffset);
+                    observer.observe(navbar);
+                    pageScope.onCleanup(() => observer.disconnect());
                 }
             }
         }
