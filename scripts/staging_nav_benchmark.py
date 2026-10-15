@@ -333,6 +333,7 @@ def browser_profile(base, cookie, assets):
                 return {'usable_ms': round((time.perf_counter()-started)*1000, 1),
                         'dom_nodes': page.locator('*').count(),
                         'document_requests': document_requests,
+                        'history_length': page.evaluate('history.length'),
                         'html_bytes': len(responses[0].body()),
                         'ttfb_ms': resource['ttfb_ms'] if resource else None,
                         'html_duration_ms': resource['html_duration_ms'] if resource else None,
@@ -346,22 +347,46 @@ def browser_profile(base, cookie, assets):
                     results['warm']['/'].append(navigate('/'))
             if document_requests != 1:
                 raise RuntimeError(f'Unexpected full-document reloads: {document_requests}')
-            page.go_back()
-            page.wait_for_function("location.pathname === '/complaints/'")
-            page.go_back()
-            page.wait_for_function("location.pathname === '/car-details/'")
-            first_row = page.locator('tr[id^="row-view-"]').first
-            first_row.locator('.pattern-row-select').check()
-            page.locator('#patternActionsToggleBtn').click()
-            if 'is-open' not in (page.locator('#patternActionsDrawer').get_attribute('class') or ''):
-                raise RuntimeError('Pattern Master drawer failed after history restoration.')
-            page.go_forward()
-            page.wait_for_function("location.pathname === '/complaints/'")
-            page.go_forward()
-            page.wait_for_function("location.pathname === '/'")
-            if document_requests != 1:
-                raise RuntimeError('Browser history caused a full document reload.')
-            results['history_ok'] = True
+            results['history_entries_before_back'] = page.evaluate(
+                '() => window.navigation?.entries().slice(-6).map(e => e.url) || []')
+            try:
+                results['history_trace'] = []
+                page.go_back(wait_until='commit')
+                results['history_trace'].append(page.url)
+                page.wait_for_function("() => location.pathname === '/complaints/' && "
+                                       "!document.body.hasAttribute('aria-busy')", timeout=5000)
+                results['history_trace'].append(page.url)
+                page.go_back(wait_until='commit')
+                results['history_trace'].append(page.url)
+                page.wait_for_function("() => location.pathname === '/' && "
+                                       "!document.body.hasAttribute('aria-busy')", timeout=5000)
+                page.go_back(wait_until='commit')
+                results['history_trace'].append(page.url)
+                page.wait_for_function("() => location.pathname === '/car-details/' && "
+                                       "!document.body.hasAttribute('aria-busy')", timeout=5000)
+                first_row = page.locator('tr[id^="row-view-"]').first
+                first_row.locator('.pattern-row-select').check()
+                page.locator('#patternActionsToggleBtn').click()
+                if 'is-open' not in (page.locator('#patternActionsDrawer').get_attribute('class') or ''):
+                    raise RuntimeError('Pattern Master drawer failed after history restoration.')
+                page.go_forward(wait_until='commit')
+                results['history_trace'].append(page.url)
+                page.wait_for_function("() => location.pathname === '/' && "
+                                       "!document.body.hasAttribute('aria-busy')", timeout=5000)
+                page.go_forward(wait_until='commit')
+                results['history_trace'].append(page.url)
+                page.wait_for_function("() => location.pathname === '/complaints/' && "
+                                       "!document.body.hasAttribute('aria-busy')", timeout=5000)
+                page.go_forward(wait_until='commit')
+                results['history_trace'].append(page.url)
+                page.wait_for_function("() => location.pathname === '/'", timeout=5000)
+                if document_requests != 1:
+                    raise RuntimeError('Browser history caused a full document reload.')
+                results['history_ok'] = True
+            except Exception as error:
+                results['history_ok'] = False
+                results['history_error'] = str(error)
+                results['history_trace'].append(page.url)
             context.close()
         finally:
             browser.close()
