@@ -3774,6 +3774,14 @@ class HtmxNavigationTests(TestCase):
         self.assertIn('HX-Request', response.headers.get('Vary', ''))
         self.assertIn('Cookie', response.headers.get('Vary', ''))
 
+    def test_direct_chat_url_keeps_complete_document_and_shell(self):
+        response = self.client.get(reverse('chat_view'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<!DOCTYPE html>', html=False)
+        self.assertContains(response, 'class="navbar"', html=False)
+        self.assertContains(response, 'id="app-content"', html=False)
+
     def test_complaint_search_has_clear_control(self):
         response = self.client.get(reverse('complaint_list'), {'search': 'PAT-26070001'})
 
@@ -3863,6 +3871,7 @@ class HtmxNavigationTests(TestCase):
             'approvals_list',
             'notification_list',
             'profile_settings',
+            'chat_view',
         ]
 
         for url_name in shell_pages:
@@ -3879,15 +3888,6 @@ class HtmxNavigationTests(TestCase):
                 self.assertNotContains(response, 'vendor/htmx/htmx.min.js', html=False)
                 self.assertIn('HX-Request', response.headers.get('Vary', ''))
                 self.assertIn('Cookie', response.headers.get('Vary', ''))
-
-    def test_chat_deliberately_remains_a_full_page(self):
-        response = self.client.get(reverse('chat_view'), HTTP_HX_REQUEST='true')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<!DOCTYPE html>', html=False)
-        self.assertContains(response, 'class="navbar"', html=False)
-        self.assertNotContains(response, 'id="app-content"', html=False)
-
 
 class PortalLanguageTests(TestCase):
     def setUp(self):

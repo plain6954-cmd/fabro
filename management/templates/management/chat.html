@@ -1,14 +1,18 @@
 {% load static i18n %}
+{% if is_htmx_request %}
+<template data-fabro-page-head>
+{% else %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
 <head>
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% translate "Chat Workspace - Fabro Leather" %}</title>
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link href="{% static 'css/workflow.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/chat.css' %}?v=20260920-header-input-opt">
+    <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/chat.css' %}?v=20260920-header-input-opt" data-fabro-page-asset>
     <style data-fabro-page-asset="chat-opt">
         .chat-header {
             width: 100% !important;
@@ -139,10 +143,15 @@
             }
         }
     </style>
+{% if is_htmx_request %}
+</template>
+{% else %}
 </head>
 <body>
     {% include 'management/base.html' %}
+{% endif %}
 
+    <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
     <main class="chat-page-wrapper">
         <div class="chat-container">
             <!-- LEFT SIDEBAR: USER DIRECTORY -->
@@ -158,10 +167,10 @@
                         <input type="text" id="user-search" class="chat-search-input" placeholder="{% translate "Search or start a new chat" %}" autocomplete="off">
                     </div>
                     <div class="chat-filter-bubbles">
-                        <button type="button" class="chat-filter-bubble active" id="filter-all-btn" onclick="setChatFilter('all')">
+                        <button type="button" class="chat-filter-bubble active" id="filter-all-btn">
                             {% translate "All" %}
                         </button>
-                        <button type="button" class="chat-filter-bubble" id="filter-unread-btn" onclick="setChatFilter('unread')">
+                        <button type="button" class="chat-filter-bubble" id="filter-unread-btn">
                             {% translate "Unread" %}
                             <span class="bubble-unread-count" id="bubble-unread-total" {% if not total_unread_chat_count %}style="display: none;"{% endif %}>
                                 {{ total_unread_chat_count|default:"" }}
@@ -241,7 +250,7 @@
                 {% if selected_user %}
                     <header class="chat-header" id="chat-header">
                         <div class="chat-header-info">
-                            <button type="button" class="chat-back-btn" id="chat-back-btn" aria-label="{% translate "Back to chats" %}" onclick="closeMobileChat()">
+                            <button type="button" class="chat-back-btn" id="chat-back-btn" aria-label="{% translate "Back to chats" %}">
                                 <i class="fas fa-arrow-left"></i>
                             </button>
                             <div class="user-avatar-container">
@@ -287,9 +296,9 @@
                             <div class="context-tag">
                                 <i class="fas fa-paperclip"></i> {% translate "Linked Context:" %} <strong>{{ selected_complaint.complaint_id }}</strong> ({{ selected_complaint.get_complaint_type_display }} · {{ selected_complaint.brand }} {{ selected_complaint.model }})
                             </div>
-                            <a href="javascript:void(0)" onclick="clearComplaintContext()" style="color: inherit; text-decoration: none; font-size: 0.78rem; opacity: 0.85;" title="{% translate "Remove linked context" %}">
+                            <button type="button" id="clear-complaint-context" style="color: inherit; background: none; border: 0; cursor: pointer; font: inherit; text-decoration: none; font-size: 0.78rem; opacity: 0.85;" title="{% translate "Remove linked context" %}">
                                 <i class="fas fa-times"></i> {% translate "Clear Context" %}
-                            </a>
+                            </button>
                         </div>
                     {% endif %}
 
@@ -323,10 +332,10 @@
                     <!-- INPUT FOOTER -->
                     <footer class="chat-input-footer">
                         <div class="preset-chips">
-                            <button type="button" class="preset-chip" onclick="appendPreset('📌 Requesting status update regarding complaint')">{% translate "📌 Request Status Update" %}</button>
-                            <button type="button" class="preset-chip" onclick="appendPreset('✅ Action plan has been approved and verified')">{% translate "✅ Action Plan Approved" %}</button>
-                            <button type="button" class="preset-chip" onclick="appendPreset('⚠️ Rework required for factory submission')">{% translate "⚠️ Rework Required" %}</button>
-                            <button type="button" class="preset-chip" onclick="appendPreset('📦 Please verify production container number')">{% translate "📦 Container Verification" %}</button>
+                            <button type="button" class="preset-chip" data-chat-preset="📌 Requesting status update regarding complaint">{% translate "📌 Request Status Update" %}</button>
+                            <button type="button" class="preset-chip" data-chat-preset="✅ Action plan has been approved and verified">{% translate "✅ Action Plan Approved" %}</button>
+                            <button type="button" class="preset-chip" data-chat-preset="⚠️ Rework required for factory submission">{% translate "⚠️ Rework Required" %}</button>
+                            <button type="button" class="preset-chip" data-chat-preset="📦 Please verify production container number">{% translate "📦 Container Verification" %}</button>
                         </div>
                         <form id="chat-form" class="chat-input-form">
                             {% csrf_token %}
@@ -353,7 +362,10 @@
     </main>
 
     <script>
+    (() => {
+        const pageScope = window.fabroCreatePageScope();
         let currentRecipientId = '{{ selected_user.id|default:"" }}';
+        const initialRecipientId = currentRecipientId;
         let currentChatFilter = 'all';
         let messagesRequestController = null;
         let chatPollInProgress = false;
@@ -464,7 +476,7 @@
         }
 
         // INSTANT SPA CHAT USER SWITCHING WITHOUT PAGE RELOAD
-        async function switchChatUser(userId, username, roleLabel, roleCode, flagUrl, photoUrl) {
+        async function switchChatUser(userId, username, roleLabel, roleCode, flagUrl, photoUrl, updateHistory = true) {
             if (!userId) return;
             if (String(userId) === String(currentRecipientId)) {
                 openMobileChat();
@@ -475,8 +487,10 @@
             currentRecipientId = userId;
 
             // 1. Update URL silently without reloading page
-            const newUrl = '/chat/?user=' + userId;
-            window.history.pushState(null, '', newUrl);
+            if (updateHistory) {
+                const newUrl = '/chat/?user=' + userId;
+                window.history.pushState(null, '', newUrl);
+            }
 
             // 2. Open mobile view on small devices
             openMobileChat();
@@ -702,6 +716,7 @@
         }
 
         window.fabroOnPageLoad(() => {
+            if (pageScope.signal.aborted) return;
             const userSearch = document.getElementById('user-search');
             const userItems = document.querySelectorAll('.chat-user-item');
             const chatForm = document.getElementById('chat-form');
@@ -711,12 +726,45 @@
             const sendBtn = document.getElementById('send-btn');
             const loadOlderButton = document.getElementById('load-older-messages');
 
+            pageScope.listen(window, 'popstate', () => {
+                if (window.location.pathname !== '/chat/') return;
+                const params = new URLSearchParams(window.location.search);
+                const recipientId = params.get('user') || initialRecipientId;
+                if (!/^\d+$/.test(recipientId)) return;
+                const item = document.querySelector(`.chat-user-item[data-user-id="${recipientId}"]`);
+                if (!item) return;
+                void switchChatUser(
+                    recipientId,
+                    item.dataset.username,
+                    item.dataset.roleLabel,
+                    item.dataset.roleCode,
+                    item.dataset.flagUrl,
+                    item.dataset.photoUrl,
+                    false,
+                );
+                if (window.innerWidth <= 820 && !params.has('user') && !params.has('complaint')) {
+                    closeMobileChat();
+                }
+            });
+
             scrollToBottom();
-            if (loadOlderButton) loadOlderButton.addEventListener('click', () => loadMessagesForUser(currentRecipientId, false, true));
+            if (loadOlderButton) pageScope.listen(loadOlderButton, 'click', () => loadMessagesForUser(currentRecipientId, false, true));
+
+            const allFilterButton = document.getElementById('filter-all-btn');
+            const unreadFilterButton = document.getElementById('filter-unread-btn');
+            const mobileBackButton = document.getElementById('chat-back-btn');
+            const clearContextButton = document.getElementById('clear-complaint-context');
+            if (allFilterButton) pageScope.listen(allFilterButton, 'click', () => setChatFilter('all'));
+            if (unreadFilterButton) pageScope.listen(unreadFilterButton, 'click', () => setChatFilter('unread'));
+            if (mobileBackButton) pageScope.listen(mobileBackButton, 'click', closeMobileChat);
+            if (clearContextButton) pageScope.listen(clearContextButton, 'click', clearComplaintContext);
+            document.querySelectorAll('[data-chat-preset]').forEach(button => {
+                pageScope.listen(button, 'click', () => appendPreset(button.dataset.chatPreset));
+            });
 
             // Event listener for user item clicks (SPA switching)
             userItems.forEach(item => {
-                item.addEventListener('click', (e) => {
+                pageScope.listen(item, 'click', (e) => {
                     e.preventDefault();
                     const userId = item.getAttribute('data-user-id');
                     const username = item.getAttribute('data-username');
@@ -730,7 +778,7 @@
 
             // 1. Search filter
             if (userSearch) {
-                userSearch.addEventListener('input', applyUserFilters);
+                pageScope.listen(userSearch, 'input', applyUserFilters);
             }
 
             // 2. Enter key submits message & auto-resize
@@ -738,10 +786,10 @@
                 if (window.innerWidth <= 768 && messageInput.dataset.mobilePlaceholder) {
                     messageInput.placeholder = messageInput.dataset.mobilePlaceholder;
                 }
-                messageInput.addEventListener('input', () => autoResizeChatInput(messageInput));
+                pageScope.listen(messageInput, 'input', () => autoResizeChatInput(messageInput));
                 autoResizeChatInput(messageInput);
                 messageInput.focus();
-                messageInput.addEventListener('keydown', (e) => {
+                pageScope.listen(messageInput, 'keydown', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         chatForm.dispatchEvent(new Event('submit'));
@@ -751,7 +799,7 @@
 
             // 3. Submit Chat Message via AJAX
             if (chatForm) {
-                chatForm.addEventListener('submit', async (e) => {
+                pageScope.listen(chatForm, 'submit', async (e) => {
                     e.preventDefault();
                     const msg = messageInput.value.trim();
                     const recipientId = recipientIdInput ? recipientIdInput.value : '';
@@ -775,6 +823,7 @@
                         });
 
                         const res = await response.json();
+                        if (pageScope.signal.aborted) return;
                         if (response.ok && res.status === 'ok') {
                             if (String(currentRecipientId) === String(recipientId)) {
                                 if (messageInput.value.trim() === msg) {
@@ -831,7 +880,7 @@
                 if (usersPollInProgress) return;
                 usersPollInProgress = true;
                 try {
-                    const res = await fetch('/api/chat/users/');
+                    const res = await pageScope.fetch('/api/chat/users/');
                     if (!res.ok) return;
                     const data = await res.json();
                     if (data.status !== 'ok' || !data.users) return;
@@ -912,7 +961,7 @@
 
                     applyUserFilters();
                 } catch (err) {
-                    console.error('Failed to refresh users list:', err);
+                    if (err.name !== 'AbortError') console.error('Failed to refresh users list:', err);
                 } finally {
                     usersPollInProgress = false;
                 }
@@ -946,12 +995,16 @@
             const usersPoll = setInterval(() => {
                 if (!document.hidden) refreshUsersList();
             }, 30000);
-            document.addEventListener('fabro:before-page-swap', () => {
+            pageScope.onCleanup(() => {
                 clearInterval(messagePoll);
                 clearInterval(usersPoll);
                 if (messagesRequestController) messagesRequestController.abort();
-            }, { once: true });
+            });
         });
+    })();
     </script>
+    </div>
+{% if not is_htmx_request %}
 </body>
 </html>
+{% endif %}

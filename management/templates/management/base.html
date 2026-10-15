@@ -2155,7 +2155,6 @@
                 '/admin-panel/',
                 '/admin_panel/',
                 '/api/',
-                '/chat/',
                 '/login/',
                 '/logout/',
                 '/logout-success/',
@@ -2174,7 +2173,7 @@
             // Only templates with a scoped #app-content and page-head contract
             // can be swapped. Unknown routes retain ordinary browser behavior.
             const shellPaths = new Set([
-                '/', '/car-details/', '/complaints/', '/add-complaint/',
+                '/', '/car-details/', '/complaints/', '/chat/', '/add-complaint/',
                 '/add-sku/', '/approvals/', '/approvals/inbox/',
                 '/notifications/', '/master-settings/', '/profile/',
                 '/design-approvals/', '/upload-cars/',
@@ -2619,7 +2618,7 @@
                 <i class="fas fa-drafting-compass"></i>
                 <span>{% translate "My Designs" %}</span>
             </a>
-            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
                 <i class="fas fa-comments"></i>
                 <span>{% translate "CHAT" %}</span>
                 {% if unread_chat_count %}
@@ -2668,7 +2667,7 @@
                 <span>{% translate "3D Approvals" %}</span>
             </a>
             {% endif %}
-            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+            <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
                 <i class="fas fa-comments"></i>
                 <span>{% translate "CHAT" %}</span>
                 {% if unread_chat_count %}
@@ -2791,7 +2790,7 @@
             <i class="fas fa-car"></i>
             <span>{% translate "Patterns" %}</span>
         </a>
-        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
             <i class="fas fa-comments"></i>
             <span>{% translate "Chat" %}</span>
             {% if unread_chat_count %}
@@ -2825,7 +2824,7 @@
             <span>{% translate "Add" %}</span>
         </a>
         {% endif %}
-        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat" data-no-htmx>
+        <a href="{% url 'chat_view' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
             <i class="fas fa-comments"></i>
             <span>{% translate "Chat" %}</span>
             {% if unread_chat_count %}
