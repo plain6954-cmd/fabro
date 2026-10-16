@@ -720,6 +720,98 @@ class FabroBackendTests(TestCase):
             [matching_sku.id],
         )
 
+    def test_get_available_years_filtered_by_sku_for_brand_and_model(self):
+        self.login()
+        # Create second year range 2020-2023 for this model
+        year_2023 = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2020,
+            year_end=2023,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="BACKEND-LAYOUT-2023",
+        )
+        # Create third year range 2017-2019 without any SKU
+        year_2019 = YearRange.objects.create(
+            sub_model=self.sub_model,
+            year_start=2017,
+            year_end=2019,
+            number_of_seats=5,
+            number_of_doors=4,
+            layout_code="BACKEND-LAYOUT-2019",
+        )
+        # Create SKUs only for 24-26 and 20-23
+        SKU.objects.create(
+            code='SKU-24-26',
+            description='BACKEND BRAND BACKEND MODEL 24-26 Seat Cover',
+            region=self.region,
+        )
+        SKU.objects.create(
+            code='SKU-20-23',
+            description='BACKEND BRAND BACKEND MODEL 20-23 Seat Cover',
+            region=self.region,
+        )
+
+        response = self.client.get(reverse('get_available_years'), {
+            'brand': self.brand.id,
+            'model': self.model.id,
+        })
+        self.assertEqual(response.status_code, 200)
+        returned_ranges = [item['range'] for item in response.json()]
+        self.assertIn("20-23", returned_ranges)
+        self.assertIn("24-26", returned_ranges)
+        # 17-19 was not in any SKU so it should not be returned
+        self.assertNotIn("17-19", returned_ranges)
+
+        # Now test that choosing a year filters the SKUs accordingly
+        sku_response = self.client.get(reverse('get_filtered_skus'), {
+            'brand': self.brand.id,
+            'model': self.model.id,
+            'year': year_2023.id,
+        })
+        self.assertEqual(sku_response.status_code, 200)
+        sku_codes = [s['name'] for s in sku_response.json()]
+        self.assertTrue(any('SKU-20-23' in name for name in sku_codes))
+        self.assertFalse(any('SKU-24-26' in name for name in sku_codes))
+
+    def test_complaint_creation_auto_fills_sub_model_from_year(self):
+        self.login()
+        # Post form data with brand, model, and year, but omit sub_model
+        data = self.valid_complaint_form_data(
+            brand=self.brand.id,
+            model=self.model.id,
+            year=self.year.id,
+        )
+        data.pop('sub_model', None)
+        data['media_upload_batch'] = create_upload_batch(self.user).id
+        response = self.client.post(reverse('add_complaint'), data)
+        self.assertEqual(response.status_code, 302)
+        complaint = Complaint.objects.order_by('-created_at' if hasattr(Complaint, 'created_at') else '-date').first()
+        self.assertEqual(complaint.brand, self.brand)
+        self.assertEqual(complaint.model, self.model)
+        self.assertEqual(complaint.year, self.year)
+        self.assertEqual(complaint.sub_model, self.sub_model)
+
+    def test_complaint_creation_rejects_year_from_another_model(self):
+        self.login()
+        other_model = Model.objects.create(brand=self.brand, name='DIFFERENT MODEL')
+        other_sub_model = SubModel.objects.create(model=other_model, name='OTHER TRIM')
+        other_year = YearRange.objects.create(
+            sub_model=other_sub_model, year_start=2020, year_end=2022,
+            layout_code='BACKEND-OTHER-YEAR',
+        )
+        data = self.valid_complaint_form_data(
+            brand=self.brand.id, model=self.model.id, year=other_year.id,
+        )
+        data.pop('sub_model', None)
+        data['media_upload_batch'] = create_upload_batch(self.user).id
+        before = Complaint.objects.count()
+        response = self.client.post(reverse('add_complaint'), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Complaint.objects.count(), before)
+        self.assertIn('year', response.context['form'].errors)
+
+
     def test_export_complaints_csv(self):
         self.login()
         Complaint.objects.create(

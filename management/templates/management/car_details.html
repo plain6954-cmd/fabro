@@ -11,7 +11,7 @@
     <title>{% translate "Pattern Master - Fabro Leather" %}</title>
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20260923-mobile-search" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -1043,19 +1043,48 @@
             max-height: 235px;
             flex: 1 1 auto;
         }
+
     </style>
+    <link rel="stylesheet" href="{% static 'management/css/color-master.css' %}?v=20261016" data-fabro-page-asset>
 
 {% if is_htmx_request %}
 </template>
 {% else %}
 </head>
-<body>
+<body class="{% if active_subwindow == 'colors' %}is-color-subwindow{% endif %}">
     {% include 'management/base.html' %}
 {% endif %}
     <div id="app-content" hx-history-elt data-unread-chat-count="{{ unread_chat_count|default:0 }}" data-pending-approvals-count="{{ pending_approvals_count|default:0 }}">
-    <div class="page-container" data-no-reveal>
+    <div class="page-container {% if active_subwindow == 'colors' %}is-color-subwindow{% endif %}" data-no-reveal>
+        <!-- Sliding Sub-Taskbar (Pattern Master & Color Master) -->
+        <div class="pattern-subtaskbar-container" id="patternSubtaskbarContainer">
+            <div class="pattern-subtaskbar-capsule" role="tablist" aria-label="{% translate 'Pattern Workspace' %}">
+                <button type="button"
+                        class="pattern-subtaskbar-btn {% if active_subwindow != 'colors' %}is-active{% endif %}"
+                        id="subtaskbarBtnPatterns"
+                        role="tab"
+                        aria-selected="{% if active_subwindow != 'colors' %}true{% else %}false{% endif %}"
+                        aria-controls="tab-pane-pattern-list"
+                        onclick="switchSubwindow('patterns')">
+                    <i class="fas fa-layer-group"></i>
+                    <span>{% translate "Pattern Master" %}</span>
+                </button>
+                <button type="button"
+                        class="pattern-subtaskbar-btn {% if active_subwindow == 'colors' %}is-active{% endif %}"
+                        id="subtaskbarBtnColors"
+                        role="tab"
+                        aria-selected="{% if active_subwindow == 'colors' %}true{% else %}false{% endif %}"
+                        aria-controls="tab-pane-color-master"
+                        onclick="switchSubwindow('colors')">
+                    <i class="fas fa-palette"></i>
+                    <span>{% translate "Color Master" %}</span>
+                    <span class="subtaskbar-counter-pill" id="subtaskbarColorCount">{{ total_colors_count }}</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Tab 1: Pattern list (All existing tools, filters, search, table) -->
-        <div id="tab-pane-pattern-list" class="pattern-tab-pane">
+        <div id="tab-pane-pattern-list" class="pattern-tab-pane" style="{% if active_subwindow == 'colors' %}display: none;{% endif %}">
             <!-- Pattern Toolbar: Title on left, controls on right on the same horizontal row -->
             <div class="pattern-toolbar">
                 <div class="pattern-toolbar__header">
@@ -1865,6 +1894,129 @@
             </div>
         </div>
 
+        <!-- Tab 2: Color Master (TILES ONLY sub-window) -->
+        <div id="tab-pane-color-master" class="pattern-tab-pane color-master-pane" style="{% if active_subwindow != 'colors' %}display: none;{% endif %}">
+            <!-- Color Master Toolbar -->
+            <div class="color-master-toolbar">
+                <div class="color-master-title-wrap">
+                    <h1 class="page-title">
+                        <span>{% translate "Color Master" %}</span>
+                        <span class="color-master-count-badge" id="colorMasterCountBadge">{{ total_colors_count }}</span>
+                    </h1>
+                    <span class="color-master-subtitle">{% translate "Automotive Leather Palette" %}</span>
+                </div>
+                <div class="color-master-controls">
+                    <div class="color-search-picker">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <input type="text" id="colorSearchInput" placeholder="{% translate 'Search name, HEX, code...' %}" value="{{ color_search }}" oninput="filterColorTiles(this.value)" autocomplete="off">
+                        <button type="button" id="clearColorSearchBtn" onclick="clearColorSearch()" style="display: none; background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 0 4px;" title="{% translate 'Clear search' %}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <select id="colorStatusFilter" class="color-status-select" onchange="filterColorStatus(this.value)" aria-label="{% translate 'Filter by status' %}">
+                        <option value="">{% translate "All Statuses" %}</option>
+                        <option value="active" {% if color_status_filter|lower == 'active' %}selected{% endif %}>{% translate "Active" %}</option>
+                        <option value="sampling" {% if color_status_filter|lower == 'sampling' %}selected{% endif %}>{% translate "Sampling" %}</option>
+                        <option value="discontinued" {% if color_status_filter|lower == 'discontinued' %}selected{% endif %}>{% translate "Discontinued" %}</option>
+                    </select>
+                    {% if can_manage_catalog %}
+                    <button type="button" class="btn-create-color" onclick="openCreateColorModal()" title="{% translate 'Create New Color' %}">
+                        <i class="fas fa-plus"></i>
+                        <span>{% translate "New" %}</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TILES ONLY Grid -->
+            <div class="color-tiles-grid" id="colorTilesGrid">
+                {% for color in colors %}
+                <div class="color-tile-card"
+                     id="color-card-{{ color.id }}"
+                     data-color-id="{{ color.id }}"
+                     data-name="{{ color.name|lower }}"
+                     data-hex="{{ color.hex_code|lower }}"
+                     data-code="{{ color.color_code|lower }}"
+                     data-pantone="{{ color.pantone_code|lower }}"
+                     data-category="{{ color.color_category|lower }}"
+                     data-series="{{ color.material_series|lower }}"
+                     data-status="{{ color.status|lower }}"
+                     data-models="{{ color.compatible_models|lower }}">
+
+                    <!-- Visual Swatch Area with Exact HEX rendering -->
+                    <div class="color-tile__swatch-wrapper">
+                        <div class="color-tile__swatch" style="background-color: {{ color.hex_code }};" title="{{ color.name }} ({{ color.hex_code }})">
+                            <div class="color-tile__swatch-texture"></div>
+                            <span class="color-tile__status-pill status-{{ color.status|lower }}">{{ color.status }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Card Body Details -->
+                    <div class="color-tile__content">
+                        <div class="color-tile__row-title">
+                            <div class="color-tile__name-with-serial">
+                                <span class="color-tile__serial" title="{% translate 'Color Serial' %}">#{{ color.color_code }}</span>
+                                <h3 class="color-tile__name" title="{{ color.name }}">{{ color.name }}</h3>
+                            </div>
+                            {% if color.pantone_code %}
+                            <span class="color-tile__pantone" title="{% translate 'Pantone Code' %}">{{ color.pantone_code }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="color-tile__row-specs">
+                            <span class="color-tile__hex" onclick="copyHexCode('{{ color.hex_code }}', this)" title="{% translate 'Click to copy HEX' %}">
+                                <i class="fas fa-hashtag"></i> {{ color.hex_code }}
+                            </span>
+                            {% if color.color_category or color.material_series %}
+                            <span class="color-tile__series-pill" title="{% translate 'Color Category' %}">{{ color.color_category|default:color.material_series }}</span>
+                            {% endif %}
+                            {% if color.rgb_code %}
+                            <span class="color-tile__rgb-pill" title="RGB: {{ color.rgb_code }}"><i class="fas fa-sliders-h"></i> RGB {{ color.rgb_code }}</span>
+                            {% endif %}
+                        </div>
+                        {% if color.compatible_models %}
+                        <div class="color-tile__models">
+                            <span class="color-tile__models-label">{% translate "Compatible Models:" %}</span>
+                            <div class="color-tile__models-tags">
+                                {% for tag in color.compatible_models.split %}
+                                <span class="model-tag-chip">{{ tag|cut:"," }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Card Action Footer -->
+                    <div class="color-tile__actions">
+                        {% if can_manage_catalog %}
+                        <button type="button" class="color-tile__action-btn btn-edit" onclick="openEditColorModal('{{ color.id }}', '{{ color.name|escapejs }}', '{{ color.color_code|escapejs }}', '{{ color.hex_code|escapejs }}', '{{ color.material_series|escapejs }}', '{{ color.compatible_models|escapejs }}', '{{ color.status|escapejs }}', this)" title="{% translate 'Edit Color' %}">
+                            <i class="fas fa-edit"></i> <span>{% translate "Edit" %}</span>
+                        </button>
+                        {% endif %}
+                        <button type="button" class="color-tile__action-btn btn-view" onclick="openViewColorModal('{{ color.id }}', '{{ color.name|escapejs }}', '{{ color.color_code|escapejs }}', '{{ color.hex_code|escapejs }}', '{{ color.material_series|escapejs }}', '{{ color.compatible_models|escapejs }}', '{{ color.status|escapejs }}')" title="{% translate 'View Color Swatch' %}">
+                            <i class="fas fa-eye"></i> <span>{% translate "View" %}</span>
+                        </button>
+                        {% if can_manage_catalog %}
+                        <button type="button" class="color-tile__action-btn btn-archive" onclick="deleteColor('{{ color.id }}', '{{ color.name|escapejs }}')" title="{% translate 'Archive / Delete Color' %}">
+                            <i class="fas fa-archive"></i> <span>{% translate "Archive" %}</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="color-tiles-empty" id="colorTilesEmpty">
+                    <i class="fas fa-palette"></i>
+                    <h3>{% translate "No leather colors added yet" %}</h3>
+                    <p>{% translate "Click '+ Create New Color' to add your first leather color swatch." %}</p>
+                </div>
+                {% endfor %}
+                <div class="color-tiles-empty" id="colorTilesNoFilterMatch" style="display: none;">
+                    <i class="fas fa-search"></i>
+                    <h3>{% translate "No matching colors found" %}</h3>
+                    <p>{% translate "Try clearing or adjusting your search keyword." %}</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Design options (Folders & 2x2 Matrix Image Gallery) -->
         <div id="tab-pane-design-options" class="pattern-tab-pane" style="display: none;">
             <form id="designOptionsGlobalCsrf" style="display: none;" aria-hidden="true">
@@ -2362,6 +2514,207 @@
     </div>
     {% endif %}
 
+    <!-- ==================== COLOR MASTER MODALS ==================== -->
+    <!-- Create Color Modal -->
+    <div id="createColorModal" class="modal" role="dialog" aria-labelledby="createColorModalTitle" aria-modal="true" style="display: none; z-index: 9999;">
+        <div class="modal-content" style="max-width: 500px; border: 1px solid rgba(239, 68, 68, 0.35); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);">
+            <div class="modal-header">
+                <h2 id="createColorModalTitle" class="modal-title" style="color: var(--dark-text); font-size: 1.15rem; display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="fas fa-palette" style="color: #ef4444;"></i>
+                    <span>{% translate "Create New Leather Color" %}</span>
+                </h2>
+                <button type="button" class="close-btn" onclick="closeCreateColorModal()" title="{% translate 'Close' %}">&times;</button>
+            </div>
+            <form id="createColorForm" onsubmit="submitCreateColor(event)">
+                {% csrf_token %}
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem; padding: 1rem 0;">
+                    <!-- Live Swatch Preview -->
+                    <div style="display: flex; align-items: center; gap: 1rem; background: rgba(0, 0, 0, 0.3); padding: 0.85rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div id="createColorLiveSwatch" style="width: 58px; height: 58px; border-radius: 10px; background-color: #010101; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 0 4px 10px rgba(0, 0, 0, 0.4);"></div>
+                        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                            <span style="font-weight: 700; color: #f8fafc; font-size: 1.05rem;" id="createColorLiveName">Nappa Black</span>
+                            <span style="font-family: monospace; font-size: 0.85rem; color: #94a3b8;" id="createColorLiveHex">#010101</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div>
+                            <label class="form-label" for="newColorName" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Color Name" %} *</label>
+                            <input type="text" id="newColorName" name="name" class="form-control" placeholder="e.g. Saddle Tan" required oninput="updateCreateLivePreview()" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label class="form-label" for="newColorCode" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Internal Code" %}</label>
+                            <input type="text" id="newColorCode" name="color_code" class="form-control" placeholder="e.g. FAB-113 (auto)" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div>
+                            <label class="form-label" for="newColorHex" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "HEX Color" %} *</label>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="color" id="newColorPicker" value="#010101" oninput="syncColorInput(this.value, 'newColorHex')" style="width: 38px; height: 38px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); background: transparent; cursor: pointer; padding: 0;">
+                                <input type="text" id="newColorHex" name="hex_code" value="#010101" required oninput="syncColorPicker(this.value, 'newColorPicker')" style="flex: 1; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; font-family: monospace; box-sizing: border-box;">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" for="newColorStatus" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Status" %}</label>
+                            <select id="newColorStatus" name="status" class="form-control" style="width: 100%; height: 38px; border-radius: 8px; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
+                                <option value="Active">{% translate "Active" %}</option>
+                                <option value="Sampling">{% translate "Sampling" %}</option>
+                                <option value="Discontinued">{% translate "Discontinued" %}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="newColorSeries" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Material Series / Grade" %}</label>
+                        <input type="text" id="newColorSeries" name="material_series" class="form-control" placeholder="e.g. Nappa, Semi-Aniline, Full-Grain" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="newColorModels" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Compatible Models (comma-separated)" %}</label>
+                        <input type="text" id="newColorModels" name="compatible_models" class="form-control" placeholder="e.g. Model S, Model X, Roadster" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
+                    </div>
+                </div>
+                <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.65rem; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateColorModal()">{% translate "Cancel" %}</button>
+                    <button type="submit" class="btn btn-primary" id="btnSubmitCreateColor" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none;">
+                        <i class="fas fa-check"></i> {% translate "Save Color" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Color Modal -->
+    <div id="editColorModal" class="modal edit-color-modal" role="dialog" aria-labelledby="editColorModalTitle" aria-modal="true" style="display: none;">
+        <div class="modal-content edit-color-modal-content">
+            <div class="modal-header">
+                <h2 id="editColorModalTitle" class="modal-title">
+                    <i class="fas fa-edit"></i>
+                    <span>{% translate "Edit Leather Color" %}</span>
+                </h2>
+                <button type="button" class="close-btn" onclick="closeEditColorModal()" title="{% translate 'Close' %}" aria-label="{% translate 'Close' %}">&times;</button>
+            </div>
+            <form id="editColorForm" onsubmit="submitEditColor(event)" novalidate>
+                {% csrf_token %}
+                <input type="hidden" id="editColorId" name="id">
+
+                <!-- Error Feedback Banner -->
+                <div id="editColorErrorBanner" class="edit-color-error-banner" style="display: none;" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="editColorErrorMsg"></span>
+                </div>
+
+                <!-- Compact Live Swatch Preview -->
+                <div class="edit-color-preview">
+                    <div id="editColorLiveSwatch" class="edit-color-swatch" style="background-color: #010101;"></div>
+                    <div class="edit-color-preview-info">
+                        <span class="edit-color-preview-name" id="editColorLiveName">Nappa Black</span>
+                        <span class="edit-color-preview-hex" id="editColorLiveHex">#010101</span>
+                    </div>
+                </div>
+
+                <div class="edit-color-form-body">
+                    <!-- Row 1: Color Name | Internal Code -->
+                    <div class="edit-color-row-2col">
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="editColorName">{% translate "Color Name" %} *</label>
+                            <input type="text" id="editColorName" name="name" class="edit-color-input" required oninput="updateEditLivePreview()" autocomplete="off" placeholder="{% translate 'e.g. F.BEIGE' %}">
+                        </div>
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="editColorCode">{% translate "Internal Code" %}</label>
+                            <input type="text" id="editColorCode" name="color_code" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. 01' %}">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: HEX Color + Color Picker | Status -->
+                    <div class="edit-color-row-2col">
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="editColorHex">{% translate "HEX Color" %} *</label>
+                            <div class="edit-color-hex-group">
+                                <input type="color" id="editColorPicker" class="edit-color-picker-input" value="#010101" oninput="syncEditColorPicker(this.value)" title="{% translate 'Choose color' %}" aria-label="{% translate 'Choose color' %}">
+                                <input type="text" id="editColorHex" name="hex_code" class="edit-color-input edit-color-hex-input" value="#010101" required oninput="syncEditColorHex(this.value)" autocomplete="off" placeholder="#000000" maxlength="7">
+                            </div>
+                        </div>
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="editColorStatus">{% translate "Status" %}</label>
+                            <select id="editColorStatus" name="status" class="edit-color-select">
+                                <option value="Active">{% translate "Active" %}</option>
+                                <option value="Sampling">{% translate "Sampling" %}</option>
+                                <option value="Discontinued">{% translate "Discontinued" %}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Material Series / Grade -->
+                    <div class="edit-color-field">
+                        <label class="edit-color-label" for="editColorSeries">{% translate "Material Series / Grade" %}</label>
+                        <input type="text" id="editColorSeries" name="material_series" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Beige & Tan / Nappa Grade' %}">
+                    </div>
+
+                    <!-- Row 4: Compatible Models -->
+                    <div class="edit-color-field">
+                        <label class="edit-color-label" for="editColorModels">{% translate "Compatible Models" %}</label>
+                        <input type="text" id="editColorModels" name="compatible_models" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Land Cruiser, Prado, Camry' %}">
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel-edit" onclick="closeEditColorModal()">{% translate "Cancel" %}</button>
+                    <button type="submit" class="btn-save-changes" id="btnSubmitEditColor">
+                        <i class="fas fa-check"></i> <span>{% translate "Save Changes" %}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Color Swatch Modal -->
+    <div id="viewColorModal" class="modal" role="dialog" aria-labelledby="viewColorModalTitle" aria-modal="true" style="display: none; z-index: 9999;">
+        <div class="modal-content" style="max-width: 460px; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.75);">
+            <div class="modal-header">
+                <h2 id="viewColorModalTitle" class="modal-title" style="color: var(--dark-text); font-size: 1.15rem; display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="fas fa-eye" style="color: #38bdf8;"></i>
+                    <span id="viewColorHeadingName">{% translate "Leather Swatch Preview" %}</span>
+                </h2>
+                <button type="button" class="close-btn" onclick="closeViewColorModal()" title="{% translate 'Close' %}">&times;</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem; padding: 1.25rem 0;">
+                <div id="viewColorLargeSwatch" style="width: 100%; height: 160px; border-radius: 14px; position: relative; overflow: hidden; box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.18);">
+                    <div style="position: absolute; inset: 0; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.18), transparent 75%);"></div>
+                    <span id="viewColorStatusBadge" class="color-tile__status-pill" style="position: absolute; bottom: 12px; right: 12px;">Active</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; background: rgba(0, 0, 0, 0.25); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "Internal Code" %}</span>
+                        <strong id="viewColorCodeVal" style="font-family: monospace; font-size: 0.95rem; color: #f8fafc;">FAB-101</strong>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "HEX Value" %}</span>
+                        <div style="display: flex; align-items: center; gap: 0.45rem;">
+                            <strong id="viewColorHexVal" style="font-family: monospace; font-size: 0.95rem; color: #f8fafc;">#010101</strong>
+                            <button type="button" onclick="copyHexCode(document.getElementById('viewColorHexVal').textContent, this)" style="background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 2px;" title="{% translate 'Copy' %}">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "Material Series" %}</span>
+                        <span id="viewColorSeriesVal" style="font-size: 0.85rem; color: #a78bfa; font-weight: 600;">Nappa</span>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "Compatible Models" %}</span>
+                        <span id="viewColorModelsVal" style="font-size: 0.85rem; color: #cbd5e1;">Model S, Roadster</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions" style="display: flex; justify-content: flex-end; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeViewColorModal()">{% translate "Close" %}</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     (() => {
         const pageScope = window.fabroCreatePageScope();
@@ -2411,6 +2764,544 @@
         function closeLayoutCodeErrorModal() {
             const modal = document.getElementById("layoutCodeErrorModal");
             if (modal) modal.style.display = "none";
+        }
+
+        /* ==================== SUB-TASKBAR & COLOR MASTER CONTROLS ==================== */
+        function updateSubtaskbarGlider(targetBtn) {
+            const glider = document.getElementById('patternSubtaskbarGlider');
+            const activeBtn = targetBtn || document.querySelector('.pattern-subtaskbar-btn.is-active');
+            if (glider && activeBtn && activeBtn.offsetWidth) {
+                glider.style.width = activeBtn.offsetWidth + 'px';
+                glider.style.transform = `translateX(${activeBtn.offsetLeft - 5}px)`;
+            }
+        }
+
+        function switchSubwindow(subwindow) {
+            const btnPatterns = document.getElementById('subtaskbarBtnPatterns');
+            const btnColors = document.getElementById('subtaskbarBtnColors');
+            const panePatterns = document.getElementById('tab-pane-pattern-list');
+            const paneColors = document.getElementById('tab-pane-color-master');
+            const paneDesign = document.getElementById('tab-pane-design-options');
+            const pageContainer = document.querySelector('.page-container');
+
+            if (subwindow === 'colors') {
+                if (pageContainer) pageContainer.classList.add('is-color-subwindow');
+                document.body.classList.add('is-color-subwindow');
+                document.documentElement.classList.add('is-color-subwindow');
+
+                if (btnPatterns) {
+                    btnPatterns.classList.remove('is-active');
+                    btnPatterns.setAttribute('aria-selected', 'false');
+                }
+                if (btnColors) {
+                    btnColors.classList.add('is-active');
+                    btnColors.setAttribute('aria-selected', 'true');
+                    updateSubtaskbarGlider(btnColors);
+                }
+                if (panePatterns) panePatterns.style.display = 'none';
+                if (paneDesign) paneDesign.style.display = 'none';
+                if (paneColors) {
+                    paneColors.style.display = 'flex';
+                }
+                try {
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('subwindow', 'colors');
+                    newUrl.searchParams.delete('vehicle_id');
+                    newUrl.hash = '';
+                    history.replaceState(null, '', newUrl.toString());
+                } catch(e) {}
+            } else {
+                if (pageContainer) pageContainer.classList.remove('is-color-subwindow');
+                document.body.classList.remove('is-color-subwindow');
+                document.documentElement.classList.remove('is-color-subwindow');
+
+                if (btnColors) {
+                    btnColors.classList.remove('is-active');
+                    btnColors.setAttribute('aria-selected', 'false');
+                }
+                if (btnPatterns) {
+                    btnPatterns.classList.add('is-active');
+                    btnPatterns.setAttribute('aria-selected', 'true');
+                    updateSubtaskbarGlider(btnPatterns);
+                }
+                if (paneColors) paneColors.style.display = 'none';
+                if (paneDesign) paneDesign.style.display = 'none';
+                if (panePatterns) {
+                    panePatterns.style.display = 'flex';
+                    panePatterns.style.flexDirection = 'column';
+                }
+                try {
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('subwindow', 'patterns');
+                    history.replaceState(null, '', newUrl.toString());
+                } catch(e) {}
+            }
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+
+        function copyHexCode(hex, el) {
+            if (!hex) return;
+            navigator.clipboard.writeText(hex).then(() => {
+                const originalHtml = el ? el.innerHTML : '';
+                if (el) {
+                    el.innerHTML = '<i class="fas fa-check" style="color: #10b981;"></i> ' + hex;
+                    setTimeout(() => { el.innerHTML = originalHtml; }, 1500);
+                }
+            }).catch(() => {});
+        }
+
+        function filterColorTiles(query) {
+            const clearBtn = document.getElementById('clearColorSearchBtn');
+            if (clearBtn) clearBtn.style.display = query ? 'inline-block' : 'none';
+            applyColorFilters();
+        }
+
+        function filterColorStatus(status) {
+            applyColorFilters();
+        }
+
+        function clearColorSearch() {
+            const input = document.getElementById('colorSearchInput');
+            if (input) {
+                input.value = '';
+                filterColorTiles('');
+            }
+        }
+
+        function applyColorFilters() {
+            const q = (document.getElementById('colorSearchInput')?.value || '').trim().toLowerCase();
+            const status = (document.getElementById('colorStatusFilter')?.value || '').trim().toLowerCase();
+            const cards = document.querySelectorAll('.color-tile-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const name = card.dataset.name || '';
+                const hex = card.dataset.hex || '';
+                const code = card.dataset.code || '';
+                const pantone = card.dataset.pantone || '';
+                const category = card.dataset.category || '';
+                const series = card.dataset.series || '';
+                const cardStatus = card.dataset.status || '';
+                const models = card.dataset.models || '';
+
+                const matchesQuery = !q || name.includes(q) || hex.includes(q) || code.includes(q) || ('#' + code).includes(q) || pantone.includes(q) || category.includes(q) || series.includes(q) || models.includes(q);
+                const matchesStatus = !status || cardStatus === status;
+
+                if (matchesQuery && matchesStatus) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            const noMatch = document.getElementById('colorTilesNoFilterMatch');
+            if (noMatch) {
+                noMatch.style.display = (visibleCount === 0 && cards.length > 0) ? 'flex' : 'none';
+            }
+            const countBadge = document.getElementById('colorMasterCountBadge');
+            if (countBadge) {
+                countBadge.textContent = visibleCount;
+            }
+        }
+
+        function syncColorInput(val, targetId) {
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.value = val;
+                if (targetId === 'newColorHex') updateCreateLivePreview();
+                if (targetId === 'editColorHex') updateEditLivePreview();
+            }
+        }
+
+        function syncColorPicker(val, targetId) {
+            const picker = document.getElementById(targetId);
+            if (picker && /^#[0-9A-Fa-f]{6}$/.test(val)) {
+                picker.value = val;
+                if (targetId === 'newColorPicker') updateCreateLivePreview();
+                if (targetId === 'editColorPicker') updateEditLivePreview();
+            }
+        }
+
+        function updateCreateLivePreview() {
+            const name = document.getElementById('newColorName')?.value || '{% translate "Leather Color" %}';
+            const hex = document.getElementById('newColorHex')?.value || '#010101';
+            const swatch = document.getElementById('createColorLiveSwatch');
+            const nameEl = document.getElementById('createColorLiveName');
+            const hexEl = document.getElementById('createColorLiveHex');
+            if (swatch) swatch.style.backgroundColor = hex;
+            if (nameEl) nameEl.textContent = name;
+            if (hexEl) hexEl.textContent = hex;
+        }
+
+        function escapeJsStr(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '&quot;')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r');
+        }
+
+        let editColorTriggerEl = null;
+
+        function updateEditLivePreview() {
+            const name = (document.getElementById('editColorName')?.value || '').trim() || '{% translate "Color Name" %}';
+            const hex = (document.getElementById('editColorHex')?.value || '').trim() || '#010101';
+            const swatch = document.getElementById('editColorLiveSwatch');
+            const nameEl = document.getElementById('editColorLiveName');
+            const hexEl = document.getElementById('editColorLiveHex');
+            const isValidHex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
+            if (swatch) swatch.style.backgroundColor = isValidHex ? hex : '#010101';
+            if (nameEl) nameEl.textContent = name;
+            if (hexEl) hexEl.textContent = hex;
+        }
+
+        function syncEditColorHex(val) {
+            val = (val || '').trim();
+            if (!val.startsWith('#') && /^[0-9A-Fa-f]{3,6}$/.test(val)) {
+                val = '#' + val;
+                const hexInput = document.getElementById('editColorHex');
+                if (hexInput) hexInput.value = val;
+            }
+            const picker = document.getElementById('editColorPicker');
+            if (picker && /^#[0-9A-Fa-f]{6}$/.test(val)) {
+                picker.value = val;
+            }
+            updateEditLivePreview();
+        }
+
+        function syncEditColorPicker(val) {
+            const hexInput = document.getElementById('editColorHex');
+            if (hexInput) {
+                hexInput.value = (val || '').toUpperCase();
+            }
+            updateEditLivePreview();
+        }
+
+        function openCreateColorModal() {
+            const modal = document.getElementById('createColorModal');
+            if (modal) {
+                document.getElementById('createColorForm')?.reset();
+                document.getElementById('newColorHex').value = '#010101';
+                document.getElementById('newColorPicker').value = '#010101';
+                updateCreateLivePreview();
+                modal.style.display = 'block';
+            }
+        }
+        function closeCreateColorModal() {
+            const modal = document.getElementById('createColorModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function openEditColorModal(id, name, code, hex, series, models, status, triggerBtn) {
+            editColorTriggerEl = triggerBtn || document.activeElement;
+            const modal = document.getElementById('editColorModal');
+            if (!modal) return;
+
+            // Reset error banner
+            const errorBanner = document.getElementById('editColorErrorBanner');
+            const errorMsg = document.getElementById('editColorErrorMsg');
+            if (errorBanner) errorBanner.style.display = 'none';
+            if (errorMsg) errorMsg.textContent = '';
+
+            // Populate form values
+            const idInput = document.getElementById('editColorId');
+            const nameInput = document.getElementById('editColorName');
+            const codeInput = document.getElementById('editColorCode');
+            const hexInput = document.getElementById('editColorHex');
+            const pickerInput = document.getElementById('editColorPicker');
+            const seriesInput = document.getElementById('editColorSeries');
+            const modelsInput = document.getElementById('editColorModels');
+            const statusInput = document.getElementById('editColorStatus');
+
+            if (idInput) idInput.value = id || '';
+            if (nameInput) nameInput.value = name || '';
+            if (codeInput) codeInput.value = code || '';
+
+            const validHex = (hex && hex.startsWith('#')) ? hex : ('#' + (hex || '010101'));
+            if (hexInput) hexInput.value = validHex;
+            if (pickerInput) {
+                pickerInput.value = /^#[0-9A-Fa-f]{6}$/.test(validHex) ? validHex : '#010101';
+            }
+            if (seriesInput) seriesInput.value = series || '';
+            if (modelsInput) modelsInput.value = models || '';
+            if (statusInput) statusInput.value = status || 'Active';
+
+            updateEditLivePreview();
+            modal.style.display = 'flex';
+            document.body.classList.add('modal-open');
+
+            setTimeout(() => {
+                if (nameInput) nameInput.focus();
+            }, 60);
+        }
+
+        function closeEditColorModal() {
+            const modal = document.getElementById('editColorModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            document.body.classList.remove('modal-open');
+            if (editColorTriggerEl && typeof editColorTriggerEl.focus === 'function') {
+                try { editColorTriggerEl.focus(); } catch (e) {}
+            }
+        }
+
+        function openViewColorModal(id, name, code, hex, series, models, status) {
+            const modal = document.getElementById('viewColorModal');
+            if (modal) {
+                document.getElementById('viewColorHeadingName').textContent = name;
+                const swatch = document.getElementById('viewColorLargeSwatch');
+                if (swatch) swatch.style.backgroundColor = hex;
+                document.getElementById('viewColorCodeVal').textContent = code;
+                document.getElementById('viewColorHexVal').textContent = hex;
+                document.getElementById('viewColorSeriesVal').textContent = series || '-';
+                document.getElementById('viewColorModelsVal').textContent = models || '-';
+                const statusBadge = document.getElementById('viewColorStatusBadge');
+                if (statusBadge) {
+                    statusBadge.textContent = status;
+                    statusBadge.className = 'color-tile__status-pill status-' + (status || '').toLowerCase();
+                }
+                modal.style.display = 'block';
+            }
+        }
+        function closeViewColorModal() {
+            const modal = document.getElementById('viewColorModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function submitCreateColor(e) {
+            e.preventDefault();
+            const form = document.getElementById('createColorForm');
+            const submitBtn = document.getElementById('btnSubmitCreateColor');
+            if (submitBtn) submitBtn.disabled = true;
+
+            const formData = new FormData(form);
+            try {
+                const res = await fetch('/api/colors/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRFToken': getDesignCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    closeCreateColorModal();
+                    window.location.href = window.location.pathname + '?subwindow=colors';
+                } else {
+                    alert(data.message || '{% translate "Failed to create color." %}');
+                }
+            } catch (err) {
+                alert('{% translate "An error occurred while creating the color." %}');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }
+
+        async function submitEditColor(e) {
+            e.preventDefault();
+            const form = document.getElementById('editColorForm');
+            const id = document.getElementById('editColorId').value;
+            const submitBtn = document.getElementById('btnSubmitEditColor');
+            const errorBanner = document.getElementById('editColorErrorBanner');
+            const errorMsg = document.getElementById('editColorErrorMsg');
+
+            if (errorBanner) errorBanner.style.display = 'none';
+
+            // Client-side validation
+            const nameVal = (document.getElementById('editColorName')?.value || '').trim();
+            const hexVal = (document.getElementById('editColorHex')?.value || '').trim();
+
+            if (!nameVal) {
+                if (errorMsg) errorMsg.textContent = '{% translate "Color Name is required." %}';
+                if (errorBanner) errorBanner.style.display = 'flex';
+                document.getElementById('editColorName')?.focus();
+                return;
+            }
+
+            if (!/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hexVal)) {
+                if (errorMsg) errorMsg.textContent = '{% translate "Please enter a valid HEX code (e.g. #AF955C)." %}';
+                if (errorBanner) errorBanner.style.display = 'flex';
+                document.getElementById('editColorHex')?.focus();
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>{% translate "Saving..." %}</span>';
+            }
+
+            const formData = new FormData(form);
+            try {
+                const res = await fetch(`/api/colors/${id}/update/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRFToken': getDesignCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    const updated = data.color || {
+                        id: id,
+                        name: nameVal,
+                        color_code: (document.getElementById('editColorCode')?.value || '').trim(),
+                        hex_code: hexVal,
+                        material_series: (document.getElementById('editColorSeries')?.value || '').trim(),
+                        compatible_models: (document.getElementById('editColorModels')?.value || '').trim(),
+                        status: document.getElementById('editColorStatus')?.value || 'Active'
+                    };
+
+                    // Update card in DOM in-place without page reload
+                    const card = document.getElementById(`color-card-${id}`);
+                    if (card) {
+                        card.setAttribute('data-name', (updated.name || '').toLowerCase());
+                        card.setAttribute('data-hex', (updated.hex_code || '').toLowerCase());
+                        card.setAttribute('data-code', (updated.color_code || '').toLowerCase());
+                        card.setAttribute('data-category', (updated.color_category || '').toLowerCase());
+                        card.setAttribute('data-series', (updated.material_series || '').toLowerCase());
+                        card.setAttribute('data-status', (updated.status || '').toLowerCase());
+                        card.setAttribute('data-models', (updated.compatible_models || '').toLowerCase());
+
+                        // Swatch
+                        const swatch = card.querySelector('.color-tile__swatch');
+                        if (swatch) {
+                            swatch.style.backgroundColor = updated.hex_code;
+                            swatch.title = `${updated.name} (${updated.hex_code})`;
+                        }
+
+                        // Status pill
+                        const statusPill = card.querySelector('.color-tile__status-pill');
+                        if (statusPill) {
+                            statusPill.className = `color-tile__status-pill status-${(updated.status || '').toLowerCase()}`;
+                            statusPill.textContent = updated.status;
+                        }
+
+                        // Serial & Name
+                        const serialEl = card.querySelector('.color-tile__serial');
+                        if (serialEl) serialEl.textContent = `#${updated.color_code || ''}`;
+
+                        const nameEl = card.querySelector('.color-tile__name');
+                        if (nameEl) {
+                            nameEl.textContent = updated.name;
+                            nameEl.title = updated.name;
+                        }
+
+                        // HEX Code
+                        const hexEl = card.querySelector('.color-tile__hex');
+                        if (hexEl) {
+                            hexEl.innerHTML = `<i class="fas fa-hashtag"></i> ${updated.hex_code}`;
+                            hexEl.setAttribute('onclick', `copyHexCode('${escapeJsStr(updated.hex_code)}', this)`);
+                        }
+
+                        // Series / Category pill
+                        let seriesPill = card.querySelector('.color-tile__series-pill');
+                        const catOrSeries = updated.color_category || updated.material_series || '';
+                        if (catOrSeries) {
+                            if (seriesPill) {
+                                seriesPill.textContent = catOrSeries;
+                            } else {
+                                const specsRow = card.querySelector('.color-tile__row-specs');
+                                if (specsRow) {
+                                    const newPill = document.createElement('span');
+                                    newPill.className = 'color-tile__series-pill';
+                                    newPill.title = '{% translate "Color Category" %}';
+                                    newPill.textContent = catOrSeries;
+                                    specsRow.appendChild(newPill);
+                                }
+                            }
+                        } else if (seriesPill) {
+                            seriesPill.remove();
+                        }
+
+                        // Compatible Models
+                        let modelsWrap = card.querySelector('.color-tile__models');
+                        if (updated.compatible_models && updated.compatible_models.trim()) {
+                            const tags = updated.compatible_models.trim().split(/\s+/).map(t => t.replace(/,/g, '').trim()).filter(Boolean);
+                            if (!modelsWrap) {
+                                const content = card.querySelector('.color-tile__content');
+                                if (content) {
+                                    modelsWrap = document.createElement('div');
+                                    modelsWrap.className = 'color-tile__models';
+                                    modelsWrap.innerHTML = `<span class="color-tile__models-label">{% translate "Compatible Models:" %}</span><div class="color-tile__models-tags"></div>`;
+                                    content.appendChild(modelsWrap);
+                                }
+                            }
+                            const tagsContainer = modelsWrap?.querySelector('.color-tile__models-tags');
+                            if (tagsContainer) {
+                                tagsContainer.innerHTML = tags.map(t => `<span class="model-tag-chip">${escapeHtml(t)}</span>`).join('');
+                            }
+                        } else if (modelsWrap) {
+                            modelsWrap.remove();
+                        }
+
+                        // Update edit & view button attributes
+                        const editBtn = card.querySelector('.btn-edit');
+                        if (editBtn) {
+                            editBtn.setAttribute('onclick', `openEditColorModal('${updated.id}', '${escapeJsStr(updated.name)}', '${escapeJsStr(updated.color_code)}', '${escapeJsStr(updated.hex_code)}', '${escapeJsStr(updated.material_series)}', '${escapeJsStr(updated.compatible_models)}', '${escapeJsStr(updated.status)}', this)`);
+                        }
+
+                        const viewBtn = card.querySelector('.btn-view');
+                        if (viewBtn) {
+                            viewBtn.setAttribute('onclick', `openViewColorModal('${updated.id}', '${escapeJsStr(updated.name)}', '${escapeJsStr(updated.color_code)}', '${escapeJsStr(updated.hex_code)}', '${escapeJsStr(updated.material_series)}', '${escapeJsStr(updated.compatible_models)}', '${escapeJsStr(updated.status)}')`);
+                        }
+
+                        // Re-evaluate filter visibility
+                        applyColorFilters();
+                    }
+
+                    closeEditColorModal();
+                } else {
+                    if (errorMsg) errorMsg.textContent = data.message || '{% translate "Failed to update color." %}';
+                    if (errorBanner) errorBanner.style.display = 'flex';
+                }
+            } catch (err) {
+                if (errorMsg) errorMsg.textContent = '{% translate "An error occurred while updating the color. Please try again." %}';
+                if (errorBanner) errorBanner.style.display = 'flex';
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> <span>{% translate "Save Changes" %}</span>';
+                }
+            }
+        }
+
+        // Global Modal Keyboard & Backdrop Listeners for Edit Color Modal
+        pageScope.listen(document, 'keydown', function(e) {
+            if (e.key === 'Escape') {
+                const editModal = document.getElementById('editColorModal');
+                if (editModal && editModal.style.display !== 'none') {
+                    closeEditColorModal();
+                }
+            }
+        });
+
+        pageScope.listen(document, 'click', function(e) {
+            const editModal = document.getElementById('editColorModal');
+            if (editModal && editModal.style.display !== 'none' && e.target === editModal) {
+                closeEditColorModal();
+            }
+        });
+
+        async function deleteColor(id, name) {
+            if (!confirm(`{% translate "Are you sure you want to archive / delete color" %} "${name}"?`)) {
+                return;
+            }
+            try {
+                const res = await fetch(`/api/colors/${id}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getDesignCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    const card = document.getElementById(`color-card-${id}`);
+                    if (card) card.remove();
+                    applyColorFilters();
+                } else {
+                    alert(data.message || '{% translate "Failed to delete color." %}');
+                }
+            } catch (err) {
+                alert('{% translate "An error occurred while deleting the color." %}');
+            }
         }
 
         function switchPatternTab(tabName) {
@@ -6697,7 +7588,31 @@
             console.error('Error initializing selection UI:', e);
         }
 
-        Object.assign(window, {closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, toggleGoogleDriveDropdown, closeGoogleDriveDropdown, submitAddDriveLink, deleteVehicleDriveLink, renderVehicleDriveLinks, handleGoogleDriveClick, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI, selectPatternRow});
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialSub = (urlParams.get('subwindow') || '{{ active_subwindow }}' || 'patterns').toLowerCase();
+            if (initialSub === 'colors') {
+                switchSubwindow('colors');
+            } else {
+                updateSubtaskbarGlider();
+            }
+            pageScope.listen(window, 'resize', () => updateSubtaskbarGlider());
+            pageScope.listen(window, 'popstate', () => {
+                const p = new URLSearchParams(window.location.search);
+                switchSubwindow(p.get('subwindow') || 'patterns');
+            });
+            pageScope.onCleanup(() => {
+                document.body.classList.remove('is-color-subwindow', 'modal-open');
+                document.documentElement.classList.remove('is-color-subwindow');
+            });
+        } catch (e) {
+            console.error('Error initializing subtaskbar glider:', e);
+        }
+
+        Object.assign(window, {
+            updateSubtaskbarGlider, switchSubwindow, copyHexCode, filterColorTiles, filterColorStatus, clearColorSearch, syncColorInput, syncColorPicker, syncEditColorHex, syncEditColorPicker, escapeJsStr, updateCreateLivePreview, updateEditLivePreview, openCreateColorModal, closeCreateColorModal, openEditColorModal, closeEditColorModal, openViewColorModal, closeViewColorModal, submitCreateColor, submitEditColor, deleteColor,
+            closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, toggleGoogleDriveDropdown, closeGoogleDriveDropdown, submitAddDriveLink, deleteVehicleDriveLink, renderVehicleDriveLinks, handleGoogleDriveClick, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI, selectPatternRow
+        });
     })();
     </script>
 

@@ -216,6 +216,20 @@ class ComplaintForm(forms.ModelForm):
             raise forms.ValidationError(_('Complaint description is required.'))
         return val
 
+    def clean(self):
+        cleaned_data = super().clean()
+        year = cleaned_data.get('year')
+        sub_model = cleaned_data.get('sub_model')
+        model = cleaned_data.get('model')
+        if year and model and year.sub_model.model_id != model.id:
+            self.add_error('year', _('Selected year does not belong to the selected model.'))
+        elif year and sub_model and year.sub_model_id != sub_model.id:
+            self.add_error('year', _('Selected year does not belong to the selected sub-model.'))
+        elif not sub_model and year:
+            cleaned_data['sub_model'] = year.sub_model
+            self._errors.pop('sub_model', None)
+        return cleaned_data
+
     def __init__(self, *args, complaint_type=None, **kwargs):
         if len(args) > 0 and args[0] is not None:
             data = args[0]
@@ -299,6 +313,12 @@ class ComplaintForm(forms.ModelForm):
                 pass
         elif self.instance.pk:
             self.fields['sub_model'].queryset = SubModel.objects.filter(model=self.instance.model)
+        if model_val:
+            try:
+                model_id = int(model_val)
+                self.fields['year'].queryset = YearRange.objects.filter(sub_model__model_id=model_id)
+            except (ValueError, TypeError):
+                pass
         sub_model_val = self.data.get('sub_model') if self.is_bound else self.initial.get('sub_model')
         if sub_model_val:
             try:
@@ -308,6 +328,16 @@ class ComplaintForm(forms.ModelForm):
                 pass
         elif self.instance.pk:
             self.fields['year'].queryset = YearRange.objects.filter(sub_model=self.instance.sub_model)
+
+        year_val = self.data.get('year') if self.is_bound else self.initial.get('year')
+        if year_val:
+            try:
+                yr_id = int(year_val)
+                self.fields['year'].queryset = (self.fields['year'].queryset | YearRange.objects.filter(pk=yr_id)).distinct()
+                if 'sub_model' in self.fields:
+                    self.fields['sub_model'].required = False
+            except (ValueError, TypeError):
+                pass
 
 
 class FactoryReviewForm(forms.ModelForm):

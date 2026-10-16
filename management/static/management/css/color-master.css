@@ -1,0 +1,1155 @@
+        /* ========================================================
+           SLIDING SUB-TASKBAR & COLOR MASTER STYLES (INLINE ASSET)
+           ======================================================== */
+        .pattern-subtaskbar-container {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 100% !important;
+            margin: 0.15rem 0 0.55rem 0 !important;
+            padding: 0 !important;
+            position: relative !important;
+            z-index: 20 !important;
+        }
+
+        .pattern-subtaskbar-capsule {
+            position: relative !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(18, 24, 38, 0.92) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 9999px !important;
+            padding: 3px 4px !important;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+            gap: 4px !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        body.light-mode .pattern-subtaskbar-capsule {
+            background: rgba(241, 245, 249, 0.96) !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .pattern-subtaskbar-btn {
+            position: relative !important;
+            z-index: 2 !important;
+            border: 1px solid transparent !important;
+            background: transparent !important;
+            color: #94a3b8 !important;
+            font-weight: 600 !important;
+            font-size: 0.82rem !important;
+            padding: 0.38rem 1.15rem !important;
+            border-radius: 9999px !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.45rem !important;
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            text-decoration: none !important;
+            white-space: nowrap !important;
+            outline: none !important;
+            font-family: inherit !important;
+            line-height: 1.4 !important;
+            box-sizing: border-box !important;
+        }
+
+        .pattern-subtaskbar-btn:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.06) !important;
+        }
+
+        body.light-mode .pattern-subtaskbar-btn {
+            color: #64748b !important;
+        }
+
+        body.light-mode .pattern-subtaskbar-btn:hover {
+            color: #0f172a !important;
+            background: rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .pattern-subtaskbar-btn.is-active {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 18px rgba(239, 68, 68, 0.5), 0 0 25px rgba(239, 68, 68, 0.25) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+
+        body.light-mode .pattern-subtaskbar-btn.is-active {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4) !important;
+        }
+
+        .subtaskbar-counter-pill {
+            background: rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
+            padding: 1px 7px !important;
+            border-radius: 9999px !important;
+            font-size: 0.72rem !important;
+            font-weight: 700 !important;
+            margin-left: 3px !important;
+            display: inline-block !important;
+            line-height: 1.3 !important;
+        }
+
+        .pattern-subtaskbar-btn:not(.is-active) .subtaskbar-counter-pill {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: #94a3b8 !important;
+        }
+
+        body.light-mode .pattern-subtaskbar-btn:not(.is-active) .subtaskbar-counter-pill {
+            background: #e2e8f0 !important;
+            color: #475569 !important;
+        }
+
+        /* Color Master Subwindow Compact Subtaskbar Override */
+        .page-container.is-color-subwindow .pattern-subtaskbar-container {
+            margin: 0.15rem 0 0.55rem 0 !important;
+        }
+
+        .page-container.is-color-subwindow .pattern-subtaskbar-capsule {
+            padding: 3px 4px !important;
+            gap: 4px !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .page-container.is-color-subwindow .pattern-subtaskbar-btn {
+            padding: 0.38rem 1.15rem !important;
+            font-size: 0.82rem !important;
+            gap: 0.45rem !important;
+        }
+
+        .page-container.is-color-subwindow .subtaskbar-counter-pill {
+            padding: 1px 7px !important;
+            font-size: 0.72rem !important;
+            margin-left: 3px !important;
+        }
+
+        /* Pattern Master Subwindow Compact Top Spacing & Toolbar Spacing */
+        .page-container:not(.is-color-subwindow) {
+            padding-top: 0.25rem !important;
+        }
+
+        .page-container:not(.is-color-subwindow) .pattern-toolbar {
+            padding: 0.2rem 0 !important;
+            margin-bottom: 0.35rem !important;
+            gap: 0.75rem !important;
+        }
+
+        .page-container:not(.is-color-subwindow) .pattern-toolbar .page-title {
+            font-size: 1.35rem !important;
+            line-height: 1.2 !important;
+        }
+
+        /* Responsive Tiles Grid */
+        .color-master-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem !important;
+            width: 100%;
+        }
+
+        .color-master-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding: 0.2rem 0 !important;
+            margin-bottom: 0.35rem !important;
+        }
+
+        .color-master-title-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .color-master-title-wrap .page-title {
+            margin: 0;
+            display: flex;
+            align-items: baseline;
+            gap: 0.45rem;
+            font-size: 1.35rem !important;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #f8fafc;
+        }
+
+        .color-master-count-badge {
+            color: #94a3b8;
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-left: 0.25rem;
+        }
+
+        .color-master-subtitle {
+            font-size: 0.78rem !important;
+            color: #94a3b8;
+            line-height: 1.2;
+        }
+
+        .color-master-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .color-search-picker {
+            display: flex;
+            align-items: center;
+            background: rgba(18, 24, 38, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0 0.65rem;
+            height: 34px !important;
+            gap: 0.45rem;
+            min-width: 180px;
+            max-width: 240px;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .color-search-picker:focus-within {
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+
+        body.light-mode .color-search-picker {
+            background: #ffffff;
+            border-color: #cbd5e1;
+        }
+
+        .color-search-picker input {
+            border: none;
+            background: transparent;
+            color: inherit;
+            font-size: 0.82rem;
+            width: 100%;
+            outline: none;
+        }
+
+        .color-status-select {
+            height: 34px !important;
+            padding: 0 0.75rem;
+            border-radius: 8px;
+            background: rgba(18, 24, 38, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: inherit;
+            font-size: 0.82rem;
+            outline: none;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .color-status-select {
+            background: #ffffff;
+            border-color: #cbd5e1;
+        }
+
+        .btn-create-color {
+            height: 34px !important;
+            padding: 0 0.95rem !important;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+            border: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        .btn-create-color:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.5);
+        }
+
+        /* 5-Column Responsive Grid */
+        .color-tiles-grid {
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            gap: 0.75rem !important;
+            width: 100% !important;
+        }
+
+        @media (min-width: 1440px) {
+            .color-tiles-grid {
+                grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+                gap: 0.75rem !important;
+            }
+        }
+
+        @media (min-width: 1100px) and (max-width: 1439px) {
+            .color-tiles-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                gap: 0.75rem !important;
+            }
+        }
+
+        @media (min-width: 800px) and (max-width: 1099px) {
+            .color-tiles-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                gap: 0.7rem !important;
+            }
+        }
+
+        @media (min-width: 560px) and (max-width: 799px) {
+            .color-tiles-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 0.65rem !important;
+            }
+        }
+
+        @media (max-width: 559px) {
+            .color-tiles-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.65rem !important;
+            }
+        }
+
+        .color-tile-card {
+            background: rgba(18, 24, 38, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.7rem !important;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem !important;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+            position: relative;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+        }
+
+        .color-tile-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(239, 68, 68, 0.45);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(239, 68, 68, 0.15);
+        }
+
+        body.light-mode .color-tile-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .color-tile__swatch-wrapper {
+            width: 100%;
+            position: relative;
+        }
+
+        .color-tile__swatch {
+            width: 100%;
+            height: 95px !important;
+            border-radius: 8px !important;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.16), 0 3px 10px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: transform 0.22s ease;
+        }
+
+        .color-tile-card:hover .color-tile__swatch {
+            transform: scale(1.02);
+        }
+
+        .color-tile__swatch-texture {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), transparent 70%);
+            pointer-events: none;
+        }
+
+        .color-tile__status-pill {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            backdrop-filter: blur(8px);
+            line-height: 1.2;
+        }
+
+        .color-tile__status-pill.status-active {
+            background: rgba(16, 185, 129, 0.25);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .color-tile__status-pill.status-sampling {
+            background: rgba(56, 189, 248, 0.25);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .color-tile__status-pill.status-discontinued {
+            background: rgba(148, 163, 184, 0.25);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .color-tile__content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem !important;
+            min-width: 0;
+        }
+
+        .color-tile__row-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .color-tile__name-with-serial {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+            min-width: 0 !important;
+            flex: 1 1 auto;
+            overflow: hidden;
+        }
+
+        .color-tile__serial {
+            font-size: 0.75rem !important;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            font-weight: 800 !important;
+            color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.12) !important;
+            border: 1px solid rgba(239, 68, 68, 0.28) !important;
+            padding: 1px 5px !important;
+            border-radius: 4px !important;
+            letter-spacing: 0.4px !important;
+            flex-shrink: 0 !important;
+            line-height: 1.2 !important;
+        }
+
+        body.light-mode .color-tile__serial {
+            background: #fee2e2 !important;
+            border-color: #fca5a5 !important;
+            color: #dc2626 !important;
+        }
+
+        .color-tile__name {
+            font-size: 0.92rem !important;
+            font-weight: 700;
+            color: #f8fafc;
+            margin: 0;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+            line-height: 1.25;
+        }
+
+        body.light-mode .color-tile__name {
+            color: #0f172a;
+        }
+
+        .color-tile__pantone {
+            font-size: 0.68rem !important;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            font-weight: 600 !important;
+            color: #94a3b8 !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            padding: 1px 5px !important;
+            border-radius: 4px !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            line-height: 1.2;
+        }
+
+        body.light-mode .color-tile__pantone {
+            background: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #475569 !important;
+        }
+
+        .color-tile__row-specs {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem !important;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .color-tile__hex {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.72rem !important;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 1px 6px !important;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            line-height: 1.3;
+        }
+
+        .color-tile__hex:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #ffffff;
+        }
+
+        body.light-mode .color-tile__hex {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #334155;
+        }
+
+        .color-tile__series-pill {
+            font-size: 0.70rem !important;
+            color: #a78bfa;
+            background: rgba(167, 139, 250, 0.12);
+            border: 1px solid rgba(167, 139, 250, 0.25);
+            padding: 1px 6px !important;
+            border-radius: 4px;
+            font-weight: 500;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+
+        body.light-mode .color-tile__series-pill {
+            background: #f3e8ff;
+            border-color: #d8b4fe;
+            color: #7e22ce;
+        }
+
+        .color-tile__rgb-pill {
+            font-size: 0.68rem !important;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            font-weight: 500 !important;
+            color: #38bdf8 !important;
+            background: rgba(56, 189, 248, 0.1) !important;
+            border: 1px solid rgba(56, 189, 248, 0.25) !important;
+            padding: 1px 6px !important;
+            border-radius: 4px !important;
+            white-space: nowrap !important;
+            line-height: 1.3;
+        }
+
+        body.light-mode .color-tile__rgb-pill {
+            background: #e0f2fe !important;
+            border-color: #bae6fd !important;
+            color: #0284c7 !important;
+        }
+
+        .color-tile__models {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+
+        .color-tile__models-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .model-tag-chip {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+            font-size: 0.68rem;
+            padding: 1px 6px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.light-mode .model-tag-chip {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .color-tile__actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 0.45rem !important;
+            margin-top: auto;
+            gap: 0.25rem;
+        }
+
+        body.light-mode .color-tile__actions {
+            border-top-color: #e2e8f0;
+        }
+
+        .color-tile__action-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.74rem !important;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 3px 6px !important;
+            border-radius: 5px;
+            transition: color 0.15s ease, background 0.15s ease;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+
+        .color-tile__action-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        body.light-mode .color-tile__action-btn:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+
+        .color-tile__action-btn.btn-archive:hover {
+            color: #f87171 !important;
+            background: rgba(239, 68, 68, 0.15) !important;
+        }
+
+        .color-tile__action-btn.btn-edit:hover {
+            color: #60a5fa !important;
+            background: rgba(59, 130, 246, 0.15) !important;
+        }
+
+        .color-tiles-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3.5rem 1rem;
+            background: rgba(18, 24, 38, 0.5);
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .color-tiles-empty i {
+            font-size: 2.5rem;
+            color: #64748b;
+        }
+
+        .color-tiles-empty h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            color: #f8fafc;
+        }
+
+        .color-tiles-empty p {
+            margin: 0;
+            font-size: 0.88rem;
+            color: #94a3b8;
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .color-tile-card,
+            .color-tile__swatch,
+            .pattern-subtaskbar-btn,
+            .btn-create-color {
+                transition: none !important;
+                transform: none !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .color-master-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.65rem;
+            }
+            .color-master-controls {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .color-search-picker {
+                flex: 1 1 180px;
+                min-width: 0;
+                max-width: none;
+            }
+            .color-status-select {
+                flex: 0 0 auto;
+            }
+            .btn-create-color {
+                flex: 0 0 auto;
+                justify-content: center;
+            }
+            .pattern-subtaskbar-btn {
+                padding: 0.35rem 0.85rem !important;
+                font-size: 0.78rem !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .color-master-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.45rem;
+            }
+            .color-search-picker {
+                flex: 0 0 34px !important;
+                height: 34px !important;
+                width: 100% !important;
+            }
+            .color-status-select,
+            .btn-create-color {
+                height: 34px !important;
+                width: 100% !important;
+            }
+        }
+
+        /* Color Master Subwindow Scrolling Enforcement & Spacing */
+        html.is-color-subwindow,
+        body.is-color-subwindow {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            height: auto !important;
+            min-height: 100vh !important;
+        }
+
+        .page-container.is-color-subwindow {
+            height: auto !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+            overflow-x: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            padding-top: 0.25rem !important;
+            padding-bottom: 2rem !important;
+        }
+
+        #tab-pane-color-master {
+            width: 100% !important;
+            min-height: 0 !important;
+            overflow-y: visible !important;
+            overflow-x: hidden !important;
+            padding-bottom: 2rem !important;
+        }
+
+        body.is-color-subwindow #tab-pane-pattern-list,
+        .page-container.is-color-subwindow #tab-pane-pattern-list {
+            display: none !important;
+        }
+
+        body.is-color-subwindow #tab-pane-color-master,
+        .page-container.is-color-subwindow #tab-pane-color-master {
+            display: flex !important;
+        }
+
+        body:not(.is-color-subwindow) #tab-pane-color-master,
+        .page-container:not(.is-color-subwindow) #tab-pane-color-master {
+            display: none !important;
+        }
+
+        /* ========================================================
+           COLOR MASTER — EDIT LEATHER COLOR MODAL (COMPACT & POLISHED)
+           ======================================================== */
+        #editColorModal.modal {
+            display: none;
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background-color: rgba(10, 15, 26, 0.65) !important;
+            backdrop-filter: blur(2.5px) !important;
+            -webkit-backdrop-filter: blur(2.5px) !important;
+            z-index: 10000 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            padding: 1.25rem 1rem !important;
+            box-sizing: border-box !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        #editColorModal.is-open {
+            display: flex !important;
+        }
+
+        #editColorModal .modal-content {
+            background: #141b2d !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 12px !important;
+            width: 100% !important;
+            max-width: 530px !important;
+            margin: auto !important;
+            padding: 1.15rem 1.35rem !important;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+            color: #f8fafc !important;
+            box-sizing: border-box !important;
+            position: relative !important;
+            animation: editColorModalIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        body.light-mode #editColorModal .modal-content {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16) !important;
+        }
+
+        @keyframes editColorModalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.97) translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #editColorModal .modal-content {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
+        #editColorModal .modal-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 0 0 0.7rem 0 !important;
+            margin-bottom: 0.75rem !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
+        body.light-mode #editColorModal .modal-header {
+            border-bottom-color: #e2e8f0 !important;
+        }
+
+        #editColorModal .modal-title {
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            color: #f8fafc !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            margin: 0 !important;
+            line-height: 1.25 !important;
+        }
+
+        body.light-mode #editColorModal .modal-title {
+            color: #0f172a !important;
+        }
+
+        #editColorModal .modal-title i {
+            color: #ef4444 !important;
+            font-size: 0.95rem !important;
+        }
+
+        #editColorModal .close-btn {
+            background: transparent !important;
+            border: none !important;
+            color: #94a3b8 !important;
+            font-size: 1.35rem !important;
+            line-height: 1 !important;
+            cursor: pointer !important;
+            padding: 0.2rem 0.4rem !important;
+            border-radius: 6px !important;
+            transition: color 0.15s ease, background-color 0.15s ease !important;
+        }
+
+        #editColorModal .close-btn:hover {
+            color: #f8fafc !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        body.light-mode #editColorModal .close-btn:hover {
+            color: #0f172a !important;
+            background: rgba(0, 0, 0, 0.06) !important;
+        }
+
+        #editColorModal .edit-color-error-banner {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            background: rgba(239, 68, 68, 0.14);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+            font-size: 0.78rem;
+            line-height: 1.3;
+            margin-bottom: 0.65rem;
+        }
+
+        body.light-mode #editColorModal .edit-color-error-banner {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        #editColorModal .edit-color-preview {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.75rem !important;
+            background: rgba(0, 0, 0, 0.26) !important;
+            padding: 0.55rem 0.75rem !important;
+            border-radius: 8px !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        body.light-mode #editColorModal .edit-color-preview {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        #editColorModal .edit-color-swatch {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            border-radius: 8px !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+            transition: background-color 0.12s ease !important;
+        }
+
+        #editColorModal .edit-color-preview-info {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.1rem !important;
+            min-width: 0 !important;
+            flex: 1 !important;
+        }
+
+        #editColorModal .edit-color-preview-name {
+            font-weight: 700 !important;
+            font-size: 0.94rem !important;
+            color: #f8fafc !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        body.light-mode #editColorModal .edit-color-preview-name {
+            color: #0f172a !important;
+        }
+
+        #editColorModal .edit-color-preview-hex {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            font-size: 0.78rem !important;
+            color: #94a3b8 !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        #editColorModal .edit-color-form-body {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.65rem !important;
+            max-height: calc(88vh - 170px) !important;
+            overflow-y: auto !important;
+            padding-right: 2px !important;
+        }
+
+        #editColorModal .edit-color-row-2col {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.65rem !important;
+        }
+
+        @media (max-width: 520px) {
+            #editColorModal .edit-color-row-2col {
+                grid-template-columns: 1fr !important;
+                gap: 0.55rem !important;
+            }
+        }
+
+        #editColorModal .edit-color-field {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.22rem !important;
+        }
+
+        #editColorModal .edit-color-label {
+            font-size: 0.76rem !important;
+            font-weight: 600 !important;
+            color: #cbd5e1 !important;
+            display: block !important;
+            line-height: 1.2 !important;
+        }
+
+        body.light-mode #editColorModal .edit-color-label {
+            color: #475569 !important;
+        }
+
+        #editColorModal .edit-color-input,
+        #editColorModal .edit-color-select {
+            width: 100% !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+            padding: 0 0.7rem !important;
+            font-size: 0.82rem !important;
+            box-sizing: border-box !important;
+            outline: none !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+            font-family: inherit !important;
+        }
+
+        #editColorModal .edit-color-select {
+            background: #1e293b !important;
+            cursor: pointer !important;
+        }
+
+        #editColorModal .edit-color-input:focus,
+        #editColorModal .edit-color-select:focus {
+            border-color: rgba(239, 68, 68, 0.6) !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+        }
+
+        body.light-mode #editColorModal .edit-color-input,
+        body.light-mode #editColorModal .edit-color-select {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        #editColorModal .edit-color-hex-group {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+        }
+
+        #editColorModal .edit-color-picker-input {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            border-radius: 8px !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            background: transparent !important;
+            cursor: pointer !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+        }
+
+        body.light-mode #editColorModal .edit-color-picker-input {
+            border-color: #cbd5e1 !important;
+        }
+
+        #editColorModal .edit-color-hex-input {
+            flex: 1 !important;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        #editColorModal .modal-actions {
+            display: flex !important;
+            justify-content: flex-end !important;
+            align-items: center !important;
+            gap: 0.55rem !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            padding-top: 0.75rem !important;
+            margin-top: 0.75rem !important;
+        }
+
+        body.light-mode #editColorModal .modal-actions {
+            border-top-color: #e2e8f0 !important;
+        }
+
+        #editColorModal .btn-save-changes {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            padding: 0.5rem 1.15rem !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            font-size: 0.82rem !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.45rem !important;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35) !important;
+            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+            white-space: nowrap !important;
+        }
+
+        #editColorModal .btn-save-changes:hover:not(:disabled) {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45) !important;
+        }
+
+        #editColorModal .btn-save-changes:disabled {
+            opacity: 0.65 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+
+        #editColorModal .btn-cancel-edit {
+            background: rgba(255, 255, 255, 0.07) !important;
+            color: #cbd5e1 !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            padding: 0.5rem 1rem !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            font-size: 0.82rem !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: background-color 0.15s ease, color 0.15s ease !important;
+            white-space: nowrap !important;
+        }
+
+        #editColorModal .btn-cancel-edit:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+        }
+
+        body.light-mode #editColorModal .btn-cancel-edit {
+            background: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #475569 !important;
+        }
+
+        body.light-mode #editColorModal .btn-cancel-edit:hover {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+        }

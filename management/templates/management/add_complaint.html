@@ -1303,11 +1303,78 @@
                 });
         }
 
+        let availableYearsController = null;
+        let availableYearsCache = [];
+
+        function loadAvailableYears() {
+            const brandId = document.getElementById('id_brand')?.value || '';
+            const modelId = document.getElementById('id_model')?.value || '';
+            const subModelId = document.getElementById('id_sub_model')?.value || '';
+            const yearSelect = document.getElementById('id_year');
+            if (!yearSelect) return;
+
+            if (!modelId) {
+                yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
+                yearSelect.disabled = true;
+                availableYearsCache = [];
+                return;
+            }
+
+            const previousYear = yearSelect.value;
+            yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Loading years...')}</option>`;
+            yearSelect.disabled = true;
+            availableYearsController?.abort();
+            availableYearsController = new AbortController();
+
+            const params = new URLSearchParams({
+                brand: brandId,
+                model: modelId,
+                sub_model: subModelId,
+            });
+
+            pageScope.fetch(`/api/available-years/?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+                signal: availableYearsController.signal,
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error(`Years request failed with ${response.status}`);
+                    return response.json();
+                })
+                .then(items => {
+                    availableYearsCache = items;
+                    yearSelect.innerHTML = items.length
+                        ? `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`
+                        : `<option value="">${window.FabroI18n.gettext('No years found')}</option>`;
+                    items.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.range;
+                        if (item.sub_model_id) {
+                            option.dataset.subModelId = item.sub_model_id;
+                        }
+                        yearSelect.appendChild(option);
+                    });
+                    if (items.some(item => String(item.id) === previousYear)) {
+                        yearSelect.value = previousYear;
+                    }
+                    yearSelect.disabled = false;
+                })
+                .catch(error => {
+                    if (error.name === 'AbortError') return;
+                    console.error('Error loading available years:', error);
+                    yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
+                    yearSelect.disabled = false;
+                });
+        }
+
         document.getElementById('id_brand').addEventListener('change', function () {
             const brandId = this.value;
             const modelSelect = document.getElementById('id_model');
             const subModelSelect = document.getElementById('id_sub_model');
             const yearSelect = document.getElementById('id_year');
+            availableYearsCache = [];
+            availableYearsController?.abort();
             if (brandId) {
                 loadDependentData(`/api/models/${brandId}/`, 'id_model', window.FabroI18n.gettext('Select Model'));
             } else {
@@ -1324,23 +1391,12 @@
         document.getElementById('id_model').addEventListener('change', function () {
             const modelId = this.value;
             const subModelSelect = document.getElementById('id_sub_model');
-            const yearSelect = document.getElementById('id_year');
             if (modelId) {
                 loadDependentData(`/api/sub_models/${modelId}/`, 'id_sub_model', window.FabroI18n.gettext('Select Sub-Model'));
+                loadAvailableYears();
             } else {
                 subModelSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Sub-Model')}</option>`;
                 subModelSelect.disabled = true;
-            }
-            yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
-            yearSelect.disabled = true;
-            refreshSkuOptions();
-        });
-
-        document.getElementById('id_sub_model').addEventListener('change', function () {
-            const subModelId = this.value;
-            if (subModelId) {
-                loadDependentData(`/api/year_ranges/${subModelId}/`, 'id_year', window.FabroI18n.gettext('Select Year'));
-            } else {
                 const yearSelect = document.getElementById('id_year');
                 yearSelect.innerHTML = `<option value="">${window.FabroI18n.gettext('Select Year')}</option>`;
                 yearSelect.disabled = true;
@@ -1348,7 +1404,24 @@
             refreshSkuOptions();
         });
 
-        document.getElementById('id_year').addEventListener('change', refreshSkuOptions);
+        document.getElementById('id_sub_model').addEventListener('change', function () {
+            loadAvailableYears();
+            refreshSkuOptions();
+        });
+
+        document.getElementById('id_year').addEventListener('change', function () {
+            const yearId = this.value;
+            if (yearId && availableYearsCache.length) {
+                const matchedYear = availableYearsCache.find(item => String(item.id) === String(yearId));
+                const subModelSelect = document.getElementById('id_sub_model');
+                if (matchedYear && matchedYear.sub_model_id && subModelSelect && !subModelSelect.value) {
+                    if (Array.from(subModelSelect.options).some(opt => String(opt.value) === String(matchedYear.sub_model_id))) {
+                        subModelSelect.value = String(matchedYear.sub_model_id);
+                    }
+                }
+            }
+            refreshSkuOptions();
+        });
 
         // File upload handling
         const complaintDescriptionInput = document.getElementById('id_complaint_description');
@@ -1579,6 +1652,8 @@
                             select.disabled = true;
                         }
                     });
+                    availableYearsCache = [];
+                    availableYearsController?.abort();
                     resetSkuOptions();
                     refreshSkuOptions();
                 }, 0);

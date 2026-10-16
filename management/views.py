@@ -65,6 +65,7 @@ from .models import (
     ApprovalStages,
     Brand,
     ChatMessage,
+    ColorMaster,
     Complaint,
     ComplaintApproval,
     ComplaintMedia,
@@ -236,9 +237,24 @@ def _can_approve_design_assets(user):
     return bool(
         prof and (
             prof.role == WorkflowRoles.ADMIN
-            or prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
+            or prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.PM)
         )
     )
+
+
+def _can_user_access_designer_approvals(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    prof = getattr(user, 'workflow_profile', None)
+    if not prof:
+        return False
+    if prof.role == WorkflowRoles.ADMIN:
+        return True
+    if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.PM, ApprovalRoles.ED):
+        return True
+    return False
 
 
 def _can_user_review_design_image(user, img):
@@ -690,10 +706,10 @@ def car_details(request):
 
     # Sort by the persistent, zero-padded serial before pagination. Ordering by
     # creation id makes edited/imported serials appear randomly across pages.
-    pending_designs_subquery = PatternDesignImage.objects.filter(Q(vehicle_id=OuterRef('pk')) | Q(folder__vehicle_id=OuterRef('pk')), approval_status='pending')
+
     yr_qs = YearRange.objects.select_related(
         'sub_model__model__brand', 'vehicle_country', 'measurement_country'
-    ).annotate(has_pending_designs=Exists(pending_designs_subquery)).order_by('-serial_number', '-id')
+    ).order_by('-serial_number', '-id')
     if search_query:
         if search_column in ('serial_number', 'serial_no', 'serial'):
             import re
@@ -742,6 +758,22 @@ def car_details(request):
     vehicle_paginator = Paginator(yr_qs, 20)
     vehicle_page = vehicle_paginator.get_page(request.GET.get('page'))
     can_see_pending_designs = _can_approve_design_assets(request.user) or (getattr(getattr(request.user, 'workflow_profile', None), 'role', '') == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    pending_car_ids = set()
+    if can_see_pending_designs and vehicle_page.object_list:
+        page_car_ids = [yr.id for yr in vehicle_page.object_list]
+        pending_car_ids = set(
+            PatternDesignImage.objects.filter(
+                approval_status='pending',
+            ).filter(
+                Q(vehicle_id__in=page_car_ids) | Q(folder__vehicle_id__in=page_car_ids)
+            ).values_list('vehicle_id', flat=True)
+        )
+        pending_car_ids.update(
+            PatternDesignImage.objects.filter(
+                approval_status='pending',
+                folder__vehicle_id__in=page_car_ids,
+            ).values_list('folder__vehicle_id', flat=True)
+        )
     car_data = []
     for yr in vehicle_page.object_list:
         display_serial = yr.serial_number or f"S{yr.id:04d}"
@@ -774,13 +806,13 @@ def car_details(request):
             "vehicle_country_id": yr.vehicle_country.id if yr.vehicle_country else None,
             "measurement_country": yr.measurement_country.name if yr.measurement_country else '-',
             "measurement_country_id": yr.measurement_country.id if yr.measurement_country else None,
-            "has_pending_designs": bool(getattr(yr, 'has_pending_designs', False)) if can_see_pending_designs else False,
+            "has_pending_designs": (yr.id in pending_car_ids) if can_see_pending_designs else False,
         })
 
     countries = MasterSetting.objects.filter(category='Country').order_by('name')
 
     can_manage_catalog = _can_manage_catalog(request.user)
-    next_serial_number = get_next_pattern_serial() if can_manage_catalog else None
+    next_serial_number = get_next_pattern_serial() if can_manage_catalog else 'S0001'
     pagination_params = request.GET.copy()
     pagination_params.pop('page', None)
     pagination_bubbles = _get_pagination_bubbles(
@@ -789,6 +821,29 @@ def car_details(request):
         on_each_side=2,
         on_ends=1
     )
+
+    active_subwindow = (request.GET.get('subwindow') or request.GET.get('view') or 'patterns').strip().lower()
+    if active_subwindow not in ('patterns', 'colors'):
+        active_subwindow = 'patterns'
+
+    color_search = (request.GET.get('color_search') or '').strip()
+    color_status_filter = (request.GET.get('color_status') or '').strip()
+    color_qs = ColorMaster.objects.all().order_by('color_code', 'id')
+    if color_search:
+        color_qs = color_qs.filter(
+            Q(name__icontains=color_search) |
+            Q(color_code__icontains=color_search) |
+            Q(hex_code__icontains=color_search) |
+            Q(pantone_code__icontains=color_search) |
+            Q(color_category__icontains=color_search) |
+            Q(material_series__icontains=color_search) |
+            Q(compatible_models__icontains=color_search)
+        )
+    if color_status_filter:
+        color_qs = color_qs.filter(status__iexact=color_status_filter)
+
+    colors_list = list(color_qs)
+    total_colors_count = ColorMaster.objects.count()
 
     return render(request, 'management/car_details.html', {
         'form': form,
@@ -807,7 +862,182 @@ def car_details(request):
         'page_obj': vehicle_page,
         'pagination_bubbles': pagination_bubbles,
         'pagination_querystring': pagination_params.urlencode(),
+        'colors': colors_list,
+        'total_colors_count': total_colors_count,
+        'active_subwindow': active_subwindow,
+        'color_search': color_search,
+        'color_status_filter': color_status_filter,
     })
+
+
+@login_required
+@require_POST
+def create_color_api(request):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    name = (request.POST.get('name') or '').strip()
+    color_code = (request.POST.get('color_code') or '').strip().upper()
+    hex_code = (request.POST.get('hex_code') or '#000000').strip()
+    pantone_code = (request.POST.get('pantone_code') or '').strip()
+    rgb_code = (request.POST.get('rgb_code') or '').strip()
+    cmyk_code = (request.POST.get('cmyk_code') or '').strip()
+    color_category = (request.POST.get('color_category') or request.POST.get('material_series') or '').strip()
+    material_series = (request.POST.get('material_series') or color_category).strip()
+    compatible_models = (request.POST.get('compatible_models') or '').strip()
+    status = (request.POST.get('status') or 'Active').strip()
+
+    if not re.fullmatch(r'#?(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})', hex_code):
+        return JsonResponse({'status': 'error', 'message': _('Enter a valid HEX color.')}, status=400)
+    if status not in dict(ColorMaster.STATUS_CHOICES):
+        return JsonResponse({'status': 'error', 'message': _('Invalid color status.')}, status=400)
+    for value, limit in ((name, 100), (color_code, 50), (pantone_code, 50),
+                         (rgb_code, 50), (cmyk_code, 50), (color_category, 100),
+                         (material_series, 100), (compatible_models, 255)):
+        if len(value) > limit:
+            return JsonResponse({'status': 'error', 'message': _('A color field is too long.')}, status=400)
+
+    if not name:
+        return JsonResponse({'status': 'error', 'message': _('Color name is required.')}, status=400)
+    if not color_code:
+        last = ColorMaster.objects.order_by('-id').first()
+        next_code = 101 + (last.id if last else 0)
+        while ColorMaster.objects.filter(color_code=f'FAB-{next_code}').exists():
+            next_code += 1
+        color_code = f'FAB-{next_code}'
+
+    if ColorMaster.objects.filter(color_code=color_code).exists():
+        return JsonResponse({'status': 'error', 'message': _('Color code already exists.')}, status=400)
+
+    if not hex_code.startswith('#'):
+        hex_code = f"#{hex_code}"
+
+    color = ColorMaster.objects.create(
+        name=name,
+        color_code=color_code,
+        hex_code=hex_code,
+        pantone_code=pantone_code,
+        rgb_code=rgb_code,
+        cmyk_code=cmyk_code,
+        color_category=color_category,
+        material_series=material_series,
+        compatible_models=compatible_models,
+        status=status,
+    )
+    ActivityLog.objects.create(
+        user=request.user,
+        action='created',
+        object_type='Color',
+        object_name=f"{color.name} ({color.color_code})",
+    )
+    return JsonResponse({
+        'status': 'success',
+        'color': {
+            'id': color.id,
+            'name': color.name,
+            'color_code': color.color_code,
+            'hex_code': color.hex_code,
+            'pantone_code': color.pantone_code,
+            'rgb_code': color.rgb_code,
+            'cmyk_code': color.cmyk_code,
+            'color_category': color.color_category,
+            'material_series': color.material_series,
+            'compatible_models': color.compatible_models,
+            'status': color.status,
+        }
+    })
+
+
+@login_required
+@require_POST
+def update_color_api(request, color_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    color = get_object_or_404(ColorMaster, id=color_id)
+    name = (request.POST.get('name') or '').strip()
+    color_code = (request.POST.get('color_code') or '').strip().upper()
+    hex_code = (request.POST.get('hex_code') or '').strip()
+    pantone_code = (request.POST.get('pantone_code') or '').strip()
+    rgb_code = (request.POST.get('rgb_code') or '').strip()
+    cmyk_code = (request.POST.get('cmyk_code') or '').strip()
+    color_category = (request.POST.get('color_category') or request.POST.get('material_series') or '').strip()
+    material_series = (request.POST.get('material_series') or color_category).strip()
+    compatible_models = (request.POST.get('compatible_models') or '').strip()
+    status = (request.POST.get('status') or '').strip()
+
+    if hex_code and not re.fullmatch(r'#?(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})', hex_code):
+        return JsonResponse({'status': 'error', 'message': _('Enter a valid HEX color.')}, status=400)
+    if status and status not in dict(ColorMaster.STATUS_CHOICES):
+        return JsonResponse({'status': 'error', 'message': _('Invalid color status.')}, status=400)
+    for value, limit in ((name, 100), (color_code, 50), (pantone_code, 50),
+                         (rgb_code, 50), (cmyk_code, 50), (color_category, 100),
+                         (material_series, 100), (compatible_models, 255)):
+        if len(value) > limit:
+            return JsonResponse({'status': 'error', 'message': _('A color field is too long.')}, status=400)
+
+    if name:
+        color.name = name
+    if color_code and color_code != color.color_code:
+        if ColorMaster.objects.filter(color_code=color_code).exclude(id=color.id).exists():
+            return JsonResponse({'status': 'error', 'message': _('Color code already exists.')}, status=400)
+        color.color_code = color_code
+    if hex_code:
+        if not hex_code.startswith('#'):
+            hex_code = f"#{hex_code}"
+        color.hex_code = hex_code
+    if pantone_code is not None:
+        color.pantone_code = pantone_code
+    if rgb_code is not None:
+        color.rgb_code = rgb_code
+    if cmyk_code is not None:
+        color.cmyk_code = cmyk_code
+    if 'color_category' in request.POST or 'material_series' in request.POST:
+        color.color_category = color_category
+    color.material_series = material_series
+    color.compatible_models = compatible_models
+    if status in ('Active', 'Sampling', 'Discontinued'):
+        color.status = status
+
+    color.save()
+    ActivityLog.objects.create(
+        user=request.user,
+        action='updated',
+        object_type='Color',
+        object_name=f"{color.name} ({color.color_code})",
+    )
+    return JsonResponse({
+        'status': 'success',
+        'color': {
+            'id': color.id,
+            'name': color.name,
+            'color_code': color.color_code,
+            'hex_code': color.hex_code,
+            'pantone_code': color.pantone_code or '',
+            'rgb_code': color.rgb_code or '',
+            'cmyk_code': color.cmyk_code or '',
+            'color_category': color.color_category or '',
+            'material_series': color.material_series or '',
+            'compatible_models': color.compatible_models or '',
+            'status': color.status,
+        }
+    })
+
+
+@login_required
+@require_POST
+def delete_color_api(request, color_id):
+    if not _can_manage_catalog(request.user):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    color = get_object_or_404(ColorMaster, id=color_id)
+    color_name = f"{color.name} ({color.color_code})"
+    color.delete()
+    ActivityLog.objects.create(
+        user=request.user,
+        action='deleted',
+        object_type='Color',
+        object_name=color_name,
+    )
+    return JsonResponse({'status': 'success'})
+
 
 
 @login_required
@@ -2173,7 +2403,7 @@ def design_approvals_list(request):
     approval_role = getattr(prof, 'approval_role', None) if prof else None
     if not (is_designer or request.user.is_superuser or
             (prof and prof.role == WorkflowRoles.ADMIN) or
-            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED))):
+            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.PM))):
         raise PermissionDenied(_("You cannot access design approvals."))
 
     latest_appr_cad = Subquery(
@@ -2258,7 +2488,7 @@ def design_approval_detail(request, image_id):
     approval_role = getattr(prof, 'approval_role', None) if prof else None
     if not (is_designer or request.user.is_superuser or
             (prof and prof.role == WorkflowRoles.ADMIN) or
-            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED))):
+            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.PM))):
         raise PermissionDenied(_("You cannot access design approvals."))
 
     # Access control: Freelancers can only view their own designs
@@ -2545,6 +2775,129 @@ def get_year_ranges(request, sub_model_id):
 
 
 @login_required
+def get_available_years(request):
+    model_id = request.GET.get('model')
+    sub_model_id = request.GET.get('sub_model')
+
+    if not model_id:
+        return JsonResponse([], safe=False)
+
+    try:
+        model = Model.objects.select_related('brand').get(pk=model_id)
+    except (Model.DoesNotExist, ValueError):
+        return JsonResponse([], safe=False)
+
+    yr_qs = YearRange.objects.filter(sub_model__model_id=model.id).select_related('sub_model')
+    if sub_model_id:
+        try:
+            yr_qs = yr_qs.filter(sub_model_id=int(sub_model_id))
+        except (ValueError, TypeError):
+            pass
+
+    yr_list = list(yr_qs.order_by('year_start', 'year_end'))
+    if not yr_list:
+        return JsonResponse([], safe=False)
+
+    skus = SKU.objects.select_related('region').all()
+    country_id = request.GET.get('country')
+    region_id = request.GET.get('region')
+    region_filter = None
+
+    if region_id:
+        region_filter = Q(region_id=region_id)
+    else:
+        selected_country = None
+        if country_id:
+            selected_country = MasterSetting.objects.filter(
+                pk=country_id,
+                category='Country',
+            ).first()
+        if selected_country is None:
+            try:
+                selected_country = reporting_country_for_user(request.user)
+            except PermissionError:
+                selected_country = None
+        if selected_country:
+            region_filter = Q(region__name__iexact=selected_country.name)
+
+    if region_filter is not None and skus.filter(region_filter).exists():
+        skus = skus.filter(region_filter)
+
+    brand_name = model.brand.name if model.brand else ''
+    model_name = model.name
+
+    if brand_name:
+        skus = skus.filter(Q(code__icontains=brand_name) | Q(description__icontains=brand_name))
+    if model_name:
+        skus = skus.filter(Q(code__icontains=model_name) | Q(description__icontains=model_name))
+    if sub_model_id:
+        sub_name = SubModel.objects.filter(pk=sub_model_id).values_list('name', flat=True).first()
+        if sub_name and sub_name.strip() not in ('-', '', 'null', 'none', 'n/a'):
+            skus_sub = skus.filter(Q(code__icontains=sub_name) | Q(description__icontains=sub_name))
+            if skus_sub.exists():
+                skus = skus_sub
+
+    available_years = []
+    seen_ranges = set()
+
+    if skus.exists():
+        sku_records = list(skus.values_list('code', 'description'))
+        for yr in yr_list:
+            if yr.year_start is None or yr.year_end is None:
+                continue
+            range_key = (yr.year_start, yr.year_end)
+            if range_key in seen_ranges:
+                continue
+
+            if yr.year_start != yr.year_end:
+                short_range = f"{yr.year_start % 100:02d}-{yr.year_end % 100:02d}"
+                full_range = f"{yr.year_start}-{yr.year_end}"
+                compact_range = f"{yr.year_start % 100:02d}{yr.year_end % 100:02d}"
+            else:
+                short_range = f"{yr.year_start % 100:02d}"
+                full_range = f"{yr.year_start}"
+                compact_range = f"{yr.year_start}"
+
+            matches = any(
+                short_range in (c or '') or short_range in (d or '')
+                or full_range in (c or '') or full_range in (d or '')
+                or compact_range in (c or '') or compact_range in (d or '')
+                for c, d in sku_records
+            )
+            if matches:
+                seen_ranges.add(range_key)
+                available_years.append({
+                    'id': yr.id,
+                    'range': short_range,
+                    'full_range': full_range,
+                    'sub_model_id': yr.sub_model_id,
+                })
+
+    if not available_years:
+        for yr in yr_list:
+            if yr.year_start is None or yr.year_end is None:
+                continue
+            range_key = (yr.year_start, yr.year_end)
+            if range_key in seen_ranges:
+                continue
+            seen_ranges.add(range_key)
+            if yr.year_start != yr.year_end:
+                short_range = f"{yr.year_start % 100:02d}-{yr.year_end % 100:02d}"
+                full_range = f"{yr.year_start}-{yr.year_end}"
+            else:
+                short_range = f"{yr.year_start % 100:02d}"
+                full_range = f"{yr.year_start}"
+            available_years.append({
+                'id': yr.id,
+                'range': short_range,
+                'full_range': full_range,
+                'sub_model_id': yr.sub_model_id,
+            })
+
+    return JsonResponse(available_years, safe=False)
+
+
+@login_required
 def get_complaint_type_options(request, complaint_type):
     if not can_user_create_complaint_type(request.user, complaint_type):
         raise PermissionDenied('Your role cannot create the selected complaint type.')
@@ -2600,7 +2953,7 @@ def get_filtered_skus(request):
         if not object_id:
             continue
         term = model_class.objects.filter(pk=object_id).values_list('name', flat=True).first()
-        if not term:
+        if not term or (model_class == SubModel and term.strip() in ('-', '', 'null', 'none', 'n/a')):
             continue
         skus = skus.filter(Q(code__icontains=term) | Q(description__icontains=term))
 
@@ -3298,9 +3651,160 @@ def approvals_list_view(request):
 
     profile = get_user_profile(request.user)
     user_role = getattr(profile, 'role', '')
+    can_access_designer_stage = _can_user_access_designer_approvals(request.user)
     workspace_stage = request.GET.get('stage', 'plan').strip().lower()
-    if workspace_stage not in {'plan', 'verification'}:
+    if workspace_stage not in {'plan', 'verification', 'designer'}:
         workspace_stage = 'plan'
+    if workspace_stage == 'designer':
+        if not can_access_designer_stage:
+            raise PermissionDenied('Only CAD, PM, and Admin users can access designer upload approvals.')
+        latest_appr_cad = Subquery(
+            PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('cad_status')[:1]
+        )
+        latest_appr_ed = Subquery(
+            PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('ed_status')[:1]
+        )
+        latest_appr_cycle = Subquery(
+            PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('cycle')[:1]
+        )
+        latest_appr_status = Subquery(
+            PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('status')[:1]
+        )
+
+        base_count_qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).annotate(
+            latest_cad_status=latest_appr_cad,
+            latest_ed_status=latest_appr_ed,
+            latest_review_status=latest_appr_status,
+        )
+        total_active_count = base_count_qs.filter(approval_status='pending').distinct().count()
+
+        approval_role = getattr(profile, 'approval_role', None) if profile else None
+        is_admin_user = bool(request.user.is_superuser or (profile and profile.role == WorkflowRoles.ADMIN))
+        my_pending_count = 0
+        if approval_role == ApprovalRoles.CAD:
+            my_pending_count = base_count_qs.filter(approval_status='pending', latest_cad_status='pending').exclude(uploaded_by=request.user).distinct().count()
+        elif approval_role in (ApprovalRoles.ED,):
+            my_pending_count = base_count_qs.filter(approval_status='pending', latest_ed_status='pending').exclude(uploaded_by=request.user).distinct().count()
+        elif is_admin_user or approval_role == ApprovalRoles.PM:
+            my_pending_count = total_active_count
+
+        partially_approved_count = base_count_qs.filter(approval_status='pending', latest_review_status='partially_approved').distinct().count()
+        rejection_count = base_count_qs.filter(approval_status='rejected').distinct().count()
+        approved_count = base_count_qs.filter(approval_status='approved').distinct().count()
+
+        qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).select_related(
+            'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
+        ).annotate(
+            latest_cad_status=latest_appr_cad,
+            latest_ed_status=latest_appr_ed,
+            latest_cycle=latest_appr_cycle,
+            latest_review_status=latest_appr_status,
+        ).prefetch_related(
+            'approval_requests__cad_reviewer',
+            'approval_requests__ed_reviewer',
+        ).distinct().order_by('-uploaded_at')
+
+        status_filter = request.GET.get('status', 'active')
+        if status_filter == 'active':
+            qs = qs.filter(approval_status='pending')
+        elif status_filter == 'my_pending':
+            if approval_role == ApprovalRoles.CAD:
+                qs = qs.filter(approval_status='pending', latest_cad_status='pending').exclude(uploaded_by=request.user)
+            elif approval_role in (ApprovalRoles.ED,):
+                qs = qs.filter(approval_status='pending', latest_ed_status='pending').exclude(uploaded_by=request.user)
+            else:
+                qs = qs.filter(approval_status='pending')
+        elif status_filter == 'partially_approved':
+            qs = qs.filter(approval_status='pending', latest_review_status='partially_approved')
+        elif status_filter in ('rejected', 'rework', 'reconsideration'):
+            qs = qs.filter(approval_status='rejected')
+        elif status_filter == 'approved':
+            qs = qs.filter(approval_status='approved')
+        elif status_filter == 'all':
+            pass
+
+        search_query = request.GET.get('search', '').strip()
+        if search_query:
+            qs = qs.filter(
+                Q(title__icontains=search_query) |
+                Q(uploaded_by__username__icontains=search_query) |
+                Q(vehicle__sub_model__model__brand__name__icontains=search_query) |
+                Q(vehicle__sub_model__model__name__icontains=search_query) |
+                Q(vehicle__layout_code__icontains=search_query) |
+                Q(folder__name__icontains=search_query)
+            )
+
+        designer_page = Paginator(qs, 20).get_page(request.GET.get('page'))
+        pagination_params = request.GET.copy()
+        pagination_params.pop('page', None)
+
+        designer_items = []
+        for img in designer_page.object_list:
+            appr = getattr(img, 'latest_approval', None)
+            can_review = False
+            if img.approval_status == 'pending' and approval_role == ApprovalRoles.CAD and getattr(img, 'latest_cad_status', '') == 'pending' and img.uploaded_by_id != request.user.id:
+                can_review = True
+            elif img.approval_status == 'pending' and approval_role == ApprovalRoles.ED and getattr(img, 'latest_ed_status', '') == 'pending' and img.uploaded_by_id != request.user.id:
+                can_review = True
+
+            vehicle_desc = None
+            if img.vehicle:
+                v = img.vehicle
+                brand = v.sub_model.model.brand.name if v.sub_model and v.sub_model.model and v.sub_model.model.brand else ''
+                model = v.sub_model.model.name if v.sub_model and v.sub_model.model else ''
+                sub_model = v.sub_model.name if v.sub_model and v.sub_model.name != '-' else ''
+                yr_str = f"({v.year_start}-{v.year_end})" if v.year_start and v.year_end else ''
+                vehicle_desc = f"{brand} {model} {sub_model} {yr_str}".strip()
+
+            designer_name = img.uploaded_by.username if img.uploaded_by else "Designer"
+            cad_reviewer_name = "CAD Approver"
+            if appr and appr.cad_reviewer:
+                cad_reviewer_name = appr.cad_reviewer.get_full_name() or appr.cad_reviewer.username
+            ed_reviewer_name = "ED Approver"
+            if appr and appr.ed_reviewer:
+                ed_reviewer_name = appr.ed_reviewer.get_full_name() or appr.ed_reviewer.username
+
+            designer_items.append({
+                'id': img.id,
+                'title': img.title,
+                'image': img.image,
+                'thumbnail': img.thumbnail,
+                'uploaded_by': img.uploaded_by,
+                'designer_name': designer_name,
+                'uploaded_at': img.uploaded_at,
+                'file_size': img.file_size,
+                'approval_status': img.approval_status,
+                'review_status': getattr(img, 'latest_review_status', ''),
+                'rejection_reason': img.rejection_reason,
+                'vehicle': vehicle_desc,
+                'folder': img.folder,
+                'latest_approval': appr,
+                'cycle': appr.cycle if appr else 1,
+                'current_cad_status': getattr(img, 'latest_cad_status', appr.cad_status if appr else 'pending'),
+                'current_ed_status': getattr(img, 'latest_ed_status', appr.ed_status if appr else 'pending'),
+                'cad_reviewer_name': cad_reviewer_name,
+                'ed_reviewer_name': ed_reviewer_name,
+                'cad_comment': appr.cad_comment if appr else '',
+                'ed_comment': appr.ed_comment if appr else '',
+                'can_review_by_user': can_review,
+            })
+
+        return render(request, 'management/approvals_list.html', {
+            'workspace_stage': 'designer',
+            'can_access_designer_stage': can_access_designer_stage,
+            'designer_items': designer_items,
+            'status_filter': status_filter,
+            'search_query': search_query,
+            'total_active_count': total_active_count,
+            'my_pending_count': my_pending_count,
+            'partially_approved_count': partially_approved_count,
+            'rejection_count': rejection_count,
+            'approved_count': approved_count,
+            'profile': profile,
+            'user_role': user_role,
+            'page_obj': designer_page,
+            'pagination_querystring': pagination_params.urlencode(),
+        })
     stage_filters = (
         [ApprovalStages.EXECUTION_VERIFICATION]
         if workspace_stage == 'verification'
@@ -3578,6 +4082,8 @@ def approvals_list_view(request):
         'profile': profile,
         'user_role': user_role,
         'workspace_stage': workspace_stage,
+
+        'can_access_designer_stage': can_access_designer_stage,
         'page_obj': approval_page,
         'pagination_querystring': pagination_params.urlencode(),
     })

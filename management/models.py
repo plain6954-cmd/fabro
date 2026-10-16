@@ -256,7 +256,9 @@ def get_next_pattern_serial(country=None, exclude_id=None):
         qs = qs.exclude(pk=exclude_id)
     max_num = 0
     import re
-    for s in qs.values_list('serial_number', flat=True):
+    # Imported serials are not guaranteed to be padded consistently. Inspect
+    # every matching value so a short, high serial cannot be skipped.
+    for s in qs.values_list('serial_number', flat=True).iterator(chunk_size=2000):
         digits = re.findall(r'\d+', s)
         if digits:
             val = int(digits[0])
@@ -1109,3 +1111,33 @@ class VehicleDriveLink(models.Model):
 
     def __str__(self):
         return self.title or self.url
+
+
+class ColorMaster(models.Model):
+    STATUS_CHOICES = [
+        ('Active', _('Active')),
+        ('Sampling', _('Sampling')),
+        ('Discontinued', _('Discontinued')),
+    ]
+
+    color_code = models.CharField(max_length=50, unique=True, verbose_name=_('Color Code / Internal Code'))
+    name = models.CharField(max_length=100, verbose_name=_('Color Name'))
+    hex_code = models.CharField(max_length=20, default='#000000', verbose_name=_('HEX Code'))
+    pantone_code = models.CharField(max_length=50, blank=True, default='', verbose_name=_('Pantone Code'))
+    rgb_code = models.CharField(max_length=50, blank=True, default='', verbose_name=_('RGB Code'))
+    cmyk_code = models.CharField(max_length=50, blank=True, default='', verbose_name=_('CMYK Code'))
+    color_category = models.CharField(max_length=100, blank=True, default='', verbose_name=_('Color Category'))
+    material_series = models.CharField(max_length=100, blank=True, default='', verbose_name=_('Material Series'))
+    compatible_models = models.CharField(max_length=255, blank=True, default='', verbose_name=_('Compatible Models'))
+    status = models.CharField(max_length=50, default='Active', choices=STATUS_CHOICES, verbose_name=_('Status'))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['color_code', 'id']
+        indexes = [
+            models.Index(fields=['status'], name='idx_color_master_status'),
+        ]
+
+    def __str__(self):
+        return f"{self.color_code} - {self.name} ({self.hex_code})"

@@ -10,15 +10,17 @@ from urllib.parse import urlparse
 os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import Client
 from playwright.sync_api import expect, sync_playwright
 from PIL import Image
 
 from management.models import (
-    ApprovalRoles, Brand, Model, PatternDesignImage, SubModel, UserProfile,
+    ApprovalRoles, Brand, ColorMaster, Model, PatternDesignImage, SubModel, UserProfile,
     WorkflowRoles, YearRange,
 )
+from management.services.design_approvals import submit_design_for_approval
 
 
 PNG_BUFFER = io.BytesIO()
@@ -237,6 +239,66 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         self.assertEqual(response.status, 403)
         self.assertEqual(self.browser_errors, [])
         (ARTIFACTS / 'browser-interaction-errors.json').write_text(json.dumps(self.browser_errors, indent=2))
+
+    def test_color_master_modal_and_responsive_layout(self):
+        ColorMaster.objects.create(color_code='B01', name='Browser Beige', hex_code='#AF955C')
+        admin = self.page_as('admin')
+        admin.goto(f'{self.live_server_url}/car-details/?subwindow=colors')
+        expect(admin.locator('#tab-pane-color-master')).to_be_visible()
+        expect(admin.locator('#color-card-1')).to_be_visible()
+        for width, height in ((320, 568), (360, 800), (390, 844), (568, 320),
+                              (768, 1024), (1024, 768), (1440, 900), (1920, 1080),
+                              (2560, 1080)):
+            admin.set_viewport_size({'width': width, 'height': height})
+            self.assertLessEqual(admin.evaluate('document.documentElement.scrollWidth - innerWidth'), 1, width)
+        admin.locator('#colorSearchInput').fill('Browser Beige')
+        expect(admin.locator('#color-card-1')).to_be_visible()
+        admin.locator('#colorSearchInput').fill('absent color')
+        expect(admin.locator('#color-card-1')).to_be_hidden()
+        admin.locator('#clearColorSearchBtn').click()
+        admin.set_viewport_size({'width': 390, 'height': 844})
+        admin.locator('#color-card-1 .btn-edit').click()
+        expect(admin.locator('#editColorModal')).to_be_visible()
+        modal_box = admin.locator('#editColorModal .modal-content').bounding_box()
+        self.assertIsNotNone(modal_box)
+        self.assertGreaterEqual(modal_box['x'], 0)
+        self.assertLessEqual(modal_box['x'] + modal_box['width'], 391)
+        admin.locator('#editColorName').fill('Browser Beige Updated')
+        admin.locator('#btnSubmitEditColor').click()
+        expect(admin.locator('#editColorModal')).to_be_hidden()
+        self.assertEqual(ColorMaster.objects.get(color_code='B01').name, 'Browser Beige Updated')
+        self.assertEqual(self.browser_errors, [])
+
+    def test_designer_workspace_quick_review_uses_existing_workflow(self):
+        image = PatternDesignImage.objects.create(
+            vehicle=self.vehicle,
+            image=SimpleUploadedFile('quick-review.png', PNG, content_type='image/png'),
+            title='quick-review.png',
+            uploaded_by=self.users['designer'],
+            approval_status='pending',
+        )
+        submit_design_for_approval(image, self.users['designer'])
+        cad = self.page_as('cad')
+        cad.goto(f'{self.live_server_url}/approvals/?stage=designer&status=my_pending')
+        card = cad.locator(f'#card-design-{image.pk}')
+        expect(card).to_be_visible()
+        card.get_by_role('button', name='Approve Design').click()
+        expect(cad.locator('#designReviewModalOverlay')).to_be_visible()
+        cad.locator('#modalDesignComment').fill('CAD reviewed')
+        cad.locator('#modalDesignSubmitBtn').click()
+        expect(cad.locator('#designReviewModalOverlay')).to_be_hidden()
+        image.refresh_from_db()
+        self.assertEqual(image.latest_approval.cad_status, 'approved')
+        ed = self.page_as('ed')
+        ed.goto(f'{self.live_server_url}/approvals/?stage=designer&status=partially_approved')
+        card = ed.locator(f'#card-design-{image.pk}')
+        expect(card).to_be_visible()
+        card.get_by_role('button', name='Approve Design').click()
+        ed.locator('#modalDesignSubmitBtn').click()
+        expect(ed.locator('#designReviewModalOverlay')).to_be_hidden()
+        image.refresh_from_db()
+        self.assertEqual(image.approval_status, 'approved')
+        self.assertEqual(self.browser_errors, [])
 
     def test_role_routes_and_responsive_chrome_viewports(self):
         sizes = [
