@@ -39,6 +39,7 @@ from .models import (
     MasterSetting,
     Model,
     Notification,
+    PatternEditLog,
     SKU,
     SubModel,
     UserProfile,
@@ -2808,6 +2809,62 @@ class FabroBackendTests(TestCase):
         self.assertNotIn('openPatternRow', html)
         self.assertIn('Select vehicle', html)
         self.assertNotIn('Open design options for', html)
+
+    def test_pattern_logs_api_with_logs(self):
+        self.login()
+        log = PatternEditLog.objects.create(
+            year_range=self.year,
+            pattern_serial=self.year.serial_number or f"S{self.year.id:04d}",
+            user=self.user,
+            action="updated",
+            summary="Updated fitting confirmation",
+            details={"fitting_confirmation": {"old": "Pending", "new": "Confirmed"}}
+        )
+        url = reverse('pattern_logs_api', kwargs={'year_range_id': self.year.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get('status'), 'success')
+        self.assertTrue(data.get('success'))
+        self.assertEqual(len(data.get('logs', [])), 1)
+        log_entry = data['logs'][0]
+        self.assertEqual(log_entry['id'], log.id)
+        self.assertEqual(log_entry['action'], 'updated')
+        self.assertEqual(log_entry['summary'], 'Updated fitting confirmation')
+        self.assertEqual(log_entry['description'], 'Updated fitting confirmation')
+        self.assertIn('fitting_confirmation', log_entry['details'])
+
+    def test_pattern_logs_api_empty_logs(self):
+        self.login()
+        url = reverse('pattern_logs_api', kwargs={'year_range_id': self.year.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get('status'), 'success')
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('logs'), [])
+
+    def test_pattern_logs_api_unauthenticated(self):
+        url = reverse('pattern_logs_api', kwargs={'year_range_id': self.year.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 302)
+
+    def test_pattern_selection_and_audit_ui_elements(self):
+        self.login()
+        res = self.client.get(reverse('car_details'))
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+        # Audit log UI components
+        self.assertIn('patternLogPopover', html)
+        self.assertIn('openPatternLogPopover', html)
+        self.assertIn('No change history recorded yet for this vehicle pattern.', html)
+        self.assertIn('actionBtnLog', html)
+        # Multi-selection UI components
+        self.assertIn('patternSelectAll', html)
+        self.assertIn('pattern-row-select', html)
+        self.assertIn('deleteMultiBadge', html)
+        self.assertIn('patternActionsToggleBtn', html)
+        self.assertIn('patternActionsDrawer', html)
 
     def test_admin_can_create_and_edit_freelance_3d_designer_user(self):
         admin_user = self.create_workflow_user('admin_tester', WorkflowRoles.ADMIN)

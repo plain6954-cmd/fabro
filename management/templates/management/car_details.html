@@ -1043,6 +1043,34 @@
             max-height: 235px;
             flex: 1 1 auto;
         }
+        body.light-mode .pattern-log-entry {
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        .pattern-log-user {
+            color: #f1f5f9;
+        }
+        body.light-mode .pattern-log-user {
+            color: #0f172a !important;
+        }
+        .pattern-log-desc {
+            color: #94a3b8;
+        }
+        body.light-mode .pattern-log-desc {
+            color: #334155 !important;
+        }
+        .pattern-log-changes {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        body.light-mode .pattern-log-changes {
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .pattern-log-changes-new {
+            color: #f1f5f9;
+        }
+        body.light-mode .pattern-log-changes-new {
+            color: #0f172a !important;
+        }
 
     </style>
     <link rel="stylesheet" href="{% static 'management/css/color-master.css' %}?v=20261016" data-fabro-page-asset>
@@ -1068,6 +1096,7 @@
                         onclick="switchSubwindow('patterns')">
                     <i class="fas fa-layer-group"></i>
                     <span>{% translate "Pattern Master" %}</span>
+                    <span class="subtaskbar-counter-pill" id="subtaskbarPatternCount">{{ total_patterns_count|default:page_obj.paginator.count }}</span>
                 </button>
                 <button type="button"
                         class="pattern-subtaskbar-btn {% if active_subwindow == 'colors' %}is-active{% endif %}"
@@ -1900,19 +1929,88 @@
             <div class="color-master-toolbar">
                 <div class="color-master-title-wrap">
                     <h1 class="page-title">
+                        <i class="fas fa-palette color-master-title-icon" aria-hidden="true"></i>
                         <span>{% translate "Color Master" %}</span>
-                        <span class="color-master-count-badge" id="colorMasterCountBadge">{{ total_colors_count }}</span>
                     </h1>
-                    <span class="color-master-subtitle">{% translate "Automotive Leather Palette" %}</span>
                 </div>
                 <div class="color-master-controls">
-                    <div class="color-search-picker">
-                        <i class="fas fa-search" aria-hidden="true"></i>
-                        <input type="text" id="colorSearchInput" placeholder="{% translate 'Search name, HEX, code...' %}" value="{{ color_search }}" oninput="filterColorTiles(this.value)" autocomplete="off">
-                        <button type="button" id="clearColorSearchBtn" onclick="clearColorSearch()" style="display: none; background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 0 4px;" title="{% translate 'Clear search' %}">
+                    <form method="GET" class="header-search-form color-search-form" id="color-search-form" onsubmit="return false;">
+                        <input type="hidden" name="subwindow" value="colors">
+                        <input type="hidden" name="color_search_by" id="color-search-by" value="{{ color_search_by|default:'all' }}">
+                        <div class="search-picker color-search-picker-box" id="color-search-picker">
+                            <i class="fas fa-search search-leading-icon color-search-leading-icon" id="colorSearchLeadingIcon" title="{% translate "Search" %}"></i>
+                            <input type="text" name="color_search" id="colorSearchInput" placeholder="{% translate "Search..." %}"
+                                   value="{{ color_search }}" class="header-search-input color-search-input" autocomplete="off"
+                                   aria-label="{% translate "Search colors" %}" aria-describedby="color-search-options-title"
+                                   aria-haspopup="listbox" aria-expanded="false">
+                            <span class="search-field-label color-search-field-label" id="color-search-field-label">{% translate "All Fields" %}</span>
+                            <div class="search-options color-search-options" id="color-search-options">
+                                <p class="search-options-title" id="color-search-options-title">{% translate "Search this keyword in" %}</p>
+                                <div class="search-option-grid" role="listbox" aria-label="{% translate "Search field choices" %}">
+                                    <button type="button" class="search-option" data-search-by="serial_number" role="option">
+                                        <i class="fas fa-hashtag"></i>
+                                        {% translate "Serial Number" %}
+                                    </button>
+                                    <button type="button" class="search-option" data-search-by="name" role="option">
+                                        <i class="fas fa-paint-brush"></i>
+                                        {% translate "Color Name" %}
+                                    </button>
+                                    <button type="button" class="search-option" data-search-by="color_code" role="option">
+                                        <i class="fas fa-barcode"></i>
+                                        {% translate "Internal Code" %}
+                                    </button>
+                                    <button type="button" class="search-option" data-search-by="hex_code" role="option">
+                                        <i class="fas fa-eye-dropper"></i>
+                                        {% translate "HEX Code" %}
+                                    </button>
+                                    <button type="button" class="search-option" data-search-by="rgb_code" role="option">
+                                        <i class="fas fa-sliders-h"></i>
+                                        {% translate "RGB Values" %}
+                                    </button>
+                                    <button type="button" class="search-option" data-search-by="material_series" role="option">
+                                        <i class="fas fa-couch"></i>
+                                        {% translate "Material Series / Grade" %}
+                                    </button>
+                                    <button type="button" class="search-option" data-search-by="status" role="option">
+                                        <i class="fas fa-check-circle"></i>
+                                        {% translate "Status" %}
+                                    </button>
+                                    <button type="button" class="search-option" data-search-by="compatible_models" role="option">
+                                        <i class="fas fa-car"></i>
+                                        {% translate "Compatible Models" %}
+                                    </button>
+                                    <button type="button" class="search-option is-active" data-search-by="all" role="option">
+                                        <i class="fas fa-layer-group"></i>
+                                        {% translate "All Fields" %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary icon-btn search-submit-btn" id="colorSearchSubmitBtn" title="{% translate "Search" %}" aria-label="{% translate "Search colors" %}">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger icon-btn search-clear-btn" id="clearColorSearchBtn" onclick="clearColorSearch()" title="{% translate "Clear Search" %}" aria-label="{% translate "Clear Search" %}" style="display: none;">
                             <i class="fas fa-times"></i>
                         </button>
+                    </form>
+
+                    <!-- Uiverse Toggle Switch (List View / Card View) -->
+                    <div class="toggle-container" title="{% translate 'Switch between Card View and List View' %}">
+                        <input class="toggle-input" type="checkbox" id="colorViewToggle" checked aria-label="{% translate 'Toggle between List View and Card View' %}">
+                        <label class="toggle" for="colorViewToggle" tabindex="0" role="switch" aria-checked="true" aria-label="{% translate 'Color View Switch' %}">
+                            <span class="toggle-track-icon list-track-icon" aria-hidden="true" title="{% translate 'List View' %}">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>
+                            </span>
+                            <span class="toggle-track-icon grid-track-icon" aria-hidden="true" title="{% translate 'Card View' %}">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+                            </span>
+                            <div class="toggle-circle">
+                                <svg class="toggle-icon off" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>
+                                <svg class="toggle-icon on" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+                            </div>
+                        </label>
                     </div>
+
                     <select id="colorStatusFilter" class="color-status-select" onchange="filterColorStatus(this.value)" aria-label="{% translate 'Filter by status' %}">
                         <option value="">{% translate "All Statuses" %}</option>
                         <option value="active" {% if color_status_filter|lower == 'active' %}selected{% endif %}>{% translate "Active" %}</option>
@@ -1920,9 +2018,8 @@
                         <option value="discontinued" {% if color_status_filter|lower == 'discontinued' %}selected{% endif %}>{% translate "Discontinued" %}</option>
                     </select>
                     {% if can_manage_catalog %}
-                    <button type="button" class="btn-create-color" onclick="openCreateColorModal()" title="{% translate 'Create New Color' %}">
-                        <i class="fas fa-plus"></i>
-                        <span>{% translate "New" %}</span>
+                    <button type="button" id="btnOpenCreateColorModal" class="btn-create-color" onclick="openCreateColorModal(this)" title="{% translate 'Create New Color' %}" aria-label="{% translate 'Create New Color' %}">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
                     </button>
                     {% endif %}
                 </div>
@@ -1937,13 +2034,22 @@
                      data-name="{{ color.name|lower }}"
                      data-hex="{{ color.hex_code|lower }}"
                      data-code="{{ color.color_code|lower }}"
+                     data-serial="#{{ color.color_code|lower }}"
+                     data-rgb="{{ color.rgb_code|default:color.derived_rgb|lower }}"
+                     data-derived-rgb="{{ color.derived_rgb|lower }}"
                      data-pantone="{{ color.pantone_code|lower }}"
+                     data-cmyk="{{ color.cmyk_code|default:color.derived_cmyk|lower }}"
                      data-category="{{ color.color_category|lower }}"
                      data-series="{{ color.material_series|lower }}"
                      data-status="{{ color.status|lower }}"
-                     data-models="{{ color.compatible_models|lower }}">
+                     data-models="{{ color.compatible_models|lower }}"
+                     data-material-options='[
+                         {% for opt in color.material_options.all %}
+                         {"material_id": {{ opt.material.id }}, "material_name": "{{ opt.material.name|escapejs }}", "variant_id": {{ opt.variant.id }}, "variant_name": "{{ opt.variant.name|escapejs }}"}{% if not forloop.last %},{% endif %}
+                         {% endfor %}
+                     ]'>
 
-                    <!-- Visual Swatch Area with Exact HEX rendering -->
+                    <!-- Visual Swatch Area with Exact HEX rendering & Status Pill -->
                     <div class="color-tile__swatch-wrapper">
                         <div class="color-tile__swatch" style="background-color: {{ color.hex_code }};" title="{{ color.name }} ({{ color.hex_code }})">
                             <div class="color-tile__swatch-texture"></div>
@@ -1953,6 +2059,7 @@
 
                     <!-- Card Body Details -->
                     <div class="color-tile__content">
+                        <!-- Row 1: Serial + Name & Pantone -->
                         <div class="color-tile__row-title">
                             <div class="color-tile__name-with-serial">
                                 <span class="color-tile__serial" title="{% translate 'Color Serial' %}">#{{ color.color_code }}</span>
@@ -1962,6 +2069,8 @@
                             <span class="color-tile__pantone" title="{% translate 'Pantone Code' %}">{{ color.pantone_code }}</span>
                             {% endif %}
                         </div>
+
+                        <!-- Row 2: Visual Chips -->
                         <div class="color-tile__row-specs">
                             <span class="color-tile__hex" onclick="copyHexCode('{{ color.hex_code }}', this)" title="{% translate 'Click to copy HEX' %}">
                                 <i class="fas fa-hashtag"></i> {{ color.hex_code }}
@@ -1969,10 +2078,30 @@
                             {% if color.color_category or color.material_series %}
                             <span class="color-tile__series-pill" title="{% translate 'Color Category' %}">{{ color.color_category|default:color.material_series }}</span>
                             {% endif %}
-                            {% if color.rgb_code %}
-                            <span class="color-tile__rgb-pill" title="RGB: {{ color.rgb_code }}"><i class="fas fa-sliders-h"></i> RGB {{ color.rgb_code }}</span>
+                            {% if color.rgb_code or color.derived_rgb %}
+                            <span class="color-tile__rgb-pill" title="RGB: {{ color.rgb_code|default:color.derived_rgb }}"><i class="fas fa-sliders-h"></i> RGB {{ color.rgb_code|default:color.derived_rgb }}</span>
                             {% endif %}
                         </div>
+
+                        <!-- Row 3: 4 Labeled Specifications -->
+                        <div class="color-tile__spec-details">
+                            <span class="color-tile__spec-item"><strong class="color-tile__spec-label">HEX:</strong> <span class="color-tile__spec-val spec-hex" onclick="copyHexCode('{{ color.hex_code }}', this)">{{ color.hex_code }}</span></span>
+                            <span class="color-tile__spec-item"><strong class="color-tile__spec-label">Pantone:</strong> <span class="color-tile__spec-val spec-pantone">{{ color.pantone_code|default:"-" }}</span></span>
+                            <span class="color-tile__spec-item"><strong class="color-tile__spec-label">RGB:</strong> <span class="color-tile__spec-val spec-rgb">{{ color.rgb_code|default:color.derived_rgb|default:"-" }}</span></span>
+                            <span class="color-tile__spec-item"><strong class="color-tile__spec-label">CMYK:</strong> <span class="color-tile__spec-val spec-cmyk">{{ color.cmyk_code|default:color.derived_cmyk|default:"-" }}</span></span>
+                        </div>
+
+                        <!-- Row 4: Material Options Chips -->
+                        <div class="color-tile__material-options"{% if not color.material_options.all %} style="display: none;"{% endif %}>
+                            <span class="color-tile__material-label">{% translate "Materials:" %}</span>
+                            <div class="color-tile__material-chips">
+                                {% for opt in color.material_options.all %}
+                                <span class="color-tile__material-chip">{{ opt.material.name }} &middot; {{ opt.variant.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Row 5: Compatible Models -->
                         {% if color.compatible_models %}
                         <div class="color-tile__models">
                             <span class="color-tile__models-label">{% translate "Compatible Models:" %}</span>
@@ -1992,7 +2121,7 @@
                             <i class="fas fa-edit"></i> <span>{% translate "Edit" %}</span>
                         </button>
                         {% endif %}
-                        <button type="button" class="color-tile__action-btn btn-view" onclick="openViewColorModal('{{ color.id }}', '{{ color.name|escapejs }}', '{{ color.color_code|escapejs }}', '{{ color.hex_code|escapejs }}', '{{ color.material_series|escapejs }}', '{{ color.compatible_models|escapejs }}', '{{ color.status|escapejs }}')" title="{% translate 'View Color Swatch' %}">
+                        <button type="button" class="color-tile__action-btn btn-view" onclick="previewColorCard('{{ color.id }}')" title="{% translate 'View Color Details' %}">
                             <i class="fas fa-eye"></i> <span>{% translate "View" %}</span>
                         </button>
                         {% if can_manage_catalog %}
@@ -2014,6 +2143,213 @@
                     <h3>{% translate "No matching colors found" %}</h3>
                     <p>{% translate "Try clearing or adjusting your search keyword." %}</p>
                 </div>
+            </div>
+
+            <!-- LIST VIEW Data Table -->
+            <div class="color-list-table-wrapper" id="colorListTableWrapper" style="display: none;">
+                <table class="color-list-table" id="colorListTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 38px; text-align: center;">
+                                <input type="checkbox" id="selectAllColors" onchange="toggleSelectAllColors(this)" title="{% translate 'Select All' %}">
+                            </th>
+                            <th class="sortable" onclick="sortColorTable(1, 'code')">
+                                {% translate "Serial #" %} <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th>{% translate "Preview" %}</th>
+                            <th class="sortable" onclick="sortColorTable(3, 'text')">
+                                {% translate "Color Name" %} <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th>{% translate "Internal Code" %}</th>
+                            <th class="sortable" onclick="sortColorTable(5, 'text')">
+                                {% translate "HEX" %} <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" onclick="sortColorTable(6, 'text')">
+                                {% translate "Pantone" %} <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th>{% translate "RGB" %}</th>
+                            <th>{% translate "CMYK" %}</th>
+                            <th>{% translate "Material Options" %}</th>
+                            <th class="sortable" onclick="sortColorTable(10, 'text')">
+                                {% translate "Material Series / Grade" %} <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" onclick="sortColorTable(11, 'text')">
+                                {% translate "Status" %} <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th>{% translate "Compatible Models" %}</th>
+                            <th style="text-align: right;">{% translate "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="colorListTableBody">
+                        {% for color in colors %}
+                        <tr class="color-table-row"
+                            id="color-row-{{ color.id }}"
+                            data-color-id="{{ color.id }}"
+                            data-name="{{ color.name|lower }}"
+                            data-hex="{{ color.hex_code|lower }}"
+                            data-code="{{ color.color_code|lower }}"
+                            data-serial="#{{ color.color_code|lower }}"
+                            data-rgb="{{ color.rgb_code|default:color.derived_rgb|lower }}"
+                            data-derived-rgb="{{ color.derived_rgb|lower }}"
+                            data-pantone="{{ color.pantone_code|lower }}"
+                            data-cmyk="{{ color.cmyk_code|default:color.derived_cmyk|lower }}"
+                            data-category="{{ color.color_category|lower }}"
+                            data-series="{{ color.material_series|lower }}"
+                            data-status="{{ color.status|lower }}"
+                            data-models="{{ color.compatible_models|lower }}"
+                            data-material-options='[
+                                {% for opt in color.material_options.all %}
+                                {"material_id": {{ opt.material.id }}, "material_name": "{{ opt.material.name|escapejs }}", "variant_id": {{ opt.variant.id }}, "variant_name": "{{ opt.variant.name|escapejs }}"}{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                            ]'>
+                            
+                            <!-- Selection Checkbox -->
+                            <td style="text-align: center;">
+                                <input type="checkbox" class="color-row-checkbox" value="{{ color.id }}" onchange="handleColorRowSelect(this)">
+                            </td>
+
+                            <!-- Serial Number -->
+                            <td>
+                                <span class="color-tile__serial" title="{% translate 'Color Serial' %}">#{{ color.color_code }}</span>
+                            </td>
+
+                            <!-- Color Preview -->
+                            <td>
+                                <span class="color-row__swatch" style="background-color: {{ color.hex_code }};" title="{{ color.name }} ({{ color.hex_code }})"></span>
+                            </td>
+
+                            <!-- Color Name -->
+                            <td>
+                                <span class="color-row__name" title="{{ color.name }}">{{ color.name }}</span>
+                            </td>
+
+                            <!-- Internal Code -->
+                            <td>
+                                <span style="font-family: ui-monospace, monospace; font-size: 0.78rem; color: #94a3b8;">{{ color.color_code|default:"-" }}</span>
+                                {% if color.pantone_code %}
+                                <span class="color-tile__pantone" style="margin-left: 4px;" title="{% translate 'Pantone Code' %}">{{ color.pantone_code }}</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- HEX -->
+                            <td>
+                                <span class="color-tile__hex" onclick="copyHexCode('{{ color.hex_code }}', this)" title="{% translate 'Click to copy HEX' %}">
+                                    <i class="fas fa-hashtag"></i> {{ color.hex_code }}
+                                </span>
+                            </td>
+
+                            <!-- Pantone -->
+                            <td>
+                                {% if color.pantone_code %}
+                                <span class="color-tile__pantone">{{ color.pantone_code }}</span>
+                                {% else %}
+                                <span style="color: #64748b;">-</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- RGB -->
+                            <td>
+                                {% if color.rgb_code or color.derived_rgb %}
+                                <span class="color-table-spec-val" title="RGB: {{ color.rgb_code|default:color.derived_rgb }}">{{ color.rgb_code|default:color.derived_rgb }}</span>
+                                {% else %}
+                                <span style="color: #64748b;">-</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- CMYK -->
+                            <td>
+                                {% if color.cmyk_code or color.derived_cmyk %}
+                                <span class="color-table-spec-val" title="CMYK: {{ color.cmyk_code|default:color.derived_cmyk }}">{{ color.cmyk_code|default:color.derived_cmyk }}</span>
+                                {% else %}
+                                <span style="color: #64748b;">-</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Material Options with Popover -->
+                            <td>
+                                <div class="table-material-options-cell">
+                                    {% with opts=color.material_options.all %}
+                                        {% for opt in opts|slice:":2" %}
+                                        <span class="table-material-chip">{{ opt.material.name }} &middot; {{ opt.variant.name }}</span>
+                                        {% endfor %}
+                                        {% if opts|length > 2 %}
+                                        <span class="table-material-more-badge" onclick="toggleMaterialPopover(event, 'popover-{{ color.id }}')" title="{% translate 'View all options' %}">+{{ opts|length|add:"-2" }}</span>
+                                        <div id="popover-{{ color.id }}" class="table-material-popover" style="display: none;">
+                                            <div class="table-material-popover-title">{% translate "Associated Materials" %}</div>
+                                            {% for opt in opts %}
+                                            <span class="table-material-chip popover-chip">{{ opt.material.name }} &middot; {{ opt.variant.name }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        {% if not opts %}
+                                        <span style="color: #64748b;">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </td>
+
+                            <!-- Material Series / Grade -->
+                            <td>
+                                {% if color.color_category or color.material_series %}
+                                <span class="color-tile__series-pill" title="{% translate 'Color Category' %}">{{ color.color_category|default:color.material_series }}</span>
+                                {% else %}
+                                <span style="color: #64748b;">-</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Status -->
+                            <td>
+                                <span class="color-tile__status-pill status-{{ color.status|lower }}">{{ color.status }}</span>
+                            </td>
+
+                            <!-- Compatible Models -->
+                            <td>
+                                {% if color.compatible_models %}
+                                <div class="color-tile__models-tags">
+                                    {% for tag in color.compatible_models.split %}
+                                    <span class="model-tag-chip">{{ tag|cut:"," }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span style="color: #64748b;">-</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Actions -->
+                            <td style="text-align: right;">
+                                <div class="color-row__actions" style="justify-content: flex-end;">
+                                    {% if can_manage_catalog %}
+                                    <button type="button" class="color-tile__action-btn btn-edit" onclick="openEditColorModal('{{ color.id }}', '{{ color.name|escapejs }}', '{{ color.color_code|escapejs }}', '{{ color.hex_code|escapejs }}', '{{ color.material_series|escapejs }}', '{{ color.compatible_models|escapejs }}', '{{ color.status|escapejs }}', this)" title="{% translate 'Edit Color' %}">
+                                        <i class="fas fa-edit"></i> <span>{% translate "Edit" %}</span>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="color-tile__action-btn btn-view" onclick="previewColorCard('{{ color.id }}')" title="{% translate 'View Color Details' %}">
+                                        <i class="fas fa-eye"></i> <span>{% translate "View" %}</span>
+                                    </button>
+                                    {% if can_manage_catalog %}
+                                    <button type="button" class="color-tile__action-btn btn-archive" onclick="deleteColor('{{ color.id }}', '{{ color.name|escapejs }}')" title="{% translate 'Archive / Delete Color' %}">
+                                        <i class="fas fa-archive"></i> <span>{% translate "Archive" %}</span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="14" style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
+                                <i class="fas fa-palette" style="font-size: 1.8rem; color: #64748b; margin-bottom: 0.5rem; display: block;"></i>
+                                {% translate "No leather colors added yet." %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        <tr id="colorListTableNoMatch" style="display: none;">
+                            <td colspan="14" style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
+                                <i class="fas fa-search" style="font-size: 1.8rem; color: #64748b; margin-bottom: 0.5rem; display: block;"></i>
+                                <span>{% translate "No matching colors found" %}</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -2516,49 +2852,112 @@
 
     <!-- ==================== COLOR MASTER MODALS ==================== -->
     <!-- Create Color Modal -->
-    <div id="createColorModal" class="modal" role="dialog" aria-labelledby="createColorModalTitle" aria-modal="true" style="display: none; z-index: 9999;">
-        <div class="modal-content" style="max-width: 500px; border: 1px solid rgba(239, 68, 68, 0.35); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);">
-            <div class="modal-header">
-                <h2 id="createColorModalTitle" class="modal-title" style="color: var(--dark-text); font-size: 1.15rem; display: flex; align-items: center; gap: 0.6rem;">
-                    <i class="fas fa-palette" style="color: #ef4444;"></i>
-                    <span>{% translate "Create New Leather Color" %}</span>
+    <div id="createColorModal" class="modal edit-color-modal-wide" role="dialog" aria-labelledby="createColorModalTitle" aria-modal="true" style="display: none;">
+        <div class="modal-content edit-color-modal-content-wide">
+            <div class="modal-header edit-color-modal-header">
+                <h2 id="createColorModalTitle" class="modal-title">
+                    <i class="fas fa-palette"></i>
+                    <span>{% translate "Create New Color" %}</span>
                 </h2>
-                <button type="button" class="close-btn" onclick="closeCreateColorModal()" title="{% translate 'Close' %}">&times;</button>
+                <button type="button" class="close-btn" onclick="closeCreateColorModal()" title="{% translate 'Close' %}" aria-label="{% translate 'Close' %}">&times;</button>
             </div>
-            <form id="createColorForm" onsubmit="submitCreateColor(event)">
+            <form id="createColorForm" class="edit-color-modal-form" onsubmit="submitCreateColor(event)" novalidate>
                 {% csrf_token %}
-                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem; padding: 1rem 0;">
-                    <!-- Live Swatch Preview -->
-                    <div style="display: flex; align-items: center; gap: 1rem; background: rgba(0, 0, 0, 0.3); padding: 0.85rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div id="createColorLiveSwatch" style="width: 58px; height: 58px; border-radius: 10px; background-color: #010101; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 0 4px 10px rgba(0, 0, 0, 0.4);"></div>
-                        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-                            <span style="font-weight: 700; color: #f8fafc; font-size: 1.05rem;" id="createColorLiveName">Nappa Black</span>
-                            <span style="font-family: monospace; font-size: 0.85rem; color: #94a3b8;" id="createColorLiveHex">#010101</span>
-                        </div>
-                    </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
-                        <div>
-                            <label class="form-label" for="newColorName" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Color Name" %} *</label>
-                            <input type="text" id="newColorName" name="name" class="form-control" placeholder="e.g. Saddle Tan" required oninput="updateCreateLivePreview()" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
-                        </div>
-                        <div>
-                            <label class="form-label" for="newColorCode" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Internal Code" %}</label>
-                            <input type="text" id="newColorCode" name="color_code" class="form-control" placeholder="e.g. FAB-113 (auto)" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
-                        </div>
-                    </div>
+                <!-- Error Banner -->
+                <div id="createColorErrorBanner" class="edit-color-error-banner" style="display: none;" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="createColorErrorMsg"></span>
+                </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
-                        <div>
-                            <label class="form-label" for="newColorHex" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "HEX Color" %} *</label>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="color" id="newColorPicker" value="#010101" oninput="syncColorInput(this.value, 'newColorHex')" style="width: 38px; height: 38px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); background: transparent; cursor: pointer; padding: 0;">
-                                <input type="text" id="newColorHex" name="hex_code" value="#010101" required oninput="syncColorPicker(this.value, 'newColorPicker')" style="flex: 1; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; font-family: monospace; box-sizing: border-box;">
+                <div class="edit-color-two-column-grid">
+                    <!-- LEFT COLUMN: Color Information -->
+                    <div class="edit-color-left-col">
+                        <!-- Top Row: Swatch (Left) + Name & Internal Code (Right) -->
+                        <div class="edit-color-top-row">
+                            <div class="edit-color-swatch-box">
+                                <div id="createColorLiveSwatch" class="edit-color-swatch-preview" style="background-color: #010101;">
+                                    <div class="edit-color-swatch-texture"></div>
+                                    <span id="createColorLiveName" class="edit-color-swatch-name"></span>
+                                </div>
+                            </div>
+                            <div class="edit-color-name-code-group">
+                                <div class="edit-color-field">
+                                    <label class="edit-color-label" for="newColorName">{% translate "Color Name" %} *</label>
+                                    <input type="text" id="newColorName" name="name" class="edit-color-input" required oninput="handleColorNameInput('create')" autocomplete="off" placeholder="{% translate 'e.g. Saddle Tan' %}">
+                                </div>
+                                <div class="edit-color-field">
+                                    <label class="edit-color-label" for="newColorCode">{% translate "Internal Code" %}</label>
+                                    <input type="text" id="newColorCode" name="color_code" class="edit-color-input" autocomplete="off" placeholder="{% translate '01' %}">
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label class="form-label" for="newColorStatus" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Status" %}</label>
-                            <select id="newColorStatus" name="status" class="form-control" style="width: 100%; height: 38px; border-radius: 8px; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
+
+                        <!-- Row 2: HEX Code * | Pantone Code -->
+                        <div class="edit-color-row-2col">
+                            <div class="edit-color-field">
+                                <label class="edit-color-label" for="newColorHex">{% translate "HEX Code" %} *</label>
+                                <div class="edit-color-hex-group">
+                                    <span id="createColorHexSwatchIndicator" class="edit-color-hex-swatch-indicator" style="background-color: #010101;"></span>
+                                    <input type="text" id="newColorHex" name="hex_code" class="edit-color-input edit-color-hex-input" value="#010101" required oninput="handleColorHexInput('create', this.value)" onblur="handleColorHexBlur('create')" autocomplete="off" placeholder="#AF955C" maxlength="7">
+                                </div>
+                            </div>
+                            <div class="edit-color-field">
+                                <label class="edit-color-label" for="newColorPantone">{% translate "Pantone Code" %}</label>
+                                <input type="text" id="newColorPantone" name="pantone_code" class="edit-color-input" oninput="handleColorPantoneInput('create', this.value)" autocomplete="off" placeholder="{% translate 'e.g. 4007 U' %}">
+                            </div>
+                        </div>
+
+                        <!-- Row 3: RGB -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "RGB" %}</label>
+                            <div class="edit-color-rgb-inputs">
+                                <div class="rgb-input-wrap">
+                                    <span class="rgb-prefix">R</span>
+                                    <input type="number" id="newColorR" min="0" max="255" class="edit-color-input rgb-sub-input" oninput="handleColorRgbInput('create')">
+                                </div>
+                                <div class="rgb-input-wrap">
+                                    <span class="rgb-prefix">G</span>
+                                    <input type="number" id="newColorG" min="0" max="255" class="edit-color-input rgb-sub-input" oninput="handleColorRgbInput('create')">
+                                </div>
+                                <div class="rgb-input-wrap">
+                                    <span class="rgb-prefix">B</span>
+                                    <input type="number" id="newColorB" min="0" max="255" class="edit-color-input rgb-sub-input" oninput="handleColorRgbInput('create')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 4: CMYK -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "CMYK" %}</label>
+                            <div class="edit-color-cmyk-inputs">
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">C</span>
+                                    <input type="number" id="newColorC" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('create')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">M</span>
+                                    <input type="number" id="newColorM" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('create')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">Y</span>
+                                    <input type="number" id="newColorY" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('create')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">K</span>
+                                    <input type="number" id="newColorK" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('create')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 5: Status -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="newColorStatus">{% translate "Status" %}</label>
+                            <select id="newColorStatus" name="status" class="edit-color-select">
                                 <option value="Active">{% translate "Active" %}</option>
                                 <option value="Sampling">{% translate "Sampling" %}</option>
                                 <option value="Discontinued">{% translate "Discontinued" %}</option>
@@ -2566,20 +2965,68 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="form-label" for="newColorSeries" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Material Series / Grade" %}</label>
-                        <input type="text" id="newColorSeries" name="material_series" class="form-control" placeholder="e.g. Nappa, Semi-Aniline, Full-Grain" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
-                    </div>
+                    <!-- Vertical Divider -->
+                    <div class="edit-color-col-divider"></div>
 
-                    <div>
-                        <label class="form-label" for="newColorModels" style="font-size: 0.8rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">{% translate "Compatible Models (comma-separated)" %}</label>
-                        <input type="text" id="newColorModels" name="compatible_models" class="form-control" placeholder="e.g. Model S, Model X, Roadster" style="width: 100%; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 0 0.75rem; box-sizing: border-box;">
+                    <!-- RIGHT COLUMN: Color Picker & Material Options -->
+                    <div class="edit-color-right-col">
+                        <!-- Canvas Hue Ring + Sat/Val Box -->
+                        <div class="color-wheel-wrapper">
+                            <canvas id="createColorWheelCanvas" width="220" height="220" class="color-wheel-canvas"></canvas>
+                            <div id="createColorWheelRingCursor" class="color-wheel-ring-cursor"></div>
+                            <div id="createColorWheelSatCursor" class="color-wheel-sat-cursor"></div>
+                        </div>
+
+                        <div class="edit-color-section-divider"></div>
+
+                        <!-- Material & Variant -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "Material & Variant" %}</label>
+                            <div class="material-variant-row">
+                                <select id="newColorMaterialSelect" class="edit-color-select material-select" onchange="onMaterialChange('create')">
+                                    <option value="">{% translate "Select Material..." %}</option>
+                                    {% for mat in materials_catalog %}
+                                    <option value="{{ mat.id }}">{{ mat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select id="newColorVariantSelect" class="edit-color-select variant-select" onchange="onVariantChange('create')" disabled>
+                                    <option value="">{% translate "Select Variant..." %}</option>
+                                </select>
+                                <button type="button" id="btnCreateAddMaterialOption" class="btn-add-material-option" onclick="addMaterialOption('create')" disabled title="{% translate 'Add Material Option' %}" aria-label="{% translate 'Add Material Option' %}">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Added Options Chips -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "Added Options" %}</label>
+                            <div id="createColorAddedChips" class="added-options-chips-container">
+                                <span class="no-options-placeholder">{% translate "No material options added yet." %}</span>
+                            </div>
+                        </div>
+
+                        <!-- Material Series / Grade -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="newColorSeries">{% translate "Material Series / Grade" %}</label>
+                            <input type="text" id="newColorSeries" name="material_series" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Beige & Tan' %}">
+                        </div>
+
+                        <!-- Compatible Models -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="newColorModels">{% translate "Compatible Models" %}</label>
+                            <input type="text" id="newColorModels" name="compatible_models" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Land Cruiser, Prado, Camry' %}">
+                        </div>
                     </div>
                 </div>
-                <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.65rem; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem;">
-                    <button type="button" class="btn btn-secondary" onclick="closeCreateColorModal()">{% translate "Cancel" %}</button>
-                    <button type="submit" class="btn btn-primary" id="btnSubmitCreateColor" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none;">
-                        <i class="fas fa-check"></i> {% translate "Save Color" %}
+
+                <!-- Footer Action Buttons: Compact Icon-Only Cancel (X) and Save (✓) -->
+                <div class="modal-actions edit-color-modal-actions">
+                    <button type="button" class="btn-icon-cancel" onclick="closeCreateColorModal()" title="{% translate 'Cancel' %}" aria-label="{% translate 'Cancel' %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button type="submit" class="btn-icon-save" id="btnSubmitCreateColor" title="{% translate 'Create Color' %}" aria-label="{% translate 'Create Color' %}">
+                        <i class="fas fa-check"></i>
                     </button>
                 </div>
             </form>
@@ -2587,56 +3034,110 @@
     </div>
 
     <!-- Edit Color Modal -->
-    <div id="editColorModal" class="modal edit-color-modal" role="dialog" aria-labelledby="editColorModalTitle" aria-modal="true" style="display: none;">
-        <div class="modal-content edit-color-modal-content">
-            <div class="modal-header">
+    <div id="editColorModal" class="modal edit-color-modal-wide" role="dialog" aria-labelledby="editColorModalTitle" aria-modal="true" style="display: none;">
+        <div class="modal-content edit-color-modal-content-wide">
+            <div class="modal-header edit-color-modal-header">
                 <h2 id="editColorModalTitle" class="modal-title">
                     <i class="fas fa-edit"></i>
-                    <span>{% translate "Edit Leather Color" %}</span>
+                    <span>Edit Color</span>
                 </h2>
                 <button type="button" class="close-btn" onclick="closeEditColorModal()" title="{% translate 'Close' %}" aria-label="{% translate 'Close' %}">&times;</button>
             </div>
-            <form id="editColorForm" onsubmit="submitEditColor(event)" novalidate>
+            <form id="editColorForm" class="edit-color-modal-form" onsubmit="submitEditColor(event)" novalidate>
                 {% csrf_token %}
                 <input type="hidden" id="editColorId" name="id">
 
-                <!-- Error Feedback Banner -->
+                <!-- Error Banner -->
                 <div id="editColorErrorBanner" class="edit-color-error-banner" style="display: none;" role="alert">
                     <i class="fas fa-exclamation-circle"></i>
                     <span id="editColorErrorMsg"></span>
                 </div>
 
-                <!-- Compact Live Swatch Preview -->
-                <div class="edit-color-preview">
-                    <div id="editColorLiveSwatch" class="edit-color-swatch" style="background-color: #010101;"></div>
-                    <div class="edit-color-preview-info">
-                        <span class="edit-color-preview-name" id="editColorLiveName">Nappa Black</span>
-                        <span class="edit-color-preview-hex" id="editColorLiveHex">#010101</span>
-                    </div>
-                </div>
-
-                <div class="edit-color-form-body">
-                    <!-- Row 1: Color Name | Internal Code -->
-                    <div class="edit-color-row-2col">
-                        <div class="edit-color-field">
-                            <label class="edit-color-label" for="editColorName">{% translate "Color Name" %} *</label>
-                            <input type="text" id="editColorName" name="name" class="edit-color-input" required oninput="updateEditLivePreview()" autocomplete="off" placeholder="{% translate 'e.g. F.BEIGE' %}">
-                        </div>
-                        <div class="edit-color-field">
-                            <label class="edit-color-label" for="editColorCode">{% translate "Internal Code" %}</label>
-                            <input type="text" id="editColorCode" name="color_code" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. 01' %}">
-                        </div>
-                    </div>
-
-                    <!-- Row 2: HEX Color + Color Picker | Status -->
-                    <div class="edit-color-row-2col">
-                        <div class="edit-color-field">
-                            <label class="edit-color-label" for="editColorHex">{% translate "HEX Color" %} *</label>
-                            <div class="edit-color-hex-group">
-                                <input type="color" id="editColorPicker" class="edit-color-picker-input" value="#010101" oninput="syncEditColorPicker(this.value)" title="{% translate 'Choose color' %}" aria-label="{% translate 'Choose color' %}">
-                                <input type="text" id="editColorHex" name="hex_code" class="edit-color-input edit-color-hex-input" value="#010101" required oninput="syncEditColorHex(this.value)" autocomplete="off" placeholder="#000000" maxlength="7">
+                <div class="edit-color-two-column-grid">
+                    <!-- LEFT COLUMN: Color Information -->
+                    <div class="edit-color-left-col">
+                        <!-- Top Row: Swatch (Left) + Name & Internal Code (Right) -->
+                        <div class="edit-color-top-row">
+                            <div class="edit-color-swatch-box">
+                                <div id="editColorLiveSwatch" class="edit-color-swatch-preview" style="background-color: #010101;">
+                                    <div class="edit-color-swatch-texture"></div>
+                                    <span id="editColorLiveName" class="edit-color-swatch-name"></span>
+                                </div>
+                            </div>
+                            <div class="edit-color-name-code-group">
+                                <div class="edit-color-field">
+                                    <label class="edit-color-label" for="editColorName">{% translate "Color Name" %} *</label>
+                                    <input type="text" id="editColorName" name="name" class="edit-color-input" required oninput="handleColorNameInput('edit')" autocomplete="off" placeholder="{% translate 'e.g. F.BEIGE' %}">
+                                </div>
+                                <div class="edit-color-field">
+                                    <label class="edit-color-label" for="editColorCode">{% translate "Internal Code" %}</label>
+                                    <input type="text" id="editColorCode" name="color_code" class="edit-color-input" autocomplete="off" placeholder="{% translate '01' %}">
+                                </div>
                             </div>
                         </div>
+
+                        <!-- Row 2: HEX Code * | Pantone Code -->
+                        <div class="edit-color-row-2col">
+                            <div class="edit-color-field">
+                                <label class="edit-color-label" for="editColorHex">{% translate "HEX Code" %} *</label>
+                                <div class="edit-color-hex-group">
+                                    <span id="editColorHexSwatchIndicator" class="edit-color-hex-swatch-indicator" style="background-color: #010101;"></span>
+                                    <input type="text" id="editColorHex" name="hex_code" class="edit-color-input edit-color-hex-input" value="#010101" required oninput="handleColorHexInput('edit', this.value)" onblur="handleColorHexBlur('edit')" autocomplete="off" placeholder="#AF955C" maxlength="7">
+                                </div>
+                            </div>
+                            <div class="edit-color-field">
+                                <label class="edit-color-label" for="editColorPantone">{% translate "Pantone Code" %}</label>
+                                <input type="text" id="editColorPantone" name="pantone_code" class="edit-color-input" oninput="handleColorPantoneInput('edit', this.value)" autocomplete="off" placeholder="{% translate 'e.g. 4007 U' %}">
+                            </div>
+                        </div>
+
+                        <!-- Row 3: RGB -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "RGB" %}</label>
+                            <div class="edit-color-rgb-inputs">
+                                <div class="rgb-input-wrap">
+                                    <span class="rgb-prefix">R</span>
+                                    <input type="number" id="editColorR" min="0" max="255" class="edit-color-input rgb-sub-input" oninput="handleColorRgbInput('edit')">
+                                </div>
+                                <div class="rgb-input-wrap">
+                                    <span class="rgb-prefix">G</span>
+                                    <input type="number" id="editColorG" min="0" max="255" class="edit-color-input rgb-sub-input" oninput="handleColorRgbInput('edit')">
+                                </div>
+                                <div class="rgb-input-wrap">
+                                    <span class="rgb-prefix">B</span>
+                                    <input type="number" id="editColorB" min="0" max="255" class="edit-color-input rgb-sub-input" oninput="handleColorRgbInput('edit')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 4: CMYK -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "CMYK" %}</label>
+                            <div class="edit-color-cmyk-inputs">
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">C</span>
+                                    <input type="number" id="editColorC" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('edit')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">M</span>
+                                    <input type="number" id="editColorM" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('edit')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">Y</span>
+                                    <input type="number" id="editColorY" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('edit')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                                <div class="cmyk-input-wrap">
+                                    <span class="cmyk-prefix">K</span>
+                                    <input type="number" id="editColorK" min="0" max="100" class="edit-color-input cmyk-sub-input" oninput="handleColorCmykInput('edit')">
+                                    <span class="cmyk-suffix">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 5: Status -->
                         <div class="edit-color-field">
                             <label class="edit-color-label" for="editColorStatus">{% translate "Status" %}</label>
                             <select id="editColorStatus" name="status" class="edit-color-select">
@@ -2647,71 +3148,71 @@
                         </div>
                     </div>
 
-                    <!-- Row 3: Material Series / Grade -->
-                    <div class="edit-color-field">
-                        <label class="edit-color-label" for="editColorSeries">{% translate "Material Series / Grade" %}</label>
-                        <input type="text" id="editColorSeries" name="material_series" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Beige & Tan / Nappa Grade' %}">
-                    </div>
+                    <!-- Vertical Divider -->
+                    <div class="edit-color-col-divider"></div>
 
-                    <!-- Row 4: Compatible Models -->
-                    <div class="edit-color-field">
-                        <label class="edit-color-label" for="editColorModels">{% translate "Compatible Models" %}</label>
-                        <input type="text" id="editColorModels" name="compatible_models" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Land Cruiser, Prado, Camry' %}">
+                    <!-- RIGHT COLUMN: Color Picker & Material Options -->
+                    <div class="edit-color-right-col">
+                        <!-- Canvas Hue Ring + Sat/Val Box -->
+                        <div class="color-wheel-wrapper">
+                            <canvas id="editColorWheelCanvas" width="220" height="220" class="color-wheel-canvas"></canvas>
+                            <div id="editColorWheelRingCursor" class="color-wheel-ring-cursor"></div>
+                            <div id="editColorWheelSatCursor" class="color-wheel-sat-cursor"></div>
+                        </div>
+
+                        <div class="edit-color-section-divider"></div>
+
+                        <!-- Material & Variant -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "Material & Variant" %}</label>
+                            <div class="material-variant-row">
+                                <select id="editColorMaterialSelect" class="edit-color-select material-select" onchange="onMaterialChange('edit')">
+                                    <option value="">{% translate "Select Material..." %}</option>
+                                    {% for mat in materials_catalog %}
+                                    <option value="{{ mat.id }}">{{ mat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select id="editColorVariantSelect" class="edit-color-select variant-select" onchange="onVariantChange('edit')" disabled>
+                                    <option value="">{% translate "Select Variant..." %}</option>
+                                </select>
+                                <button type="button" id="btnEditAddMaterialOption" class="btn-add-material-option" onclick="addMaterialOption('edit')" disabled title="{% translate 'Add Material Option' %}" aria-label="{% translate 'Add Material Option' %}">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Added Options Chips -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label">{% translate "Added Options" %}</label>
+                            <div id="editColorAddedChips" class="added-options-chips-container">
+                                <span class="no-options-placeholder">{% translate "No material options added yet." %}</span>
+                            </div>
+                        </div>
+
+                        <!-- Material Series / Grade -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="editColorSeries">{% translate "Material Series / Grade" %}</label>
+                            <input type="text" id="editColorSeries" name="material_series" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Beige & Tan' %}">
+                        </div>
+
+                        <!-- Compatible Models -->
+                        <div class="edit-color-field">
+                            <label class="edit-color-label" for="editColorModels">{% translate "Compatible Models" %}</label>
+                            <input type="text" id="editColorModels" name="compatible_models" class="edit-color-input" autocomplete="off" placeholder="{% translate 'e.g. Land Cruiser, Prado, Camry' %}">
+                        </div>
                     </div>
                 </div>
 
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancel-edit" onclick="closeEditColorModal()">{% translate "Cancel" %}</button>
-                    <button type="submit" class="btn-save-changes" id="btnSubmitEditColor">
-                        <i class="fas fa-check"></i> <span>{% translate "Save Changes" %}</span>
+                <!-- Footer Action Buttons: Compact Icon-Only Cancel (X) and Save (✓) -->
+                <div class="modal-actions edit-color-modal-actions">
+                    <button type="button" class="btn-icon-cancel" onclick="closeEditColorModal()" title="{% translate 'Cancel' %}" aria-label="{% translate 'Cancel' %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button type="submit" class="btn-icon-save" id="btnSubmitEditColor" title="{% translate 'Save Changes' %}" aria-label="{% translate 'Save Changes' %}">
+                        <i class="fas fa-check"></i>
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- View Color Swatch Modal -->
-    <div id="viewColorModal" class="modal" role="dialog" aria-labelledby="viewColorModalTitle" aria-modal="true" style="display: none; z-index: 9999;">
-        <div class="modal-content" style="max-width: 460px; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.75);">
-            <div class="modal-header">
-                <h2 id="viewColorModalTitle" class="modal-title" style="color: var(--dark-text); font-size: 1.15rem; display: flex; align-items: center; gap: 0.6rem;">
-                    <i class="fas fa-eye" style="color: #38bdf8;"></i>
-                    <span id="viewColorHeadingName">{% translate "Leather Swatch Preview" %}</span>
-                </h2>
-                <button type="button" class="close-btn" onclick="closeViewColorModal()" title="{% translate 'Close' %}">&times;</button>
-            </div>
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem; padding: 1.25rem 0;">
-                <div id="viewColorLargeSwatch" style="width: 100%; height: 160px; border-radius: 14px; position: relative; overflow: hidden; box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.18);">
-                    <div style="position: absolute; inset: 0; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.18), transparent 75%);"></div>
-                    <span id="viewColorStatusBadge" class="color-tile__status-pill" style="position: absolute; bottom: 12px; right: 12px;">Active</span>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; background: rgba(0, 0, 0, 0.25); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
-                    <div>
-                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "Internal Code" %}</span>
-                        <strong id="viewColorCodeVal" style="font-family: monospace; font-size: 0.95rem; color: #f8fafc;">FAB-101</strong>
-                    </div>
-                    <div>
-                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "HEX Value" %}</span>
-                        <div style="display: flex; align-items: center; gap: 0.45rem;">
-                            <strong id="viewColorHexVal" style="font-family: monospace; font-size: 0.95rem; color: #f8fafc;">#010101</strong>
-                            <button type="button" onclick="copyHexCode(document.getElementById('viewColorHexVal').textContent, this)" style="background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 2px;" title="{% translate 'Copy' %}">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "Material Series" %}</span>
-                        <span id="viewColorSeriesVal" style="font-size: 0.85rem; color: #a78bfa; font-weight: 600;">Nappa</span>
-                    </div>
-                    <div>
-                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; text-transform: uppercase;">{% translate "Compatible Models" %}</span>
-                        <span id="viewColorModelsVal" style="font-size: 0.85rem; color: #cbd5e1;">Model S, Roadster</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-actions" style="display: flex; justify-content: flex-end; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem;">
-                <button type="button" class="btn btn-secondary" onclick="closeViewColorModal()">{% translate "Close" %}</button>
-            </div>
         </div>
     </div>
 
@@ -2850,9 +3351,21 @@
             }).catch(() => {});
         }
 
+        function hexToRgb(hex) {
+            if (!hex) return '';
+            const clean = hex.replace('#', '').trim();
+            if (clean.length === 6) {
+                const r = parseInt(clean.substring(0, 2), 16);
+                const g = parseInt(clean.substring(2, 4), 16);
+                const b = parseInt(clean.substring(4, 6), 16);
+                if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+                    return `${r}, ${g}, ${b}`;
+                }
+            }
+            return '';
+        }
+
         function filterColorTiles(query) {
-            const clearBtn = document.getElementById('clearColorSearchBtn');
-            if (clearBtn) clearBtn.style.display = query ? 'inline-block' : 'none';
             applyColorFilters();
         }
 
@@ -2864,30 +3377,123 @@
             const input = document.getElementById('colorSearchInput');
             if (input) {
                 input.value = '';
-                filterColorTiles('');
             }
+            const picker = document.getElementById('color-search-picker');
+            if (picker) {
+                picker.classList.remove('is-suggesting');
+                if (input) input.setAttribute('aria-expanded', 'false');
+            }
+            applyColorFilters();
+            if (input) input.focus();
+        }
+
+        let colorUrlSyncTimer = null;
+        function syncColorUrlParams(query, searchBy, status) {
+            if (colorUrlSyncTimer) clearTimeout(colorUrlSyncTimer);
+            colorUrlSyncTimer = setTimeout(() => {
+                try {
+                    const url = new URL(window.location.href);
+                    if (query) {
+                        url.searchParams.set('color_search', query);
+                        if (searchBy && searchBy !== 'all') {
+                            url.searchParams.set('color_search_by', searchBy);
+                        } else {
+                            url.searchParams.delete('color_search_by');
+                        }
+                    } else {
+                        url.searchParams.delete('color_search');
+                        url.searchParams.delete('color_search_by');
+                    }
+                    if (status) {
+                        url.searchParams.set('color_status', status);
+                    } else {
+                        url.searchParams.delete('color_status');
+                    }
+                    history.replaceState(null, '', url.toString());
+                } catch(e) {}
+            }, 300);
         }
 
         function applyColorFilters() {
-            const q = (document.getElementById('colorSearchInput')?.value || '').trim().toLowerCase();
-            const status = (document.getElementById('colorStatusFilter')?.value || '').trim().toLowerCase();
+            const qRaw = (document.getElementById('colorSearchInput')?.value || '').trim();
+            const q = qRaw.toLowerCase();
+            const searchBy = (document.getElementById('color-search-by')?.value || 'all').toLowerCase();
+            const statusFilter = (document.getElementById('colorStatusFilter')?.value || '').trim().toLowerCase();
             const cards = document.querySelectorAll('.color-tile-card');
+            const rows = document.querySelectorAll('.color-table-row');
             let visibleCount = 0;
 
+            const clearBtn = document.getElementById('clearColorSearchBtn');
+            if (clearBtn) {
+                clearBtn.style.display = qRaw ? 'inline-flex' : 'none';
+            }
+
+            const cleanHexQ = q.replace('#', '');
+            const cleanSerialQ = q.replace(/^#/, '');
+            const intSerialQ = parseInt(cleanSerialQ, 10);
+            const cleanRgbQ = q.replace(/^rgb\(|\)$/gi, '').replace(/\s+/g, '');
+
+            const checkMatches = (el) => {
+                const name = (el.dataset.name || '').toLowerCase();
+                const hex = (el.dataset.hex || '').toLowerCase();
+                const cleanHex = hex.replace('#', '');
+                const code = (el.dataset.code || '').toLowerCase();
+                const serial = (el.dataset.serial || ('#' + code)).toLowerCase();
+                const cleanSerial = serial.replace(/^#/, '');
+                const intSerial = parseInt(cleanSerial, 10);
+                const rgb = (el.dataset.rgb || '').toLowerCase();
+                const derivedRgb = (el.dataset.derivedRgb || hexToRgb(hex)).toLowerCase();
+                const cleanRgb = rgb.replace(/\s+/g, '');
+                const cleanDerivedRgb = derivedRgb.replace(/\s+/g, '');
+                const pantone = (el.dataset.pantone || '').toLowerCase();
+                const category = (el.dataset.category || '').toLowerCase();
+                const series = (el.dataset.series || '').toLowerCase();
+                const itemStatus = (el.dataset.status || '').toLowerCase();
+                const models = (el.dataset.models || '').toLowerCase();
+
+                let matchesQuery = false;
+                if (!q) {
+                    matchesQuery = true;
+                } else if (searchBy === 'serial_number') {
+                    matchesQuery = serial.includes(q) || cleanSerial.includes(cleanSerialQ) ||
+                                   (!isNaN(intSerial) && !isNaN(intSerialQ) && intSerial === intSerialQ);
+                } else if (searchBy === 'name') {
+                    matchesQuery = name.includes(q);
+                } else if (searchBy === 'color_code') {
+                    matchesQuery = code.includes(q) || ('#' + code).includes(q) || pantone.includes(q);
+                } else if (searchBy === 'hex_code') {
+                    matchesQuery = hex.includes(q) || cleanHex.includes(cleanHexQ);
+                } else if (searchBy === 'rgb_code') {
+                    matchesQuery = rgb.includes(q) || derivedRgb.includes(q) ||
+                                   (cleanRgb && cleanRgb.includes(cleanRgbQ)) ||
+                                   (cleanDerivedRgb && cleanDerivedRgb.includes(cleanRgbQ));
+                } else if (searchBy === 'material_series') {
+                    matchesQuery = series.includes(q) || category.includes(q);
+                } else if (searchBy === 'status') {
+                    matchesQuery = itemStatus.includes(q);
+                } else if (searchBy === 'compatible_models') {
+                    matchesQuery = models.includes(q);
+                } else {
+                    // 'all'
+                    matchesQuery = name.includes(q) ||
+                                   serial.includes(q) || cleanSerial.includes(cleanSerialQ) ||
+                                   (!isNaN(intSerial) && !isNaN(intSerialQ) && intSerial === intSerialQ) ||
+                                   code.includes(q) || ('#' + code).includes(q) || pantone.includes(q) ||
+                                   hex.includes(q) || cleanHex.includes(cleanHexQ) ||
+                                   rgb.includes(q) || derivedRgb.includes(q) ||
+                                   (cleanRgb && cleanRgb.includes(cleanRgbQ)) ||
+                                   (cleanDerivedRgb && cleanDerivedRgb.includes(cleanRgbQ)) ||
+                                   series.includes(q) || category.includes(q) ||
+                                   itemStatus.includes(q) ||
+                                   models.includes(q);
+                }
+
+                const matchesStatus = !statusFilter || itemStatus === statusFilter;
+                return matchesQuery && matchesStatus;
+            };
+
             cards.forEach(card => {
-                const name = card.dataset.name || '';
-                const hex = card.dataset.hex || '';
-                const code = card.dataset.code || '';
-                const pantone = card.dataset.pantone || '';
-                const category = card.dataset.category || '';
-                const series = card.dataset.series || '';
-                const cardStatus = card.dataset.status || '';
-                const models = card.dataset.models || '';
-
-                const matchesQuery = !q || name.includes(q) || hex.includes(q) || code.includes(q) || ('#' + code).includes(q) || pantone.includes(q) || category.includes(q) || series.includes(q) || models.includes(q);
-                const matchesStatus = !status || cardStatus === status;
-
-                if (matchesQuery && matchesStatus) {
+                if (checkMatches(card)) {
                     card.style.display = 'flex';
                     visibleCount++;
                 } else {
@@ -2895,104 +3501,773 @@
                 }
             });
 
-            const noMatch = document.getElementById('colorTilesNoFilterMatch');
-            if (noMatch) {
-                noMatch.style.display = (visibleCount === 0 && cards.length > 0) ? 'flex' : 'none';
+            rows.forEach(row => {
+                if (checkMatches(row)) {
+                    row.style.display = 'table-row';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const noMatchCards = document.getElementById('colorTilesNoFilterMatch');
+            if (noMatchCards) {
+                noMatchCards.style.display = (visibleCount === 0 && (cards.length > 0 || rows.length > 0)) ? 'flex' : 'none';
+            }
+            const noMatchRow = document.getElementById('colorListTableNoMatch');
+            if (noMatchRow) {
+                noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? 'table-row' : 'none';
             }
             const countBadge = document.getElementById('colorMasterCountBadge');
             if (countBadge) {
                 countBadge.textContent = visibleCount;
             }
+            const subCount = document.getElementById('subtaskbarColorCount');
+            if (subCount) {
+                if (q || statusFilter) {
+                    subCount.textContent = visibleCount;
+                } else {
+                    subCount.textContent = cards.length || rows.length;
+                }
+            }
+
+            syncColorUrlParams(qRaw, searchBy, statusFilter);
         }
 
-        function syncColorInput(val, targetId) {
-            const target = document.getElementById(targetId);
-            if (target) {
-                target.value = val;
-                if (targetId === 'newColorHex') updateCreateLivePreview();
-                if (targetId === 'editColorHex') updateEditLivePreview();
+        function switchColorMasterView(view, save = true) {
+            const isCard = view === 'cards';
+            const grid = document.getElementById('colorTilesGrid');
+            const tableWrapper = document.getElementById('colorListTableWrapper');
+            const toggle = document.getElementById('colorViewToggle');
+            const toggleLabel = document.querySelector('.toggle[for="colorViewToggle"]');
+
+            if (toggle) {
+                toggle.checked = isCard;
+            }
+            if (toggleLabel) {
+                toggleLabel.setAttribute('aria-checked', isCard ? 'true' : 'false');
+            }
+
+            if (grid && tableWrapper) {
+                if (isCard) {
+                    grid.classList.remove('is-hidden');
+                    grid.style.removeProperty('display');
+                    grid.hidden = false;
+                    tableWrapper.style.setProperty('display', 'none', 'important');
+                    tableWrapper.hidden = true;
+                } else {
+                    grid.classList.add('is-hidden');
+                    grid.style.setProperty('display', 'none', 'important');
+                    grid.hidden = true;
+                    tableWrapper.style.setProperty('display', 'block', 'important');
+                    tableWrapper.hidden = false;
+                }
+            }
+
+            if (save) {
+                try {
+                    localStorage.setItem('fabro_color_master_view', isCard ? 'cards' : 'list');
+                } catch (e) {}
             }
         }
 
-        function syncColorPicker(val, targetId) {
-            const picker = document.getElementById(targetId);
-            if (picker && /^#[0-9A-Fa-f]{6}$/.test(val)) {
-                picker.value = val;
-                if (targetId === 'newColorPicker') updateCreateLivePreview();
-                if (targetId === 'editColorPicker') updateEditLivePreview();
+        function initColorMasterView() {
+            let saved = 'cards';
+            try {
+                saved = localStorage.getItem('fabro_color_master_view') || 'cards';
+            } catch (e) {}
+            if (saved !== 'cards' && saved !== 'list') saved = 'cards';
+            switchColorMasterView(saved, false);
+        }
+
+        let colorTableSortState = { colIdx: null, dir: 'asc' };
+
+        function sortColorTable(colIdx, sortType) {
+            const table = document.getElementById('colorListTable');
+            if (!table) return;
+            const tbody = document.getElementById('colorListTableBody');
+            if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('.color-table-row'));
+            if (!rows.length) return;
+
+            let dir = 'asc';
+            if (colorTableSortState.colIdx === colIdx && colorTableSortState.dir === 'asc') {
+                dir = 'desc';
             }
+            colorTableSortState = { colIdx, dir };
+
+            const headers = table.querySelectorAll('th.sortable');
+            headers.forEach((th) => {
+                const icon = th.querySelector('.sort-icon');
+                if (!icon) return;
+                if (th.cellIndex === colIdx) {
+                    icon.className = dir === 'asc' ? 'fas fa-sort-up sort-icon' : 'fas fa-sort-down sort-icon';
+                    icon.style.opacity = '1';
+                } else {
+                    icon.className = 'fas fa-sort sort-icon';
+                    icon.style.opacity = '0.4';
+                }
+            });
+
+            rows.sort((a, b) => {
+                let valA = (a.cells[colIdx]?.innerText || '').trim();
+                let valB = (b.cells[colIdx]?.innerText || '').trim();
+
+                if (sortType === 'code') {
+                    valA = valA.replace(/^#/, '');
+                    valB = valB.replace(/^#/, '');
+                    const numA = parseFloat(valA);
+                    const numB = parseFloat(valB);
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        return dir === 'asc' ? numA - numB : numB - numA;
+                    }
+                }
+                return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            });
+
+            rows.forEach(r => tbody.appendChild(r));
+            const noMatch = document.getElementById('colorListTableNoMatch');
+            if (noMatch) tbody.appendChild(noMatch);
         }
 
-        function updateCreateLivePreview() {
-            const name = document.getElementById('newColorName')?.value || '{% translate "Leather Color" %}';
-            const hex = document.getElementById('newColorHex')?.value || '#010101';
-            const swatch = document.getElementById('createColorLiveSwatch');
-            const nameEl = document.getElementById('createColorLiveName');
-            const hexEl = document.getElementById('createColorLiveHex');
-            if (swatch) swatch.style.backgroundColor = hex;
-            if (nameEl) nameEl.textContent = name;
-            if (hexEl) hexEl.textContent = hex;
+        // -------------------------------------------------------------------------
+        // COLOR MASTER — 5-WAY SYNCHRONIZATION & WHEEL ENGINE
+        // -------------------------------------------------------------------------
+        const VERIFIED_PANTONE_MAP = {
+            "#AF955C": "4007 U",
+            "#9E9D93": "414 U",
+            "#282526": "0961 C",
+            "#CBBDA2": "4241 U",
+            "#782832": "2040 U",
+            "#E03C31": "2347 U",
+            "#AD8B52": "4247 U",
+            "#CF5328": "173 U",
+            "#4E403B": "BLACK 5 U",
+            "#B1A89A": "4244 U",
+            "#D76B00": "1595 U",
+            "#DFCFAD": "468 U",
+            "#6A2A38": "7428 U",
+            "#CF7243": "7571 U",
+            "#843D22": "1615 U",
+            "#B49A78": "4085 U",
+            "#D0D3D4": "427 U",
+            "#1D252C": "433 U",
+            "#A39E93": "2331 U",
+            "#0066B2": "300 U",
+            "#D6CEBE": "7527 U",
+            "#B89F6B": "4006 U",
+            "#C4C0B6": "400 U",
+            "#593C32": "7596 U",
+            "#D9C5A0": "7501 U",
+            "#5E1D24": "2042 U",
+            "#BFA26F": "4246 U",
+            "#663B2A": "7594 U",
+            "#4A3B32": "7533 U",
+            "#734A38": "7603 U",
+            "#E2B3A6": "7611 U",
+            "#8DA399": "557 U",
+            "#7BB1C7": "4156 U",
+            "#F39B82": "2311 U",
+            "#BA3C78": "247 U",
+            "#D3C5B4": "4239 U",
+            "#AD5A32": "7573 U"
+        };
+
+        const PANTONE_TO_HEX_MAP = {};
+        for (const [hex, pan] of Object.entries(VERIFIED_PANTONE_MAP)) {
+            PANTONE_TO_HEX_MAP[pan.trim().toUpperCase()] = hex;
         }
 
-        function escapeJsStr(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/\\/g, '\\\\')
-                .replace(/'/g, "\\'")
-                .replace(/"/g, '&quot;')
-                .replace(/\n/g, '\\n')
-                .replace(/\r/g, '\\r');
-        }
+        const MATERIALS_CATALOG = {{ materials_catalog_json|default:"[]"|safe }};
 
+        const modalMaterialOptions = {
+            create: [],
+            edit: []
+        };
+
+        let isColorSyncing = false;
+        let createColorTriggerEl = null;
         let editColorTriggerEl = null;
 
-        function updateEditLivePreview() {
-            const name = (document.getElementById('editColorName')?.value || '').trim() || '{% translate "Color Name" %}';
-            const hex = (document.getElementById('editColorHex')?.value || '').trim() || '#010101';
-            const swatch = document.getElementById('editColorLiveSwatch');
-            const nameEl = document.getElementById('editColorLiveName');
-            const hexEl = document.getElementById('editColorLiveHex');
-            const isValidHex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
-            if (swatch) swatch.style.backgroundColor = isValidHex ? hex : '#010101';
-            if (nameEl) nameEl.textContent = name;
-            if (hexEl) hexEl.textContent = hex;
+        const ColorMath = {
+            parseHex(val) {
+                if (!val || typeof val !== 'string') return null;
+                let clean = val.trim();
+                if (clean.startsWith('#')) clean = clean.slice(1);
+                if (/^[0-9A-Fa-f]{3}$/.test(clean)) {
+                    const r = clean[0], g = clean[1], b = clean[2];
+                    return ('#' + r + r + g + g + b + b).toUpperCase();
+                }
+                if (/^[0-9A-Fa-f]{6}$/.test(clean)) {
+                    return ('#' + clean).toUpperCase();
+                }
+                return null;
+            },
+            hexToRgb(hex) {
+                const parsed = this.parseHex(hex);
+                if (!parsed) return [0, 0, 0];
+                const num = parseInt(parsed.slice(1), 16);
+                return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+            },
+            rgbToHex(r, g, b) {
+                const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+                return '#' + [clamp(r), clamp(g), clamp(b)].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+            },
+            rgbToHsv(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                const d = max - min;
+                let h = 0;
+                const s = max === 0 ? 0 : d / max;
+                const v = max;
+                if (max !== min) {
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+                return [h * 360, s, v];
+            },
+            hsvToRgb(h, s, v) {
+                h = ((h % 360) + 360) % 360;
+                const c = v * s;
+                const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+                const m = v - c;
+                let r1 = 0, g1 = 0, b1 = 0;
+                if (h < 60) { r1 = c; g1 = x; b1 = 0; }
+                else if (h < 120) { r1 = x; g1 = c; b1 = 0; }
+                else if (h < 180) { r1 = 0; g1 = c; b1 = x; }
+                else if (h < 240) { r1 = 0; g1 = x; b1 = c; }
+                else if (h < 300) { r1 = x; g1 = 0; b1 = c; }
+                else { r1 = c; g1 = 0; b1 = x; }
+                return [Math.round((r1 + m) * 255), Math.round((g1 + m) * 255), Math.round((b1 + m) * 255)];
+            },
+            rgbToCmyk(r, g, b) {
+                if (r === 0 && g === 0 && b === 0) return [0, 0, 0, 100];
+                const r_ = r / 255, g_ = g / 255, b_ = b / 255;
+                const k = 1 - Math.max(r_, g_, b_);
+                if (k >= 1) return [0, 0, 0, 100];
+                const c = Math.round(((1 - r_ - k) / (1 - k)) * 100);
+                const m = Math.round(((1 - g_ - k) / (1 - k)) * 100);
+                const y = Math.round(((1 - b_ - k) / (1 - k)) * 100);
+                return [Math.max(0, Math.min(100, c)), Math.max(0, Math.min(100, m)), Math.max(0, Math.min(100, y)), Math.max(0, Math.min(100, Math.round(k * 100)))];
+            },
+            cmykToRgb(c, m, y, k) {
+                const c_ = c / 100, m_ = m / 100, y_ = y / 100, k_ = k / 100;
+                const r = Math.round(255 * (1 - c_) * (1 - k_));
+                const g = Math.round(255 * (1 - m_) * (1 - k_));
+                const b = Math.round(255 * (1 - y_) * (1 - k_));
+                return [Math.max(0, Math.min(255, r)), Math.max(0, Math.min(255, g)), Math.max(0, Math.min(255, b))];
+            }
+        };
+
+        // Color Wheel Controller for Create & Edit Modals
+        class ColorWheelController {
+            constructor(mode) {
+                this.mode = mode;
+                this.canvas = document.getElementById(mode === 'create' ? 'createColorWheelCanvas' : 'editColorWheelCanvas');
+                this.ringCursor = document.getElementById(mode === 'create' ? 'createColorWheelRingCursor' : 'editColorWheelRingCursor');
+                this.satCursor = document.getElementById(mode === 'create' ? 'createColorWheelSatCursor' : 'editColorWheelSatCursor');
+                this.h = 0;
+                this.s = 1;
+                this.v = 1;
+                this.isDraggingRing = false;
+                this.isDraggingBox = false;
+
+                if (this.canvas) {
+                    this.ctx = this.canvas.getContext('2d');
+                    this.bindEvents();
+                }
+            }
+
+            bindEvents() {
+                const getCoords = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    return {
+                        x: (clientX - rect.left) * (this.canvas.width / rect.width),
+                        y: (clientY - rect.top) * (this.canvas.height / rect.height)
+                    };
+                };
+
+                const onDown = (e) => {
+                    const { x, y } = getCoords(e);
+                    const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+                    const dist = Math.hypot(x - cx, y - cy);
+                    const R_out = 98, R_in = 76;
+                    const boxHalf = 42;
+
+                    if (dist >= R_in && dist <= R_out + 6) {
+                        this.isDraggingRing = true;
+                        this.handleRingMove(x, y);
+                    } else if (Math.abs(x - cx) <= boxHalf + 4 && Math.abs(y - cy) <= boxHalf + 4) {
+                        this.isDraggingBox = true;
+                        this.handleBoxMove(x, y);
+                    }
+                };
+
+                const onMove = (e) => {
+                    if (!this.isDraggingRing && !this.isDraggingBox) return;
+                    e.preventDefault();
+                    const { x, y } = getCoords(e);
+                    if (this.isDraggingRing) this.handleRingMove(x, y);
+                    else if (this.isDraggingBox) this.handleBoxMove(x, y);
+                };
+
+                const onUp = () => {
+                    this.isDraggingRing = false;
+                    this.isDraggingBox = false;
+                };
+
+                this.canvas.addEventListener('mousedown', onDown);
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onUp);
+
+                this.canvas.addEventListener('touchstart', onDown, { passive: false });
+                window.addEventListener('touchmove', onMove, { passive: false });
+                window.addEventListener('touchend', onUp);
+            }
+
+            handleRingMove(x, y) {
+                const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+                const angle = Math.atan2(y - cy, x - cx);
+                this.h = ((angle * 180 / Math.PI) + 360) % 360;
+                this.render();
+                this.notifyColorChange('wheel');
+            }
+
+            handleBoxMove(x, y) {
+                const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+                const boxHalf = 42;
+                const x0 = cx - boxHalf, y0 = cy - boxHalf;
+                this.s = Math.max(0, Math.min(1, (x - x0) / (boxHalf * 2)));
+                this.v = Math.max(0, Math.min(1, 1 - (y - y0) / (boxHalf * 2)));
+                this.render();
+                this.notifyColorChange('wheel');
+            }
+
+            setColor(h, s, v) {
+                this.h = ((h % 360) + 360) % 360;
+                this.s = Math.max(0, Math.min(1, s));
+                this.v = Math.max(0, Math.min(1, v));
+                this.render();
+            }
+
+            render() {
+                if (!this.ctx) return;
+                const w = this.canvas.width, h = this.canvas.height;
+                const cx = w / 2, cy = h / 2;
+                this.ctx.clearRect(0, 0, w, h);
+
+                // 1. Draw Outer Hue Ring
+                const R_out = 98, R_in = 76;
+                for (let i = 0; i < 360; i += 1) {
+                    const startAngle = (i - 1) * Math.PI / 180;
+                    const endAngle = (i + 1.5) * Math.PI / 180;
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx, cy, (R_in + R_out) / 2, startAngle, endAngle);
+                    this.ctx.strokeStyle = `hsl(${i}, 100%, 50%)`;
+                    this.ctx.lineWidth = R_out - R_in;
+                    this.ctx.stroke();
+                }
+
+                // Inner and Outer Ring Borders
+                this.ctx.beginPath();
+                this.ctx.arc(cx, cy, R_out, 0, Math.PI * 2);
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+
+                this.ctx.beginPath();
+                this.ctx.arc(cx, cy, R_in, 0, Math.PI * 2);
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+
+                // 2. Draw Saturation & Value Square
+                const boxHalf = 42;
+                const x0 = cx - boxHalf, y0 = cy - boxHalf;
+                const sSize = boxHalf * 2;
+
+                // Base Color Horizontal Gradient: White -> Pure Hue
+                const gradH = this.ctx.createLinearGradient(x0, 0, x0 + sSize, 0);
+                gradH.addColorStop(0, '#ffffff');
+                gradH.addColorStop(1, `hsl(${this.h}, 100%, 50%)`);
+                this.ctx.fillStyle = gradH;
+                this.ctx.fillRect(x0, y0, sSize, sSize);
+
+                // Vertical Gradient: Transparent -> Black
+                const gradV = this.ctx.createLinearGradient(0, y0, 0, y0 + sSize);
+                gradV.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                gradV.addColorStop(1, 'rgba(0, 0, 0, 1)');
+                this.ctx.fillStyle = gradV;
+                this.ctx.fillRect(x0, y0, sSize, sSize);
+
+                // Border around square
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(x0, y0, sSize, sSize);
+
+                // 3. Update Cursors
+                if (this.ringCursor && this.satCursor) {
+                    const midR = (R_in + R_out) / 2;
+                    const ringX = cx + midR * Math.cos(this.h * Math.PI / 180);
+                    const ringY = cy + midR * Math.sin(this.h * Math.PI / 180);
+                    this.ringCursor.style.left = `${ringX}px`;
+                    this.ringCursor.style.top = `${ringY}px`;
+                    this.ringCursor.style.display = 'block';
+
+                    const satX = x0 + this.s * sSize;
+                    const satY = y0 + (1 - this.v) * sSize;
+                    this.satCursor.style.left = `${satX}px`;
+                    this.satCursor.style.top = `${satY}px`;
+                    this.satCursor.style.display = 'block';
+                }
+            }
+
+            notifyColorChange(source) {
+                const [r, g, b] = ColorMath.hsvToRgb(this.h, this.s, this.v);
+                const hex = ColorMath.rgbToHex(r, g, b);
+                syncAllColorRepresentations(this.mode, { hex, r, g, b, h: this.h, s: this.s, v: this.v }, source);
+            }
         }
 
-        function syncEditColorHex(val) {
-            val = (val || '').trim();
-            if (!val.startsWith('#') && /^[0-9A-Fa-f]{3,6}$/.test(val)) {
-                val = '#' + val;
-                const hexInput = document.getElementById('editColorHex');
-                if (hexInput) hexInput.value = val;
+        const colorWheels = {
+            create: null,
+            edit: null
+        };
+
+        function getOrCreateColorWheel(mode) {
+            if (!colorWheels[mode]) {
+                colorWheels[mode] = new ColorWheelController(mode);
             }
-            const picker = document.getElementById('editColorPicker');
-            if (picker && /^#[0-9A-Fa-f]{6}$/.test(val)) {
-                picker.value = val;
-            }
-            updateEditLivePreview();
+            return colorWheels[mode];
         }
 
-        function syncEditColorPicker(val) {
-            const hexInput = document.getElementById('editColorHex');
-            if (hexInput) {
-                hexInput.value = (val || '').toUpperCase();
+        // Master 5-Way Synchronizer
+        function syncAllColorRepresentations(mode, colorData, source) {
+            if (isColorSyncing) return;
+            isColorSyncing = true;
+
+            try {
+                const hexPrefix = mode === 'create' ? 'newColor' : 'editColor';
+                const livePrefix = mode === 'create' ? 'createColor' : 'editColor';
+
+                let hex = colorData.hex;
+                let [r, g, b] = [colorData.r, colorData.g, colorData.b];
+                let [c, m, y, k] = colorData.cmyk || ColorMath.rgbToCmyk(r, g, b);
+
+                const hexInput = document.getElementById(hexPrefix + 'Hex');
+                const swatchIndicator = document.getElementById(livePrefix + 'HexSwatchIndicator');
+                const swatch = document.getElementById(livePrefix + 'LiveSwatch');
+                const pantoneInput = document.getElementById(hexPrefix + 'Pantone');
+                const rInput = document.getElementById(hexPrefix + 'R');
+                const gInput = document.getElementById(hexPrefix + 'G');
+                const bInput = document.getElementById(hexPrefix + 'B');
+                const cInput = document.getElementById(hexPrefix + 'C');
+                const mInput = document.getElementById(hexPrefix + 'M');
+                const yInput = document.getElementById(hexPrefix + 'Y');
+                const kInput = document.getElementById(hexPrefix + 'K');
+                const errorBanner = document.getElementById(livePrefix + 'ErrorBanner');
+
+                // Update HEX
+                if (source !== 'hex' && hexInput) {
+                    hexInput.value = hex;
+                    hexInput.style.borderColor = '';
+                }
+                if (swatchIndicator) swatchIndicator.style.backgroundColor = hex;
+                if (swatch) swatch.style.backgroundColor = hex;
+                if (errorBanner) errorBanner.style.display = 'none';
+
+                // Update RGB
+                if (source !== 'rgb') {
+                    if (rInput) rInput.value = r;
+                    if (gInput) gInput.value = g;
+                    if (bInput) bInput.value = b;
+                }
+
+                // Update CMYK
+                if (source !== 'cmyk') {
+                    if (cInput) cInput.value = c;
+                    if (mInput) mInput.value = m;
+                    if (yInput) yInput.value = y;
+                    if (kInput) kInput.value = k;
+                }
+
+                // Update Pantone only if verified mapping exists
+                if (source !== 'pantone' && pantoneInput) {
+                    const verified = VERIFIED_PANTONE_MAP[hex.toUpperCase()];
+                    if (verified) {
+                        pantoneInput.value = verified;
+                    }
+                }
+
+                // Update Wheel Canvas Cursors
+                if (source !== 'wheel') {
+                    const wheel = getOrCreateColorWheel(mode);
+                    if (wheel) {
+                        const [h, s, v] = ColorMath.rgbToHsv(r, g, b);
+                        wheel.setColor(h, s, v);
+                    }
+                }
+            } finally {
+                isColorSyncing = false;
             }
-            updateEditLivePreview();
         }
 
-        function openCreateColorModal() {
+        // Input Handlers
+        function handleColorNameInput(mode) {
+            const prefix = mode === 'create' ? 'newColor' : 'editColor';
+            const livePrefix = mode === 'create' ? 'createColor' : 'editColor';
+            const nameInput = document.getElementById(prefix + 'Name');
+            const liveName = document.getElementById(livePrefix + 'LiveName');
+            const val = (nameInput?.value || '').trim();
+            // Requirement: If empty, do not display placeholder, Untitled, or New Color. Leave blank.
+            if (liveName) {
+                liveName.textContent = val;
+            }
+        }
+
+        function handleColorHexInput(mode, rawVal) {
+            const hexPrefix = mode === 'create' ? 'newColor' : 'editColor';
+            const livePrefix = mode === 'create' ? 'createColor' : 'editColor';
+            const hexInput = document.getElementById(hexPrefix + 'Hex');
+            const val = (rawVal !== undefined ? rawVal : (hexInput?.value || '')).trim();
+            const parsed = ColorMath.parseHex(val);
+
+            if (parsed) {
+                const [r, g, b] = ColorMath.hexToRgb(parsed);
+                syncAllColorRepresentations(mode, { hex: parsed, r, g, b }, 'hex');
+            } else {
+                const isIllegal = /[^#0-9A-Fa-f]/.test(val) || val.replace('#', '').length > 6;
+                if (hexInput) hexInput.style.borderColor = isIllegal ? '#ef4444' : '';
+            }
+        }
+
+        function handleColorHexBlur(mode) {
+            const hexPrefix = mode === 'create' ? 'newColor' : 'editColor';
+            const hexInput = document.getElementById(hexPrefix + 'Hex');
+            if (!hexInput) return;
+            const parsed = ColorMath.parseHex(hexInput.value);
+            if (parsed) {
+                hexInput.value = parsed;
+                handleColorHexInput(mode, parsed);
+            }
+        }
+
+        function handleColorRgbInput(mode) {
+            const hexPrefix = mode === 'create' ? 'newColor' : 'editColor';
+            const r = Math.max(0, Math.min(255, parseInt(document.getElementById(hexPrefix + 'R')?.value, 10) || 0));
+            const g = Math.max(0, Math.min(255, parseInt(document.getElementById(hexPrefix + 'G')?.value, 10) || 0));
+            const b = Math.max(0, Math.min(255, parseInt(document.getElementById(hexPrefix + 'B')?.value, 10) || 0));
+            const hex = ColorMath.rgbToHex(r, g, b);
+            syncAllColorRepresentations(mode, { hex, r, g, b }, 'rgb');
+        }
+
+        function handleColorCmykInput(mode) {
+            const hexPrefix = mode === 'create' ? 'newColor' : 'editColor';
+            const c = Math.max(0, Math.min(100, parseInt(document.getElementById(hexPrefix + 'C')?.value, 10) || 0));
+            const m = Math.max(0, Math.min(100, parseInt(document.getElementById(hexPrefix + 'M')?.value, 10) || 0));
+            const y = Math.max(0, Math.min(100, parseInt(document.getElementById(hexPrefix + 'Y')?.value, 10) || 0));
+            const k = Math.max(0, Math.min(100, parseInt(document.getElementById(hexPrefix + 'K')?.value, 10) || 0));
+            const [r, g, b] = ColorMath.cmykToRgb(c, m, y, k);
+            const hex = ColorMath.rgbToHex(r, g, b);
+            syncAllColorRepresentations(mode, { hex, r, g, b, cmyk: [c, m, y, k] }, 'cmyk');
+        }
+
+        function handleColorPantoneInput(mode, rawVal) {
+            const code = (rawVal || '').trim().toUpperCase();
+            if (!code) return;
+            // Check verified lookup
+            const matchedHex = PANTONE_TO_HEX_MAP[code];
+            if (matchedHex) {
+                const [r, g, b] = ColorMath.hexToRgb(matchedHex);
+                syncAllColorRepresentations(mode, { hex: matchedHex, r, g, b }, 'pantone');
+            }
+            // If unknown, preserve user typed value without fabricating false colors!
+        }
+
+        // Material & Variant Cascading & Added Options Management
+        function onMaterialChange(mode) {
+            const prefix = mode === 'create' ? 'newColor' : 'editColor';
+            const matSelect = document.getElementById(prefix + 'MaterialSelect');
+            const varSelect = document.getElementById(prefix + 'VariantSelect');
+            const addBtn = document.getElementById(mode === 'create' ? 'btnCreateAddMaterialOption' : 'btnEditAddMaterialOption');
+
+            if (!varSelect) return;
+            varSelect.innerHTML = '<option value="">{% translate "Select Variant..." %}</option>';
+            varSelect.disabled = true;
+            if (addBtn) addBtn.disabled = true;
+
+            const matId = parseInt(matSelect?.value, 10);
+            if (!matId) return;
+
+            const matObj = MATERIALS_CATALOG.find(m => m.id === matId);
+            if (matObj && Array.isArray(matObj.variants) && matObj.variants.length > 0) {
+                matObj.variants.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    opt.textContent = v.name;
+                    varSelect.appendChild(opt);
+                });
+                varSelect.disabled = false;
+            }
+        }
+
+        function onVariantChange(mode) {
+            const prefix = mode === 'create' ? 'newColor' : 'editColor';
+            const varSelect = document.getElementById(prefix + 'VariantSelect');
+            const addBtn = document.getElementById(mode === 'create' ? 'btnCreateAddMaterialOption' : 'btnEditAddMaterialOption');
+            if (addBtn) {
+                addBtn.disabled = !Boolean(varSelect?.value);
+            }
+        }
+
+        function addMaterialOption(mode) {
+            const prefix = mode === 'create' ? 'newColor' : 'editColor';
+            const matSelect = document.getElementById(prefix + 'MaterialSelect');
+            const varSelect = document.getElementById(prefix + 'VariantSelect');
+            const matId = parseInt(matSelect?.value, 10);
+            const varId = parseInt(varSelect?.value, 10);
+
+            if (!matId || !varId) return;
+            const matObj = MATERIALS_CATALOG.find(m => m.id === matId);
+            const varObj = matObj?.variants?.find(v => v.id === varId);
+            if (!matObj || !varObj) return;
+
+            // Prevent duplicate combination
+            const exists = modalMaterialOptions[mode].some(o => o.material_id === matId && o.variant_id === varId);
+            if (!exists) {
+                modalMaterialOptions[mode].push({
+                    material_id: matId,
+                    material_name: matObj.name,
+                    variant_id: varId,
+                    variant_name: varObj.name
+                });
+                renderAddedChips(mode);
+            }
+        }
+
+        function removeMaterialOption(mode, index) {
+            if (index >= 0 && index < modalMaterialOptions[mode].length) {
+                modalMaterialOptions[mode].splice(index, 1);
+                renderAddedChips(mode);
+            }
+        }
+
+        function renderAddedChips(mode) {
+            const container = document.getElementById(mode === 'create' ? 'createColorAddedChips' : 'editColorAddedChips');
+            if (!container) return;
+
+            const opts = modalMaterialOptions[mode];
+            if (!opts || opts.length === 0) {
+                container.innerHTML = '<span class="no-options-placeholder">{% translate "No material options added yet." %}</span>';
+                return;
+            }
+
+            container.innerHTML = opts.map((opt, idx) => `
+                <span class="edit-color-chip">
+                    <span>${escapeHtml(opt.material_name)} &middot; ${escapeHtml(opt.variant_name)}</span>
+                    <i class="fas fa-times chip-remove" onclick="removeMaterialOption('${mode}', ${idx})" title="{% translate 'Remove' %}"></i>
+                </span>
+            `).join('');
+        }
+
+        // Table Popover Helper
+        function toggleMaterialPopover(e, popoverId) {
+            e.stopPropagation();
+            document.querySelectorAll('.table-material-popover').forEach(p => {
+                if (p.id !== popoverId) p.style.display = 'none';
+            });
+            const pop = document.getElementById(popoverId);
+            if (pop) {
+                pop.style.display = pop.style.display === 'none' ? 'flex' : 'none';
+            }
+        }
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.table-material-popover').forEach(p => p.style.display = 'none');
+        });
+
+        // Table Row Checkboxes
+        function toggleSelectAllColors(masterCheckbox) {
+            const checked = masterCheckbox.checked;
+            document.querySelectorAll('.color-row-checkbox').forEach(cb => {
+                cb.checked = checked;
+            });
+        }
+
+        function handleColorRowSelect(cb) {
+            const allCbs = document.querySelectorAll('.color-row-checkbox');
+            const master = document.getElementById('selectAllColors');
+            if (master) {
+                master.checked = Array.from(allCbs).every(c => c.checked);
+            }
+        }
+
+        // Preview Card View modal / action
+        function previewColorCard(colorId) {
+            const card = document.getElementById(`color-card-${colorId}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.style.transition = 'box-shadow 0.3s ease, transform 0.3s ease';
+                card.style.transform = 'scale(1.03)';
+                card.style.boxShadow = '0 0 25px rgba(239, 68, 68, 0.6)';
+                setTimeout(() => {
+                    card.style.transform = '';
+                    card.style.boxShadow = '';
+                }, 1200);
+            }
+        }
+
+        // Modal Open / Close Helpers
+        function openCreateColorModal(triggerBtn) {
+            createColorTriggerEl = triggerBtn || document.activeElement;
             const modal = document.getElementById('createColorModal');
-            if (modal) {
-                document.getElementById('createColorForm')?.reset();
-                document.getElementById('newColorHex').value = '#010101';
-                document.getElementById('newColorPicker').value = '#010101';
-                updateCreateLivePreview();
-                modal.style.display = 'block';
-            }
+            if (!modal) return;
+
+            const form = document.getElementById('createColorForm');
+            if (form) form.reset();
+
+            const errorBanner = document.getElementById('createColorErrorBanner');
+            if (errorBanner) errorBanner.style.display = 'none';
+
+            // Reset state
+            modalMaterialOptions.create = [];
+            renderAddedChips('create');
+
+            // Default color: #010101
+            const defaultHex = '#010101';
+            const [r, g, b] = ColorMath.hexToRgb(defaultHex);
+            syncAllColorRepresentations('create', { hex: defaultHex, r, g, b }, 'init');
+
+            // Live preview name is blank initially
+            const liveName = document.getElementById('createColorLiveName');
+            if (liveName) liveName.textContent = '';
+
+            modal.style.display = 'flex';
+            document.body.classList.add('modal-open');
+
+            setTimeout(() => {
+                const wheel = getOrCreateColorWheel('create');
+                if (wheel) wheel.setColor(0, 0, 0.05);
+                const nameInput = document.getElementById('newColorName');
+                if (nameInput) nameInput.focus();
+            }, 60);
         }
+
         function closeCreateColorModal() {
             const modal = document.getElementById('createColorModal');
             if (modal) modal.style.display = 'none';
+            const editModal = document.getElementById('editColorModal');
+            if (!editModal || editModal.style.display === 'none') {
+                document.body.classList.remove('modal-open');
+            }
+            if (createColorTriggerEl && typeof createColorTriggerEl.focus === 'function') {
+                try { createColorTriggerEl.focus(); } catch (e) {}
+            }
         }
 
         function openEditColorModal(id, name, code, hex, series, models, status, triggerBtn) {
@@ -3000,85 +4275,118 @@
             const modal = document.getElementById('editColorModal');
             if (!modal) return;
 
-            // Reset error banner
             const errorBanner = document.getElementById('editColorErrorBanner');
-            const errorMsg = document.getElementById('editColorErrorMsg');
             if (errorBanner) errorBanner.style.display = 'none';
-            if (errorMsg) errorMsg.textContent = '';
 
-            // Populate form values
+            // Find data from card or row
+            const card = document.getElementById(`color-card-${id}`);
+            const row = document.getElementById(`color-row-${id}`);
+            const sourceEl = card || row;
+
             const idInput = document.getElementById('editColorId');
             const nameInput = document.getElementById('editColorName');
             const codeInput = document.getElementById('editColorCode');
             const hexInput = document.getElementById('editColorHex');
-            const pickerInput = document.getElementById('editColorPicker');
+            const pantoneInput = document.getElementById('editColorPantone');
             const seriesInput = document.getElementById('editColorSeries');
             const modelsInput = document.getElementById('editColorModels');
             const statusInput = document.getElementById('editColorStatus');
 
             if (idInput) idInput.value = id || '';
-            if (nameInput) nameInput.value = name || '';
-            if (codeInput) codeInput.value = code || '';
+            if (nameInput) nameInput.value = name || sourceEl?.getAttribute('data-name') || '';
+            if (codeInput) codeInput.value = code || sourceEl?.getAttribute('data-code') || '';
+            if (seriesInput) seriesInput.value = series || sourceEl?.getAttribute('data-series') || '';
+            if (modelsInput) modelsInput.value = models || sourceEl?.getAttribute('data-models') || '';
+            if (statusInput) statusInput.value = status || sourceEl?.getAttribute('data-status') || 'Active';
 
-            const validHex = (hex && hex.startsWith('#')) ? hex : ('#' + (hex || '010101'));
-            if (hexInput) hexInput.value = validHex;
-            if (pickerInput) {
-                pickerInput.value = /^#[0-9A-Fa-f]{6}$/.test(validHex) ? validHex : '#010101';
+            const activeHex = ColorMath.parseHex(hex || sourceEl?.getAttribute('data-hex')) || '#AF955C';
+            const activePantone = sourceEl?.getAttribute('data-pantone') || VERIFIED_PANTONE_MAP[activeHex] || '';
+            if (pantoneInput) pantoneInput.value = activePantone;
+
+            // Load saved material options
+            modalMaterialOptions.edit = [];
+            const rawOpts = sourceEl?.getAttribute('data-material-options');
+            if (rawOpts) {
+                try {
+                    const parsed = JSON.parse(rawOpts);
+                    if (Array.isArray(parsed)) {
+                        modalMaterialOptions.edit = parsed;
+                    }
+                } catch (e) {}
             }
-            if (seriesInput) seriesInput.value = series || '';
-            if (modelsInput) modelsInput.value = models || '';
-            if (statusInput) statusInput.value = status || 'Active';
+            renderAddedChips('edit');
 
-            updateEditLivePreview();
+            // Set live name
+            const liveName = document.getElementById('editColorLiveName');
+            if (liveName) liveName.textContent = nameInput?.value || '';
+
+            // Synchronize colors
+            const [r, g, b] = ColorMath.hexToRgb(activeHex);
+            syncAllColorRepresentations('edit', { hex: activeHex, r, g, b }, 'init');
+
             modal.style.display = 'flex';
             document.body.classList.add('modal-open');
 
             setTimeout(() => {
+                const wheel = getOrCreateColorWheel('edit');
+                if (wheel) {
+                    const [h, s, v] = ColorMath.rgbToHsv(r, g, b);
+                    wheel.setColor(h, s, v);
+                }
                 if (nameInput) nameInput.focus();
             }, 60);
         }
 
         function closeEditColorModal() {
             const modal = document.getElementById('editColorModal');
-            if (modal) {
-                modal.style.display = 'none';
+            if (modal) modal.style.display = 'none';
+            const createModal = document.getElementById('createColorModal');
+            if (!createModal || createModal.style.display === 'none') {
+                document.body.classList.remove('modal-open');
             }
-            document.body.classList.remove('modal-open');
             if (editColorTriggerEl && typeof editColorTriggerEl.focus === 'function') {
                 try { editColorTriggerEl.focus(); } catch (e) {}
             }
         }
 
-        function openViewColorModal(id, name, code, hex, series, models, status) {
-            const modal = document.getElementById('viewColorModal');
-            if (modal) {
-                document.getElementById('viewColorHeadingName').textContent = name;
-                const swatch = document.getElementById('viewColorLargeSwatch');
-                if (swatch) swatch.style.backgroundColor = hex;
-                document.getElementById('viewColorCodeVal').textContent = code;
-                document.getElementById('viewColorHexVal').textContent = hex;
-                document.getElementById('viewColorSeriesVal').textContent = series || '-';
-                document.getElementById('viewColorModelsVal').textContent = models || '-';
-                const statusBadge = document.getElementById('viewColorStatusBadge');
-                if (statusBadge) {
-                    statusBadge.textContent = status;
-                    statusBadge.className = 'color-tile__status-pill status-' + (status || '').toLowerCase();
-                }
-                modal.style.display = 'block';
-            }
-        }
-        function closeViewColorModal() {
-            const modal = document.getElementById('viewColorModal');
-            if (modal) modal.style.display = 'none';
-        }
-
+        // Submit Create Color
         async function submitCreateColor(e) {
             e.preventDefault();
             const form = document.getElementById('createColorForm');
             const submitBtn = document.getElementById('btnSubmitCreateColor');
+            const errorBanner = document.getElementById('createColorErrorBanner');
+            const errorMsg = document.getElementById('createColorErrorMsg');
+
+            if (errorBanner) errorBanner.style.display = 'none';
+
+            const nameInput = document.getElementById('newColorName');
+            const hexInput = document.getElementById('newColorHex');
+            const nameVal = (nameInput?.value || '').trim();
+            const hexVal = (hexInput?.value || '').trim();
+
+            if (!nameVal) {
+                if (errorMsg) errorMsg.textContent = '{% translate "Color Name is required." %}';
+                if (errorBanner) errorBanner.style.display = 'flex';
+                nameInput?.focus();
+                return;
+            }
+
+            const parsedHex = ColorMath.parseHex(hexVal);
+            if (!parsedHex) {
+                if (errorMsg) errorMsg.textContent = '{% translate "Please enter a valid HEX code (e.g. #AF955C)." %}';
+                if (errorBanner) errorBanner.style.display = 'flex';
+                hexInput?.focus();
+                return;
+            }
+
             if (submitBtn) submitBtn.disabled = true;
 
             const formData = new FormData(form);
+            formData.set('hex_code', parsedHex);
+            formData.set('rgb_code', `${document.getElementById('newColorR')?.value || ''}, ${document.getElementById('newColorG')?.value || ''}, ${document.getElementById('newColorB')?.value || ''}`);
+            formData.set('cmyk_code', `${document.getElementById('newColorC')?.value || ''}, ${document.getElementById('newColorM')?.value || ''}, ${document.getElementById('newColorY')?.value || ''}, ${document.getElementById('newColorK')?.value || ''}`);
+            formData.set('material_options', JSON.stringify(modalMaterialOptions.create));
+
             try {
                 const res = await fetch('/api/colors/', {
                     method: 'POST',
@@ -3088,17 +4396,24 @@
                 const data = await res.json();
                 if (data.status === 'success') {
                     closeCreateColorModal();
-                    window.location.href = window.location.pathname + '?subwindow=colors';
+                    if (window.location.search.includes('subwindow=colors')) {
+                        window.location.reload();
+                    } else {
+                        window.location.href = window.location.pathname + '?subwindow=colors';
+                    }
                 } else {
-                    alert(data.message || '{% translate "Failed to create color." %}');
+                    if (errorMsg) errorMsg.textContent = data.message || '{% translate "Failed to create color." %}';
+                    if (errorBanner) errorBanner.style.display = 'flex';
                 }
             } catch (err) {
-                alert('{% translate "An error occurred while creating the color." %}');
+                if (errorMsg) errorMsg.textContent = '{% translate "An error occurred while creating the color." %}';
+                if (errorBanner) errorBanner.style.display = 'flex';
             } finally {
                 if (submitBtn) submitBtn.disabled = false;
             }
         }
 
+        // Submit Edit Color
         async function submitEditColor(e) {
             e.preventDefault();
             const form = document.getElementById('editColorForm');
@@ -3109,30 +4424,44 @@
 
             if (errorBanner) errorBanner.style.display = 'none';
 
-            // Client-side validation
-            const nameVal = (document.getElementById('editColorName')?.value || '').trim();
-            const hexVal = (document.getElementById('editColorHex')?.value || '').trim();
+            const nameInput = document.getElementById('editColorName');
+            const hexInput = document.getElementById('editColorHex');
+            const nameVal = (nameInput?.value || '').trim();
+            const hexVal = (hexInput?.value || '').trim();
 
             if (!nameVal) {
                 if (errorMsg) errorMsg.textContent = '{% translate "Color Name is required." %}';
                 if (errorBanner) errorBanner.style.display = 'flex';
-                document.getElementById('editColorName')?.focus();
+                nameInput?.focus();
                 return;
             }
 
-            if (!/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hexVal)) {
+            const parsedHex = ColorMath.parseHex(hexVal);
+            if (!parsedHex) {
                 if (errorMsg) errorMsg.textContent = '{% translate "Please enter a valid HEX code (e.g. #AF955C)." %}';
                 if (errorBanner) errorBanner.style.display = 'flex';
-                document.getElementById('editColorHex')?.focus();
+                hexInput?.focus();
                 return;
             }
 
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>{% translate "Saving..." %}</span>';
-            }
+            if (submitBtn) submitBtn.disabled = true;
+
+            const rVal = document.getElementById('editColorR')?.value || '';
+            const gVal = document.getElementById('editColorG')?.value || '';
+            const bVal = document.getElementById('editColorB')?.value || '';
+            const cVal = document.getElementById('editColorC')?.value || '';
+            const mVal = document.getElementById('editColorM')?.value || '';
+            const yVal = document.getElementById('editColorY')?.value || '';
+            const kVal = document.getElementById('editColorK')?.value || '';
+            const rgbCode = `${rVal}, ${gVal}, ${bVal}`;
+            const cmykCode = `${cVal}, ${mVal}, ${yVal}, ${kVal}`;
 
             const formData = new FormData(form);
+            formData.set('hex_code', parsedHex);
+            formData.set('rgb_code', rgbCode);
+            formData.set('cmyk_code', cmykCode);
+            formData.set('material_options', JSON.stringify(modalMaterialOptions.edit));
+
             try {
                 const res = await fetch(`/api/colors/${id}/update/`, {
                     method: 'POST',
@@ -3145,38 +4474,42 @@
                         id: id,
                         name: nameVal,
                         color_code: (document.getElementById('editColorCode')?.value || '').trim(),
-                        hex_code: hexVal,
+                        hex_code: parsedHex,
+                        pantone_code: (document.getElementById('editColorPantone')?.value || '').trim(),
+                        rgb_code: rgbCode,
+                        cmyk_code: cmykCode,
                         material_series: (document.getElementById('editColorSeries')?.value || '').trim(),
                         compatible_models: (document.getElementById('editColorModels')?.value || '').trim(),
-                        status: document.getElementById('editColorStatus')?.value || 'Active'
+                        status: document.getElementById('editColorStatus')?.value || 'Active',
+                        material_options: modalMaterialOptions.edit
                     };
 
-                    // Update card in DOM in-place without page reload
+                    // Update Card In-Place
                     const card = document.getElementById(`color-card-${id}`);
                     if (card) {
                         card.setAttribute('data-name', (updated.name || '').toLowerCase());
                         card.setAttribute('data-hex', (updated.hex_code || '').toLowerCase());
                         card.setAttribute('data-code', (updated.color_code || '').toLowerCase());
-                        card.setAttribute('data-category', (updated.color_category || '').toLowerCase());
+                        card.setAttribute('data-rgb', (updated.rgb_code || '').toLowerCase());
+                        card.setAttribute('data-pantone', (updated.pantone_code || '').toLowerCase());
+                        card.setAttribute('data-cmyk', (updated.cmyk_code || '').toLowerCase());
                         card.setAttribute('data-series', (updated.material_series || '').toLowerCase());
                         card.setAttribute('data-status', (updated.status || '').toLowerCase());
                         card.setAttribute('data-models', (updated.compatible_models || '').toLowerCase());
+                        card.setAttribute('data-material-options', JSON.stringify(modalMaterialOptions.edit));
 
-                        // Swatch
                         const swatch = card.querySelector('.color-tile__swatch');
                         if (swatch) {
                             swatch.style.backgroundColor = updated.hex_code;
                             swatch.title = `${updated.name} (${updated.hex_code})`;
                         }
 
-                        // Status pill
                         const statusPill = card.querySelector('.color-tile__status-pill');
                         if (statusPill) {
                             statusPill.className = `color-tile__status-pill status-${(updated.status || '').toLowerCase()}`;
                             statusPill.textContent = updated.status;
                         }
 
-                        // Serial & Name
                         const serialEl = card.querySelector('.color-tile__serial');
                         if (serialEl) serialEl.textContent = `#${updated.color_code || ''}`;
 
@@ -3186,100 +4519,158 @@
                             nameEl.title = updated.name;
                         }
 
-                        // HEX Code
-                        const hexEl = card.querySelector('.color-tile__hex');
-                        if (hexEl) {
-                            hexEl.innerHTML = `<i class="fas fa-hashtag"></i> ${updated.hex_code}`;
-                            hexEl.setAttribute('onclick', `copyHexCode('${escapeJsStr(updated.hex_code)}', this)`);
+                        const pantoneEl = card.querySelector('.color-tile__pantone');
+                        if (pantoneEl) {
+                            pantoneEl.textContent = updated.pantone_code || '';
+                            pantoneEl.style.display = updated.pantone_code ? 'inline-block' : 'none';
                         }
 
-                        // Series / Category pill
-                        let seriesPill = card.querySelector('.color-tile__series-pill');
-                        const catOrSeries = updated.color_category || updated.material_series || '';
-                        if (catOrSeries) {
-                            if (seriesPill) {
-                                seriesPill.textContent = catOrSeries;
-                            } else {
-                                const specsRow = card.querySelector('.color-tile__row-specs');
-                                if (specsRow) {
-                                    const newPill = document.createElement('span');
-                                    newPill.className = 'color-tile__series-pill';
-                                    newPill.title = '{% translate "Color Category" %}';
-                                    newPill.textContent = catOrSeries;
-                                    specsRow.appendChild(newPill);
-                                }
+                        // Labeled specs
+                        const specHex = card.querySelector('.spec-hex');
+                        if (specHex) specHex.textContent = updated.hex_code;
+                        const specPantone = card.querySelector('.spec-pantone');
+                        if (specPantone) specPantone.textContent = updated.pantone_code || '-';
+                        const specRgb = card.querySelector('.spec-rgb');
+                        if (specRgb) specRgb.textContent = updated.rgb_code || '-';
+                        const specCmyk = card.querySelector('.spec-cmyk');
+                        if (specCmyk) specCmyk.textContent = updated.cmyk_code || '-';
+
+                        // Material chips
+                        const matSection = card.querySelector('.color-tile__material-options');
+                        const matChipsWrap = card.querySelector('.color-tile__material-chips');
+                        if (modalMaterialOptions.edit.length > 0) {
+                            if (matChipsWrap) {
+                                matChipsWrap.innerHTML = modalMaterialOptions.edit.map(o => `
+                                    <span class="color-tile__material-chip">${escapeHtml(o.material_name)} &middot; ${escapeHtml(o.variant_name)}</span>
+                                `).join('');
                             }
-                        } else if (seriesPill) {
-                            seriesPill.remove();
+                            if (matSection) matSection.style.display = 'flex';
+                        } else if (matSection) {
+                            matSection.style.display = 'none';
                         }
 
-                        // Compatible Models
-                        let modelsWrap = card.querySelector('.color-tile__models');
-                        if (updated.compatible_models && updated.compatible_models.trim()) {
-                            const tags = updated.compatible_models.trim().split(/\s+/).map(t => t.replace(/,/g, '').trim()).filter(Boolean);
-                            if (!modelsWrap) {
-                                const content = card.querySelector('.color-tile__content');
-                                if (content) {
-                                    modelsWrap = document.createElement('div');
-                                    modelsWrap.className = 'color-tile__models';
-                                    modelsWrap.innerHTML = `<span class="color-tile__models-label">{% translate "Compatible Models:" %}</span><div class="color-tile__models-tags"></div>`;
-                                    content.appendChild(modelsWrap);
-                                }
-                            }
-                            const tagsContainer = modelsWrap?.querySelector('.color-tile__models-tags');
-                            if (tagsContainer) {
-                                tagsContainer.innerHTML = tags.map(t => `<span class="model-tag-chip">${escapeHtml(t)}</span>`).join('');
-                            }
-                        } else if (modelsWrap) {
-                            modelsWrap.remove();
-                        }
-
-                        // Update edit & view button attributes
+                        // Edit button update
                         const editBtn = card.querySelector('.btn-edit');
                         if (editBtn) {
                             editBtn.setAttribute('onclick', `openEditColorModal('${updated.id}', '${escapeJsStr(updated.name)}', '${escapeJsStr(updated.color_code)}', '${escapeJsStr(updated.hex_code)}', '${escapeJsStr(updated.material_series)}', '${escapeJsStr(updated.compatible_models)}', '${escapeJsStr(updated.status)}', this)`);
                         }
-
-                        const viewBtn = card.querySelector('.btn-view');
-                        if (viewBtn) {
-                            viewBtn.setAttribute('onclick', `openViewColorModal('${updated.id}', '${escapeJsStr(updated.name)}', '${escapeJsStr(updated.color_code)}', '${escapeJsStr(updated.hex_code)}', '${escapeJsStr(updated.material_series)}', '${escapeJsStr(updated.compatible_models)}', '${escapeJsStr(updated.status)}')`);
-                        }
-
-                        // Re-evaluate filter visibility
-                        applyColorFilters();
                     }
 
+                    // Update Table Row In-Place
+                    const row = document.getElementById(`color-row-${id}`);
+                    if (row) {
+                        row.setAttribute('data-name', (updated.name || '').toLowerCase());
+                        row.setAttribute('data-hex', (updated.hex_code || '').toLowerCase());
+                        row.setAttribute('data-code', (updated.color_code || '').toLowerCase());
+                        row.setAttribute('data-rgb', (updated.rgb_code || '').toLowerCase());
+                        row.setAttribute('data-pantone', (updated.pantone_code || '').toLowerCase());
+                        row.setAttribute('data-cmyk', (updated.cmyk_code || '').toLowerCase());
+                        row.setAttribute('data-series', (updated.material_series || '').toLowerCase());
+                        row.setAttribute('data-status', (updated.status || '').toLowerCase());
+                        row.setAttribute('data-models', (updated.compatible_models || '').toLowerCase());
+                        row.setAttribute('data-material-options', JSON.stringify(modalMaterialOptions.edit));
+
+                        const rowSerial = row.querySelector('.color-tile__serial');
+                        if (rowSerial) rowSerial.textContent = `#${updated.color_code || ''}`;
+
+                        const rowSwatch = row.querySelector('.color-row__swatch');
+                        if (rowSwatch) {
+                            rowSwatch.style.backgroundColor = updated.hex_code;
+                            rowSwatch.title = `${updated.name} (${updated.hex_code})`;
+                        }
+
+                        const rowName = row.querySelector('.color-row__name');
+                        if (rowName) {
+                            rowName.textContent = updated.name;
+                            rowName.title = updated.name;
+                        }
+
+                        if (row.cells && row.cells.length >= 13) {
+                            // Code cell
+                            const codeCell = row.cells[4];
+                            if (codeCell) {
+                                codeCell.innerHTML = `<span style="font-family: ui-monospace, monospace; font-size: 0.78rem; color: #94a3b8;">${escapeHtml(updated.color_code || '-')}</span>${updated.pantone_code ? `<span class="color-tile__pantone" style="margin-left: 4px;">${escapeHtml(updated.pantone_code)}</span>` : ''}`;
+                            }
+
+                            // HEX cell
+                            const hexCell = row.cells[5];
+                            if (hexCell) {
+                                hexCell.innerHTML = `<span class="color-tile__hex" onclick="copyHexCode('${escapeJsStr(updated.hex_code)}', this)"><i class="fas fa-hashtag"></i> ${escapeHtml(updated.hex_code)}</span>`;
+                            }
+
+                            // Pantone cell
+                            const panCell = row.cells[6];
+                            if (panCell) {
+                                panCell.innerHTML = updated.pantone_code ? `<span class="color-tile__pantone">${escapeHtml(updated.pantone_code)}</span>` : `<span style="color: #64748b;">-</span>`;
+                            }
+
+                            // RGB cell
+                            const rgbCell = row.cells[7];
+                            if (rgbCell) {
+                                rgbCell.innerHTML = updated.rgb_code ? `<span class="color-table-spec-val">${escapeHtml(updated.rgb_code)}</span>` : `<span style="color: #64748b;">-</span>`;
+                            }
+
+                            // CMYK cell
+                            const cmykCell = row.cells[8];
+                            if (cmykCell) {
+                                cmykCell.innerHTML = updated.cmyk_code ? `<span class="color-table-spec-val">${escapeHtml(updated.cmyk_code)}</span>` : `<span style="color: #64748b;">-</span>`;
+                            }
+
+                            // Material options cell
+                            const matCell = row.cells[9];
+                            if (matCell) {
+                                const opts = modalMaterialOptions.edit;
+                                if (opts.length > 0) {
+                                    const firstTwo = opts.slice(0, 2).map(o => `<span class="table-material-chip">${escapeHtml(o.material_name)} &middot; ${escapeHtml(o.variant_name)}</span>`).join('');
+                                    const moreBadge = opts.length > 2 ? `<span class="table-material-more-badge" onclick="toggleMaterialPopover(event, 'popover-${updated.id}')">+${opts.length - 2}</span><div id="popover-${updated.id}" class="table-material-popover" style="display: none;"><div class="table-material-popover-title">{% translate "Associated Materials" %}</div>${opts.map(o => `<span class="table-material-chip popover-chip">${escapeHtml(o.material_name)} &middot; ${escapeHtml(o.variant_name)}</span>`).join('')}</div>` : '';
+                                    matCell.innerHTML = `<div class="table-material-options-cell">${firstTwo}${moreBadge}</div>`;
+                                } else {
+                                    matCell.innerHTML = `<span style="color: #64748b;">-</span>`;
+                                }
+                            }
+
+                            // Status cell
+                            const statusCell = row.cells[11];
+                            if (statusCell) {
+                                statusCell.innerHTML = `<span class="color-tile__status-pill status-${(updated.status || '').toLowerCase()}">${escapeHtml(updated.status)}</span>`;
+                            }
+                        }
+
+                        const rowEditBtn = row.querySelector('.btn-edit');
+                        if (rowEditBtn) {
+                            rowEditBtn.setAttribute('onclick', `openEditColorModal('${updated.id}', '${escapeJsStr(updated.name)}', '${escapeJsStr(updated.color_code)}', '${escapeJsStr(updated.hex_code)}', '${escapeJsStr(updated.material_series)}', '${escapeJsStr(updated.compatible_models)}', '${escapeJsStr(updated.status)}', this)`);
+                        }
+                    }
+
+                    applyColorFilters();
                     closeEditColorModal();
                 } else {
                     if (errorMsg) errorMsg.textContent = data.message || '{% translate "Failed to update color." %}';
                     if (errorBanner) errorBanner.style.display = 'flex';
                 }
             } catch (err) {
-                if (errorMsg) errorMsg.textContent = '{% translate "An error occurred while updating the color. Please try again." %}';
+                if (errorMsg) errorMsg.textContent = '{% translate "An error occurred while updating the color." %}';
                 if (errorBanner) errorBanner.style.display = 'flex';
             } finally {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-check"></i> <span>{% translate "Save Changes" %}</span>';
-                }
+                if (submitBtn) submitBtn.disabled = false;
             }
         }
 
-        // Global Modal Keyboard & Backdrop Listeners for Edit Color Modal
+        // Global Modal Keyboard & Backdrop Listeners
         pageScope.listen(document, 'keydown', function(e) {
             if (e.key === 'Escape') {
                 const editModal = document.getElementById('editColorModal');
-                if (editModal && editModal.style.display !== 'none') {
-                    closeEditColorModal();
-                }
+                if (editModal && editModal.style.display !== 'none') closeEditColorModal();
+                const createModal = document.getElementById('createColorModal');
+                if (createModal && createModal.style.display !== 'none') closeCreateColorModal();
             }
         });
 
         pageScope.listen(document, 'click', function(e) {
             const editModal = document.getElementById('editColorModal');
-            if (editModal && editModal.style.display !== 'none' && e.target === editModal) {
-                closeEditColorModal();
-            }
+            if (editModal && editModal.style.display !== 'none' && e.target === editModal) closeEditColorModal();
+            const createModal = document.getElementById('createColorModal');
+            if (createModal && createModal.style.display !== 'none' && e.target === createModal) closeCreateColorModal();
         });
 
         async function deleteColor(id, name) {
@@ -3295,6 +4686,13 @@
                 if (data.status === 'success') {
                     const card = document.getElementById(`color-card-${id}`);
                     if (card) card.remove();
+                    const row = document.getElementById(`color-row-${id}`);
+                    if (row) row.remove();
+                    const colorCountBadge = document.getElementById('subtaskbarColorCount');
+                    if (colorCountBadge) {
+                        const cur = parseInt(colorCountBadge.textContent, 10);
+                        if (!isNaN(cur) && cur > 0) colorCountBadge.textContent = cur - 1;
+                    }
                     applyColorFilters();
                 } else {
                     alert(data.message || '{% translate "Failed to delete color." %}');
@@ -5013,6 +6411,122 @@
                     setSuggestionsOpen(false);
                 }
             });
+
+            // -------------------------------------------------------------------------
+            // Color Master Search Picker Logic (Matching Pattern Master)
+            // -------------------------------------------------------------------------
+            const colorSearchPicker = document.getElementById('color-search-picker');
+            const colorSearchInput = document.getElementById('colorSearchInput');
+            const colorSearchByInput = document.getElementById('color-search-by');
+            const colorSearchLabel = document.getElementById('color-search-field-label');
+            const colorSearchOptions = document.querySelectorAll('#color-search-options .search-option');
+
+            const colorSearchLabels = {
+                serial_number: window.FabroI18n ? window.FabroI18n.gettext('Serial Number') : 'Serial Number',
+                name: window.FabroI18n ? window.FabroI18n.gettext('Color Name') : 'Color Name',
+                color_code: window.FabroI18n ? window.FabroI18n.gettext('Internal Code') : 'Internal Code',
+                hex_code: window.FabroI18n ? window.FabroI18n.gettext('HEX Code') : 'HEX Code',
+                rgb_code: window.FabroI18n ? window.FabroI18n.gettext('RGB Values') : 'RGB Values',
+                material_series: window.FabroI18n ? window.FabroI18n.gettext('Material Series / Grade') : 'Material Series / Grade',
+                status: window.FabroI18n ? window.FabroI18n.gettext('Status') : 'Status',
+                compatible_models: window.FabroI18n ? window.FabroI18n.gettext('Compatible Models') : 'Compatible Models',
+                all: window.FabroI18n ? window.FabroI18n.gettext('All Fields') : 'All Fields'
+            };
+
+            function refreshColorSearchChoice() {
+                if (!colorSearchByInput || !colorSearchLabel) return;
+                const selected = colorSearchByInput.value || 'all';
+                colorSearchLabel.textContent = colorSearchLabels[selected] || 'All Fields';
+                colorSearchOptions.forEach((option) => {
+                    option.classList.toggle('is-active', option.dataset.searchBy === selected);
+                });
+            }
+
+            function setColorSuggestionsOpen(isOpen) {
+                if (!colorSearchPicker || !colorSearchInput) return;
+                const shouldOpen = isOpen && colorSearchInput.value.trim().length > 0;
+                colorSearchPicker.classList.toggle('is-suggesting', shouldOpen);
+                colorSearchInput.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            }
+
+            refreshColorSearchChoice();
+
+            if (colorSearchInput && colorSearchPicker) {
+                pageScope.listen(colorSearchInput, 'input', function () {
+                    const val = colorSearchInput.value.trim();
+                    if (!val) {
+                        setColorSuggestionsOpen(false);
+                    } else {
+                        setColorSuggestionsOpen(true);
+                    }
+                    applyColorFilters();
+                });
+
+                pageScope.listen(colorSearchInput, 'focus', function () {
+                    setColorSuggestionsOpen(true);
+                });
+
+                pageScope.listen(colorSearchInput, 'click', function () {
+                    setColorSuggestionsOpen(true);
+                });
+
+                pageScope.listen(colorSearchInput, 'keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        setColorSuggestionsOpen(false);
+                    } else if (e.key === 'ArrowDown') {
+                        if (!colorSearchPicker.classList.contains('is-suggesting')) {
+                            setColorSuggestionsOpen(true);
+                        }
+                        const firstOption = document.querySelector('#color-search-options .search-option');
+                        if (firstOption) {
+                            firstOption.focus();
+                            e.preventDefault();
+                        }
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyColorFilters();
+                        setColorSuggestionsOpen(false);
+                    }
+                });
+            }
+
+            colorSearchOptions.forEach((option) => {
+                pageScope.listen(option, 'click', function () {
+                    if (!colorSearchByInput) return;
+                    colorSearchByInput.value = option.dataset.searchBy;
+                    refreshColorSearchChoice();
+                    setColorSuggestionsOpen(false);
+                    applyColorFilters();
+                });
+
+                pageScope.listen(option, 'keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        setColorSuggestionsOpen(false);
+                        if (colorSearchInput) colorSearchInput.focus();
+                    }
+                });
+            });
+
+            pageScope.listen(document, 'click', function (event) {
+                if (colorSearchPicker && !colorSearchPicker.contains(event.target)) {
+                    setColorSuggestionsOpen(false);
+                }
+            });
+
+            const submitBtn = document.getElementById('colorSearchSubmitBtn');
+            if (submitBtn) {
+                pageScope.listen(submitBtn, 'click', function(e) {
+                    e.preventDefault();
+                    applyColorFilters();
+                    setColorSuggestionsOpen(false);
+                });
+            }
+
+            // Initial filter check if server rendered query
+            if (colorSearchInput && colorSearchInput.value.trim()) {
+                applyColorFilters();
+            }
+
             // Check hash or query param on page load
             const urlParams = new URLSearchParams(window.location.search);
             const vParam = urlParams.get('vehicle_id');
@@ -7248,9 +8762,10 @@
             });
 
             // Update Select All state: ONLY checked when ALL patterns are selected
-            if (patternSelectAll) {
-                patternSelectAll.checked = count > 0 && count === total;
-                patternSelectAll.indeterminate = false;
+            const selectAllEl = document.getElementById('patternSelectAll');
+            if (selectAllEl) {
+                selectAllEl.checked = count > 0 && count === total;
+                selectAllEl.indeterminate = false;
             }
 
             const badge = document.getElementById('patternActionsCountBadge');
@@ -7354,26 +8869,39 @@
         }
 
         // Toggle actions drawer morph open/close
-        if (patternActionsToggleBtn) {
-            patternActionsToggleBtn.addEventListener('click', (e) => {
+        pageScope.listen(document, 'click', (e) => {
+            const toggleBtn = e.target.closest('#patternActionsToggleBtn');
+            if (toggleBtn) {
                 e.stopPropagation();
-                if (patternActionsDrawer) {
-                    const isOpen = patternActionsDrawer.classList.toggle('is-open');
-                    patternActionsToggleBtn.classList.toggle('is-active', isOpen);
-                    patternActionsToggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                const drawer = document.getElementById('patternActionsDrawer');
+                if (drawer) {
+                    const isOpen = drawer.classList.toggle('is-open');
+                    toggleBtn.classList.toggle('is-active', isOpen);
+                    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
                 }
-            });
-        }
+            }
+        });
 
-        // Row checkbox changes
+        // Row checkbox changes & master Select All
         pageScope.listen(document, 'change', (e) => {
             if (e.target.classList.contains('pattern-row-select')) {
+                updateSelectionUI();
+            } else if (e.target.id === 'patternSelectAll') {
+                const checked = e.target.checked;
+                document.querySelectorAll('tr[id^="row-view-"] .pattern-row-select').forEach(cb => {
+                    cb.checked = checked;
+                });
                 updateSelectionUI();
             }
         });
 
+        // Maintain selection UI integrity across HTMX navigation/swaps
+        pageScope.listen(document, 'htmx:afterSwap', () => {
+            updateSelectionUI();
+        });
+
         const isPatternRowControl = (target) => Boolean(target.closest(
-            'button, a, input, select, textarea, label, summary, [role="button"], [role="menu"], [contenteditable="true"]'
+            'button, a, input, select, textarea, label, summary, [role="button"], [role="menu"], [contenteditable="true"], .fitting-dropdown-btn, .action-btn, .pattern-card-actions-menu, .pattern-card-more-btn, .fitting-menu, .pattern-log-btn'
         ));
         let rowTouchStart = null;
         pageScope.listen(document, 'touchstart', (e) => {
@@ -7393,26 +8921,14 @@
             }
             rowTouchStart = null;
         }, { passive: true });
+
         const selectPatternRow = (row, isMultiModifier = false) => {
             const checkbox = row.querySelector('.pattern-row-select');
             if (!checkbox) return;
-            const allCheckboxes = document.querySelectorAll('tr[id^="row-view-"] .pattern-row-select');
-            const selected = getSelectedCheckboxes();
-
-            if (isMultiModifier) {
-                // Ctrl / Cmd modifier: toggle this row without clearing others
-                checkbox.checked = !checkbox.checked;
-            } else if (checkbox.checked && selected.length === 1 && selected[0] === checkbox) {
-                // Clicking the already-selected single vehicle unselects it
-                checkbox.checked = false;
-            } else {
-                // Clicking a vehicle selects ONLY that vehicle
-                allCheckboxes.forEach(cb => {
-                    cb.checked = (cb === checkbox);
-                });
-            }
+            checkbox.checked = !checkbox.checked;
             updateSelectionUI();
         };
+
         pageScope.listen(document, 'click', (e) => {
             const row = e.target.closest('tr[id^="row-view-"]');
             if (!row) return;
@@ -7432,25 +8948,18 @@
             selectPatternRow(row, Boolean(e.ctrlKey || e.metaKey));
         });
 
-        // Master select all
-        if (patternSelectAll) {
-            patternSelectAll.addEventListener('change', () => {
-                const checked = patternSelectAll.checked;
-                document.querySelectorAll('tr[id^="row-view-"] .pattern-row-select').forEach(cb => {
-                    cb.checked = checked;
-                });
-                updateSelectionUI();
-            });
-        }
-
         // Close actions drawer if clicked outside
         pageScope.listen(document, 'click', (e) => {
-            if (patternActionsWrapper && !patternActionsWrapper.contains(e.target) && !e.target.closest('.pattern-checkbox')) {
-                if (patternActionsDrawer && patternActionsDrawer.classList.contains('is-open')) {
-                    patternActionsDrawer.classList.remove('is-open');
-                    if (patternActionsToggleBtn) {
-                        patternActionsToggleBtn.classList.remove('is-active');
-                        patternActionsToggleBtn.setAttribute('aria-expanded', 'false');
+            if (e.target.closest('#patternActionsToggleBtn')) return;
+            const wrapper = document.getElementById('patternActionsWrapper');
+            const drawer = document.getElementById('patternActionsDrawer');
+            if (wrapper && !wrapper.contains(e.target) && !e.target.closest('.pattern-checkbox')) {
+                if (drawer && drawer.classList.contains('is-open')) {
+                    drawer.classList.remove('is-open');
+                    const btn = document.getElementById('patternActionsToggleBtn');
+                    if (btn) {
+                        btn.classList.remove('is-active');
+                        btn.setAttribute('aria-expanded', 'false');
                     }
                 }
             }
@@ -7522,40 +9031,83 @@
                 body.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--text-secondary); font-size: 0.85rem;"><i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i> ${window.FabroI18n ? window.FabroI18n.gettext('Loading audit logs...') : 'Loading audit logs...'}</div>`;
             }
 
+            const safeTitle = (title || '').replace(/'/g, "\\'");
+
             try {
                 const response = await fetch(`/api/pattern/${yearRangeId}/logs/`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
                 const data = await response.json();
-                if (data.status === 'success') {
+                if (data.status === 'success' || data.success) {
+                    if (titleEl && data.pattern_title && !title) {
+                        titleEl.textContent = data.pattern_title;
+                    }
                     if (!data.logs || data.logs.length === 0) {
                         body.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--text-secondary); font-size: 0.85rem;"><i class="fas fa-info-circle" style="margin-right: 6px;"></i> ${window.FabroI18n ? window.FabroI18n.gettext('No change history recorded yet for this vehicle pattern.') : 'No change history recorded yet for this vehicle pattern.'}</div>`;
                         return;
                     }
 
-                    let html = '<div class="pattern-log-timeline">';
+                    let html = '<div class="pattern-log-timeline" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem;">';
                     data.logs.forEach(log => {
-                        const badgeColor = log.action === 'created' ? '#10b981' : (log.action === 'deleted' ? '#ef4444' : '#38bdf8');
+                        let badgeColor = '#38bdf8';
+                        if (log.action === 'created') badgeColor = '#10b981';
+                        else if (log.action === 'deleted') badgeColor = '#ef4444';
+                        else if (log.action && log.action.includes('update')) badgeColor = '#f59e0b';
+
+                        let changesHtml = '';
+                        if (log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0) {
+                            const changeItems = [];
+                            for (const [key, val] of Object.entries(log.details)) {
+                                if (val && typeof val === 'object' && ('old' in val || 'new' in val)) {
+                                    changeItems.push(`<div style="font-size: 0.72rem; color: var(--text-secondary);"><span style="text-transform: capitalize;">${escapeHtml(key.replace(/_/g, ' '))}:</span> <span style="text-decoration: line-through; opacity: 0.7;">${escapeHtml(String(val.old ?? '—'))}</span> &rarr; <span class="pattern-log-changes-new" style="font-weight: 500;">${escapeHtml(String(val.new ?? '—'))}</span></div>`);
+                                }
+                            }
+                            if (changeItems.length > 0) {
+                                changesHtml = `<div class="pattern-log-changes" style="margin-top: 0.25rem; padding: 0.35rem 0.5rem; border-radius: 4px; display: flex; flex-direction: column; gap: 0.2rem;">${changeItems.join('')}</div>`;
+                            }
+                        }
+
                         html += `
-                            <div class="pattern-log-entry" style="padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; gap: 0.25rem;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                            <div class="pattern-log-entry">
+                                <div class="pattern-log-meta">
                                     <div style="display: flex; align-items: center; gap: 0.4rem;">
-                                        <span style="display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}44;">${escapeHtml(log.action)}</span>
-                                        <strong style="font-size: 0.82rem; color: #f1f5f9;">${escapeHtml(log.user)}</strong>
+                                        <span style="display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}44;">${escapeHtml(log.action || 'Log')}</span>
+                                        <span class="pattern-log-user">${escapeHtml(log.user || 'System')}</span>
                                     </div>
-                                    <span style="font-size: 0.72rem; color: var(--text-secondary);">${escapeHtml(log.created_at)}</span>
+                                    <span style="font-size: 0.72rem; opacity: 0.85; white-space: nowrap;">${escapeHtml(log.created_at || log.date || '')}</span>
                                 </div>
-                                <div style="font-size: 0.78rem; color: #94a3b8; line-height: 1.35;">${escapeHtml(log.description || '')}</div>
+                                <div class="pattern-log-text" style="line-height: 1.35; margin-top: 0.2rem;">${escapeHtml(log.description || log.summary || '')}</div>
+                                ${changesHtml}
                             </div>
                         `;
                     });
                     html += '</div>';
                     body.innerHTML = html;
                 } else {
-                    body.innerHTML = `<div style="padding: 1.25rem; text-align: center; color: #ef4444; font-size: 0.85rem;">${escapeHtml(data.message || 'Failed to load logs')}</div>`;
+                    const errMsg = escapeHtml(data.message || data.error || 'Failed to load logs');
+                    body.innerHTML = `
+                        <div style="padding: 1.5rem; text-align: center; color: #ef4444; font-size: 0.85rem;">
+                            <i class="fas fa-exclamation-triangle" style="margin-bottom: 0.5rem; font-size: 1.25rem; display: block;"></i>
+                            <div>${errMsg}</div>
+                            <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 0.75rem; padding: 4px 12px; font-size: 0.78rem;" onclick="openPatternLogPopover(${yearRangeId}, '${safeTitle}')">
+                                <i class="fas fa-redo-alt" style="margin-right: 4px;"></i> ${window.FabroI18n ? window.FabroI18n.gettext('Retry') : 'Retry'}
+                            </button>
+                        </div>
+                    `;
                 }
             } catch (err) {
                 console.error(err);
                 if (body) {
-                    body.innerHTML = `<div style="padding: 1.25rem; text-align: center; color: #ef4444; font-size: 0.85rem;">Error loading pattern logs.</div>`;
+                    body.innerHTML = `
+                        <div style="padding: 1.5rem; text-align: center; color: #ef4444; font-size: 0.85rem;">
+                            <i class="fas fa-exclamation-triangle" style="margin-bottom: 0.5rem; font-size: 1.25rem; display: block;"></i>
+                            <div>${window.FabroI18n ? window.FabroI18n.gettext('Error loading pattern logs.') : 'Error loading pattern logs.'}</div>
+                            <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 0.75rem; padding: 4px 12px; font-size: 0.78rem;" onclick="openPatternLogPopover(${yearRangeId}, '${safeTitle}')">
+                                <i class="fas fa-redo-alt" style="margin-right: 4px;"></i> ${window.FabroI18n ? window.FabroI18n.gettext('Retry') : 'Retry'}
+                            </button>
+                        </div>
+                    `;
                 }
             }
         };
@@ -7596,6 +9148,28 @@
             } else {
                 updateSubtaskbarGlider();
             }
+
+            // Initialize Color Master view toggle (Cards vs List) & listeners
+            const colorToggle = document.getElementById('colorViewToggle');
+            if (colorToggle) {
+                pageScope.listen(colorToggle, 'change', function() {
+                    switchColorMasterView(this.checked ? 'cards' : 'list', true);
+                });
+            }
+            const toggleLabel = document.querySelector('.toggle[for="colorViewToggle"]');
+            if (toggleLabel) {
+                pageScope.listen(toggleLabel, 'keydown', function(e) {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        if (colorToggle) {
+                            colorToggle.checked = !colorToggle.checked;
+                            switchColorMasterView(colorToggle.checked ? 'cards' : 'list', true);
+                        }
+                    }
+                });
+            }
+            initColorMasterView();
+
             pageScope.listen(window, 'resize', () => updateSubtaskbarGlider());
             pageScope.listen(window, 'popstate', () => {
                 const p = new URLSearchParams(window.location.search);
@@ -7610,8 +9184,8 @@
         }
 
         Object.assign(window, {
-            updateSubtaskbarGlider, switchSubwindow, copyHexCode, filterColorTiles, filterColorStatus, clearColorSearch, syncColorInput, syncColorPicker, syncEditColorHex, syncEditColorPicker, escapeJsStr, updateCreateLivePreview, updateEditLivePreview, openCreateColorModal, closeCreateColorModal, openEditColorModal, closeEditColorModal, openViewColorModal, closeViewColorModal, submitCreateColor, submitEditColor, deleteColor,
-            closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, toggleGoogleDriveDropdown, closeGoogleDriveDropdown, submitAddDriveLink, deleteVehicleDriveLink, renderVehicleDriveLinks, handleGoogleDriveClick, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, openPatternLogPopover, closePatternLogPopover, confirmDeletePatterns, updateSelectionUI, selectPatternRow
+            updateSubtaskbarGlider, switchSubwindow, copyHexCode, filterColorTiles, filterColorStatus, clearColorSearch, openCreateColorModal, closeCreateColorModal, openEditColorModal, closeEditColorModal, submitCreateColor, submitEditColor, deleteColor, switchColorMasterView, initColorMasterView, sortColorTable, ColorMath, ColorWheelController, handleColorNameInput, handleColorHexInput, handleColorHexBlur, handleColorRgbInput, handleColorCmykInput, handleColorPantoneInput, onMaterialChange, onVariantChange, addMaterialOption, removeMaterialOption, toggleMaterialPopover, toggleSelectAllColors, handleColorRowSelect, previewColorCard,
+            closeDuplicateModal, closeLayoutCodeErrorModal, switchPatternTab, openVehicleDesignSettings, updateVehicleSubheadings, getDesignCsrfToken, escapeHtml, loadDesignFolders, renderDesignFoldersList, filterDesignFolders, changeDesignFolderPage, openAddFolderModal, closeAddFolderModal, submitCreateFolder, openRenameFolderModal, openRenameCurrentFolderModal, closeRenameFolderModal, submitRenameFolder, confirmDeleteFolder, confirmDeleteCurrentFolder, openDesignFolder, backToFoldersList, renderDesignMatrix, changeMatrixPage, handleDesignImageSelected, pasteImageFromClipboard, toggleDesignAddDropdown, selectDesignAddOption, toggleGoogleDriveDropdown, closeGoogleDriveDropdown, submitAddDriveLink, deleteVehicleDriveLink, renderVehicleDriveLinks, handleGoogleDriveClick, updateGoogleDriveButtonState, handleDirectVehicleImageSelected, renderDirectImagesMatrix, changeDirectMatrixPage, confirmDeleteDirectImage, openDirectEnlargedView, confirmDeleteImage, deleteCurrentEnlargedImage, openEnlargedView, closeEnlargedView, navigateEnlarged, updateEnlargedModal, approveDesignImage, openRejectDesignModal, closeRejectDesignModal, submitRejectDesign, getVehicleTableData, confirmDeletePatterns, updateSelectionUI, selectPatternRow
         });
     })();
     </script>

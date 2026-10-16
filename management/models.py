@@ -355,6 +355,26 @@ class MasterSetting(models.Model):
         return self.name
 
 
+class MaterialVariant(models.Model):
+    material = models.ForeignKey(
+        MasterSetting,
+        on_delete=models.CASCADE,
+        related_name='variants',
+        limit_choices_to={'category': 'Material'}
+    )
+    name = models.CharField(max_length=100)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'id']
+        unique_together = ('material', 'name')
+
+    def __str__(self):
+        return f"{self.material.name} - {self.name}"
+
+
 class UserProfile(models.Model):
     LANGUAGE_CHOICES = [
         ('en', 'English'),
@@ -1141,3 +1161,17 @@ class ColorMaster(models.Model):
 
     def __str__(self):
         return f"{self.color_code} - {self.name} ({self.hex_code})"
+
+
+class ColorMaterialOption(models.Model):
+    color = models.ForeignKey(ColorMaster, on_delete=models.CASCADE, related_name='material_options')
+    material = models.ForeignKey(MasterSetting, on_delete=models.CASCADE, limit_choices_to={'category': 'Material'})
+    variant = models.ForeignKey(MaterialVariant, on_delete=models.CASCADE, related_name='color_options')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('color', 'material', 'variant')
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.color.name}: {self.material.name} · {self.variant.name}"

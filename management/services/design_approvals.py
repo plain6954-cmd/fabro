@@ -17,6 +17,7 @@ from management.models import (
     WorkflowRoles,
 )
 from management.services.push_notifications import send_push_on_commit
+from management.services.workflow import is_active_superuser
 
 logger = logging.getLogger(__name__)
 
@@ -152,10 +153,11 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
     return approval
 
 
-def record_design_review_decision(design_image, reviewer_user, decision, comment=''):
+def record_design_review_decision(design_image, reviewer_user, decision, comment='', stage=None):
     """
     Record an independent CAD or ED review decision for a submitted design.
-    - Reviewer identity is verified via request.user and their profile approval_role.
+    - Reviewer identity is verified via request.user and their profile approval_role,
+      or via active superuser status with an explicit/inferred review stage ('cad' or 'ed').
     - CAD cannot submit an ED decision; ED cannot submit a CAD decision.
     - Designer cannot approve their own design.
     - Decline REQUIRES a mandatory comment.
@@ -166,16 +168,47 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     if not reviewer_user or not reviewer_user.is_authenticated:
         raise PermissionDenied(_("Authentication required."))
 
-    prof = getattr(reviewer_user, 'workflow_profile', None)
-    reviewer_role = getattr(prof, 'approval_role', None) if prof else None
-
-    # Reviewer must have an approval role of CAD or ED
-    if not prof or prof.role != WorkflowRoles.APPROVER or reviewer_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
-        raise PermissionDenied(_("Only authorized CAD or ED approvers may review designs."))
-
     # Designer cannot approve their own design
     if design_image.uploaded_by_id == reviewer_user.id:
         raise PermissionDenied(_("Designer cannot approve their own design."))
+
+    is_su = is_active_superuser(reviewer_user)
+    prof = getattr(reviewer_user, 'workflow_profile', None)
+    user_approval_role = getattr(prof, 'approval_role', None) if prof else None
+
+    # Fetch latest approval request to inspect current stages if needed
+    approval = get_latest_approval_request(design_image)
+    if not approval:
+        raise ValidationError(_("This design has not been submitted for review."))
+
+    # Determine reviewer_role
+    if is_su:
+        stage_clean = str(stage).strip().lower() if stage else ''
+        if stage_clean in ('cad', ApprovalRoles.CAD.lower()):
+            reviewer_role = ApprovalRoles.CAD
+        elif stage_clean in ('ed', ApprovalRoles.ED.lower()):
+            reviewer_role = ApprovalRoles.ED
+        elif not stage_clean:
+            # If not explicitly specified, inspect pending stage on latest approval
+            if approval.cad_status == 'pending' and approval.ed_status != 'pending':
+                reviewer_role = ApprovalRoles.CAD
+            elif approval.ed_status == 'pending' and approval.cad_status != 'pending':
+                reviewer_role = ApprovalRoles.ED
+            elif user_approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED):
+                reviewer_role = user_approval_role
+            else:
+                raise ValidationError(_("Please specify whether you are reviewing for CAD or ED stage."))
+        else:
+            raise ValidationError(_("Invalid review stage. Must be 'cad' or 'ed'."))
+    else:
+        # Reviewer must have an approval role of CAD or ED
+        if not prof or prof.role != WorkflowRoles.APPROVER or user_approval_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
+            raise PermissionDenied(_("Only authorized CAD or ED approvers may review designs."))
+        reviewer_role = user_approval_role
+        if stage:
+            stage_clean = str(stage).strip().lower()
+            if stage_clean in ('cad', 'ed') and stage_clean != reviewer_role.lower():
+                raise PermissionDenied(_("You cannot review a stage other than your assigned role."))
 
     decision = (decision or '').strip().lower()
     if decision in ('decline', 'declined'):

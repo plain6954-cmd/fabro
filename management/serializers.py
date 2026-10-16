@@ -18,6 +18,7 @@ from .models import (
     SubModel,
     UserProfile,
     YearRange,
+    ColorMaster,
     complaint_type_master_category,
     complaint_type_from_master_setting,
 )
@@ -315,3 +316,23 @@ class ComplaintListSerializer(serializers.ModelSerializer):
             'country_name', 'channel_name', 'reported_by_name',
             'complaint_description', 'media_count', 'approval_count',
         ]
+
+
+class ColorMasterSerializer(serializers.ModelSerializer):
+    """Authoritative DRF serializer for ColorMaster records."""
+
+    display_label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ColorMaster
+        fields = [
+            'id', 'color_code', 'name', 'hex_code', 'pantone_code',
+            'rgb_code', 'cmyk_code', 'color_category', 'material_series',
+            'compatible_models', 'status', 'display_label',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'display_label']
+
+    def get_display_label(self, obj):
+        return f"#{obj.color_code} {obj.name} ({obj.hex_code})"
+

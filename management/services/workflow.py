@@ -139,16 +139,30 @@ def is_factory_executive(user):
     )
 
 
+def is_active_superuser(user):
+    """
+    Authoritative check for active Django superusers.
+    Does not rely on frontend role labels, usernames, emails, or is_staff.
+    """
+    return bool(
+        user
+        and getattr(user, 'is_authenticated', False)
+        and getattr(user, 'is_active', False)
+        and getattr(user, 'is_superuser', False)
+    )
+
+
 def is_workflow_admin(user):
     if not user or not user.is_authenticated:
         return False
+    if is_active_superuser(user):
+        return True
     profile = get_user_profile(user)
     return bool(
-        user.is_superuser
-        or (profile and (
+        profile and (
             profile.role == WorkflowRoles.ADMIN
             or profile.approval_role == ApprovalRoles.MD
-        ))
+        )
     )
 
 
@@ -157,7 +171,7 @@ def can_user_manage_catalog(user):
     return bool(
         user
         and user.is_authenticated
-        and (user.is_staff or is_workflow_admin(user))
+        and (is_active_superuser(user) or user.is_staff or is_workflow_admin(user))
     )
 
 

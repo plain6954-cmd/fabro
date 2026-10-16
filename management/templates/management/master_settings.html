@@ -562,6 +562,485 @@
             }
         }
 
+        /* ==========================================================================
+           Material Master Variant Management — Compact Modal & Animated Rows
+           ========================================================================== */
+        .material-modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .material-modal-container {
+            background-color: #161a22;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 540px;
+            padding: 20px 22px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            animation: materialModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes materialModalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.96) translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Header */
+        .material-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .material-modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .material-modal-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .material-btn-cancel-icon,
+        .material-btn-save-icon {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            min-height: 38px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            box-sizing: border-box;
+            text-decoration: none;
+            outline: none;
+        }
+
+        .material-btn-cancel-icon {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #94a3b8;
+        }
+
+        .material-btn-cancel-icon:hover {
+            background: rgba(255, 255, 255, 0.16);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .material-btn-cancel-icon:focus-visible {
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.4);
+        }
+
+        .material-btn-save-icon {
+            background: #dc2626;
+            border: 1px solid #dc2626;
+            color: #ffffff;
+        }
+
+        .material-btn-save-icon:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+        }
+
+        .material-btn-save-icon:focus-visible {
+            box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.4);
+        }
+
+        /* First Row: Category | Name (2 equal columns) */
+        .material-modal-row-1 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .material-form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .material-form-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 5px;
+        }
+
+        .material-form-input {
+            width: 100%;
+            height: 38px;
+            min-height: 38px;
+            padding: 0 10px;
+            border-radius: 6px;
+            background-color: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-size: 0.85rem;
+            transition: all 0.18s ease;
+            box-sizing: border-box;
+        }
+
+        .material-form-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+        }
+
+        .material-form-input[readonly] {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.6);
+            border-color: rgba(255, 255, 255, 0.08);
+            cursor: default;
+        }
+
+        /* Second Row: Material Variant label & Input + Plus button */
+        .material-modal-row-2 {
+            margin-bottom: 12px;
+        }
+
+        .material-variant-input-wrap {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .material-variant-input {
+            flex: 1;
+            height: 38px;
+            min-height: 38px;
+            padding: 0 10px;
+            border-radius: 6px;
+            background-color: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-size: 0.85rem;
+            transition: all 0.18s ease;
+            box-sizing: border-box;
+        }
+
+        .material-variant-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+        }
+
+        .material-btn-add-variant {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            min-height: 38px;
+            border-radius: 6px;
+            background: #dc2626;
+            border: none;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .material-btn-add-variant:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
+        }
+
+        .material-variant-error {
+            color: #f87171;
+            font-size: 0.75rem;
+            margin-top: 4px;
+            display: none;
+        }
+
+        /* Variant List Container: exactly 4 rows before scrolling */
+        .material-variant-list-wrap {
+            position: relative;
+            background: rgba(0, 0, 0, 0.18);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 4px;
+            box-sizing: border-box;
+        }
+
+        .material-variant-list {
+            max-height: 172px; /* 4 rows * 40px + 3 gaps * 4px = 172px */
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding-right: 2px;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: #dc2626 rgba(255, 255, 255, 0.05);
+        }
+
+        .material-variant-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        .material-variant-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+        }
+        .material-variant-list::-webkit-scrollbar-thumb {
+            background: #dc2626;
+            border-radius: 4px;
+        }
+        .material-variant-list::-webkit-scrollbar-thumb:hover {
+            background: #b91c1c;
+        }
+
+        /* Variant Row */
+        .material-variant-row {
+            height: 40px;
+            min-height: 40px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px 0 10px;
+            gap: 10px;
+            box-sizing: border-box;
+            user-select: none;
+            will-change: transform, opacity;
+        }
+
+        .material-variant-row:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .material-variant-row.is-dragging {
+            opacity: 0.45;
+            background: rgba(220, 38, 38, 0.15) !important;
+            border: 1px dashed #dc2626 !important;
+        }
+
+        .material-variant-row.is-drag-over {
+            border-top: 2px solid #dc2626 !important;
+        }
+
+        .material-variant-drag-handle {
+            color: #64748b;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            font-size: 0.85rem;
+            transition: color 0.15s ease;
+        }
+
+        .material-variant-drag-handle:hover {
+            color: #cbd5e1;
+        }
+
+        .material-variant-name {
+            flex: 1;
+            font-size: 0.84rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .material-btn-delete-row {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .material-btn-delete-row:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .material-variant-empty {
+            padding: 24px 16px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        /* Animations */
+        .material-variant-row.is-entering {
+            animation: materialVariantSweepIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes materialVariantSweepIn {
+            from {
+                opacity: 0;
+                transform: translate3d(0, -20px, 0) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+        }
+
+        .material-variant-row.is-exiting {
+            pointer-events: none;
+            animation: materialVariantSlideOut 260ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes materialVariantSlideOut {
+            from {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translate3d(-60px, 0, 0) scale(0.97);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .material-variant-row.is-entering,
+            .material-variant-row.is-exiting {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Light Mode */
+        body.light-mode .material-modal-container {
+            background-color: #ffffff;
+            border-color: #cbd5e1;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+        }
+
+        body.light-mode .material-modal-header {
+            border-bottom-color: #e2e8f0;
+        }
+
+        body.light-mode .material-modal-title {
+            color: #0f172a;
+        }
+
+        body.light-mode .material-btn-cancel-icon {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+
+        body.light-mode .material-btn-cancel-icon:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        body.light-mode .material-form-label {
+            color: #475569;
+        }
+
+        body.light-mode .material-form-input,
+        body.light-mode .material-variant-input {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+
+        body.light-mode .material-form-input[readonly] {
+            background-color: #e2e8f0;
+            color: #64748b;
+        }
+
+        body.light-mode .material-variant-list-wrap {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .material-variant-row {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .material-variant-row:hover {
+            background: #f1f5f9;
+        }
+
+        body.light-mode .material-variant-name {
+            color: #0f172a;
+        }
+
+        body.light-mode .material-variant-drag-handle {
+            color: #94a3b8;
+        }
+
+        body.light-mode .material-variant-drag-handle:hover {
+            color: #475569;
+        }
+
+        body.light-mode .material-variant-empty {
+            color: #64748b;
+        }
+
+        /* Mobile & Tablet responsiveness */
+        @media (max-width: 480px) {
+            .material-modal-container {
+                padding: 16px 14px;
+                border-radius: 10px;
+            }
+
+            .material-modal-row-1 {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+
     </style>
 {% if is_htmx_request %}
 </template>
@@ -657,14 +1136,29 @@
 
                             <div class="settings-list">
                                 {% for setting in settings %}
-                                    <div class="setting-item">
+                                    <div class="setting-item" data-setting-id="{{ setting.id }}">
                                         <span class="setting-name">{{ setting.name }}</span>
                                         <div class="setting-actions">
-                                            <button class="action-btn edit" 
-                                                    onclick="openEditModal('{{ setting.id }}', '{{ setting.category|escapejs }}', '{{ setting.name|escapejs }}')"
-                                                    title="Edit {{ setting.name }}">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
+                                            {% if category == "Material" %}
+                                                <button type="button" class="action-btn edit" 
+                                                        onclick="openMaterialEditModal('{{ setting.id }}', '{{ setting.name|escapejs }}')"
+                                                        title="Edit {{ setting.name }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <script type="application/json" id="material-variants-data-{{ setting.id }}">
+                                                    [
+                                                        {% for v in setting.variants.all %}
+                                                            {"id": {{ v.id }}, "name": "{{ v.name|escapejs }}", "order": {{ v.display_order }}}{% if not forloop.last %},{% endif %}
+                                                        {% endfor %}
+                                                    ]
+                                                </script>
+                                            {% else %}
+                                                <button type="button" class="action-btn edit" 
+                                                        onclick="openEditModal('{{ setting.id }}', '{{ setting.category|escapejs }}', '{{ setting.name|escapejs }}')"
+                                                        title="Edit {{ setting.name }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            {% endif %}
                                             <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;">
                                                 {% csrf_token %}
                                                 <button type="submit" class="action-btn delete"
@@ -728,6 +1222,67 @@
             </form>
         </div>
     </div>
+    <!-- Material Variant Edit Modal (Compact UI + Animated Rows) -->
+    <div id="materialEditModal" class="material-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="materialModalTitle">
+        <div class="material-modal-container">
+            <!-- Header: Left Title | Right [X] [Save] icon-only buttons -->
+            <div class="material-modal-header">
+                <h2 id="materialModalTitle" class="material-modal-title">
+                    {% translate "Edit Master Setting" %}
+                </h2>
+                <div class="material-modal-header-actions">
+                    <button type="button" class="material-btn-cancel-icon" onclick="closeMaterialEditModal()" title="{% translate 'Discard changes' %}" aria-label="{% translate 'Close' %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button type="button" class="material-btn-save-icon" id="materialModalSaveBtn" onclick="submitMaterialEditForm()" title="{% translate 'Save changes' %}" aria-label="{% translate 'Save' %}">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Body -->
+            <form id="materialEditForm" onsubmit="event.preventDefault(); submitMaterialEditForm();">
+                {% csrf_token %}
+                <input type="hidden" name="edit_setting" value="1">
+                <input type="hidden" name="setting_id" id="materialSettingId" value="">
+                
+                <!-- Row 1: Category | Name (2 equal columns) -->
+                <div class="material-modal-row-1">
+                    <div class="material-form-group">
+                        <label class="material-form-label" for="materialCategoryDisplay">{% translate "Category" %}</label>
+                        <input type="text" id="materialCategoryDisplay" class="material-form-input" value="Material" readonly tabindex="-1">
+                        <input type="hidden" name="category" value="Material">
+                    </div>
+                    <div class="material-form-group">
+                        <label class="material-form-label" for="materialNameInput">{% translate "Name" %}</label>
+                        <input type="text" name="name" id="materialNameInput" class="material-form-input" required autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Row 2: Material Variant Label & Input + Plus Button -->
+                <div class="material-modal-row-2">
+                    <div class="material-form-group">
+                        <label class="material-form-label" for="materialVariantNewInput">{% translate "Material Variant" %}</label>
+                        <div class="material-variant-input-wrap">
+                            <input type="text" id="materialVariantNewInput" class="material-variant-input" placeholder="{% translate 'Type variant name...' %}" autocomplete="off">
+                            <button type="button" class="material-btn-add-variant" id="materialVariantAddBtn" onclick="addMaterialVariant()" title="{% translate 'Add variant' %}" aria-label="{% translate 'Add variant' %}">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="materialVariantError" class="material-variant-error"></div>
+                    </div>
+                </div>
+
+                <!-- Row 3: 4-Row Scrollable Variant List -->
+                <div class="material-variant-list-wrap">
+                    <div class="material-variant-list" id="materialVariantList">
+                        <!-- Variant rows dynamically rendered here -->
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script>
     (() => {
@@ -755,8 +1310,477 @@
             }
         }
 
+        // ==========================================================================
+        // Material Variant Management: State & Handlers
+        // ==========================================================================
+        let currentMaterialId = null;
+        let materialVariants = []; // { tempId, id, name, order }
+        let draggedVariantId = null;
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function showVariantError(msg) {
+            const errEl = document.getElementById('materialVariantError');
+            if (errEl) {
+                errEl.textContent = msg;
+                errEl.style.display = msg ? 'block' : 'none';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function openMaterialEditModal(settingId, name) {
+            currentMaterialId = settingId;
+            document.getElementById('materialSettingId').value = settingId;
+            document.getElementById('materialNameInput').value = name;
+            document.getElementById('materialVariantNewInput').value = '';
+            showVariantError('');
+
+            // Load variants from embedded json script tag or fresh fetch
+            const embeddedScript = document.getElementById(`material-variants-data-${settingId}`);
+            let initialVariants = [];
+            if (embeddedScript) {
+                try {
+                    initialVariants = JSON.parse(embeddedScript.textContent || '[]');
+                } catch (e) {
+                    console.error('Error parsing embedded variants:', e);
+                }
+            }
+
+            materialVariants = initialVariants.map((v, idx) => ({
+                tempId: 'mv-' + (v.id || ('tmp-' + idx)),
+                id: v.id || null,
+                name: v.name,
+                order: typeof v.order === 'number' ? v.order : idx
+            })).sort((a, b) => a.order - b.order);
+
+            renderMaterialVariantList();
+
+            const modal = document.getElementById('materialEditModal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // Also trigger a background fetch to ensure fresh data in case of concurrent updates
+            fetch(`/master-settings/materials/${settingId}/variants/`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' && Array.isArray(data.variants) && currentMaterialId === settingId) {
+                    const hasUnsaved = materialVariants.some(v => v.id === null);
+                    if (!hasUnsaved) {
+                        materialVariants = data.variants.map((v, idx) => ({
+                            tempId: 'mv-' + (v.id || ('tmp-' + idx)),
+                            id: v.id || null,
+                            name: v.name,
+                            order: typeof v.order === 'number' ? v.order : idx
+                        })).sort((a, b) => a.order - b.order);
+                        renderMaterialVariantList();
+                    }
+                }
+            })
+            .catch(() => {});
+
+            setTimeout(() => {
+                const input = document.getElementById('materialVariantNewInput');
+                if (input) input.focus();
+            }, 50);
+        }
+
+        function closeMaterialEditModal() {
+            const modal = document.getElementById('materialEditModal');
+            if (modal) modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            currentMaterialId = null;
+            materialVariants = [];
+            showVariantError('');
+        }
+
+        function createVariantRowElement(variant) {
+            const row = document.createElement('div');
+            row.className = 'material-variant-row';
+            row.dataset.tempId = variant.tempId;
+            row.setAttribute('draggable', 'true');
+
+            row.innerHTML = `
+                <div class="material-variant-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
+                    <i class="fas fa-grip-vertical"></i>
+                </div>
+                <span class="material-variant-name" title="${escapeHtml(variant.name)}">${escapeHtml(variant.name)}</span>
+                <button type="button" class="material-btn-delete-row" title="Delete variant" aria-label="Delete variant">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+
+            // Delete event
+            const delBtn = row.querySelector('.material-btn-delete-row');
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteMaterialVariant(variant.tempId);
+            });
+
+            // Drag and drop events
+            row.addEventListener('dragstart', (e) => {
+                draggedVariantId = variant.tempId;
+                row.classList.add('is-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', variant.tempId);
+            });
+
+            row.addEventListener('dragend', () => {
+                draggedVariantId = null;
+                row.classList.remove('is-dragging');
+                document.querySelectorAll('.material-variant-row').forEach(r => r.classList.remove('is-drag-over'));
+            });
+
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (draggedVariantId && draggedVariantId !== variant.tempId) {
+                    row.classList.add('is-drag-over');
+                }
+            });
+
+            row.addEventListener('dragleave', () => {
+                row.classList.remove('is-drag-over');
+            });
+
+            row.addEventListener('drop', (e) => {
+                e.preventDefault();
+                row.classList.remove('is-drag-over');
+                if (!draggedVariantId || draggedVariantId === variant.tempId) return;
+
+                const fromIndex = materialVariants.findIndex(v => v.tempId === draggedVariantId);
+                const toIndex = materialVariants.findIndex(v => v.tempId === variant.tempId);
+                if (fromIndex !== -1 && toIndex !== -1) {
+                    const [moved] = materialVariants.splice(fromIndex, 1);
+                    materialVariants.splice(toIndex, 0, moved);
+                    materialVariants.forEach((v, idx) => v.order = idx);
+                    renderMaterialVariantList();
+                }
+            });
+
+            return row;
+        }
+
+        function renderMaterialVariantList() {
+            const list = document.getElementById('materialVariantList');
+            if (!list) return;
+            list.innerHTML = '';
+
+            if (materialVariants.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'material-variant-empty';
+                empty.textContent = window.FabroI18n ? window.FabroI18n.gettext('No variants added yet.') : 'No variants added yet.';
+                list.appendChild(empty);
+                return;
+            }
+
+            materialVariants.forEach(variant => {
+                const row = createVariantRowElement(variant);
+                list.appendChild(row);
+            });
+        }
+
+        // Animated addition: sweeps downward into place, FLIP on siblings
+        function addMaterialVariant() {
+            const input = document.getElementById('materialVariantNewInput');
+            if (!input) return;
+            const val = input.value.trim();
+            if (!val) {
+                showVariantError(window.FabroI18n ? window.FabroI18n.gettext('Please enter a variant name.') : 'Please enter a variant name.');
+                input.focus();
+                return;
+            }
+
+            // Case-insensitive duplicate check
+            const exists = materialVariants.some(v => v.name.toLowerCase() === val.toLowerCase());
+            if (exists) {
+                showVariantError(window.FabroI18n ? window.FabroI18n.gettext('This variant already exists.') : 'This variant already exists.');
+                input.focus();
+                return;
+            }
+
+            showVariantError('');
+
+            const list = document.getElementById('materialVariantList');
+            const emptyEl = list.querySelector('.material-variant-empty');
+            if (emptyEl) {
+                emptyEl.remove();
+            }
+
+            // FLIP: Step 1 - Measure first rects of existing rows
+            const firstRects = new Map();
+            Array.from(list.children).forEach(child => {
+                if (child.dataset.tempId) {
+                    firstRects.set(child.dataset.tempId, child.getBoundingClientRect());
+                }
+            });
+
+            // Step 2 - Create new variant and prepend to array
+            const newTempId = 'mv-tmp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+            const newVariant = {
+                tempId: newTempId,
+                id: null,
+                name: val,
+                order: 0
+            };
+
+            materialVariants.unshift(newVariant);
+            materialVariants.forEach((v, idx) => v.order = idx);
+
+            // Step 3 - Create DOM row with .is-entering class
+            const newRow = createVariantRowElement(newVariant);
+            newRow.classList.add('is-entering');
+
+            // Listen for animation end to cleanly remove .is-entering
+            const onEnteringEnd = () => {
+                newRow.classList.remove('is-entering');
+                newRow.removeEventListener('animationend', onEnteringEnd);
+            };
+            newRow.addEventListener('animationend', onEnteringEnd);
+            setTimeout(onEnteringEnd, 360); // safe fallback
+
+            list.insertBefore(newRow, list.firstChild);
+
+            // FLIP: Step 4 - Animate siblings downwards smoothly
+            Array.from(list.children).forEach(child => {
+                const id = child.dataset.tempId;
+                if (!id || id === newTempId) return;
+                const first = firstRects.get(id);
+                if (first) {
+                    const last = child.getBoundingClientRect();
+                    const deltaY = first.top - last.top;
+                    if (deltaY !== 0) {
+                        child.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+                        child.style.transition = 'none';
+                        requestAnimationFrame(() => {
+                            child.style.transition = 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)';
+                            child.style.transform = 'translate3d(0, 0, 0)';
+                            setTimeout(() => {
+                                child.style.transition = '';
+                                child.style.transform = '';
+                            }, 330);
+                        });
+                    }
+                }
+            });
+
+            // Ensure scrollbar is at the top so the new variant is in view
+            list.scrollTop = 0;
+
+            // Reset input and keep focus
+            input.value = '';
+            input.focus();
+        }
+
+        // Animated deletion: slides left out, FLIP on remaining siblings
+        function deleteMaterialVariant(tempId) {
+            const list = document.getElementById('materialVariantList');
+            const row = list ? list.querySelector(`[data-temp-id="${tempId}"]`) : null;
+            if (!row || row.classList.contains('is-exiting')) return;
+
+            row.classList.add('is-exiting');
+
+            let animationHandled = false;
+            const finishDeletion = () => {
+                if (animationHandled) return;
+                animationHandled = true;
+
+                // FLIP: Step 1 - Measure first positions of remaining rows before removal
+                const firstRects = new Map();
+                Array.from(list.children).forEach(child => {
+                    const id = child.dataset.tempId;
+                    if (id && id !== tempId) {
+                        firstRects.set(id, child.getBoundingClientRect());
+                    }
+                });
+
+                // Remove from state array
+                materialVariants = materialVariants.filter(v => v.tempId !== tempId);
+                materialVariants.forEach((v, idx) => v.order = idx);
+
+                // Remove row from DOM
+                if (row.parentNode) {
+                    row.parentNode.removeChild(row);
+                }
+
+                // If empty now, show empty message
+                if (materialVariants.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'material-variant-empty';
+                    empty.textContent = window.FabroI18n ? window.FabroI18n.gettext('No variants added yet.') : 'No variants added yet.';
+                    list.appendChild(empty);
+                    return;
+                }
+
+                // FLIP: Step 2 - Animate remaining rows upwards to fill the gap smoothly
+                Array.from(list.children).forEach(child => {
+                    const id = child.dataset.tempId;
+                    if (!id) return;
+                    const first = firstRects.get(id);
+                    if (first) {
+                        const last = child.getBoundingClientRect();
+                        const deltaY = first.top - last.top;
+                        if (deltaY !== 0) {
+                            child.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+                            child.style.transition = 'none';
+                            requestAnimationFrame(() => {
+                                child.style.transition = 'transform 260ms cubic-bezier(0.4, 0, 0.2, 1)';
+                                child.style.transform = 'translate3d(0, 0, 0)';
+                                setTimeout(() => {
+                                    child.style.transition = '';
+                                    child.style.transform = '';
+                                }, 280);
+                            });
+                        }
+                    }
+                });
+            };
+
+            row.addEventListener('animationend', finishDeletion, { once: true });
+            setTimeout(finishDeletion, 290); // safe fallback for reduced motion or missed event
+        }
+
+        // Persist Material Name + Variants atomically to backend
+        function submitMaterialEditForm() {
+            if (!currentMaterialId) return;
+
+            const nameInput = document.getElementById('materialNameInput');
+            const nameVal = nameInput ? nameInput.value.trim() : '';
+            if (!nameVal) {
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            const saveBtn = document.getElementById('materialModalSaveBtn');
+            const originalIcon = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+
+            const payloadData = new FormData();
+            payloadData.append('edit_setting', '1');
+            payloadData.append('category', 'Material');
+            payloadData.append('name', nameVal);
+            payloadData.append('variants_json', JSON.stringify(materialVariants.map((v, idx) => ({
+                id: v.id,
+                name: v.name,
+                order: idx
+            }))));
+
+            const csrfToken = getCookie('csrftoken') || (document.querySelector('input[name="csrfmiddlewaretoken"]') ? document.querySelector('input[name="csrfmiddlewaretoken"]').value : '');
+
+            fetch(`/edit-master-setting/${currentMaterialId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: payloadData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalIcon;
+                }
+
+                if (data.status === 'success') {
+                    // Update setting name on the page list
+                    const settingRow = document.querySelector(`.setting-item[data-setting-id="${currentMaterialId}"]`);
+                    if (settingRow) {
+                        const nameSpan = settingRow.querySelector('.setting-name');
+                        if (nameSpan) nameSpan.textContent = nameVal;
+
+                        // Update embedded script tag with freshly saved variants
+                        const scriptTag = document.getElementById(`material-variants-data-${currentMaterialId}`);
+                        if (scriptTag && Array.isArray(data.variants)) {
+                            scriptTag.textContent = JSON.stringify(data.variants);
+                        }
+                    }
+
+                    if (typeof showToast === 'function') {
+                        showToast(window.FabroI18n ? window.FabroI18n.gettext('Material and variants saved successfully.') : 'Material and variants saved successfully.', 'success');
+                    }
+
+                    closeMaterialEditModal();
+                } else {
+                    const errorMsg = data.message || (window.FabroI18n ? window.FabroI18n.gettext('Failed to save material.') : 'Failed to save material.');
+                    showVariantError(errorMsg);
+                    if (typeof showToast === 'function') {
+                        showToast(errorMsg, 'error');
+                    }
+                }
+            })
+            .catch(err => {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalIcon;
+                }
+                console.error('Save error:', err);
+                const errorMsg = window.FabroI18n ? window.FabroI18n.gettext('Server error while saving.') : 'Server error while saving.';
+                showVariantError(errorMsg);
+                if (typeof showToast === 'function') {
+                    showToast(errorMsg, 'error');
+                }
+            });
+        }
+
+        // Global key and click listeners
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const matModal = document.getElementById('materialEditModal');
+                if (matModal && matModal.style.display === 'flex') {
+                    closeMaterialEditModal();
+                }
+                const editModal = document.getElementById('editModal');
+                if (editModal && editModal.style.display === 'block') {
+                    closeEditModal();
+                }
+            }
+        });
+
+        // Close modal when clicking backdrop
+        window.addEventListener('click', (event) => {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+            if (event.target.classList.contains('material-modal-backdrop')) {
+                closeMaterialEditModal();
+            }
+        });
+
         // Initialize
         window.fabroOnPageLoad(function() {
+            const variantInput = document.getElementById('materialVariantNewInput');
+            if (variantInput) {
+                variantInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addMaterialVariant();
+                    }
+                });
+            }
             // Add active nav state
             const settingsLink = document.querySelector('a[href="{% url 'master_settings' %}"]');
             if (settingsLink) {
@@ -783,6 +1807,11 @@
 
         if (typeof openEditModal === 'function') window.openEditModal = openEditModal;
         if (typeof closeEditModal === 'function') window.closeEditModal = closeEditModal;
+        if (typeof openMaterialEditModal === 'function') window.openMaterialEditModal = openMaterialEditModal;
+        if (typeof closeMaterialEditModal === 'function') window.closeMaterialEditModal = closeMaterialEditModal;
+        if (typeof addMaterialVariant === 'function') window.addMaterialVariant = addMaterialVariant;
+        if (typeof deleteMaterialVariant === 'function') window.deleteMaterialVariant = deleteMaterialVariant;
+        if (typeof submitMaterialEditForm === 'function') window.submitMaterialEditForm = submitMaterialEditForm;
     })();
     </script>
     </div>

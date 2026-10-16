@@ -172,6 +172,7 @@
                     <form method="POST" id="cadReviewForm" style="margin-top: 0.75rem;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
+                        <input type="hidden" name="stage" value="cad">
                         <div style="margin-bottom: 0.75rem;">
                             <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
                                 {% translate "CAD Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Mandatory if declining" %})</span>
@@ -233,6 +234,7 @@
                     <form method="POST" id="edReviewForm" style="margin-top: 0.75rem;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
+                        <input type="hidden" name="stage" value="ed">
                         <div style="margin-bottom: 0.75rem;">
                             <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
                                 {% translate "ED Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Mandatory if declining" %})</span>

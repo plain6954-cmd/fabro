@@ -17,6 +17,7 @@ from .models import (
     UserProfile,
     WorkflowRoles,
     YearRange,
+    ColorMaster,
 )
 from datetime import date
 from django.contrib.auth.password_validation import validate_password
@@ -719,4 +720,50 @@ class EmailOrUsernameAuthenticationForm(AuthenticationForm):
         self.fields['username'].widget.attrs['maxlength'] = '254'
         self.fields['username'].label = _('Username or Email')
         self.fields['username'].widget.attrs['placeholder'] = _('Enter your username or email')
+
+
+class MasterColorSelectWidget(forms.Select):
+    """
+    Select widget that equips options with data-hex, data-code, and data-status
+    for rich frontend rendering with color swatches.
+    """
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        val = value.value if hasattr(value, 'value') else value
+        if val:
+            try:
+                color = ColorMaster.objects.filter(pk=val).first()
+                if color:
+                    option['attrs']['data-hex'] = color.hex_code
+                    option['attrs']['data-code'] = color.color_code
+                    option['attrs']['data-status'] = color.status
+            except Exception:
+                pass
+        return option
+
+
+class MasterColorChoiceField(forms.ModelChoiceField):
+    """
+    Reusable ModelChoiceField bound to ColorMaster.
+    Defaults to active colors, but preserves historical archived colors when editing.
+    """
+    widget = MasterColorSelectWidget
+
+    def __init__(self, *args, include_archived=False, current_color_id=None, **kwargs):
+        if 'queryset' not in kwargs:
+            from management.services.color_service import get_master_colors_for_selection
+            kwargs['queryset'] = get_master_colors_for_selection(
+                include_archived=include_archived,
+                include_color_id=current_color_id
+            )
+        if 'empty_label' not in kwargs:
+            kwargs['empty_label'] = _("Select leather color")
+        super().__init__(*args, **kwargs)
+
+    def label_from_instance(self, obj):
+        label = f"#{obj.color_code} {obj.name} ({obj.hex_code})"
+        if obj.status != 'Active':
+            label += f" [{obj.status}]"
+        return label
+
 

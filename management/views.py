@@ -66,6 +66,7 @@ from .models import (
     Brand,
     ChatMessage,
     ColorMaster,
+    ColorMaterialOption,
     Complaint,
     ComplaintApproval,
     ComplaintMedia,
@@ -74,6 +75,7 @@ from .models import (
     complaint_type_master_category,
     DecisionStatuses,
     MasterSetting,
+    MaterialVariant,
     Model,
     Notification,
     PatternAlteration,
@@ -119,6 +121,7 @@ from .services.workflow import (
     submit_execution_for_verification,
     submit_factory_review,
     is_workflow_admin,
+    is_active_superuser,
     visible_complaints_for_user,
     notify_factory_assignment,
 )
@@ -229,10 +232,10 @@ def _can_manage_design_assets(user):
 
 
 def _can_approve_design_assets(user):
+    if is_active_superuser(user):
+        return True
     if not user or not user.is_authenticated:
         return False
-    if user.is_superuser:
-        return True
     prof = getattr(user, 'workflow_profile', None)
     return bool(
         prof and (
@@ -243,10 +246,10 @@ def _can_approve_design_assets(user):
 
 
 def _can_user_access_designer_approvals(user):
+    if is_active_superuser(user):
+        return True
     if not user or not user.is_authenticated:
         return False
-    if user.is_superuser:
-        return True
     prof = getattr(user, 'workflow_profile', None)
     if not prof:
         return False
@@ -262,12 +265,14 @@ def _can_user_review_design_image(user, img):
         return False
     if img.uploaded_by_id == user.id:
         return False
+    appr = getattr(img, 'latest_approval', None)
+    if not appr:
+        return False
+    if is_active_superuser(user):
+        return appr.cad_status == 'pending' or appr.ed_status == 'pending'
     prof = getattr(user, 'workflow_profile', None)
     appr_role = getattr(prof, 'approval_role', None) if prof else None
     if not prof or prof.role != WorkflowRoles.APPROVER or appr_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
-        return False
-    appr = getattr(img, 'latest_approval', None)
-    if not appr:
         return False
     if appr_role == ApprovalRoles.CAD:
         return appr.cad_status == 'pending'
@@ -827,23 +832,108 @@ def car_details(request):
         active_subwindow = 'patterns'
 
     color_search = (request.GET.get('color_search') or '').strip()
+    color_search_by = (request.GET.get('color_search_by') or request.GET.get('color_by') or 'all').strip().lower()
     color_status_filter = (request.GET.get('color_status') or '').strip()
-    color_qs = ColorMaster.objects.all().order_by('color_code', 'id')
+    color_qs = ColorMaster.objects.all().prefetch_related(
+        'material_options__material',
+        'material_options__variant'
+    ).order_by('color_code', 'id')
     if color_search:
-        color_qs = color_qs.filter(
-            Q(name__icontains=color_search) |
-            Q(color_code__icontains=color_search) |
-            Q(hex_code__icontains=color_search) |
-            Q(pantone_code__icontains=color_search) |
-            Q(color_category__icontains=color_search) |
-            Q(material_series__icontains=color_search) |
-            Q(compatible_models__icontains=color_search)
-        )
+        clean_q = color_search.lstrip('#').strip()
+        if color_search_by == 'serial_number':
+            color_qs = color_qs.filter(
+                Q(color_code__icontains=clean_q) |
+                Q(color_code__icontains=color_search)
+            )
+        elif color_search_by == 'name':
+            color_qs = color_qs.filter(name__icontains=color_search)
+        elif color_search_by == 'color_code':
+            color_qs = color_qs.filter(
+                Q(color_code__icontains=color_search) |
+                Q(pantone_code__icontains=color_search)
+            )
+        elif color_search_by == 'hex_code':
+            color_qs = color_qs.filter(
+                Q(hex_code__icontains=color_search) |
+                Q(hex_code__icontains=f"#{clean_q}")
+            )
+        elif color_search_by == 'rgb_code':
+            color_qs = color_qs.filter(rgb_code__icontains=color_search)
+        elif color_search_by == 'material_series':
+            color_qs = color_qs.filter(
+                Q(material_series__icontains=color_search) |
+                Q(color_category__icontains=color_search)
+            )
+        elif color_search_by == 'status':
+            color_qs = color_qs.filter(status__iexact=color_search)
+        elif color_search_by == 'compatible_models':
+            color_qs = color_qs.filter(compatible_models__icontains=color_search)
+        else:
+            color_qs = color_qs.filter(
+                Q(name__icontains=color_search) |
+                Q(color_code__icontains=clean_q) |
+                Q(color_code__icontains=color_search) |
+                Q(hex_code__icontains=color_search) |
+                Q(hex_code__icontains=f"#{clean_q}") |
+                Q(pantone_code__icontains=color_search) |
+                Q(rgb_code__icontains=color_search) |
+                Q(color_category__icontains=color_search) |
+                Q(material_series__icontains=color_search) |
+                Q(compatible_models__icontains=color_search) |
+                Q(status__icontains=color_search)
+            )
     if color_status_filter:
         color_qs = color_qs.filter(status__iexact=color_status_filter)
 
     colors_list = list(color_qs)
+    for c in colors_list:
+        if not c.rgb_code and c.hex_code:
+            h = c.hex_code.lstrip('#')
+            if len(h) == 6:
+                try:
+                    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+                    c.derived_rgb = f"{r}, {g}, {b}"
+                except ValueError:
+                    c.derived_rgb = ""
+            else:
+                c.derived_rgb = ""
+        else:
+            c.derived_rgb = c.rgb_code or ""
+
+        if not c.cmyk_code and (c.rgb_code or c.derived_rgb):
+            rgb_str = c.rgb_code or c.derived_rgb
+            try:
+                parts = [int(p.strip()) for p in rgb_str.split(',') if p.strip()]
+                if len(parts) == 3:
+                    r_norm, g_norm, b_norm = parts[0] / 255.0, parts[1] / 255.0, parts[2] / 255.0
+                    k = 1.0 - max(r_norm, g_norm, b_norm)
+                    if k >= 1.0:
+                        c_val, m_val, y_val = 0, 0, 0
+                    else:
+                        c_val = round((1.0 - r_norm - k) / (1.0 - k) * 100)
+                        m_val = round((1.0 - g_norm - k) / (1.0 - k) * 100)
+                        y_val = round((1.0 - b_norm - k) / (1.0 - k) * 100)
+                    k_val = round(k * 100)
+                    c.derived_cmyk = f"{c_val}, {m_val}, {y_val}, {k_val}"
+                else:
+                    c.derived_cmyk = ""
+            except Exception:
+                c.derived_cmyk = ""
+        else:
+            c.derived_cmyk = c.cmyk_code or ""
+
+    material_settings = MasterSetting.objects.filter(category='Material').prefetch_related('variants').order_by('name')
+    materials_catalog = [
+        {
+            'id': m.id,
+            'name': m.name,
+            'variants': [{'id': v.id, 'name': v.name} for v in m.variants.all()]
+        }
+        for m in material_settings
+    ]
+
     total_colors_count = ColorMaster.objects.count()
+    total_patterns_count = YearRange.objects.count()
 
     return render(request, 'management/car_details.html', {
         'form': form,
@@ -864,9 +954,13 @@ def car_details(request):
         'pagination_querystring': pagination_params.urlencode(),
         'colors': colors_list,
         'total_colors_count': total_colors_count,
+        'total_patterns_count': total_patterns_count,
         'active_subwindow': active_subwindow,
         'color_search': color_search,
+        'color_search_by': color_search_by,
         'color_status_filter': color_status_filter,
+        'materials_catalog': materials_catalog,
+        'materials_catalog_json': json.dumps(materials_catalog),
     })
 
 
@@ -911,18 +1005,37 @@ def create_color_api(request):
     if not hex_code.startswith('#'):
         hex_code = f"#{hex_code}"
 
-    color = ColorMaster.objects.create(
-        name=name,
-        color_code=color_code,
-        hex_code=hex_code,
-        pantone_code=pantone_code,
-        rgb_code=rgb_code,
-        cmyk_code=cmyk_code,
-        color_category=color_category,
-        material_series=material_series,
-        compatible_models=compatible_models,
-        status=status,
-    )
+    with transaction.atomic():
+        color = ColorMaster.objects.create(
+            name=name,
+            color_code=color_code,
+            hex_code=hex_code,
+            pantone_code=pantone_code,
+            rgb_code=rgb_code,
+            cmyk_code=cmyk_code,
+            color_category=color_category,
+            material_series=material_series,
+            compatible_models=compatible_models,
+            status=status,
+        )
+        material_options_raw = request.POST.get('material_options')
+        if material_options_raw:
+            try:
+                parsed_opts = json.loads(material_options_raw)
+                if isinstance(parsed_opts, list):
+                    for opt in parsed_opts:
+                        mat_id = opt.get('material_id')
+                        var_id = opt.get('variant_id')
+                        if mat_id and var_id:
+                            if MaterialVariant.objects.filter(id=var_id, material_id=mat_id).exists():
+                                ColorMaterialOption.objects.get_or_create(
+                                    color=color,
+                                    material_id=mat_id,
+                                    variant_id=var_id
+                                )
+            except (ValueError, TypeError):
+                pass
+
     ActivityLog.objects.create(
         user=request.user,
         action='created',
@@ -943,6 +1056,16 @@ def create_color_api(request):
             'material_series': color.material_series,
             'compatible_models': color.compatible_models,
             'status': color.status,
+            'material_options': [
+                {
+                    'id': opt.id,
+                    'material_id': opt.material_id,
+                    'material_name': opt.material.name,
+                    'variant_id': opt.variant_id,
+                    'variant_name': opt.variant.name,
+                }
+                for opt in color.material_options.select_related('material', 'variant').all()
+            ]
         }
     })
 
@@ -997,7 +1120,27 @@ def update_color_api(request, color_id):
     if status in ('Active', 'Sampling', 'Discontinued'):
         color.status = status
 
-    color.save()
+    material_options_raw = request.POST.get('material_options')
+    with transaction.atomic():
+        color.save()
+        if material_options_raw is not None:
+            try:
+                parsed_opts = json.loads(material_options_raw)
+                if isinstance(parsed_opts, list):
+                    ColorMaterialOption.objects.filter(color=color).delete()
+                    for opt in parsed_opts:
+                        mat_id = opt.get('material_id')
+                        var_id = opt.get('variant_id')
+                        if mat_id and var_id:
+                            if MaterialVariant.objects.filter(id=var_id, material_id=mat_id).exists():
+                                ColorMaterialOption.objects.get_or_create(
+                                    color=color,
+                                    material_id=mat_id,
+                                    variant_id=var_id
+                                )
+            except (ValueError, TypeError):
+                pass
+
     ActivityLog.objects.create(
         user=request.user,
         action='updated',
@@ -1018,6 +1161,16 @@ def update_color_api(request, color_id):
             'material_series': color.material_series or '',
             'compatible_models': color.compatible_models or '',
             'status': color.status,
+            'material_options': [
+                {
+                    'id': opt.id,
+                    'material_id': opt.material_id,
+                    'material_name': opt.material.name,
+                    'variant_id': opt.variant_id,
+                    'variant_name': opt.variant.name,
+                }
+                for opt in color.material_options.select_related('material', 'variant').all()
+            ]
         }
     })
 
@@ -1037,6 +1190,37 @@ def delete_color_api(request, color_id):
         object_name=color_name,
     )
     return JsonResponse({'status': 'success'})
+
+
+@login_required
+def master_colors_api(request):
+    """
+    Authoritative JSON endpoint providing master leather colors for global selection across FABRO.
+    Query parameters:
+      - include_archived: bool (default False, only active colors returned)
+      - include_id: int (specific color ID to include even if archived, preserving historical records)
+      - q: search term filtering name, code, hex, or series
+    """
+    include_archived = request.GET.get('include_archived', '').lower() in ('true', '1', 'yes')
+    include_color_id = request.GET.get('include_id')
+    try:
+        include_color_id = int(include_color_id) if include_color_id else None
+    except (ValueError, TypeError):
+        include_color_id = None
+
+    search_query = request.GET.get('q', '').strip()
+
+    from management.services.color_service import get_master_colors_for_selection, serialize_color_for_picker
+
+    colors_qs = get_master_colors_for_selection(
+        include_archived=include_archived,
+        include_color_id=include_color_id,
+        search_query=search_query
+    )
+
+    data = [serialize_color_for_picker(c) for c in colors_qs]
+    return JsonResponse({'status': 'success', 'count': len(data), 'colors': data})
+
 
 
 
@@ -1383,17 +1567,20 @@ def pattern_logs_api(request, year_range_id):
     log_data = []
     for log in logs:
         user_name = log.user.get_full_name() or log.user.username if log.user else _('System')
+        desc = log.summary or log.action.capitalize()
         log_data.append({
             'id': log.id,
             'user': user_name,
             'action': log.action,
-            'summary': log.summary or log.action.capitalize(),
+            'summary': desc,
+            'description': desc,
             'details': log.details,
             'created_at': timezone.localtime(log.created_at).strftime('%Y-%m-%d %H:%M'),
             'date': timezone.localtime(log.created_at).strftime('%b %d, %Y'),
             'time': timezone.localtime(log.created_at).strftime('%H:%M'),
         })
     return JsonResponse({
+        'status': 'success',
         'success': True,
         'serial_number': year_range.serial_number or f"S{year_range.pk:04d}",
         'pattern_title': f"{brand} {model} {years}".strip(),
@@ -1670,7 +1857,8 @@ def edit_car_detail(request, car_id):
                 payload=changes,
                 status='approved'
             )
-            _notify_approvers_for_pattern_alteration(alt, request.user)
+            if not is_active_superuser(request.user):
+                _notify_approvers_for_pattern_alteration(alt, request.user)
 
             if is_ajax:
                 return JsonResponse({
@@ -2266,15 +2454,19 @@ def delete_design_image_api(request, image_id):
 def approve_design_image_api(request, image_id):
     img = get_object_or_404(PatternDesignImage, id=image_id)
     comment = request.POST.get('comment', '') or ''
-    if not comment:
+    stage = request.POST.get('stage') or request.GET.get('stage') or ''
+    if not comment or not stage:
         try:
             data = json.loads(request.body.decode('utf-8'))
-            comment = data.get('comment', '') or ''
+            if not comment:
+                comment = data.get('comment', '') or ''
+            if not stage:
+                stage = data.get('stage') or ''
         except Exception:
             pass
 
     try:
-        approval, img = record_design_review_decision(img, request.user, 'approved', comment)
+        approval, img = record_design_review_decision(img, request.user, 'approved', comment, stage=stage)
     except PermissionDenied as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
     except ValidationError as exc:
@@ -2301,9 +2493,10 @@ def reject_design_image_api(request, image_id):
         data = request.POST
 
     reason = (data.get('reason') or data.get('comment') or '').strip()
+    stage = data.get('stage') or request.POST.get('stage') or request.GET.get('stage') or ''
 
     try:
-        approval, img = record_design_review_decision(img, request.user, 'rejected', reason)
+        approval, img = record_design_review_decision(img, request.user, 'rejected', reason, stage=stage)
     except PermissionDenied as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
     except ValidationError as exc:
@@ -2327,7 +2520,7 @@ def _resubmit_design(img, user, replacement_file=None, title=''):
     try:
         with transaction.atomic():
             img = PatternDesignImage.objects.select_for_update().get(pk=img.pk)
-            if img.uploaded_by_id != user.id and not user.is_superuser:
+            if img.uploaded_by_id != user.id and not is_active_superuser(user):
                 raise PermissionDenied(_("Only the submitting designer can resubmit."))
             if img.approval_status != 'rejected':
                 raise ValidationError(_("Only rejected designs can be resubmitted."))
@@ -2401,7 +2594,8 @@ def design_approvals_list(request):
     prof = getattr(user, 'workflow_profile', None)
     is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     approval_role = getattr(prof, 'approval_role', None) if prof else None
-    if not (is_designer or request.user.is_superuser or
+    is_su = is_active_superuser(user)
+    if not (is_designer or is_su or
             (prof and prof.role == WorkflowRoles.ADMIN) or
             (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.PM))):
         raise PermissionDenied(_("You cannot access design approvals."))
@@ -2435,6 +2629,8 @@ def design_approvals_list(request):
             qs = qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
         elif approval_role == ApprovalRoles.ED:
             qs = qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
+        elif is_su:
+            qs = qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user)
         else:
             qs = qs.filter(approval_status='pending')
 
@@ -2449,6 +2645,8 @@ def design_approvals_list(request):
         pending_count = base_count_qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
     elif approval_role == ApprovalRoles.ED:
         pending_count = base_count_qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
+    elif is_su:
+        pending_count = base_count_qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
     else:
         pending_count = base_count_qs.filter(approval_status='pending').distinct().count()
 
@@ -2460,6 +2658,8 @@ def design_approvals_list(request):
             item.can_review_by_user = True
         elif approval_role == ApprovalRoles.ED and getattr(item, 'latest_ed_status', '') == 'pending' and item.uploaded_by_id != user.id:
             item.can_review_by_user = True
+        elif is_su and item.uploaded_by_id != user.id and (getattr(item, 'latest_cad_status', '') == 'pending' or getattr(item, 'latest_ed_status', '') == 'pending'):
+            item.can_review_by_user = True
 
     context = {
         'designs': page.object_list,
@@ -2468,8 +2668,9 @@ def design_approvals_list(request):
         'active_tab': active_tab,
         'pending_count': pending_count,
         'is_designer': is_designer,
-        'can_review_as_cad': (approval_role == ApprovalRoles.CAD),
-        'can_review_as_ed': (approval_role == ApprovalRoles.ED),
+        'can_review_as_cad': bool(approval_role == ApprovalRoles.CAD or is_su),
+        'can_review_as_ed': bool(approval_role == ApprovalRoles.ED or is_su),
+        'is_superuser': is_su,
     }
     return render(request, 'management/design_approvals_list.html', context)
 
@@ -2486,7 +2687,8 @@ def design_approval_detail(request, image_id):
     prof = getattr(user, 'workflow_profile', None)
     is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     approval_role = getattr(prof, 'approval_role', None) if prof else None
-    if not (is_designer or request.user.is_superuser or
+    is_su = is_active_superuser(user)
+    if not (is_designer or is_su or
             (prof and prof.role == WorkflowRoles.ADMIN) or
             (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.PM))):
         raise PermissionDenied(_("You cannot access design approvals."))
@@ -2499,10 +2701,11 @@ def design_approval_detail(request, image_id):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'review':
+            stage = request.POST.get('stage')
             decision = request.POST.get('decision')
             comment = request.POST.get('comment', '')
             try:
-                record_design_review_decision(design_image, user, decision, comment)
+                record_design_review_decision(design_image, user, decision, comment, stage=stage)
                 messages.success(request, _("Your review decision has been recorded."))
             except Exception as exc:
                 messages.error(request, str(exc))
@@ -2526,19 +2729,19 @@ def design_approval_detail(request, image_id):
     history_cycles = list(design_image.approval_requests.all().order_by('-cycle'))
 
     can_review_cad = bool(
-        approval_role == ApprovalRoles.CAD
+        (approval_role == ApprovalRoles.CAD or is_su)
         and latest_approval
         and latest_approval.cad_status == 'pending'
         and design_image.uploaded_by_id != user.id
     )
     can_review_ed = bool(
-        approval_role == ApprovalRoles.ED
+        (approval_role == ApprovalRoles.ED or is_su)
         and latest_approval
         and latest_approval.ed_status == 'pending'
         and design_image.uploaded_by_id != user.id
     )
     can_resubmit = bool(
-        design_image.uploaded_by_id == user.id
+        (design_image.uploaded_by_id == user.id or is_su)
         and design_image.approval_status == 'rejected'
     )
 
@@ -2550,6 +2753,7 @@ def design_approval_detail(request, image_id):
         'can_review_as_cad': can_review_cad,
         'can_review_as_ed': can_review_ed,
         'can_resubmit': can_resubmit,
+        'is_superuser': is_su,
     }
     return render(request, 'management/design_approval_detail.html', context)
 
@@ -2580,12 +2784,26 @@ def master_settings(request):
     for category, category_label in MasterSetting.CATEGORY_CHOICES:
         if category in {'Country', 'Reported By'}:
             continue
-        master_settings[category] = MasterSetting.objects.filter(category=category)
+        if category == 'Material':
+            master_settings[category] = MasterSetting.objects.filter(category=category).prefetch_related('variants')
+        else:
+            master_settings[category] = MasterSetting.objects.filter(category=category)
 
     return render(request, 'management/master_settings.html', {
         'form': form,
         'master_settings': master_settings
     })
+
+@login_required
+def get_material_variants(request, setting_id):
+    if not is_workflow_admin(request.user):
+        raise PermissionDenied('Only administrators can access master settings.')
+    setting = get_object_or_404(MasterSetting, id=setting_id, category='Material')
+    variants = [
+        {'id': v.id, 'name': v.name, 'order': v.display_order, 'display_order': v.display_order}
+        for v in setting.variants.all().order_by('display_order', 'id')
+    ]
+    return JsonResponse({'status': 'success', 'success': True, 'setting_id': setting.id, 'name': setting.name, 'variants': variants})
 
 @login_required
 @require_POST
@@ -2594,6 +2812,102 @@ def edit_master_setting(request, setting_id):
         raise PermissionDenied('Only administrators can edit master settings.')
     setting = get_object_or_404(MasterSetting, id=setting_id)
 
+    # Material-specific variant management with atomic transactions
+    if setting.category == 'Material':
+        new_name = request.POST.get('name', '').strip()
+        if not new_name:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+                return JsonResponse({'status': 'error', 'success': False, 'message': _('Material name cannot be empty.'), 'error': _('Material name cannot be empty.')}, status=400)
+            messages.error(request, _('Material name cannot be empty.'))
+            return redirect('master_settings')
+
+        if new_name != setting.name and MasterSetting.objects.filter(category='Material', name=new_name).exclude(id=setting.id).exists():
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+                return JsonResponse({'status': 'error', 'success': False, 'message': _('A Material with this name already exists.'), 'error': _('A Material with this name already exists.')}, status=400)
+            messages.error(request, _('A Material with this name already exists.'))
+            return redirect('master_settings')
+
+        variants_json = request.POST.get('variants_json')
+        variants_data = None
+        if variants_json:
+            try:
+                variants_data = json.loads(variants_json)
+            except Exception:
+                variants_data = None
+
+        with transaction.atomic():
+            setting.name = new_name
+            setting.save()
+
+            if variants_data is not None and isinstance(variants_data, list):
+                valid_variants = []
+                seen_names = set()
+                for idx, v in enumerate(variants_data):
+                    v_name = (v.get('name') if isinstance(v, dict) else str(v)).strip()
+                    if v_name and v_name.lower() not in seen_names:
+                        seen_names.add(v_name.lower())
+                        v_id = v.get('id') if isinstance(v, dict) else None
+                        try:
+                            v_id = int(v_id) if v_id else None
+                        except (ValueError, TypeError):
+                            v_id = None
+                        valid_variants.append({
+                            'id': v_id,
+                            'name': v_name,
+                            'display_order': idx
+                        })
+
+                existing_map = {v.id: v for v in setting.variants.all()}
+                existing_by_name = {v.name.lower(): v for v in existing_map.values()}
+                retained_ids = set()
+
+                for item in valid_variants:
+                    if item['id'] and item['id'] in existing_map:
+                        v_obj = existing_map[item['id']]
+                        v_obj.name = item['name']
+                        v_obj.display_order = item['display_order']
+                        v_obj.save(update_fields=['name', 'display_order', 'updated_at'])
+                        retained_ids.add(v_obj.id)
+                    elif item['name'].lower() in existing_by_name:
+                        v_obj = existing_by_name[item['name'].lower()]
+                        v_obj.display_order = item['display_order']
+                        v_obj.save(update_fields=['display_order', 'updated_at'])
+                        retained_ids.add(v_obj.id)
+                    else:
+                        new_v = MaterialVariant.objects.create(
+                            material=setting,
+                            name=item['name'],
+                            display_order=item['display_order']
+                        )
+                        retained_ids.add(new_v.id)
+
+                setting.variants.exclude(id__in=retained_ids).delete()
+
+            ActivityLog.objects.create(
+                user=request.user,
+                action="updated",
+                object_type="Master Setting",
+                object_name=f"Material - {setting.name}"
+            )
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
+            variants_list = [
+                {'id': v.id, 'name': v.name, 'order': v.display_order, 'display_order': v.display_order}
+                for v in setting.variants.all().order_by('display_order', 'id')
+            ]
+            return JsonResponse({
+                'status': 'success',
+                'success': True,
+                'setting_id': setting.id,
+                'name': setting.name,
+                'variants': variants_list,
+                'message': _('Material and variants updated successfully.')
+            })
+
+        messages.success(request, _('Material and variants updated successfully.'))
+        return redirect('master_settings')
+
+    # Non-material settings preserve existing standard modal & form handling
     if request.method == 'POST':
         form = MasterSettingForm(request.POST, instance=setting)
         if form.is_valid():
