@@ -283,6 +283,7 @@ elif USE_POSTGRES:
             'PORT': db_port,
             'CONN_MAX_AGE': int(os.getenv('CONN_MAX_AGE', '60')),
             'CONN_HEALTH_CHECKS': True,
+            'DISABLE_SERVER_SIDE_CURSORS': True,
             'OPTIONS': {
                 'connect_timeout': 10,
                 'sslmode': 'require',
