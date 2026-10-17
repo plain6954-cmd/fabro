@@ -2059,31 +2059,18 @@
 
                     <!-- Card Body Details -->
                     <div class="color-tile__content">
-                        <!-- Row 1: Serial + Name & Pantone -->
+                        <!-- Row 1: Serial + Name -->
                         <div class="color-tile__row-title">
                             <div class="color-tile__name-with-serial">
                                 <span class="color-tile__serial" title="{% translate 'Color Serial' %}">#{{ color.color_code }}</span>
                                 <h3 class="color-tile__name" title="{{ color.name }}">{{ color.name }}</h3>
                             </div>
-                            {% if color.pantone_code %}
-                            <span class="color-tile__pantone" title="{% translate 'Pantone Code' %}">{{ color.pantone_code }}</span>
-                            {% endif %}
-                        </div>
-
-                        <!-- Row 2: Visual Chips -->
-                        <div class="color-tile__row-specs">
-                            <span class="color-tile__hex" onclick="copyHexCode('{{ color.hex_code }}', this)" title="{% translate 'Click to copy HEX' %}">
-                                <i class="fas fa-hashtag"></i> {{ color.hex_code }}
-                            </span>
                             {% if color.color_category or color.material_series %}
                             <span class="color-tile__series-pill" title="{% translate 'Color Category' %}">{{ color.color_category|default:color.material_series }}</span>
                             {% endif %}
-                            {% if color.rgb_code or color.derived_rgb %}
-                            <span class="color-tile__rgb-pill" title="RGB: {{ color.rgb_code|default:color.derived_rgb }}"><i class="fas fa-sliders-h"></i> RGB {{ color.rgb_code|default:color.derived_rgb }}</span>
-                            {% endif %}
                         </div>
 
-                        <!-- Row 3: 4 Labeled Specifications -->
+                        <!-- Row 2: 4 Labeled Specifications -->
                         <div class="color-tile__spec-details">
                             <span class="color-tile__spec-item"><strong class="color-tile__spec-label">HEX:</strong> <span class="color-tile__spec-val spec-hex" onclick="copyHexCode('{{ color.hex_code }}', this)">{{ color.hex_code }}</span></span>
                             <span class="color-tile__spec-item"><strong class="color-tile__spec-label">Pantone:</strong> <span class="color-tile__spec-val spec-pantone">{{ color.pantone_code|default:"-" }}</span></span>
@@ -2091,7 +2078,7 @@
                             <span class="color-tile__spec-item"><strong class="color-tile__spec-label">CMYK:</strong> <span class="color-tile__spec-val spec-cmyk">{{ color.cmyk_code|default:color.derived_cmyk|default:"-" }}</span></span>
                         </div>
 
-                        <!-- Row 4: Material Options Chips -->
+                        <!-- Row 3: Material Options Chips -->
                         <div class="color-tile__material-options"{% if not color.material_options.all %} style="display: none;"{% endif %}>
                             <span class="color-tile__material-label">{% translate "Materials:" %}</span>
                             <div class="color-tile__material-chips">
@@ -2101,7 +2088,7 @@
                             </div>
                         </div>
 
-                        <!-- Row 5: Compatible Models -->
+                        <!-- Row 4: Compatible Models -->
                         {% if color.compatible_models %}
                         <div class="color-tile__models">
                             <span class="color-tile__models-label">{% translate "Compatible Models:" %}</span>
@@ -2121,9 +2108,6 @@
                             <i class="fas fa-edit"></i> <span>{% translate "Edit" %}</span>
                         </button>
                         {% endif %}
-                        <button type="button" class="color-tile__action-btn btn-view" onclick="previewColorCard('{{ color.id }}')" title="{% translate 'View Color Details' %}">
-                            <i class="fas fa-eye"></i> <span>{% translate "View" %}</span>
-                        </button>
                         {% if can_manage_catalog %}
                         <button type="button" class="color-tile__action-btn btn-archive" onclick="deleteColor('{{ color.id }}', '{{ color.name|escapejs }}')" title="{% translate 'Archive / Delete Color' %}">
                             <i class="fas fa-archive"></i> <span>{% translate "Archive" %}</span>
@@ -2323,9 +2307,6 @@
                                         <i class="fas fa-edit"></i> <span>{% translate "Edit" %}</span>
                                     </button>
                                     {% endif %}
-                                    <button type="button" class="color-tile__action-btn btn-view" onclick="previewColorCard('{{ color.id }}')" title="{% translate 'View Color Details' %}">
-                                        <i class="fas fa-eye"></i> <span>{% translate "View" %}</span>
-                                    </button>
                                     {% if can_manage_catalog %}
                                     <button type="button" class="color-tile__action-btn btn-archive" onclick="deleteColor('{{ color.id }}', '{{ color.name|escapejs }}')" title="{% translate 'Archive / Delete Color' %}">
                                         <i class="fas fa-archive"></i> <span>{% translate "Archive" %}</span>
@@ -3762,6 +3743,33 @@
             }
         };
 
+        function findClosestPantone(r, g, b) {
+            let closestPantone = '';
+            let minDist = Infinity;
+            for (const [hexStr, pantoneCode] of Object.entries(VERIFIED_PANTONE_MAP)) {
+                const [pr, pg, pb] = ColorMath.hexToRgb(hexStr);
+                const dist = Math.hypot(r - pr, g - pg, b - pb);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestPantone = pantoneCode;
+                }
+            }
+            return closestPantone;
+        }
+
+        function escapeJsStr(value) {
+            return String(value ?? '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"')
+                .replace(/\r/g, '\\r')
+                .replace(/\n/g, '\\n')
+                .replace(/\u2028/g, '\\u2028')
+                .replace(/\u2029/g, '\\u2029')
+                .replace(/</g, '\\x3C')
+                .replace(/>/g, '\\x3E');
+        }
+
         // Color Wheel Controller for Create & Edit Modals
         class ColorWheelController {
             constructor(mode) {
@@ -3996,11 +4004,16 @@
                     if (kInput) kInput.value = k;
                 }
 
-                // Update Pantone only if verified mapping exists
+                // Update Pantone in real time with exact or closest match
                 if (source !== 'pantone' && pantoneInput) {
                     const verified = VERIFIED_PANTONE_MAP[hex.toUpperCase()];
                     if (verified) {
                         pantoneInput.value = verified;
+                    } else {
+                        const closest = findClosestPantone(r, g, b);
+                        if (closest) {
+                            pantoneInput.value = closest;
+                        }
                     }
                 }
 
@@ -4300,7 +4313,8 @@
             if (statusInput) statusInput.value = status || sourceEl?.getAttribute('data-status') || 'Active';
 
             const activeHex = ColorMath.parseHex(hex || sourceEl?.getAttribute('data-hex')) || '#AF955C';
-            const activePantone = sourceEl?.getAttribute('data-pantone') || VERIFIED_PANTONE_MAP[activeHex] || '';
+            const [r, g, b] = ColorMath.hexToRgb(activeHex);
+            const activePantone = sourceEl?.getAttribute('data-pantone') || VERIFIED_PANTONE_MAP[activeHex] || findClosestPantone(r, g, b) || '';
             if (pantoneInput) pantoneInput.value = activePantone;
 
             // Load saved material options
@@ -4320,9 +4334,17 @@
             const liveName = document.getElementById('editColorLiveName');
             if (liveName) liveName.textContent = nameInput?.value || '';
 
-            // Synchronize colors
-            const [r, g, b] = ColorMath.hexToRgb(activeHex);
-            syncAllColorRepresentations('edit', { hex: activeHex, r, g, b }, 'init');
+            // Synchronize colors & compute CMYK
+            const rawCmyk = sourceEl?.getAttribute('data-cmyk');
+            let cmykArr = null;
+            if (rawCmyk && rawCmyk !== '-') {
+                const parts = rawCmyk.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+                if (parts.length === 4) cmykArr = parts;
+            }
+            if (!cmykArr) {
+                cmykArr = ColorMath.rgbToCmyk(r, g, b);
+            }
+            syncAllColorRepresentations('edit', { hex: activeHex, r, g, b, cmyk: cmykArr }, 'init');
 
             modal.style.display = 'flex';
             document.body.classList.add('modal-open');
@@ -4387,14 +4409,25 @@
             formData.set('cmyk_code', `${document.getElementById('newColorC')?.value || ''}, ${document.getElementById('newColorM')?.value || ''}, ${document.getElementById('newColorY')?.value || ''}, ${document.getElementById('newColorK')?.value || ''}`);
             formData.set('material_options', JSON.stringify(modalMaterialOptions.create));
 
+            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || getDesignCsrfToken();
+            const headers = {};
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+
             try {
                 const res = await fetch('/api/colors/', {
                     method: 'POST',
                     body: formData,
-                    headers: { 'X-CSRFToken': getDesignCsrfToken() }
+                    headers: headers
                 });
-                const data = await res.json();
-                if (data.status === 'success') {
+                let data = null;
+                try {
+                    data = await res.json();
+                } catch (e) {
+                    throw new Error('Server returned invalid response');
+                }
+                if (res.ok && data.status === 'success') {
                     closeCreateColorModal();
                     if (window.location.search.includes('subwindow=colors')) {
                         window.location.reload();
@@ -4402,11 +4435,11 @@
                         window.location.href = window.location.pathname + '?subwindow=colors';
                     }
                 } else {
-                    if (errorMsg) errorMsg.textContent = data.message || '{% translate "Failed to create color." %}';
+                    if (errorMsg) errorMsg.textContent = (data && data.message) || '{% translate "Failed to create color." %}';
                     if (errorBanner) errorBanner.style.display = 'flex';
                 }
             } catch (err) {
-                if (errorMsg) errorMsg.textContent = '{% translate "An error occurred while creating the color." %}';
+                if (errorMsg) errorMsg.textContent = (err && err.message && !err.message.includes('<')) ? err.message : '{% translate "An error occurred while creating the color." %}';
                 if (errorBanner) errorBanner.style.display = 'flex';
             } finally {
                 if (submitBtn) submitBtn.disabled = false;
@@ -4462,15 +4495,26 @@
             formData.set('cmyk_code', cmykCode);
             formData.set('material_options', JSON.stringify(modalMaterialOptions.edit));
 
+            const editCsrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || getDesignCsrfToken();
+            const editHeaders = {};
+            if (editCsrfToken) {
+                editHeaders['X-CSRFToken'] = editCsrfToken;
+            }
+
             let persisted = false;
             try {
                 const res = await fetch(`/api/colors/${id}/update/`, {
                     method: 'POST',
                     body: formData,
-                    headers: { 'X-CSRFToken': getDesignCsrfToken() }
+                    headers: editHeaders
                 });
-                const data = await res.json();
-                if (data.status === 'success') {
+                let data = null;
+                try {
+                    data = await res.json();
+                } catch (e) {
+                    throw new Error('Server returned invalid response');
+                }
+                if (res.ok && data.status === 'success') {
                     persisted = true;
                     const updated = data.color || {
                         id: id,
@@ -4647,17 +4691,16 @@
                     applyColorFilters();
                     closeEditColorModal();
                 } else {
-                    if (errorMsg) errorMsg.textContent = data.message || '{% translate "Failed to update color." %}';
+                    if (errorMsg) errorMsg.textContent = (data && data.message) || '{% translate "Failed to update color." %}';
                     if (errorBanner) errorBanner.style.display = 'flex';
                 }
             } catch (err) {
                 console.error('Color Master update failed:', err);
                 if (persisted) {
-                    // The server saved the change; reload canonical data if client rendering fails.
                     window.location.reload();
                     return;
                 }
-                if (errorMsg) errorMsg.textContent = '{% translate "An error occurred while updating the color." %}';
+                if (errorMsg) errorMsg.textContent = (err && err.message && !err.message.includes('<')) ? err.message : '{% translate "An error occurred while updating the color." %}';
                 if (errorBanner) errorBanner.style.display = 'flex';
             } finally {
                 if (submitBtn) submitBtn.disabled = false;
