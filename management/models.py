@@ -215,7 +215,7 @@ def get_country_letter(country):
     if not name or name == '-':
         return 'S'
     clean = name.lower()
-    if clean in ('ksa', 'saudi arabia', 'saudi', 'kingdom of saudi arabia'):
+    if clean in ('ksa', 'saudi arabia', 'saudi', 'kingdom of saudi arabia', 'gcc'):
         return 'S'
     if clean in ('uae', 'united arab emirates'):
         return 'U'

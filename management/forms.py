@@ -55,10 +55,10 @@ class CarDetailsForm(forms.Form):
     brand_name = forms.CharField(label=_("Brand Name"), max_length=100)
     brand_logo = forms.ImageField(label=_("Brand Logo"), required=False)
     model_name = forms.CharField(label=_("Model Name"), max_length=100)
-    sub_model_name = forms.CharField(label=_("Sub-Model Name"), max_length=100, required=False,)
+    sub_model_name = forms.CharField(label=_("Variant"), max_length=100, required=False,)
     year_start = forms.IntegerField(label=_("Year Start"), min_value=1900, max_value=2100, required=False)
     year_end = forms.IntegerField(label=_("Year End"), min_value=1900, max_value=2100, required=False)
-    br = forms.CharField(label=_("BR"), max_length=20, required=False)
+    br = forms.CharField(label=_("Sub Model"), max_length=20, required=False)
     number_of_seats = forms.IntegerField(label=_("Number of Seats"), min_value=1, max_value=100, required=False)
     number_of_doors = forms.IntegerField(label=_("Number of Doors"), min_value=1, max_value=20, required=False)
     FITTING_CONFIRMATION_CHOICES = [
@@ -107,7 +107,7 @@ class CarDetailsForm(forms.Form):
         'brand_name': forms.TextInput(attrs={'class': 'form-input'}),
         'brand_logo': forms.ClearableFileInput(attrs={'class': 'form-input'}),
         'model_name': forms.TextInput(attrs={'class': 'form-input'}),
-        'sub_model_name': forms.TextInput(attrs={'class': 'form-input'}),
+        'sub_model_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': _('e.g. N1')}),
         'year_start': forms.NumberInput(attrs={'class': 'form-input'}),
         'year_end': forms.NumberInput(attrs={'class': 'form-input'}),
         'br': forms.TextInput(attrs={'class': 'form-input', 'placeholder': _('e.g. BR1')}),

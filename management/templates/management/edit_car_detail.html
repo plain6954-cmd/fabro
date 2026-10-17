@@ -384,8 +384,8 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">{% translate "BR" %}</label>
-                <input type="text" name="br" class="form-input" placeholder="BR1"
+                <label class="form-label">{% translate "Sub Model" %}</label>
+                <input type="text" name="br" class="form-input" placeholder="{% translate "e.g., BR1" %}"
                        maxlength="20" value="{{ form.br.value|default:'' }}">
             </div>
 
@@ -427,9 +427,9 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">{% translate "Sub-Model Name (Optional)" %}</label>
+                <label class="form-label">{% translate "Variant" %}</label>
                 <input type="text" name="sub_model_name" class="form-input" 
-                       placeholder="{% translate "e.g., Sport, Luxury" %}" 
+                       placeholder="{% translate "e.g., N1" %}" 
                        value="{{ form.sub_model_name.value|default:'' }}">
             </div>
 

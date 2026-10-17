@@ -132,6 +132,8 @@ from .services.media_uploads import (
     create_upload_ticket,
     discard_uploads,
     get_owned_batch,
+    inspect_pending_uploads,
+    sign_upload_ticket,
     validate_media_metadata,
     verify_pending_uploads,
 )
@@ -349,6 +351,15 @@ def _media_upload_template_context(user, complaint=None):
     return {'direct_media_uploads': True, 'media_upload_batch': batch}
 
 
+def _locked_upload_actor(user):
+    """Use current account and role state for a commit following external I/O."""
+    actor = User.objects.select_for_update().get(pk=user.pk)
+    profile = UserProfile.objects.select_for_update().filter(user_id=actor.pk).first()
+    if profile:
+        actor._workflow_profile = profile
+    return actor
+
+
 @login_required
 @require_POST
 def complaint_media_signed_upload(request):
@@ -386,7 +397,7 @@ def complaint_media_signed_upload(request):
                 complaint=complaint,
                 for_update=True,
             )
-            upload, signed_url = create_upload_ticket(
+            upload = create_upload_ticket(
                 request.user,
                 batch,
                 filename=payload.get('filename'),
@@ -398,6 +409,16 @@ def complaint_media_signed_upload(request):
         return JsonResponse({'error': '; '.join(exc.messages)}, status=400)
     except S3StorageError:
         logger.exception('Unable to create an S3 signed upload URL.')
+        return JsonResponse({'error': 'Unable to prepare the media upload.'}, status=502)
+
+    try:
+        signed_url = sign_upload_ticket(upload)
+    except Exception:
+        logger.exception('Unable to create an S3 signed upload URL.')
+        try:
+            upload.delete()
+        except Exception:
+            logger.exception('Unable to remove an unsigned media upload ticket.')
         return JsonResponse({'error': 'Unable to prepare the media upload.'}, status=502)
 
     return JsonResponse({
@@ -739,8 +760,10 @@ def car_details(request):
             yr_qs = yr_qs.filter(sub_model__model__brand__name__icontains=search_query)
         elif search_column == 'model':
             yr_qs = yr_qs.filter(sub_model__model__name__icontains=search_query)
-        elif search_column == 'sub_model':
+        elif search_column in ('variant',):
             yr_qs = yr_qs.filter(sub_model__name__icontains=search_query)
+        elif search_column in ('sub_model', 'br'):
+            yr_qs = yr_qs.filter(Q(br__icontains=search_query) | Q(sub_model__name__icontains=search_query))
         elif search_column == 'vehicle_country':
             yr_qs = yr_qs.filter(vehicle_country__name__icontains=search_query)
         elif search_column == 'measurement_country':
@@ -2194,6 +2217,13 @@ def _get_design_file_info(file_name):
         return 'image', ext.lstrip('.').upper()
 
 
+def _unique_design_storage_name(file_name):
+    """Keep the existing upload_to directories while avoiding retry collisions."""
+    safe_name = get_valid_filename(os.path.basename(file_name))
+    stem, extension = os.path.splitext(safe_name)
+    return f'{stem[:80]}-{uuid.uuid4().hex}{extension.lower()}'
+
+
 def _serialize_uploaded_design(image):
     file_type, file_ext = _get_design_file_info(image.image.name)
     return {
@@ -2260,43 +2290,60 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
     if prior is not None:
         return prior
 
-    is_freelancer = getattr(getattr(request.user, 'workflow_profile', None), 'role', '') == WorkflowRoles.FREELANCE_3D_DESIGNER
     created = []
+    retry = None
     try:
-        with transaction.atomic():
-            for index, file_obj in enumerate(files):
-                file_type, file_extension = _get_design_file_info(file_obj.name)
-                thumbnail_file = None
-                if file_type == 'image' and os.path.splitext(file_obj.name)[1].lower() != '.svg':
-                    try:
-                        file_obj.seek(0)
-                        with Image.open(file_obj) as source:
-                            source.verify()
-                        file_obj.seek(0)
-                        with Image.open(file_obj) as source:
-                            preview = source.convert('RGBA' if source.mode in ('RGBA', 'LA') else 'RGB')
-                            preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
-                            out = io.BytesIO()
-                            preview.save(out, format='WEBP', quality=82)
-                            stem = os.path.splitext(os.path.basename(file_obj.name))[0][:80]
-                            thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
-                    except (UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
-                        raise ValidationError(_('Invalid image file.')) from exc
-                    finally:
-                        file_obj.seek(0)
+        # Expensive decoding and storage writes precede any database row lock.
+        for index, file_obj in enumerate(files):
+            file_type, file_extension = _get_design_file_info(file_obj.name)
+            thumbnail_file = None
+            if file_type == 'image' and os.path.splitext(file_obj.name)[1].lower() != '.svg':
+                try:
+                    file_obj.seek(0)
+                    with Image.open(file_obj) as source:
+                        source.verify()
+                    file_obj.seek(0)
+                    with Image.open(file_obj) as source:
+                        preview = source.convert('RGBA' if source.mode in ('RGBA', 'LA') else 'RGB')
+                        preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                        out = io.BytesIO()
+                        preview.save(out, format='WEBP', quality=82)
+                        stem = os.path.splitext(os.path.basename(file_obj.name))[0][:80]
+                        thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                except (UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
+                    raise ValidationError(_('Invalid image file.')) from exc
+                finally:
+                    file_obj.seek(0)
 
-                image = PatternDesignImage(
-                    folder=folder, vehicle=vehicle, image=file_obj,
-                    thumbnail=thumbnail_file or '',
-                    title=(request.POST.get('title', '').strip() if len(files) == 1 else '')[:255] or file_obj.name[:255],
-                    file_size=file_obj.size, uploaded_by=request.user,
-                    approval_status='pending' if is_freelancer else 'approved',
-                    client_upload_key=keys[index] if keys else None,
+            image = PatternDesignImage(
+                folder=folder, vehicle=vehicle,
+                title=(request.POST.get('title', '').strip() if len(files) == 1 else '')[:255] or file_obj.name[:255],
+                file_size=file_obj.size, uploaded_by=request.user,
+                client_upload_key=keys[index] if keys else None,
+            )
+            created.append(image)
+            file_obj.seek(0)
+            image.image.save(_unique_design_storage_name(file_obj.name), file_obj, save=False)
+            if thumbnail_file:
+                image.thumbnail.save(
+                    _unique_design_storage_name(thumbnail_file.name), thumbnail_file, save=False
                 )
-                created.append(image)
+
+        with transaction.atomic():
+            actor = _locked_upload_actor(request.user)
+            if not actor.is_active or not _can_manage_design_assets(actor):
+                raise PermissionDenied(_('Permission denied.'))
+            if folder:
+                PatternDesignFolder.objects.select_for_update().get(pk=folder.pk)
+            else:
+                YearRange.objects.select_for_update().get(pk=vehicle.pk)
+            is_freelancer = get_user_profile(actor).role == WorkflowRoles.FREELANCE_3D_DESIGNER
+            for image in created:
+                image.uploaded_by = actor
+                image.approval_status = 'pending' if is_freelancer else 'approved'
                 image.save()
                 if is_freelancer:
-                    submit_design_for_approval(image, request.user)
+                    submit_design_for_approval(image, actor)
             response = JsonResponse({
                 'status': 'success', 'uploaded_count': len(created),
                 'images': [_serialize_uploaded_design(image) for image in created],
@@ -2305,10 +2352,10 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
         return response
     except ValidationError as exc:
         error_status, error_message = 400, str(exc.messages[0])
+    except PermissionDenied as exc:
+        error_status, error_message = 403, str(exc)
     except IntegrityError:
         retry = existing_response()
-        if retry is not None:
-            return retry
         error_status, error_message = 409, _('Upload was already processed. Please refresh the list.')
     except Exception:
         logger.exception('Design upload failed')
@@ -2317,12 +2364,22 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
     # File stores do not participate in database transactions. Remove files
     # written before an error so a retry does not leave orphaned private media.
     for image in created:
+        if image.pk:
+            try:
+                if PatternDesignImage.objects.filter(pk=image.pk).exists():
+                    logger.error('Design upload committed despite a later error; retaining media for image %s', image.pk)
+                    continue
+            except Exception:
+                logger.exception('Could not confirm design rollback for image %s; retaining media', image.pk)
+                continue
         for field in (image.thumbnail, image.image):
             if field and getattr(field, '_committed', False) and field.name:
                 try:
                     default_storage.delete(field.name)
                 except Exception:
                     logger.warning('Could not remove failed design upload %s', field.name)
+    if retry is not None:
+        return retry
     return JsonResponse({'status': 'error', 'message': error_message}, status=error_status)
 
 
@@ -2516,51 +2573,81 @@ def reject_design_image_api(request, image_id):
 
 def _resubmit_design(img, user, replacement_file=None, title=''):
     """Advance exactly one rejected review cycle, even from stale tabs."""
-    new_files = []
+    new_names = []
     try:
+        if img.uploaded_by_id != user.id and not is_active_superuser(user):
+            raise PermissionDenied(_("Only the submitting designer can resubmit."))
+        if img.approval_status != 'rejected':
+            raise ValidationError(_("Only rejected designs can be resubmitted."))
+        replacement_name = None
+        thumbnail_name = ''
+        if replacement_file:
+            ext = os.path.splitext(replacement_file.name)[1].lower()
+            if ext not in ALLOWED_DESIGN_EXTENSIONS or not 0 < replacement_file.size <= 50 * 1024 * 1024:
+                raise ValidationError(_("Unsupported or empty file, or file exceeds the 50 MB limit."))
+            thumbnail_file = None
+            if ext in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'}:
+                try:
+                    replacement_file.seek(0)
+                    with Image.open(replacement_file) as source:
+                        preview = source.convert('RGB')
+                        preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
+                        out = io.BytesIO()
+                        preview.save(out, format='WEBP', quality=82)
+                        stem = os.path.splitext(os.path.basename(replacement_file.name))[0][:80]
+                        thumbnail_file = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
+                except (UnidentifiedImageError, OSError, ValueError):
+                    logger.warning('Replacement image has no usable thumbnail: %s', replacement_file.name)
+                finally:
+                    replacement_file.seek(0)
+            replacement_file.seek(0)
+            img.image.save(
+                _unique_design_storage_name(replacement_file.name), replacement_file, save=False
+            )
+            replacement_name = img.image.name
+            new_names.append(replacement_name)
+            if thumbnail_file:
+                img.thumbnail.save(
+                    _unique_design_storage_name(thumbnail_file.name), thumbnail_file, save=False
+                )
+                thumbnail_name = img.thumbnail.name
+                new_names.append(thumbnail_name)
+
         with transaction.atomic():
+            actor = _locked_upload_actor(user)
+            if not actor.is_active or not _can_manage_design_assets(actor):
+                raise PermissionDenied(_("Only the submitting designer can resubmit."))
             img = PatternDesignImage.objects.select_for_update().get(pk=img.pk)
-            if img.uploaded_by_id != user.id and not is_active_superuser(user):
+            if img.uploaded_by_id != actor.id and not is_active_superuser(actor):
                 raise PermissionDenied(_("Only the submitting designer can resubmit."))
             if img.approval_status != 'rejected':
                 raise ValidationError(_("Only rejected designs can be resubmitted."))
             if replacement_file:
-                ext = os.path.splitext(replacement_file.name)[1].lower()
-                if ext not in ALLOWED_DESIGN_EXTENSIONS or not 0 < replacement_file.size <= 50 * 1024 * 1024:
-                    raise ValidationError(_("Unsupported or empty file, or file exceeds the 50 MB limit."))
-                old_image, old_thumb = img.image.name, img.thumbnail.name
-                img.image = replacement_file
+                img.image = replacement_name
                 img.file_size = replacement_file.size
-                img.thumbnail = ''
-                if ext in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'}:
-                    try:
-                        replacement_file.seek(0)
-                        with Image.open(replacement_file) as source:
-                            preview = source.convert('RGB')
-                            preview.thumbnail((640, 480), Image.Resampling.LANCZOS)
-                            out = io.BytesIO()
-                            preview.save(out, format='WEBP', quality=82)
-                            stem = os.path.splitext(os.path.basename(replacement_file.name))[0][:80]
-                            img.thumbnail = ContentFile(out.getvalue(), name=f'{stem}-thumb.webp')
-                    except (UnidentifiedImageError, OSError, ValueError):
-                        logger.warning('Replacement image has no usable thumbnail: %s', replacement_file.name)
-                    finally:
-                        replacement_file.seek(0)
-                new_files.append((img, old_image, old_thumb))
+                img.thumbnail = thumbnail_name
             if title:
                 img.title = title[:255]
             if replacement_file or title:
                 img.save()
-            approval = submit_design_for_approval(img, user, is_resubmission=True)
+            approval = submit_design_for_approval(img, actor, is_resubmission=True)
         return approval
     except Exception:
-        for changed, old_image, old_thumb in new_files:
-            for field, old_name in ((changed.image, old_image), (changed.thumbnail, old_thumb)):
-                if field and field.name and field.name != old_name and getattr(field, '_committed', False):
-                    try:
-                        default_storage.delete(field.name)
-                    except Exception:
-                        logger.warning('Could not clean up failed resubmission media %s', field.name)
+        try:
+            committed_replacement = bool(
+                new_names and PatternDesignImage.objects.filter(
+                    pk=img.pk, image=new_names[0]
+                ).exists()
+            )
+        except Exception:
+            logger.exception('Could not confirm resubmission rollback for image %s; retaining media', img.pk)
+            committed_replacement = True
+        if not committed_replacement:
+            for name in new_names:
+                try:
+                    default_storage.delete(name)
+                except Exception:
+                    logger.warning('Could not clean up failed resubmission media %s', name)
         raise
 
 
@@ -3026,7 +3113,21 @@ def add_complaint(request):
                 return render(request, 'management/add_complaint.html', {'form': form, **template_context})
             stored_names = []
             try:
+                inspected_uploads = None
+                if settings.USE_S3_STORAGE:
+                    batch = get_owned_batch(request.user, upload_batch_id)
+                    inspected_uploads = inspect_pending_uploads(
+                        request.user, batch, upload_ids,
+                    )
                 with transaction.atomic():
+                    if settings.USE_S3_STORAGE:
+                        actor = _locked_upload_actor(request.user)
+                        if not actor.is_active:
+                            raise ValidationError(_('Your account is no longer active.'))
+                        try:
+                            prepare_complaint_for_create(complaint, actor)
+                        except (PermissionError, ValueError) as exc:
+                            raise ValidationError(str(exc)) from exc
                     complaint.save()
                     initialize_created_complaint(complaint, request.user)
                     if settings.USE_S3_STORAGE:
@@ -3035,6 +3136,7 @@ def add_complaint(request):
                             request.user,
                             batch,
                             upload_ids,
+                            inspected=inspected_uploads,
                         )
                         attach_verified_uploads(complaint, verified_uploads)
                     else:
@@ -3819,6 +3921,9 @@ def edit_complaint(request, complaint_id):
         return redirect('complaint_list')
 
     if request.method == 'POST':
+        original_workflow_status = complaint.workflow_status
+        original_status = complaint.status
+        original_country_id = complaint.country_id
         tracked_fields = {
             field_name: getattr(complaint, field_name)
             for field_name in REPORT_EDITABLE_FIELDS
@@ -3851,7 +3956,38 @@ def edit_complaint(request, complaint_id):
             })
         if form.is_valid():
             try:
+                inspected_uploads = None
+                if settings.USE_S3_STORAGE:
+                    batch = get_owned_batch(request.user, upload_batch_id, complaint=complaint)
+                    inspected_uploads = inspect_pending_uploads(
+                        request.user, batch, upload_ids,
+                        complaint=complaint, existing_count=remaining_media_count,
+                    )
                 with transaction.atomic():
+                    if settings.USE_S3_STORAGE:
+                        actor = _locked_upload_actor(request.user)
+                        locked_complaint = Complaint.objects.select_for_update().get(pk=complaint.pk)
+                        if (
+                            not actor.is_active
+                            or not visible_complaints_for_user(
+                                actor, Complaint.objects.filter(pk=locked_complaint.pk)
+                            ).exists()
+                            or not can_user_edit_report_step(actor, locked_complaint)
+                        ):
+                            raise ValidationError(_('This complaint can no longer be edited from the report step.'))
+                        if (
+                            locked_complaint.workflow_status != original_workflow_status
+                            or locked_complaint.status != original_status
+                            or locked_complaint.country_id != original_country_id
+                            or any(
+                                getattr(locked_complaint, field_name) != old_value
+                                for field_name, old_value in tracked_fields.items()
+                            )
+                        ):
+                            raise ValidationError(_('This complaint changed. Refresh the page and try again.'))
+                        remaining_media_count = locked_complaint.media_files.exclude(
+                            id__in=media_to_delete
+                        ).count()
                     complaint = form.save()
                     changes = {
                         field_name: (old_value, getattr(complaint, field_name))
@@ -3877,6 +4013,7 @@ def edit_complaint(request, complaint_id):
                             upload_ids,
                             complaint=complaint,
                             existing_count=remaining_media_count,
+                            inspected=inspected_uploads,
                         )
                     else:
                         verified_uploads = []

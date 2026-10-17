@@ -1218,9 +1218,13 @@
                                         <i class="fas fa-car"></i>
                                         {% translate "Model" %}
                                     </button>
+                                    <button type="button" class="search-option" data-search-by="br" role="option">
+                                        <i class="fas fa-code-branch"></i>
+                                        {% translate "Sub Model" %}
+                                    </button>
                                     <button type="button" class="search-option" data-search-by="sub_model" role="option">
                                         <i class="fas fa-sliders-h"></i>
-                                        {% translate "Sub-Model" %}
+                                        {% translate "Variant" %}
                                     </button>
                                     <button type="button" class="search-option" data-search-by="vehicle_country" role="option">
                                         <i class="fas fa-globe"></i>
@@ -1370,10 +1374,10 @@
                                             {% endif %}
                                         </div>
                                     </th>
-                                    <th class="col-br">{% translate "BR" %}</th>
+                                    <th class="col-br">{% translate "Sub Model" %}</th>
                                     <th class="col-submodel" data-filter-col="6">
                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; width: 100%;">
-                                            <span>{% translate "Sub-Model" %}</span>
+                                            <span>{% translate "Variant" %}</span>
                                             <div style="display: flex; align-items: center; gap: 0.2rem;">
                                                 <span class="column-filter-clear" style="cursor: pointer; color: var(--primary-color); display: none; font-size: 0.72rem;" title="{% translate "Clear filter" %}"><i class="fas fa-times"></i></span>
                                                 <span class="column-filter-trigger" style="cursor: pointer; opacity: 0.6; font-size: 0.72rem;"><i class="fas fa-chevron-down"></i></span>
@@ -1394,8 +1398,8 @@
                                         </button>
                                     </th>
                                     <th class="col-year">{% translate "Year Range" %}</th>
-                                    <th class="col-br">{% translate "BR" %}</th>
-                                    <th class="col-submodel">{% translate "Sub-Model" %}</th>
+                                    <th class="col-br">{% translate "Sub Model" %}</th>
+                                    <th class="col-submodel">{% translate "Variant" %}</th>
                                     {% endif %}
                                     <th class="col-seats">{% translate "Seats" %}</th>
                                     <th class="col-doors">{% translate "Doors" %}</th>
@@ -1518,8 +1522,8 @@
                                             <input type="number" name="year_end" class="form-input" placeholder="{% translate "End" %}" min="1900" max="2100" form="add-vehicle-form" required style="padding: 0.25rem 0.2rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; flex: 1 1 50%; min-width: 0; text-align: center; font-weight: 500; box-sizing: border-box;">
                                         </div>
                                     </td>
-                                    <td class="col-br"><input type="text" name="br" class="form-input" placeholder="{% translate "BR" %}" form="add-vehicle-form" maxlength="20" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; box-sizing: border-box;"></td>
-                                    <td class="col-submodel"><input type="text" name="sub_model_name" class="form-input" placeholder="{% translate "Sub-Model" %}" form="add-vehicle-form" style="padding: 0.3rem 0.45rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; box-sizing: border-box;"></td>
+                                    <td class="col-br"><input type="text" name="br" class="form-input" placeholder="{% translate "Sub Model" %}" form="add-vehicle-form" maxlength="20" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; box-sizing: border-box;"></td>
+                                    <td class="col-submodel"><input type="text" name="sub_model_name" class="form-input" placeholder="{% translate "Variant" %}" form="add-vehicle-form" style="padding: 0.3rem 0.45rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; box-sizing: border-box;"></td>
                                     <td class="col-seats"><input type="number" name="number_of_seats" class="form-input" placeholder="{% translate "Seats" %}" min="1" form="add-vehicle-form" required style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
                                     <td class="col-doors"><input type="number" name="number_of_doors" class="form-input" placeholder="{% translate "Doors" %}" min="1" form="add-vehicle-form" required style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
                                     <!-- Two New Inputs strictly between Doors and Vehicle Country -->
@@ -1684,11 +1688,11 @@
                                                         <span class="info-item-value">{% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}–{% endif %}{{ car.year_end|default:'' }}{% else %}—{% endif %}</span>
                                                     </div>
                                                     <div class="pattern-mobile-info-item">
-                                                        <span class="info-item-label">{% translate "BR" %}</span>
+                                                        <span class="info-item-label">{% translate "Sub Model" %}</span>
                                                         <span class="info-item-value">{{ car.br|default:'—' }}</span>
                                                     </div>
                                                     <div class="pattern-mobile-info-item">
-                                                        <span class="info-item-label">{% translate "Sub-Model" %}</span>
+                                                        <span class="info-item-label">{% translate "Variant" %}</span>
                                                         <span class="info-item-value" title="{{ car.sub_model|default:'—' }}">{% if car.sub_model and car.sub_model != '-' %}{{ car.sub_model }}{% else %}—{% endif %}</span>
                                                     </div>
                                                     <div class="pattern-mobile-info-item">
@@ -1816,8 +1820,8 @@
                                                 <input type="number" name="year_end" value="{{ car.year_end|default:'' }}" class="form-input" placeholder="{% translate "End" %}" min="1900" max="2100" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.25rem 0.2rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; flex: 1 1 50%; min-width: 0; text-align: center; font-weight: 500; box-sizing: border-box;">
                                             </div>
                                         </td>
-                                        <td class="col-br"><input type="text" name="br" value="{{ car.raw_br }}" class="form-input" placeholder="{% translate "BR" %}" form="edit-vehicle-form-{{ car.id }}" maxlength="20" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; box-sizing: border-box;"></td>
-                                        <td class="col-submodel"><input type="text" name="sub_model_name" value="{{ car.raw_sub_model }}" class="form-input" placeholder="{% translate "Sub-Model" %}" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.3rem 0.45rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; box-sizing: border-box;"></td>
+                                        <td class="col-br"><input type="text" name="br" value="{{ car.raw_br }}" class="form-input" placeholder="{% translate "Sub Model" %}" form="edit-vehicle-form-{{ car.id }}" maxlength="20" style="padding: 0.3rem 0.35rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; box-sizing: border-box;"></td>
+                                        <td class="col-submodel"><input type="text" name="sub_model_name" value="{{ car.raw_sub_model }}" class="form-input" placeholder="{% translate "Variant" %}" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.3rem 0.45rem; font-size: 0.78rem; margin: 0; min-height: unset; height: 28px; width: 100%; box-sizing: border-box;"></td>
                                         <td class="col-seats"><input type="number" name="number_of_seats" value="{{ car.seats|default:'' }}" class="form-input" placeholder="{% translate "Seats" %}" min="1" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
                                         <td class="col-doors"><input type="number" name="number_of_doors" value="{{ car.doors|default:'' }}" class="form-input" placeholder="{% translate "Doors" %}" min="1" form="edit-vehicle-form-{{ car.id }}" style="padding: 0.25rem 0.2rem; font-size: 0.8rem; margin: 0; min-height: unset; height: 28px; width: 100%; text-align: center; font-weight: 600; box-sizing: border-box;"></td>
                                         <!-- Two New Inputs strictly between Doors and Vehicle Country -->
@@ -9321,15 +9325,15 @@
                     </div>
                 </div>
 
-                <!-- Row 4: BR & Sub-Model -->
+                <!-- Row 4: Sub Model & Variant -->
                 <div class="mobile-sheet-grid-2">
                     <div class="mobile-sheet-field">
-                        <label class="mobile-sheet-label" for="msBr">{% translate "BR" %}</label>
+                        <label class="mobile-sheet-label" for="msBr">{% translate "Sub Model" %}</label>
                         <input type="text" id="msBr" name="br" class="mobile-sheet-input" placeholder="BR1" maxlength="20">
                     </div>
                     <div class="mobile-sheet-field">
-                        <label class="mobile-sheet-label" for="msSubModelName">{% translate "Sub-Model" %}</label>
-                        <input type="text" id="msSubModelName" name="sub_model_name" class="mobile-sheet-input" placeholder="e.g. Hybrid / LE">
+                        <label class="mobile-sheet-label" for="msSubModelName">{% translate "Variant" %}</label>
+                        <input type="text" id="msSubModelName" name="sub_model_name" class="mobile-sheet-input" placeholder="e.g. N1">
                     </div>
                 </div>
 
@@ -9427,7 +9431,8 @@
                     <option value="fitting_confirmation">{% translate "Fitting Confirmation" %}</option>
                     <option value="brand">{% translate "Brand" %}</option>
                     <option value="model">{% translate "Model" %}</option>
-                    <option value="sub_model">{% translate "Sub-Model" %}</option>
+                    <option value="br">{% translate "Sub Model" %}</option>
+                    <option value="sub_model">{% translate "Variant" %}</option>
                     <option value="vehicle_country">{% translate "Vehicle Country" %}</option>
                     <option value="measurement_country">{% translate "Measurement Country" %}</option>
                 </select>
@@ -9457,11 +9462,11 @@
                 </select>
             </div>
 
-            <!-- Filter 5: Sub-Model -->
+            <!-- Filter 5: Variant -->
             <div class="mobile-sheet-field">
-                <label class="mobile-sheet-label" for="mfSubModel">{% translate "Sub-Model" %}</label>
+                <label class="mobile-sheet-label" for="mfSubModel">{% translate "Variant" %}</label>
                 <select id="mfSubModel" class="mobile-sheet-select">
-                    <option value="">{% translate "All Sub-Models" %}</option>
+                    <option value="">{% translate "All Variants" %}</option>
                 </select>
             </div>
 

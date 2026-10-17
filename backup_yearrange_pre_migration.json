@@ -1,0 +1,4742 @@
+[
+{
+  "model": "management.yearrange",
+  "pk": 359,
+  "fields": {
+    "sub_model": 544,
+    "serial_number": "S0001",
+    "year_start": 2019,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1654",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": "https://drive.google.com/file/d/1HuoIxc5lsIMaepOm1oi6mGvlDOWal7oJ/view?usp=sharing"
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 360,
+  "fields": {
+    "sub_model": 264,
+    "serial_number": "S0002",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1438/X3066",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 361,
+  "fields": {
+    "sub_model": 265,
+    "serial_number": "S0003",
+    "year_start": 2016,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1483",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 362,
+  "fields": {
+    "sub_model": 266,
+    "serial_number": "S0004",
+    "year_start": 2013,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1666",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 363,
+  "fields": {
+    "sub_model": 546,
+    "serial_number": "S0005",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2079",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": "https://drive.google.com/drive/folders/1UvGPgo6l1n7ZJkvI_2elrbIqy5JAmySQ"
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 364,
+  "fields": {
+    "sub_model": 438,
+    "serial_number": "S0006",
+    "year_start": 2008,
+    "year_end": 2017,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0660",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": "https://drive.google.com/drive/folders/1k2_s6CN89AcY1Z9QWDvzW07V6u4OzUrA"
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 365,
+  "fields": {
+    "sub_model": 438,
+    "serial_number": "S0007",
+    "year_start": 2018,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1567",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 366,
+  "fields": {
+    "sub_model": 269,
+    "serial_number": "S0008",
+    "year_start": 2006,
+    "year_end": 2011,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0649",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 367,
+  "fields": {
+    "sub_model": 269,
+    "serial_number": "S0009",
+    "year_start": 2012,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0644",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 368,
+  "fields": {
+    "sub_model": 269,
+    "serial_number": "S0010",
+    "year_start": 2016,
+    "year_end": 2019,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1173",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 369,
+  "fields": {
+    "sub_model": 269,
+    "serial_number": "S0011",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1752",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 370,
+  "fields": {
+    "sub_model": 547,
+    "serial_number": "S0012",
+    "year_start": 2008,
+    "year_end": 2017,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0667",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 371,
+  "fields": {
+    "sub_model": 547,
+    "serial_number": "S0013",
+    "year_start": 2018,
+    "year_end": 2022,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1784",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 372,
+  "fields": {
+    "sub_model": 547,
+    "serial_number": "S0014",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3052",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 373,
+  "fields": {
+    "sub_model": 443,
+    "serial_number": "S0015",
+    "year_start": 2022,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1949",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 374,
+  "fields": {
+    "sub_model": 548,
+    "serial_number": "S0016",
+    "year_start": 1998,
+    "year_end": 2014,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0672",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 375,
+  "fields": {
+    "sub_model": 273,
+    "serial_number": "S0017",
+    "year_start": 2008,
+    "year_end": 2016,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0828",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 376,
+  "fields": {
+    "sub_model": 550,
+    "serial_number": "S0018",
+    "year_start": 2017,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1406",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 377,
+  "fields": {
+    "sub_model": 551,
+    "serial_number": "S0019",
+    "year_start": 2010,
+    "year_end": 2014,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X1619",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 378,
+  "fields": {
+    "sub_model": 276,
+    "serial_number": "S0020",
+    "year_start": 2003,
+    "year_end": 2006,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0833",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 379,
+  "fields": {
+    "sub_model": 276,
+    "serial_number": "S0021",
+    "year_start": 2007,
+    "year_end": 2014,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0831",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 380,
+  "fields": {
+    "sub_model": 552,
+    "serial_number": "S0022",
+    "year_start": 2015,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1263",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 381,
+  "fields": {
+    "sub_model": 552,
+    "serial_number": "S0023",
+    "year_start": 2021,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1702",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 382,
+  "fields": {
+    "sub_model": 554,
+    "serial_number": "S0024",
+    "year_start": 2008,
+    "year_end": 2012,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0540",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": "https://drive.google.com/drive/folders/1RjfBGdBMl8BCGReM0vrcWIVQYncmksyB"
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 383,
+  "fields": {
+    "sub_model": 554,
+    "serial_number": "S0025",
+    "year_start": 2013,
+    "year_end": 2017,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0538",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 384,
+  "fields": {
+    "sub_model": 554,
+    "serial_number": "S0026",
+    "year_start": 2018,
+    "year_end": 2023,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1486",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 385,
+  "fields": {
+    "sub_model": 554,
+    "serial_number": "S0027",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2047",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 386,
+  "fields": {
+    "sub_model": 280,
+    "serial_number": "S0028",
+    "year_start": 2012,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0545",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 387,
+  "fields": {
+    "sub_model": 555,
+    "serial_number": "S0029",
+    "year_start": 2012,
+    "year_end": 2016,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0526",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 388,
+  "fields": {
+    "sub_model": 282,
+    "serial_number": "S0030",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1898/X3089",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 389,
+  "fields": {
+    "sub_model": 556,
+    "serial_number": "S0031",
+    "year_start": 2006,
+    "year_end": 2010,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0395",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 390,
+  "fields": {
+    "sub_model": 410,
+    "serial_number": "S0032",
+    "year_start": 2011,
+    "year_end": 2017,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0393",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 391,
+  "fields": {
+    "sub_model": 285,
+    "serial_number": "S0033",
+    "year_start": 2018,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1561",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 392,
+  "fields": {
+    "sub_model": 285,
+    "serial_number": "S0034",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2033",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 393,
+  "fields": {
+    "sub_model": 286,
+    "serial_number": "S0035",
+    "year_start": 2016,
+    "year_end": 2019,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1208",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 394,
+  "fields": {
+    "sub_model": 412,
+    "serial_number": "S0036",
+    "year_start": 2020,
+    "year_end": 2024,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1739",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 395,
+  "fields": {
+    "sub_model": 559,
+    "serial_number": "S0037",
+    "year_start": 2012,
+    "year_end": 2015,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0396",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 396,
+  "fields": {
+    "sub_model": 560,
+    "serial_number": "S0038",
+    "year_start": 2012,
+    "year_end": 2015,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0397",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 397,
+  "fields": {
+    "sub_model": 559,
+    "serial_number": "S0039",
+    "year_start": 2016,
+    "year_end": 2019,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1183",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 398,
+  "fields": {
+    "sub_model": 560,
+    "serial_number": "S0040",
+    "year_start": 2016,
+    "year_end": 2019,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1359",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 399,
+  "fields": {
+    "sub_model": 562,
+    "serial_number": "S0041",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1783/2034",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 400,
+  "fields": {
+    "sub_model": 560,
+    "serial_number": "S0042",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2035/X1776",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 401,
+  "fields": {
+    "sub_model": 561,
+    "serial_number": "S0043",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1783/X2034",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 402,
+  "fields": {
+    "sub_model": 563,
+    "serial_number": "S0044",
+    "year_start": 2021,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3041",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 403,
+  "fields": {
+    "sub_model": 294,
+    "serial_number": "S0045",
+    "year_start": 2014,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 9,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1057",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 404,
+  "fields": {
+    "sub_model": 295,
+    "serial_number": "S0046",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3082",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 405,
+  "fields": {
+    "sub_model": 565,
+    "serial_number": "S0047",
+    "year_start": 2007,
+    "year_end": 2012,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0342",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 406,
+  "fields": {
+    "sub_model": 565,
+    "serial_number": "S0048",
+    "year_start": 2013,
+    "year_end": 2018,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0341",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 407,
+  "fields": {
+    "sub_model": 565,
+    "serial_number": "S0049",
+    "year_start": 2019,
+    "year_end": 2023,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1519",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 408,
+  "fields": {
+    "sub_model": 565,
+    "serial_number": "S0050",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3021",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 409,
+  "fields": {
+    "sub_model": 566,
+    "serial_number": "S0051",
+    "year_start": 2010,
+    "year_end": 2014,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0380",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 410,
+  "fields": {
+    "sub_model": 566,
+    "serial_number": "S0052",
+    "year_start": 2015,
+    "year_end": 2018,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1004",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 411,
+  "fields": {
+    "sub_model": 567,
+    "serial_number": "S0053",
+    "year_start": 2015,
+    "year_end": 2018,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1301",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 412,
+  "fields": {
+    "sub_model": 567,
+    "serial_number": "S0054",
+    "year_start": 2019,
+    "year_end": 2025,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1753",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 413,
+  "fields": {
+    "sub_model": 301,
+    "serial_number": "S0055",
+    "year_start": 2022,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 9,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1910",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 414,
+  "fields": {
+    "sub_model": 302,
+    "serial_number": "S0056",
+    "year_start": 2022,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 11,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1913",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 415,
+  "fields": {
+    "sub_model": 569,
+    "serial_number": "S0057",
+    "year_start": 2010,
+    "year_end": 2015,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0349",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 416,
+  "fields": {
+    "sub_model": 569,
+    "serial_number": "S0058",
+    "year_start": 2016,
+    "year_end": 2020,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1140",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 417,
+  "fields": {
+    "sub_model": 304,
+    "serial_number": "S0059",
+    "year_start": 2021,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1733",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 418,
+  "fields": {
+    "sub_model": 305,
+    "serial_number": "S0060",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3055",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 419,
+  "fields": {
+    "sub_model": 306,
+    "serial_number": "S0061",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2036",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 420,
+  "fields": {
+    "sub_model": 307,
+    "serial_number": "S0062",
+    "year_start": 2010,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X0856",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 421,
+  "fields": {
+    "sub_model": 570,
+    "serial_number": "S0063",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 422,
+  "fields": {
+    "sub_model": 441,
+    "serial_number": "S0233",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": "X1877",
+    "x_code": "X1877",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": 43,
+    "measurement_country": 43,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 423,
+  "fields": {
+    "sub_model": 571,
+    "serial_number": "S0065",
+    "year_start": 2015,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1010",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 424,
+  "fields": {
+    "sub_model": 571,
+    "serial_number": "S0066",
+    "year_start": 2021,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1749",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 425,
+  "fields": {
+    "sub_model": 311,
+    "serial_number": "S0067",
+    "year_start": 2010,
+    "year_end": 2012,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0616",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 426,
+  "fields": {
+    "sub_model": 312,
+    "serial_number": "S0068",
+    "year_start": 2018,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1506",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 427,
+  "fields": {
+    "sub_model": 313,
+    "serial_number": "S0069",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1171",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 428,
+  "fields": {
+    "sub_model": 573,
+    "serial_number": "S0070",
+    "year_start": 2015,
+    "year_end": 2019,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1198",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 429,
+  "fields": {
+    "sub_model": 315,
+    "serial_number": "S0071",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1662",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 430,
+  "fields": {
+    "sub_model": 574,
+    "serial_number": "S0072",
+    "year_start": 2019,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1620",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 431,
+  "fields": {
+    "sub_model": 575,
+    "serial_number": "S0073",
+    "year_start": 2019,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2013",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 432,
+  "fields": {
+    "sub_model": 318,
+    "serial_number": "S0074",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1850",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 433,
+  "fields": {
+    "sub_model": 577,
+    "serial_number": "S0075",
+    "year_start": 2020,
+    "year_end": 2024,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1704",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 434,
+  "fields": {
+    "sub_model": 578,
+    "serial_number": "S0076",
+    "year_start": 2016,
+    "year_end": 2021,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1190",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 435,
+  "fields": {
+    "sub_model": 321,
+    "serial_number": "S0077",
+    "year_start": 2022,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1879",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 436,
+  "fields": {
+    "sub_model": 322,
+    "serial_number": "S0078",
+    "year_start": 2025,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3048",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 437,
+  "fields": {
+    "sub_model": 323,
+    "serial_number": "S0079",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1574",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 438,
+  "fields": {
+    "sub_model": 436,
+    "serial_number": "S0080",
+    "year_start": 2008,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0767",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 439,
+  "fields": {
+    "sub_model": 581,
+    "serial_number": "S0081",
+    "year_start": 2014,
+    "year_end": 2018,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0628",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 440,
+  "fields": {
+    "sub_model": 581,
+    "serial_number": "S0082",
+    "year_start": 2019,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1566",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 441,
+  "fields": {
+    "sub_model": 326,
+    "serial_number": "S0083",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1657",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 442,
+  "fields": {
+    "sub_model": 582,
+    "serial_number": "S0084",
+    "year_start": 2008,
+    "year_end": 2016,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1110",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 443,
+  "fields": {
+    "sub_model": 582,
+    "serial_number": "S0085",
+    "year_start": 2017,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1354",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 444,
+  "fields": {
+    "sub_model": 584,
+    "serial_number": "S0086",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1958",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 445,
+  "fields": {
+    "sub_model": 585,
+    "serial_number": "S0087",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 446,
+  "fields": {
+    "sub_model": 330,
+    "serial_number": "S0088",
+    "year_start": 2007,
+    "year_end": 2012,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0789",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 447,
+  "fields": {
+    "sub_model": 331,
+    "serial_number": "S0089",
+    "year_start": 2020,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1897",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 448,
+  "fields": {
+    "sub_model": 332,
+    "serial_number": "S0090",
+    "year_start": 2020,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1960",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 449,
+  "fields": {
+    "sub_model": 587,
+    "serial_number": "S0091",
+    "year_start": 2007,
+    "year_end": 2021,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0429",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 450,
+  "fields": {
+    "sub_model": 588,
+    "serial_number": "S0092",
+    "year_start": 2019,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1556",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 451,
+  "fields": {
+    "sub_model": 572,
+    "serial_number": "S0093",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2082",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 452,
+  "fields": {
+    "sub_model": 336,
+    "serial_number": "S0094",
+    "year_start": 2006,
+    "year_end": 2017,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0224",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 453,
+  "fields": {
+    "sub_model": 337,
+    "serial_number": "S0095",
+    "year_start": 2003,
+    "year_end": 2009,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0323",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 454,
+  "fields": {
+    "sub_model": 589,
+    "serial_number": "S0096",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1818",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 455,
+  "fields": {
+    "sub_model": 590,
+    "serial_number": "S0097",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1841",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 456,
+  "fields": {
+    "sub_model": 340,
+    "serial_number": "S0098",
+    "year_start": 1998,
+    "year_end": 2009,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0260",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 457,
+  "fields": {
+    "sub_model": 340,
+    "serial_number": "S0099",
+    "year_start": 2010,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0255",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 458,
+  "fields": {
+    "sub_model": 591,
+    "serial_number": "S0100",
+    "year_start": 2005,
+    "year_end": 2019,
+    "br": "BR2",
+    "number_of_seats": 4,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X1266",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 459,
+  "fields": {
+    "sub_model": 342,
+    "serial_number": "S0101",
+    "year_start": 2012,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0318",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 460,
+  "fields": {
+    "sub_model": 343,
+    "serial_number": "S0102",
+    "year_start": 2012,
+    "year_end": 2019,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1075",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 461,
+  "fields": {
+    "sub_model": 344,
+    "serial_number": "S0103",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1670",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 462,
+  "fields": {
+    "sub_model": 592,
+    "serial_number": "S0104",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1703",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 463,
+  "fields": {
+    "sub_model": 346,
+    "serial_number": "S0105",
+    "year_start": 2014,
+    "year_end": 2022,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1077",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 464,
+  "fields": {
+    "sub_model": 346,
+    "serial_number": "S0106",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1930",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 465,
+  "fields": {
+    "sub_model": 347,
+    "serial_number": "S0107",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1940",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 466,
+  "fields": {
+    "sub_model": 348,
+    "serial_number": "S0108",
+    "year_start": 2015,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1888",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 467,
+  "fields": {
+    "sub_model": 349,
+    "serial_number": "S0109",
+    "year_start": 2014,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1304",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 468,
+  "fields": {
+    "sub_model": 350,
+    "serial_number": "S0110",
+    "year_start": 2007,
+    "year_end": 2016,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0793",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 469,
+  "fields": {
+    "sub_model": 350,
+    "serial_number": "S0111",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1970",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 470,
+  "fields": {
+    "sub_model": 594,
+    "serial_number": "S0112",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2058",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 471,
+  "fields": {
+    "sub_model": 597,
+    "serial_number": "S0113",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1465",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 472,
+  "fields": {
+    "sub_model": 598,
+    "serial_number": "S0114",
+    "year_start": 2006,
+    "year_end": 2012,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0135",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": "https://drive.google.com/file/d/1fTdSEljgYp9CEopP1BHbiRbM_SbOUKRc/view?usp=drive_link"
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 473,
+  "fields": {
+    "sub_model": 598,
+    "serial_number": "S0115",
+    "year_start": 2013,
+    "year_end": 2017,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1151",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 474,
+  "fields": {
+    "sub_model": 598,
+    "serial_number": "S0116",
+    "year_start": 2018,
+    "year_end": 2023,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1548",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 475,
+  "fields": {
+    "sub_model": 330,
+    "serial_number": "S0117",
+    "year_start": 2012,
+    "year_end": 2017,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0788/X1321",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 476,
+  "fields": {
+    "sub_model": 599,
+    "serial_number": "S0118",
+    "year_start": 2007,
+    "year_end": 2011,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0113",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 477,
+  "fields": {
+    "sub_model": 600,
+    "serial_number": "S0119",
+    "year_start": 2012,
+    "year_end": 2017,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1182",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 478,
+  "fields": {
+    "sub_model": 599,
+    "serial_number": "S0120",
+    "year_start": 2012,
+    "year_end": 2017,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0112",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 479,
+  "fields": {
+    "sub_model": 601,
+    "serial_number": "S0121",
+    "year_start": 2018,
+    "year_end": 2023,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1479",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 480,
+  "fields": {
+    "sub_model": 599,
+    "serial_number": "S0122",
+    "year_start": 2018,
+    "year_end": 2023,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1450",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 481,
+  "fields": {
+    "sub_model": 599,
+    "serial_number": "S0123",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3030",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 482,
+  "fields": {
+    "sub_model": 602,
+    "serial_number": "S0124",
+    "year_start": 2008,
+    "year_end": 2013,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0158",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 483,
+  "fields": {
+    "sub_model": 603,
+    "serial_number": "S0125",
+    "year_start": 2008,
+    "year_end": 2013,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0159",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 484,
+  "fields": {
+    "sub_model": 603,
+    "serial_number": "S0126",
+    "year_start": 2014,
+    "year_end": 2017,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0161",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 485,
+  "fields": {
+    "sub_model": 602,
+    "serial_number": "S0127",
+    "year_start": 2014,
+    "year_end": 2017,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0160",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 486,
+  "fields": {
+    "sub_model": 363,
+    "serial_number": "S0128",
+    "year_start": 2013,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1043",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 487,
+  "fields": {
+    "sub_model": 602,
+    "serial_number": "S0129",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1573",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 488,
+  "fields": {
+    "sub_model": 605,
+    "serial_number": "S0130",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1746",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 489,
+  "fields": {
+    "sub_model": 607,
+    "serial_number": "S0131",
+    "year_start": 2008,
+    "year_end": 2020,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0083",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 490,
+  "fields": {
+    "sub_model": 608,
+    "serial_number": "S0132",
+    "year_start": 2006,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0082",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 491,
+  "fields": {
+    "sub_model": 608,
+    "serial_number": "S0133",
+    "year_start": 2016,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1206",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 492,
+  "fields": {
+    "sub_model": 367,
+    "serial_number": "S0134",
+    "year_start": 2006,
+    "year_end": 2018,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X1032",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 493,
+  "fields": {
+    "sub_model": 368,
+    "serial_number": "S0135",
+    "year_start": 2019,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X1570",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 494,
+  "fields": {
+    "sub_model": 369,
+    "serial_number": "S0136",
+    "year_start": 2020,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1707",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 495,
+  "fields": {
+    "sub_model": 370,
+    "serial_number": "S0137",
+    "year_start": 2006,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X0195",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 496,
+  "fields": {
+    "sub_model": 371,
+    "serial_number": "S0138",
+    "year_start": 2016,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 2,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X1335",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 497,
+  "fields": {
+    "sub_model": 372,
+    "serial_number": "S0139",
+    "year_start": 2016,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X1259",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 498,
+  "fields": {
+    "sub_model": 373,
+    "serial_number": "S0140",
+    "year_start": 2006,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0202",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 499,
+  "fields": {
+    "sub_model": 374,
+    "serial_number": "S0141",
+    "year_start": 2006,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0203",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 500,
+  "fields": {
+    "sub_model": 373,
+    "serial_number": "S0142",
+    "year_start": 2016,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1025",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 501,
+  "fields": {
+    "sub_model": 374,
+    "serial_number": "S0143",
+    "year_start": 2016,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1141",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 502,
+  "fields": {
+    "sub_model": 375,
+    "serial_number": "S0144",
+    "year_start": 2016,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1148",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 503,
+  "fields": {
+    "sub_model": 376,
+    "serial_number": "S0145",
+    "year_start": 2006,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0096",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 504,
+  "fields": {
+    "sub_model": 376,
+    "serial_number": "S0146",
+    "year_start": 2016,
+    "year_end": 2022,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1212",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 505,
+  "fields": {
+    "sub_model": 377,
+    "serial_number": "S0147",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1996",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 506,
+  "fields": {
+    "sub_model": 378,
+    "serial_number": "S0148",
+    "year_start": 1998,
+    "year_end": 2007,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0008",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 507,
+  "fields": {
+    "sub_model": 378,
+    "serial_number": "S0149",
+    "year_start": 2008,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0001",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 508,
+  "fields": {
+    "sub_model": 378,
+    "serial_number": "S0150",
+    "year_start": 2008,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0002",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 509,
+  "fields": {
+    "sub_model": 378,
+    "serial_number": "S0151",
+    "year_start": 2016,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 510,
+  "fields": {
+    "sub_model": 378,
+    "serial_number": "S0152",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1763",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 511,
+  "fields": {
+    "sub_model": 378,
+    "serial_number": "S0153",
+    "year_start": 2016,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X002A",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 512,
+  "fields": {
+    "sub_model": 610,
+    "serial_number": "S0154",
+    "year_start": 1990,
+    "year_end": 2013,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X0176",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 513,
+  "fields": {
+    "sub_model": 579,
+    "serial_number": "S0155",
+    "year_start": 2020,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1592",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 514,
+  "fields": {
+    "sub_model": 383,
+    "serial_number": "S0156",
+    "year_start": 2003,
+    "year_end": 2009,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0047",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 515,
+  "fields": {
+    "sub_model": 383,
+    "serial_number": "S0157",
+    "year_start": 2010,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0038",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 516,
+  "fields": {
+    "sub_model": 383,
+    "serial_number": "S0158",
+    "year_start": 2021,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1772",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 517,
+  "fields": {
+    "sub_model": 383,
+    "serial_number": "S0159",
+    "year_start": 2024,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3015",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 518,
+  "fields": {
+    "sub_model": 611,
+    "serial_number": "S0160",
+    "year_start": 2021,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1829",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 519,
+  "fields": {
+    "sub_model": 612,
+    "serial_number": "S0161",
+    "year_start": 2006,
+    "year_end": 2012,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0142",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 520,
+  "fields": {
+    "sub_model": 612,
+    "serial_number": "S0162",
+    "year_start": 2013,
+    "year_end": 2017,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1041",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 521,
+  "fields": {
+    "sub_model": 387,
+    "serial_number": "S0163",
+    "year_start": 2018,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1562",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 522,
+  "fields": {
+    "sub_model": 613,
+    "serial_number": "S0164",
+    "year_start": 2017,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1477",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 523,
+  "fields": {
+    "sub_model": 389,
+    "serial_number": "S0165",
+    "year_start": 2008,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 9,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0081",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 524,
+  "fields": {
+    "sub_model": 615,
+    "serial_number": "S0166",
+    "year_start": 2016,
+    "year_end": 2021,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1814",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 525,
+  "fields": {
+    "sub_model": 614,
+    "serial_number": "S0167",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1946",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 526,
+  "fields": {
+    "sub_model": 616,
+    "serial_number": "S0168",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1936",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 527,
+  "fields": {
+    "sub_model": 617,
+    "serial_number": "S0169",
+    "year_start": 2014,
+    "year_end": 2020,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0154",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 528,
+  "fields": {
+    "sub_model": 617,
+    "serial_number": "S0170",
+    "year_start": 2021,
+    "year_end": 2024,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1887",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 529,
+  "fields": {
+    "sub_model": 394,
+    "serial_number": "S0171",
+    "year_start": 2014,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 12,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0364",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 530,
+  "fields": {
+    "sub_model": 549,
+    "serial_number": "S0172",
+    "year_start": 2023,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 531,
+  "fields": {
+    "sub_model": 396,
+    "serial_number": "S0231",
+    "year_start": 2017,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "X1462",
+    "x_code": "X1462",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 532,
+  "fields": {
+    "sub_model": 583,
+    "serial_number": "S0174",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 533,
+  "fields": {
+    "sub_model": 398,
+    "serial_number": "S0175",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3117",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 534,
+  "fields": {
+    "sub_model": 399,
+    "serial_number": "S0176",
+    "year_start": 2012,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0317",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 535,
+  "fields": {
+    "sub_model": 400,
+    "serial_number": "S0177",
+    "year_start": 2012,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0316",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 536,
+  "fields": {
+    "sub_model": 557,
+    "serial_number": "S0178",
+    "year_start": 2020,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 537,
+  "fields": {
+    "sub_model": 402,
+    "serial_number": "S0179",
+    "year_start": 2017,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 538,
+  "fields": {
+    "sub_model": 347,
+    "serial_number": "S0180",
+    "year_start": 2014,
+    "year_end": 2022,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1078",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 539,
+  "fields": {
+    "sub_model": 403,
+    "serial_number": "S0181",
+    "year_start": 2020,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1649",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 540,
+  "fields": {
+    "sub_model": 609,
+    "serial_number": "S0182",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1878",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": 43,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 541,
+  "fields": {
+    "sub_model": 440,
+    "serial_number": "S0232",
+    "year_start": 2021,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": "X1706",
+    "x_code": "X1706",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 542,
+  "fields": {
+    "sub_model": 406,
+    "serial_number": "S0184",
+    "year_start": 2003,
+    "year_end": 2008,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0776",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 543,
+  "fields": {
+    "sub_model": 545,
+    "serial_number": "S0185",
+    "year_start": 2006,
+    "year_end": 2015,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0637",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": "https://drive.google.com/drive/folders/1z9jEP06YduXrAcY0PS9etzDIrr4Oyurf"
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 544,
+  "fields": {
+    "sub_model": 408,
+    "serial_number": "S0224",
+    "year_start": 2023,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "X2064",
+    "x_code": "X2064",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 545,
+  "fields": {
+    "sub_model": 409,
+    "serial_number": "S0227",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": "X3066",
+    "x_code": "X3066",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 546,
+  "fields": {
+    "sub_model": 410,
+    "serial_number": "S0188",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2042",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 547,
+  "fields": {
+    "sub_model": 411,
+    "serial_number": "S0223",
+    "year_start": 2018,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "X1545",
+    "x_code": "X1545",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 548,
+  "fields": {
+    "sub_model": 412,
+    "serial_number": "S0190",
+    "year_start": 2015,
+    "year_end": 2019,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1167",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 549,
+  "fields": {
+    "sub_model": 439,
+    "serial_number": "S0230",
+    "year_start": 2026,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "X3011/X3023",
+    "x_code": "X3011/X3023",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 550,
+  "fields": {
+    "sub_model": 414,
+    "serial_number": "S0222",
+    "year_start": 2015,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": "X1204",
+    "x_code": "X1204",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 551,
+  "fields": {
+    "sub_model": 580,
+    "serial_number": "S0193",
+    "year_start": 2022,
+    "year_end": 2024,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1827",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 552,
+  "fields": {
+    "sub_model": 386,
+    "serial_number": "S0240",
+    "year_start": 2026,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "YR-2517C874",
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 553,
+  "fields": {
+    "sub_model": 443,
+    "serial_number": "S0243",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "YR-4420BA14",
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 554,
+  "fields": {
+    "sub_model": 568,
+    "serial_number": "S0196",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "BR2",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3111",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 555,
+  "fields": {
+    "sub_model": 442,
+    "serial_number": "S0238",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "YR-CE9201F5",
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 556,
+  "fields": {
+    "sub_model": 437,
+    "serial_number": "S0237",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "YR-1AFD9CE2",
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": "https://drive.google.com/file/d/16z3a0ZoLhKLkxOmqDOC1v2JdlZpXCe1n/view?usp=sharing"
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 557,
+  "fields": {
+    "sub_model": 334,
+    "serial_number": "S0236",
+    "year_start": 2013,
+    "year_end": 2018,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "YR-76980451",
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 558,
+  "fields": {
+    "sub_model": 438,
+    "serial_number": "S0235",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": "YR-6F952AE4",
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 559,
+  "fields": {
+    "sub_model": 436,
+    "serial_number": "S0219",
+    "year_start": 2016,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": "X1233",
+    "x_code": "X1233",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 560,
+  "fields": {
+    "sub_model": 604,
+    "serial_number": "S0202",
+    "year_start": 2014,
+    "year_end": 2017,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1337",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 561,
+  "fields": {
+    "sub_model": 558,
+    "serial_number": "S0203",
+    "year_start": 2016,
+    "year_end": 2019,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1168",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 562,
+  "fields": {
+    "sub_model": 421,
+    "serial_number": "S0234",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "YR-648009E5",
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": 43,
+    "measurement_country": 43,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 563,
+  "fields": {
+    "sub_model": 596,
+    "serial_number": "S0205",
+    "year_start": 2011,
+    "year_end": 2014,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X0885",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 564,
+  "fields": {
+    "sub_model": 596,
+    "serial_number": "S0206",
+    "year_start": 2014,
+    "year_end": 2017,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1577",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 565,
+  "fields": {
+    "sub_model": 595,
+    "serial_number": "S0207",
+    "year_start": 2018,
+    "year_end": 2026,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1455",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 566,
+  "fields": {
+    "sub_model": 553,
+    "serial_number": "S0244",
+    "year_start": 2025,
+    "year_end": 2027,
+    "br": "",
+    "number_of_seats": null,
+    "number_of_doors": null,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 567,
+  "fields": {
+    "sub_model": 593,
+    "serial_number": "S0229",
+    "year_start": 2012,
+    "year_end": 2013,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "X1113",
+    "x_code": "X1113",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 568,
+  "fields": {
+    "sub_model": 618,
+    "serial_number": "S0242",
+    "year_start": 2020,
+    "year_end": 2026,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "None",
+    "x_code": "X1851",
+    "fitting_confirmation": "Sampling",
+    "drive": "LHD",
+    "vehicle_country": 43,
+    "measurement_country": 43,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 569,
+  "fields": {
+    "sub_model": 586,
+    "serial_number": "S0216",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": null,
+    "number_of_doors": null,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 570,
+  "fields": {
+    "sub_model": 428,
+    "serial_number": "S0212",
+    "year_start": 2010,
+    "year_end": 2014,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X-0596",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 571,
+  "fields": {
+    "sub_model": 606,
+    "serial_number": "S0215",
+    "year_start": 2023,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": null,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 572,
+  "fields": {
+    "sub_model": 429,
+    "serial_number": "S0241",
+    "year_start": 1990,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": "X-1393",
+    "x_code": "X-1393",
+    "fitting_confirmation": "Confirmed",
+    "drive": "LHD",
+    "vehicle_country": 43,
+    "measurement_country": 43,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 646,
+  "fields": {
+    "sub_model": 441,
+    "serial_number": "S0064",
+    "year_start": 2022,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1877",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 647,
+  "fields": {
+    "sub_model": 396,
+    "serial_number": "S0173",
+    "year_start": 2017,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1462",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 648,
+  "fields": {
+    "sub_model": 440,
+    "serial_number": "S0183",
+    "year_start": 2021,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1706",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 649,
+  "fields": {
+    "sub_model": 408,
+    "serial_number": "S0186",
+    "year_start": 2023,
+    "year_end": 2024,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X2064",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 650,
+  "fields": {
+    "sub_model": 409,
+    "serial_number": "S0187",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3066",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 651,
+  "fields": {
+    "sub_model": 411,
+    "serial_number": "S0189",
+    "year_start": 2018,
+    "year_end": 2023,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1545",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 652,
+  "fields": {
+    "sub_model": 439,
+    "serial_number": "S0191",
+    "year_start": 2026,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X3011/X3023",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 653,
+  "fields": {
+    "sub_model": 414,
+    "serial_number": "S0192",
+    "year_start": 2015,
+    "year_end": 2020,
+    "br": "",
+    "number_of_seats": 3,
+    "number_of_doors": 2,
+    "layout_code": null,
+    "x_code": "X1204",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 654,
+  "fields": {
+    "sub_model": 612,
+    "serial_number": "S0194",
+    "year_start": 2026,
+    "year_end": 2026,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 655,
+  "fields": {
+    "sub_model": 443,
+    "serial_number": "S0195",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 656,
+  "fields": {
+    "sub_model": 442,
+    "serial_number": "S0197",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 657,
+  "fields": {
+    "sub_model": 437,
+    "serial_number": "S0198",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 658,
+  "fields": {
+    "sub_model": 588,
+    "serial_number": "S0199",
+    "year_start": 2013,
+    "year_end": 2018,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Confirmed",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 659,
+  "fields": {
+    "sub_model": 438,
+    "serial_number": "S0200",
+    "year_start": 2025,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Pending",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 660,
+  "fields": {
+    "sub_model": 436,
+    "serial_number": "S0201",
+    "year_start": 2016,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1233",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 661,
+  "fields": {
+    "sub_model": 421,
+    "serial_number": "S0204",
+    "year_start": 2024,
+    "year_end": 2025,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 662,
+  "fields": {
+    "sub_model": 596,
+    "serial_number": "S0208",
+    "year_start": 2018,
+    "year_end": 2026,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1456",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 663,
+  "fields": {
+    "sub_model": 593,
+    "serial_number": "S0209",
+    "year_start": 2012,
+    "year_end": 2013,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X1113",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 664,
+  "fields": {
+    "sub_model": 265,
+    "serial_number": "S0210",
+    "year_start": 2012,
+    "year_end": 2013,
+    "br": "BR2",
+    "number_of_seats": 5,
+    "number_of_doors": null,
+    "layout_code": null,
+    "x_code": "X-1112",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 665,
+  "fields": {
+    "sub_model": 564,
+    "serial_number": "S0211",
+    "year_start": 2019,
+    "year_end": 2022,
+    "br": "BR1",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X-1848",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 666,
+  "fields": {
+    "sub_model": 428,
+    "serial_number": "S0213",
+    "year_start": 2015,
+    "year_end": 2018,
+    "br": "",
+    "number_of_seats": 7,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X-1008",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 667,
+  "fields": {
+    "sub_model": 429,
+    "serial_number": "S0214",
+    "year_start": 1990,
+    "year_end": 2021,
+    "br": "",
+    "number_of_seats": 5,
+    "number_of_doors": 4,
+    "layout_code": null,
+    "x_code": "X-1393",
+    "fitting_confirmation": "Sampling",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+},
+{
+  "model": "management.yearrange",
+  "pk": 668,
+  "fields": {
+    "sub_model": 619,
+    "serial_number": "S0245",
+    "year_start": 2024,
+    "year_end": 2026,
+    "br": "",
+    "number_of_seats": null,
+    "number_of_doors": null,
+    "layout_code": null,
+    "x_code": "",
+    "fitting_confirmation": "",
+    "drive": "",
+    "vehicle_country": null,
+    "measurement_country": null,
+    "google_drive_url": ""
+  }
+}
+]
