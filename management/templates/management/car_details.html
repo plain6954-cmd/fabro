@@ -4462,6 +4462,7 @@
             formData.set('cmyk_code', cmykCode);
             formData.set('material_options', JSON.stringify(modalMaterialOptions.edit));
 
+            let persisted = false;
             try {
                 const res = await fetch(`/api/colors/${id}/update/`, {
                     method: 'POST',
@@ -4470,6 +4471,7 @@
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
+                    persisted = true;
                     const updated = data.color || {
                         id: id,
                         name: nameVal,
@@ -4649,6 +4651,12 @@
                     if (errorBanner) errorBanner.style.display = 'flex';
                 }
             } catch (err) {
+                console.error('Color Master update failed:', err);
+                if (persisted) {
+                    // The server saved the change; reload canonical data if client rendering fails.
+                    window.location.reload();
+                    return;
+                }
                 if (errorMsg) errorMsg.textContent = '{% translate "An error occurred while updating the color." %}';
                 if (errorBanner) errorBanner.style.display = 'flex';
             } finally {
@@ -6576,6 +6584,19 @@
         function escapeHtml(text) {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return String(text || '').replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function escapeJsStr(value) {
+            return String(value ?? '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"')
+                .replace(/\r/g, '\\r')
+                .replace(/\n/g, '\\n')
+                .replace(/\u2028/g, '\\u2028')
+                .replace(/\u2029/g, '\\u2029')
+                .replace(/</g, '\\x3C')
+                .replace(/>/g, '\\x3E');
         }
 
         function loadDesignFolders(vehicleId, folderPage = 1, imagePage = 1) {

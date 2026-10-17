@@ -1041,6 +1041,256 @@
             }
         }
 
+        /* =========================================================================
+           Material Master Expandable Variants — Gliding Accordion
+           ========================================================================= */
+        .category-card[data-category="Material"] .settings-list {
+            max-height: 480px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(6, 182, 212, 0.45) transparent;
+        }
+
+        .category-card[data-category="Material"] .settings-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .category-card[data-category="Material"] .settings-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .category-card[data-category="Material"] .settings-list::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.4);
+            border-radius: 4px;
+        }
+        .category-card[data-category="Material"] .settings-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.75);
+        }
+
+        .material-master-accordion {
+            min-width: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            transition: margin-bottom 360ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .material-master-accordion.is-open {
+            margin-bottom: 4px;
+        }
+
+        .material-accordion-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease, border-radius 0.2s ease, border-color 0.2s ease;
+        }
+
+        .material-master-accordion.is-open .material-accordion-header {
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+        }
+
+        body.light-mode .material-master-accordion.is-open .material-accordion-header {
+            background: #f1f5f9 !important;
+            border-bottom-color: #e2e8f0 !important;
+        }
+
+        .material-accordion-trigger {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+            cursor: pointer;
+            text-align: left;
+            outline: none;
+            color: inherit;
+            font: inherit;
+            gap: 6px;
+        }
+
+        .material-accordion-trigger.is-static {
+            cursor: default;
+        }
+
+        .material-accordion-trigger:focus-visible {
+            outline: 2px solid #06b6d4;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* Chevron */
+        .material-master-accordion__chevron {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease;
+            transform: rotate(0deg);
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .material-master-accordion.is-open .material-master-accordion__chevron {
+            transform: rotate(90deg);
+            color: #06b6d4;
+        }
+
+        /* Expandable content wrapper */
+        .material-master-accordion__body {
+            display: grid;
+            grid-template-rows: 0fr;
+            opacity: 0;
+            transition: grid-template-rows 360ms cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 240ms ease;
+            pointer-events: none;
+        }
+
+        /* Expanded state */
+        .material-master-accordion.is-open .material-master-accordion__body {
+            grid-template-rows: 1fr;
+            opacity: 1;
+            pointer-events: auto;
+            transition: grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity 260ms ease;
+        }
+
+        /* Inner wrapper is necessary for 0fr collapse */
+        .material-master-accordion__inner {
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Content gliding */
+        .material-master-accordion__content {
+            transform: translate3d(0, -8px, 0);
+            opacity: 0;
+            transition: transform 360ms cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 240ms ease;
+        }
+
+        .material-master-accordion.is-open .material-master-accordion__content {
+            transform: translate3d(0, 0, 0);
+            opacity: 1;
+            transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity 280ms ease;
+        }
+
+        /* Variant Sublist */
+        .material-variant-sublist {
+            background: rgba(10, 15, 29, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            padding: 2px 0;
+            margin-top: -1px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+        }
+
+        body.light-mode .material-variant-sublist {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+        }
+
+        .material-variant-subrow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 32px;
+            padding: 3px 8px 3px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+            gap: 8px;
+            transition: background 0.15s ease;
+            box-sizing: border-box;
+        }
+
+        body.light-mode .material-variant-subrow {
+            border-bottom-color: #edf2f7;
+        }
+
+        .material-variant-subrow:last-child {
+            border-bottom: none;
+        }
+
+        .material-variant-subrow:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        body.light-mode .material-variant-subrow:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .material-variant-subrow-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .material-variant-subhandle {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 0.62rem;
+            color: #475569;
+            flex-shrink: 0;
+            cursor: default;
+            user-select: none;
+            opacity: 0.6;
+        }
+
+        .material-variant-subname {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.76rem;
+            font-weight: 500;
+            color: #cbd5e1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        body.light-mode .material-variant-subname {
+            color: #334155;
+        }
+
+        .variant-subdelete {
+            width: 22px !important;
+            height: 22px !important;
+            font-size: 0.62rem !important;
+            border-radius: 4px !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-shrink: 0 !important;
+            background: #dc2626 !important;
+            color: white !important;
+            border: none !important;
+            cursor: pointer !important;
+            transition: opacity 0.15s ease, transform 0.15s ease !important;
+        }
+
+        .variant-subdelete:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            .material-master-accordion,
+            .material-master-accordion__body,
+            .material-master-accordion__content,
+            .material-master-accordion__chevron {
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+            }
+        }
+
     </style>
 {% if is_htmx_request %}
 </template>
@@ -1097,7 +1347,7 @@
 
                 <div class="category-grid">
                     {% for category, settings in master_settings.items %}
-                        <div class="category-card">
+                        <div class="category-card" data-category="{{ category }}">
                             <div class="category-header">
                                 <div class="category-title">
                                     {% if category == "Channel" %}
@@ -1136,39 +1386,94 @@
 
                             <div class="settings-list">
                                 {% for setting in settings %}
-                                    <div class="setting-item" data-setting-id="{{ setting.id }}">
-                                        <span class="setting-name">{{ setting.name }}</span>
-                                        <div class="setting-actions">
-                                            {% if category == "Material" %}
-                                                <button type="button" class="action-btn edit" 
-                                                        onclick="openMaterialEditModal('{{ setting.id }}', '{{ setting.name|escapejs }}')"
-                                                        title="Edit {{ setting.name }}">
-                                                    <i class="fas fa-edit"></i>
+                                    {% if category == "Material" %}
+                                        <div class="material-master-accordion" id="material-accordion-{{ setting.id }}" data-material-id="{{ setting.id }}">
+                                            <div class="setting-item material-accordion-header" data-setting-id="{{ setting.id }}"
+                                                 {% if setting.variants.all %}onclick="toggleMaterialAccordion('{{ setting.id }}')"{% endif %}>
+                                                <button type="button"
+                                                        class="material-accordion-trigger{% if not setting.variants.all %} is-static{% endif %}"
+                                                        id="material-trigger-{{ setting.id }}"
+                                                        aria-expanded="false"
+                                                        aria-controls="material-body-{{ setting.id }}"
+                                                        {% if setting.variants.all %}
+                                                        onclick="event.stopPropagation(); toggleMaterialAccordion('{{ setting.id }}')"
+                                                        {% else %}
+                                                        disabled
+                                                        {% endif %}>
+                                                    <span class="setting-name">{{ setting.name }}</span>
+                                                    {% if setting.variants.all %}
+                                                        <i class="fas fa-chevron-right material-master-accordion__chevron" aria-hidden="true"></i>
+                                                    {% endif %}
                                                 </button>
-                                                <script type="application/json" id="material-variants-data-{{ setting.id }}">
-                                                    [
-                                                        {% for v in setting.variants.all %}
-                                                            {"id": {{ v.id }}, "name": "{{ v.name|escapejs }}", "order": {{ v.display_order }}}{% if not forloop.last %},{% endif %}
-                                                        {% endfor %}
-                                                    ]
-                                                </script>
-                                            {% else %}
+                                                <div class="setting-actions" onclick="event.stopPropagation();">
+                                                    <button type="button" class="action-btn edit"
+                                                            onclick="event.stopPropagation(); openMaterialEditModal('{{ setting.id }}', '{{ setting.name|escapejs }}')"
+                                                            title="Edit {{ setting.name }}">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <script type="application/json" id="material-variants-data-{{ setting.id }}">
+                                                        [
+                                                            {% for v in setting.variants.all %}
+                                                                {"id": {{ v.id }}, "name": "{{ v.name|escapejs }}", "order": {{ v.display_order }}}{% if not forloop.last %},{% endif %}
+                                                            {% endfor %}
+                                                        ]
+                                                    </script>
+                                                    <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;" onclick="event.stopPropagation();">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="action-btn delete"
+                                                                title="Delete {{ setting.name }}"
+                                                                onclick="return confirm(window.FabroI18n.interpolate(window.FabroI18n.gettext('Are you sure you want to delete %(name)s?'), {name: this.closest('.material-master-accordion').querySelector('.setting-name').textContent.trim()}));">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            {% if setting.variants.all %}
+                                            <div class="material-master-accordion__body" id="material-body-{{ setting.id }}" role="region" aria-labelledby="material-trigger-{{ setting.id }}">
+                                                <div class="material-master-accordion__inner">
+                                                    <div class="material-master-accordion__content">
+                                                        <div class="material-variant-sublist" id="material-sublist-{{ setting.id }}">
+                                                            {% for v in setting.variants.all %}
+                                                                <div class="material-variant-subrow" data-variant-id="{{ v.id }}">
+                                                                    <div class="material-variant-subrow-left">
+                                                                        <span class="material-variant-subhandle" title="Drag handle">
+                                                                            <i class="fas fa-ellipsis-v"></i><i class="fas fa-ellipsis-v"></i>
+                                                                        </span>
+                                                                        <span class="material-variant-subname">{{ v.name }}</span>
+                                                                    </div>
+                                                                    <button type="button" class="variant-subdelete"
+                                                                            onclick="event.stopPropagation(); deleteVariantFromAccordion('{{ setting.id }}', {{ v.id }}, '{{ v.name|escapejs }}')"
+                                                                            title="Delete variant {{ v.name }}">
+                                                                        <i class="fas fa-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div class="setting-item" data-setting-id="{{ setting.id }}">
+                                            <span class="setting-name">{{ setting.name }}</span>
+                                            <div class="setting-actions">
                                                 <button type="button" class="action-btn edit" 
                                                         onclick="openEditModal('{{ setting.id }}', '{{ setting.category|escapejs }}', '{{ setting.name|escapejs }}')"
                                                         title="Edit {{ setting.name }}">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                            {% endif %}
-                                            <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="action-btn delete"
-                                                        title="Delete {{ setting.name }}"
-                                                        onclick="return confirm(window.FabroI18n.interpolate(window.FabroI18n.gettext('Are you sure you want to delete %(name)s?'), {name: '{{ setting.name|escapejs }}'}));">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
+                                                <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="action-btn delete"
+                                                            title="Delete {{ setting.name }}"
+                                                            onclick="return confirm(window.FabroI18n.interpolate(window.FabroI18n.gettext('Are you sure you want to delete %(name)s?'), {name: '{{ setting.name|escapejs }}'}));">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
-                                    </div>
+                                    {% endif %}
                                 {% empty %}
                                     <div class="empty-state">
                                         {% translate "No settings for this category" %}
@@ -1302,20 +1607,14 @@
             document.body.style.overflow = 'auto';
         }
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = "none";
-                document.body.style.overflow = 'auto';
-            }
-        }
-
         // ==========================================================================
         // Material Variant Management: State & Handlers
         // ==========================================================================
         let currentMaterialId = null;
         let materialVariants = []; // { tempId, id, name, order }
         let draggedVariantId = null;
+        let materialEditRevision = 0;
+        const pendingMaterialDeletes = new Set();
 
         function getCookie(name) {
             let cookieValue = null;
@@ -1348,8 +1647,12 @@
 
         function openMaterialEditModal(settingId, name) {
             currentMaterialId = settingId;
+            materialEditRevision++;
+            const openRevision = materialEditRevision;
             document.getElementById('materialSettingId').value = settingId;
-            document.getElementById('materialNameInput').value = name;
+            const displayedName = document.querySelector(`#material-accordion-${settingId} .setting-name`)?.textContent.trim();
+            const openedName = displayedName || name;
+            document.getElementById('materialNameInput').value = openedName;
             document.getElementById('materialVariantNewInput').value = '';
             showVariantError('');
 
@@ -1378,22 +1681,22 @@
             document.body.style.overflow = 'hidden';
 
             // Also trigger a background fetch to ensure fresh data in case of concurrent updates
-            fetch(`/master-settings/materials/${settingId}/variants/`, {
+            pageScope.fetch(`/master-settings/materials/${settingId}/variants/`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(res => res.json())
             .then(data => {
-                if (data.status === 'success' && Array.isArray(data.variants) && currentMaterialId === settingId) {
-                    const hasUnsaved = materialVariants.some(v => v.id === null);
-                    if (!hasUnsaved) {
-                        materialVariants = data.variants.map((v, idx) => ({
-                            tempId: 'mv-' + (v.id || ('tmp-' + idx)),
-                            id: v.id || null,
-                            name: v.name,
-                            order: typeof v.order === 'number' ? v.order : idx
-                        })).sort((a, b) => a.order - b.order);
-                        renderMaterialVariantList();
-                    }
+                if (data.status === 'success' && Array.isArray(data.variants)
+                        && currentMaterialId === settingId && materialEditRevision === openRevision) {
+                    const nameInput = document.getElementById('materialNameInput');
+                    if (data.name && nameInput?.value === openedName) nameInput.value = data.name;
+                    materialVariants = data.variants.map((v, idx) => ({
+                        tempId: 'mv-' + (v.id || ('tmp-' + idx)),
+                        id: v.id || null,
+                        name: v.name,
+                        order: typeof v.order === 'number' ? v.order : idx
+                    })).sort((a, b) => a.order - b.order);
+                    renderMaterialVariantList();
                 }
             })
             .catch(() => {});
@@ -1405,6 +1708,7 @@
         }
 
         function closeMaterialEditModal() {
+            materialEditRevision++;
             const modal = document.getElementById('materialEditModal');
             if (modal) modal.style.display = 'none';
             document.body.style.overflow = 'auto';
@@ -1470,6 +1774,7 @@
                 const fromIndex = materialVariants.findIndex(v => v.tempId === draggedVariantId);
                 const toIndex = materialVariants.findIndex(v => v.tempId === variant.tempId);
                 if (fromIndex !== -1 && toIndex !== -1) {
+                    materialEditRevision++;
                     const [moved] = materialVariants.splice(fromIndex, 1);
                     materialVariants.splice(toIndex, 0, moved);
                     materialVariants.forEach((v, idx) => v.order = idx);
@@ -1519,6 +1824,7 @@
             }
 
             showVariantError('');
+            materialEditRevision++;
 
             const list = document.getElementById('materialVariantList');
             const emptyEl = list.querySelector('.material-variant-empty');
@@ -1596,6 +1902,7 @@
             const list = document.getElementById('materialVariantList');
             const row = list ? list.querySelector(`[data-temp-id="${tempId}"]`) : null;
             if (!row || row.classList.contains('is-exiting')) return;
+            materialEditRevision++;
 
             row.classList.add('is-exiting');
 
@@ -1689,7 +1996,7 @@
 
             const csrfToken = getCookie('csrftoken') || (document.querySelector('input[name="csrfmiddlewaretoken"]') ? document.querySelector('input[name="csrfmiddlewaretoken"]').value : '');
 
-            fetch(`/edit-master-setting/${currentMaterialId}/`, {
+            pageScope.fetch(`/edit-master-setting/${currentMaterialId}/`, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -1705,17 +2012,23 @@
                 }
 
                 if (data.status === 'success') {
-                    // Update setting name on the page list
-                    const settingRow = document.querySelector(`.setting-item[data-setting-id="${currentMaterialId}"]`);
-                    if (settingRow) {
-                        const nameSpan = settingRow.querySelector('.setting-name');
-                        if (nameSpan) nameSpan.textContent = nameVal;
+                    // Update the mounted accordion directly; a stale modal refresh must not repaint its title.
+                    const accordion = document.getElementById(`material-accordion-${currentMaterialId}`);
+                    if (accordion) {
+                        const nameSpan = accordion.querySelector('.setting-name');
+                        if (nameSpan) nameSpan.textContent = data.name || nameVal;
+                        const editButton = accordion.querySelector('.action-btn.edit');
+                        const deleteButton = accordion.querySelector('.action-btn.delete');
+                        if (editButton) editButton.title = `Edit ${data.name || nameVal}`;
+                        if (deleteButton) deleteButton.title = `Delete ${data.name || nameVal}`;
 
                         // Update embedded script tag with freshly saved variants
                         const scriptTag = document.getElementById(`material-variants-data-${currentMaterialId}`);
                         if (scriptTag && Array.isArray(data.variants)) {
                             scriptTag.textContent = JSON.stringify(data.variants);
                         }
+                        // Refresh the live accordion sublist and header
+                        renderAccordionSublist(currentMaterialId, data.variants);
                     }
 
                     if (typeof showToast === 'function') {
@@ -1745,8 +2058,200 @@
             });
         }
 
+        // ==========================================================================
+        // Material Master Expandable Accordion Functions
+        // ==========================================================================
+        function toggleMaterialAccordion(materialId) {
+            const accordion = document.getElementById(`material-accordion-${materialId}`);
+            if (!accordion) return;
+
+            const trigger = document.getElementById(`material-trigger-${materialId}`);
+            const isOpen = accordion.classList.contains('is-open');
+
+            // Single-open accordion behavior: Close all other open material accordions smoothly
+            document.querySelectorAll('.material-master-accordion.is-open').forEach(openAcc => {
+                if (openAcc !== accordion) {
+                    openAcc.classList.remove('is-open');
+                    const openTrigger = openAcc.querySelector('.material-accordion-trigger');
+                    if (openTrigger) {
+                        openTrigger.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            });
+
+            if (isOpen) {
+                accordion.classList.remove('is-open');
+                if (trigger) trigger.setAttribute('aria-expanded', 'false');
+            } else {
+                // Check if this material has variants
+                const scriptData = document.getElementById(`material-variants-data-${materialId}`);
+                let variants = [];
+                try {
+                    if (scriptData) variants = JSON.parse(scriptData.textContent || '[]');
+                } catch (e) {
+                    variants = [];
+                }
+
+                if (!variants || variants.length === 0) {
+                    return; // Do not open empty accordion
+                }
+
+                accordion.classList.add('is-open');
+                if (trigger) trigger.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        function renderAccordionSublist(materialId, variants) {
+            const accordion = document.getElementById(`material-accordion-${materialId}`);
+            if (!accordion) return;
+
+            const trigger = document.getElementById(`material-trigger-${materialId}`);
+            const header = accordion.querySelector('.material-accordion-header');
+
+            // If 0 variants:
+            if (!variants || variants.length === 0) {
+                accordion.classList.remove('is-open');
+                if (trigger) {
+                    trigger.setAttribute('aria-expanded', 'false');
+                    trigger.classList.add('is-static');
+                    trigger.disabled = true;
+                    const chevron = trigger.querySelector('.material-master-accordion__chevron');
+                    if (chevron) chevron.remove();
+                }
+                if (header) {
+                    header.removeAttribute('onclick');
+                }
+                const body = document.getElementById(`material-body-${materialId}`);
+                if (body) {
+                    body.remove();
+                }
+                return;
+            }
+
+            // Has variants:
+            if (header) {
+                header.setAttribute('onclick', `toggleMaterialAccordion('${materialId}')`);
+            }
+            if (trigger) {
+                trigger.classList.remove('is-static');
+                trigger.disabled = false;
+                let chevron = trigger.querySelector('.material-master-accordion__chevron');
+                if (!chevron) {
+                    chevron = document.createElement('i');
+                    chevron.className = 'fas fa-chevron-right material-master-accordion__chevron';
+                    chevron.setAttribute('aria-hidden', 'true');
+                    trigger.appendChild(chevron);
+                }
+            }
+
+            let body = document.getElementById(`material-body-${materialId}`);
+            let sublist = document.getElementById(`material-sublist-${materialId}`);
+
+            if (!body || !sublist) {
+                const newBody = document.createElement('div');
+                newBody.className = 'material-master-accordion__body';
+                newBody.id = `material-body-${materialId}`;
+                newBody.setAttribute('role', 'region');
+                newBody.setAttribute('aria-labelledby', `material-trigger-${materialId}`);
+                newBody.innerHTML = `
+                    <div class="material-master-accordion__inner">
+                        <div class="material-master-accordion__content">
+                            <div class="material-variant-sublist" id="material-sublist-${materialId}"></div>
+                        </div>
+                    </div>
+                `;
+                accordion.appendChild(newBody);
+                sublist = document.getElementById(`material-sublist-${materialId}`);
+            }
+
+            sublist.innerHTML = '';
+            variants.forEach(v => {
+                const row = document.createElement('div');
+                row.className = 'material-variant-subrow';
+                row.setAttribute('data-variant-id', v.id);
+                row.innerHTML = `
+                    <div class="material-variant-subrow-left">
+                        <span class="material-variant-subhandle" title="Drag handle">
+                            <i class="fas fa-ellipsis-v"></i><i class="fas fa-ellipsis-v"></i>
+                        </span>
+                        <span class="material-variant-subname">${escapeHtml(v.name)}</span>
+                    </div>
+                    <button type="button" class="variant-subdelete"
+                            title="Delete variant ${escapeHtml(v.name)}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                const delBtn = row.querySelector('.variant-subdelete');
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteVariantFromAccordion(materialId, v.id, v.name);
+                });
+                sublist.appendChild(row);
+            });
+        }
+
+        function deleteVariantFromAccordion(materialId, variantId, variantName) {
+            if (pendingMaterialDeletes.has(materialId)) return;
+            const confirmMsg = window.FabroI18n ?
+                window.FabroI18n.interpolate(window.FabroI18n.gettext('Are you sure you want to delete %(name)s?'), { name: variantName }) :
+                `Are you sure you want to delete ${variantName}?`;
+            if (!confirm(confirmMsg)) return;
+
+            const scriptTag = document.getElementById(`material-variants-data-${materialId}`);
+            const payloadData = new FormData();
+            payloadData.append('delete_variant_id', variantId);
+
+            const csrfToken = getCookie('csrftoken') || (document.querySelector('input[name="csrfmiddlewaretoken"]') ? document.querySelector('input[name="csrfmiddlewaretoken"]').value : '');
+            const accordion = document.getElementById(`material-accordion-${materialId}`);
+            pendingMaterialDeletes.add(materialId);
+            accordion?.querySelectorAll('.variant-subdelete').forEach(button => { button.disabled = true; });
+
+            pageScope.fetch(`/edit-master-setting/${materialId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: payloadData
+            })
+            .then(res => {
+                if (!res.headers.get('content-type')?.includes('application/json')) {
+                    throw new Error('Unexpected response while deleting variant');
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    if (scriptTag && Array.isArray(data.variants)) {
+                        scriptTag.textContent = JSON.stringify(data.variants);
+                    }
+                    const nameSpan = accordion?.querySelector('.setting-name');
+                    if (nameSpan && data.name) nameSpan.textContent = data.name;
+                    renderAccordionSublist(materialId, data.variants);
+                    if (typeof showToast === 'function') {
+                        showToast(window.FabroI18n ? window.FabroI18n.gettext('Variant deleted successfully.') : 'Variant deleted successfully.', 'success');
+                    }
+                } else {
+                    const errMsg = data.message || (window.FabroI18n ? window.FabroI18n.gettext('Failed to delete variant.') : 'Failed to delete variant.');
+                    if (typeof showToast === 'function') showToast(errMsg, 'error');
+                    else alert(errMsg);
+                }
+            })
+            .catch(err => {
+                if (pageScope.signal.aborted) return;
+                console.error('Delete variant error:', err);
+                const errMsg = window.FabroI18n ? window.FabroI18n.gettext('Network error while deleting variant.') : 'Network error while deleting variant.';
+                if (typeof showToast === 'function') showToast(errMsg, 'error');
+                else alert(errMsg);
+            })
+            .finally(() => {
+                pendingMaterialDeletes.delete(materialId);
+                accordion?.querySelectorAll('.variant-subdelete').forEach(button => { button.disabled = false; });
+            });
+        }
+
         // Global key and click listeners
-        window.addEventListener('keydown', (e) => {
+        pageScope.listen(window, 'keydown', (e) => {
             if (e.key === 'Escape') {
                 const matModal = document.getElementById('materialEditModal');
                 if (matModal && matModal.style.display === 'flex') {
@@ -1760,7 +2265,7 @@
         });
 
         // Close modal when clicking backdrop
-        window.addEventListener('click', (event) => {
+        pageScope.listen(window, 'click', (event) => {
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = 'none';
                 document.body.style.overflow = 'auto';
@@ -1769,6 +2274,7 @@
                 closeMaterialEditModal();
             }
         });
+        pageScope.onCleanup(() => { document.body.style.overflow = ''; });
 
         // Initialize
         window.fabroOnPageLoad(function() {
@@ -1812,6 +2318,19 @@
         if (typeof addMaterialVariant === 'function') window.addMaterialVariant = addMaterialVariant;
         if (typeof deleteMaterialVariant === 'function') window.deleteMaterialVariant = deleteMaterialVariant;
         if (typeof submitMaterialEditForm === 'function') window.submitMaterialEditForm = submitMaterialEditForm;
+        if (typeof toggleMaterialAccordion === 'function') window.toggleMaterialAccordion = toggleMaterialAccordion;
+        if (typeof renderAccordionSublist === 'function') window.renderAccordionSublist = renderAccordionSublist;
+        if (typeof deleteVariantFromAccordion === 'function') window.deleteVariantFromAccordion = deleteVariantFromAccordion;
+        pageScope.onCleanup(() => {
+            const handlers = {
+                openEditModal, closeEditModal, openMaterialEditModal, closeMaterialEditModal,
+                addMaterialVariant, deleteMaterialVariant, submitMaterialEditForm,
+                toggleMaterialAccordion, renderAccordionSublist, deleteVariantFromAccordion,
+            };
+            Object.entries(handlers).forEach(([name, handler]) => {
+                if (window[name] === handler) delete window[name];
+            });
+        });
     })();
     </script>
     </div>

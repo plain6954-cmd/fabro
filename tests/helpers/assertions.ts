@@ -33,6 +33,7 @@ export function attachPageDiagnostics(page: Page) {
   page.on('requestfailed', (request: Request) => {
     const url = request.url();
     if ((url.includes('/api/filtered-skus/')
+      || url.includes('/api/available-years/')
       || url.includes('/api/chat/messages/')
       || url.includes('/api/chat/users/'))
       && /ERR_ABORTED|NS_BINDING_ABORTED/.test(request.failure()?.errorText || '')) {

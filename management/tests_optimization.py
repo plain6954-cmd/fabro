@@ -3,7 +3,9 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import connection
 from django.test import RequestFactory, TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
@@ -79,11 +81,24 @@ class OptimizationRegressionTests(TestCase):
         view = ComplaintRetrieveUpdateDestroyAPIView()
         view.request = RequestFactory().get('/')
         view.request.user = self.admin
-        # One permission/profile lookup plus four fixed relation queries.
-        with self.assertNumQueries(5):
+        # The profile lookup may be cached, but history must never add queries.
+        with CaptureQueriesContext(connection) as initial_queries:
             data = ComplaintSerializer(view.get_queryset().get(pk=complaint.pk)).data
+        self.assertLessEqual(len(initial_queries), 5)
         self.assertEqual(len(data['approvals']), 12)
         self.assertEqual(len(data['timeline_events']), 12)
+        for number in range(12, 24):
+            ComplaintApproval.objects.create(
+                complaint=complaint, approval_round=number + 1, approver_role='PM', approver_user=self.peer,
+            )
+            ComplaintTimeline.objects.create(
+                complaint=complaint, action_type='test', title='Synthetic history', user=self.peer,
+            )
+        with CaptureQueriesContext(connection) as expanded_queries:
+            expanded_data = ComplaintSerializer(view.get_queryset().get(pk=complaint.pk)).data
+        self.assertLessEqual(len(expanded_queries), 5)
+        self.assertEqual(len(expanded_data['approvals']), 24)
+        self.assertEqual(len(expanded_data['timeline_events']), 24)
 
     def test_large_catalogue_response_compresses_without_losing_cache_variants(self):
         import gzip

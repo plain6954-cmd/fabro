@@ -114,6 +114,42 @@ class MaterialVariantTests(TestCase):
         self.assertEqual(variants[0].name, 'VariantA')
         self.assertFalse(MaterialVariant.objects.filter(id=v2.id).exists())
 
+    def test_inline_delete_only_removes_requested_variant(self):
+        self.client.force_login(self.admin_user)
+        old_variant = MaterialVariant.objects.create(material=self.material, name='Old', display_order=0)
+        other_variant = MaterialVariant.objects.create(material=self.material, name='Concurrent', display_order=1)
+        response = self.client.post(
+            reverse('edit_master_setting', args=[self.material.id]),
+            {'delete_variant_id': old_variant.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(MaterialVariant.objects.filter(pk=old_variant.pk).exists())
+        self.assertTrue(MaterialVariant.objects.filter(pk=other_variant.pk).exists())
+        self.assertEqual(
+            [item['id'] for item in response.json()['variants']],
+            [other_variant.pk],
+        )
+
+    def test_inline_delete_rejects_other_material_and_non_admin(self):
+        other_material = MasterSetting.objects.create(category='Material', name='Leather')
+        other_variant = MaterialVariant.objects.create(material=other_material, name='Grain')
+        self.client.force_login(self.admin_user)
+        response = self.client.post(
+            reverse('edit_master_setting', args=[self.material.id]),
+            {'delete_variant_id': other_variant.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 404)
+        self.client.force_login(self.non_admin_user)
+        response = self.client.post(
+            reverse('edit_master_setting', args=[other_material.id]),
+            {'delete_variant_id': other_variant.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(MaterialVariant.objects.filter(pk=other_variant.pk).exists())
+
     def test_edit_non_material_setting_unchanged(self):
         self.client.login(username='mat_admin', password='testpassword123')
         url = reverse('edit_master_setting', args=[self.channel.id])

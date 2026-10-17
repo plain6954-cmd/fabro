@@ -2814,6 +2814,35 @@ def edit_master_setting(request, setting_id):
 
     # Material-specific variant management with atomic transactions
     if setting.category == 'Material':
+        delete_variant_id = request.POST.get('delete_variant_id')
+        if delete_variant_id is not None:
+            try:
+                variant_id = int(delete_variant_id)
+            except (TypeError, ValueError):
+                return JsonResponse({'status': 'error', 'message': _('Invalid variant.')}, status=400)
+            with transaction.atomic():
+                # Lock the parent so concurrent edits and deletes of this material serialize.
+                setting = MasterSetting.objects.select_for_update().get(pk=setting.pk)
+                variant = MaterialVariant.objects.filter(material=setting, pk=variant_id).first()
+                if variant is None:
+                    return JsonResponse({'status': 'error', 'message': _('Variant no longer exists.')}, status=404)
+                variant_name = variant.name
+                variant.delete()
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action='deleted',
+                    object_type='Material Variant',
+                    object_name=f'{setting.name} - {variant_name}',
+                )
+                variants_list = [
+                    {'id': v.id, 'name': v.name, 'order': v.display_order, 'display_order': v.display_order}
+                    for v in setting.variants.all().order_by('display_order', 'id')
+                ]
+            return JsonResponse({
+                'status': 'success', 'success': True, 'setting_id': setting.id,
+                'name': setting.name, 'variants': variants_list,
+            })
+
         new_name = request.POST.get('name', '').strip()
         if not new_name:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
