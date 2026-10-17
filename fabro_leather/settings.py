@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from urllib.parse import unquote, urlparse
 from django.core.exceptions import ImproperlyConfigured
+from fabro_leather.database_config import connection_max_age, connection_mode, database_port
 
 # Load .env file if it exists
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -246,6 +247,7 @@ WSGI_APPLICATION = 'fabro_leather.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
 USE_POSTGRES = env_bool('USE_POSTGRES', False) or bool(DATABASE_URL)
 if E2E_TESTING:
+    DATABASE_CONNECTION_MODE = 'sqlite'
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -254,25 +256,36 @@ if E2E_TESTING:
     }
 elif USE_POSTGRES:
     if DATABASE_URL:
-        parsed_database_url = urlparse(DATABASE_URL)
+        try:
+            parsed_database_url = urlparse(DATABASE_URL)
+        except ValueError:
+            raise ImproperlyConfigured('DATABASE_URL has an invalid PostgreSQL host or port.') from None
         if parsed_database_url.scheme not in {'postgres', 'postgresql'}:
             raise ImproperlyConfigured('DATABASE_URL must use the postgres or postgresql scheme.')
         db_name = unquote(parsed_database_url.path.lstrip('/'))
         db_user = unquote(parsed_database_url.username or '')
         db_password = unquote(parsed_database_url.password or '')
-        db_host = parsed_database_url.hostname
-        db_port = parsed_database_url.port or 5432
+        try:
+            db_host = parsed_database_url.hostname
+            url_port = parsed_database_url.port
+            db_port = database_port(5432 if url_port is None else url_port)
+        except ValueError:
+            raise ImproperlyConfigured('DATABASE_URL has an invalid PostgreSQL host or port.') from None
     else:
         db_name = os.getenv('DB_NAME', 'postgres')
         db_user = os.getenv('DB_USER')
         db_password = os.getenv('DB_PASSWORD')
         db_host = os.getenv('DB_HOST')
-        db_port = os.getenv('DB_PORT', '5432')
+        db_port = database_port(os.getenv('DB_PORT', '5432'))
 
     if not all([db_name, db_user, db_password, db_host]):
         raise ImproperlyConfigured(
             'PostgreSQL requires DATABASE_URL or complete DB_NAME, DB_USER, DB_PASSWORD, and DB_HOST values.'
         )
+    DATABASE_CONNECTION_MODE = connection_mode(os.getenv('DB_CONNECTION_MODE'), db_host, db_port)
+    db_conn_max_age = connection_max_age(
+        os.getenv('CONN_MAX_AGE'), DATABASE_CONNECTION_MODE, db_port
+    )
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -281,7 +294,7 @@ elif USE_POSTGRES:
             'PASSWORD': db_password,
             'HOST': db_host,
             'PORT': db_port,
-            'CONN_MAX_AGE': int(os.getenv('CONN_MAX_AGE', '60')),
+            'CONN_MAX_AGE': db_conn_max_age,
             'CONN_HEALTH_CHECKS': True,
             'DISABLE_SERVER_SIDE_CURSORS': True,
             'OPTIONS': {
@@ -291,6 +304,7 @@ elif USE_POSTGRES:
         }
     }
 else:
+    DATABASE_CONNECTION_MODE = 'sqlite'
     db_path = Path('/tmp') / 'db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3'
     DATABASES = {
         'default': {
