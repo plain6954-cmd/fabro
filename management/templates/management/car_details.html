@@ -5117,9 +5117,9 @@
                     const countrySelects = addRow.querySelectorAll('select[name="vehicle_country"], select[name="measurement_country"]');
                     countrySelects.forEach(sel => {
                         sel.addEventListener('change', async function() {
-                            const vSelect = addRow.querySelector('select[name="vehicle_country"]');
                             const mSelect = addRow.querySelector('select[name="measurement_country"]');
-                            const targetCountryId = (vSelect && vSelect.value) ? vSelect.value : (mSelect ? mSelect.value : '');
+                            const vSelect = addRow.querySelector('select[name="vehicle_country"]');
+                            const targetCountryId = (mSelect && mSelect.value) ? mSelect.value : (vSelect ? vSelect.value : '');
                             try {
                                 const res = await fetch(`/api/next-pattern-serial/?country_id=${encodeURIComponent(targetCountryId)}`);
                                 if (res.ok) {
@@ -5145,9 +5145,9 @@
 
                     const carId = editRow.getAttribute('data-car-id');
                     const serialInput = editRow.querySelector('input[name="serial_number"]');
-                    const vSelect = editRow.querySelector('select[name="vehicle_country"]');
                     const mSelect = editRow.querySelector('select[name="measurement_country"]');
-                    const selectedCountryId = (vSelect && vSelect.value) ? vSelect.value : (mSelect ? mSelect.value : '');
+                    const vSelect = editRow.querySelector('select[name="vehicle_country"]');
+                    const selectedCountryId = (mSelect && mSelect.value) ? mSelect.value : (vSelect ? vSelect.value : '');
 
                     const initialCountryId = editRow.getAttribute('data-initial-country-id') || '';
                     const initialSerial = editRow.getAttribute('data-initial-serial') || '';

@@ -84,10 +84,11 @@ class Command(BaseCommand):
         if not ksa_country:
             raise CommandError("MasterSetting for Country 'KSA' not found in database.")
 
-        expected_prefix = get_country_letter(gcc_country)
-        self.stdout.write(f'Vehicle Country: {gcc_country.name} (Prefix: {expected_prefix})')
+        # Prefix is determined according to Measurement Country (KSA)
+        expected_prefix = get_country_letter(ksa_country)
+        self.stdout.write(f'Measurement Country: {ksa_country.name} (Prefix: {expected_prefix})')
         if expected_prefix != 'S':
-            raise CommandError(f'Expected prefix for GCC is S, but got {expected_prefix!r}. Aborting.')
+            raise CommandError(f'Expected prefix for KSA is S, but got {expected_prefix!r}. Aborting.')
 
         # 3. Read and validate CSV
         rows = self._read_and_validate_csv(csv_path, expected_prefix)

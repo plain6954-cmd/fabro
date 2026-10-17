@@ -284,7 +284,7 @@ class YearRange(models.Model):
     google_drive_url = models.URLField(max_length=500, blank=True, default='', verbose_name=_('Google Drive URL'))
 
     def save(self, *args, **kwargs):
-        country = self.vehicle_country or self.measurement_country
+        country = self.measurement_country or self.vehicle_country
         expected_letter = get_country_letter(country)
         clean_serial = (self.serial_number or '').strip()
 

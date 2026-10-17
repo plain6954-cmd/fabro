@@ -42,6 +42,36 @@ class PatternMasterImportTests(TestCase):
         self.assertEqual(format_pattern_serial('221', self.gcc), 'S0221')
         self.assertEqual(format_pattern_serial('005', self.gcc), 'S0005')
 
+    def test_prefix_determined_by_measurement_country(self):
+        """Verify that pattern serial prefix is determined according to Measurement Country."""
+        # Measurement country India -> prefix 'I' even if vehicle country is GCC
+        yr_india = YearRange(
+            sub_model=self.variant,
+            serial_number='auto',
+            year_start=2020,
+            year_end=2025,
+            br='BR1',
+            vehicle_country=self.gcc,
+            measurement_country=self.india,
+            drive='LHD'
+        )
+        yr_india.save()
+        self.assertTrue(yr_india.serial_number.startswith('I'))
+
+        # Measurement country KSA -> prefix 'S' even if vehicle country is India
+        yr_ksa = YearRange(
+            sub_model=self.variant,
+            serial_number='auto',
+            year_start=2020,
+            year_end=2025,
+            br='BR1',
+            vehicle_country=self.india,
+            measurement_country=self.ksa,
+            drive='LHD'
+        )
+        yr_ksa.save()
+        self.assertTrue(yr_ksa.serial_number.startswith('S'))
+
     def test_next_pattern_serial(self):
         """Verify that get_next_pattern_serial produces consecutive S numbers."""
         YearRange.objects.create(
