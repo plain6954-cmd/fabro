@@ -282,6 +282,7 @@ class YearRange(models.Model):
     vehicle_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_vehicle_country')
     measurement_country = models.ForeignKey('MasterSetting', on_delete=models.SET_NULL, null=True, blank=True, related_name='year_ranges_by_measurement_country')
     google_drive_url = models.URLField(max_length=500, blank=True, default='', verbose_name=_('Google Drive URL'))
+    photo = models.ImageField(upload_to='vehicle_photos/', blank=True, null=True, verbose_name=_('Vehicle Photograph'))
 
     def save(self, *args, **kwargs):
         country = self.measurement_country or self.vehicle_country
@@ -322,6 +323,23 @@ class YearRange(models.Model):
         elif end:
             return f" {end}"
         return ""
+
+    @property
+    def photograph_url(self):
+        if self.photo:
+            try:
+                return self.photo.url
+            except Exception:
+                pass
+        direct = self.direct_design_images.filter(approval_status='approved').order_by('-uploaded_at').first()
+        if not direct:
+            direct = self.direct_design_images.order_by('-uploaded_at').first()
+        if direct and direct.image:
+            try:
+                return direct.image.url
+            except Exception:
+                pass
+        return ''
     
 class SKU(models.Model):
     code = models.CharField(max_length=100, unique=True)
@@ -834,6 +852,7 @@ class Notification(models.Model):
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     alteration = models.ForeignKey(PatternAlteration, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     design_image = models.ForeignKey('PatternDesignImage', on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    color_selection = models.ForeignKey('PatternColorSelection', on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     title = models.CharField(max_length=150)
     message = models.TextField(blank=True)
     notification_type = models.CharField(max_length=50, default='workflow')
@@ -1175,3 +1194,157 @@ class ColorMaterialOption(models.Model):
 
     def __str__(self):
         return f"{self.color.name}: {self.material.name} · {self.variant.name}"
+
+
+class PatternMeasurementFile(models.Model):
+    CATEGORY_SCANNED = 'scanned_pattern'
+    CATEGORY_INTERIOR = 'interior_media'
+    CATEGORY_CHOICES = [
+        (CATEGORY_SCANNED, _('Scanned Patterns & Data')),
+        (CATEGORY_INTERIOR, _('Interior Pictures & Videos')),
+    ]
+    vehicle = models.ForeignKey(YearRange, on_delete=models.CASCADE, related_name='measurement_files')
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, db_index=True)
+    file = models.FileField(upload_to='measurement_files/%Y/%m/')
+    filename = models.CharField(max_length=255)
+    file_size = models.PositiveBigIntegerField(default=0)
+    file_type = models.CharField(max_length=50, blank=True, default='')  # 'dxf', 'pdf', 'image', 'video'
+    file_ext = models.CharField(max_length=20, blank=True, default='')
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_measurement_files')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    client_upload_key = models.CharField(max_length=120, null=True, blank=True, unique=True)
+
+    class Meta:
+        ordering = ['-uploaded_at', '-id']
+        indexes = [
+            models.Index(fields=['vehicle', 'category', '-uploaded_at'], name='idx_meas_file_veh_cat'),
+        ]
+
+    def __str__(self):
+        return f"{self.filename} ({self.category}) for Vehicle {self.vehicle_id}"
+
+
+class PatternColorSelection(models.Model):
+    TONE_SINGLE = 'single'
+    TONE_DUAL = 'dual'
+    TONE_CHOICES = [
+        (TONE_SINGLE, _('Single Tone')),
+        (TONE_DUAL, _('Dual Tone')),
+    ]
+
+    SOURCE_EXISTING = 'existing'
+    SOURCE_NEW = 'new'
+    SOURCE_CHOICES = [
+        (SOURCE_EXISTING, _('From Existing')),
+        (SOURCE_NEW, _('New Color')),
+    ]
+
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, _('Pending Approval')),
+        (STATUS_APPROVED, _('Approved')),
+        (STATUS_REJECTED, _('Rejected')),
+    ]
+
+    vehicle = models.ForeignKey(YearRange, on_delete=models.CASCADE, related_name='color_selections')
+    tone_type = models.CharField(max_length=20, choices=TONE_CHOICES, default=TONE_SINGLE)
+
+    # Inner Color (or Single Tone Color)
+    inner_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default=SOURCE_EXISTING)
+    inner_existing_color = models.ForeignKey(
+        ColorMaster,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='inner_color_selections'
+    )
+    inner_pantone_code = models.CharField(max_length=50, blank=True, default='')
+    inner_hex_code = models.CharField(max_length=20, blank=True, default='')
+    inner_color_name = models.CharField(max_length=100, blank=True, default='')
+
+    # Outer Color (Dual Tone only)
+    outer_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default=SOURCE_EXISTING, blank=True)
+    outer_existing_color = models.ForeignKey(
+        ColorMaster,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='outer_color_selections'
+    )
+    outer_pantone_code = models.CharField(max_length=50, blank=True, default='')
+    outer_hex_code = models.CharField(max_length=20, blank=True, default='')
+    outer_color_name = models.CharField(max_length=100, blank=True, default='')
+
+    swatch_image = models.ImageField(upload_to='color_swatches/%Y/%m/', blank=True, null=True)
+
+    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    is_new_color = models.BooleanField(default=False, db_index=True)
+
+    submitted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='submitted_color_selections'
+    )
+    client_submission_key = models.CharField(max_length=120, null=True, blank=True, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        indexes = [
+            models.Index(fields=['vehicle', '-created_at'], name='idx_color_sel_veh_created'),
+            models.Index(fields=['status', '-created_at'], name='idx_color_sel_status_created'),
+        ]
+
+    def __str__(self):
+        return f"ColorSelection #{self.id} for Vehicle {self.vehicle_id} ({self.status})"
+
+    @property
+    def is_dual(self):
+        return self.tone_type == self.TONE_DUAL
+
+    @property
+    def has_new_color(self):
+        if self.inner_source == self.SOURCE_NEW:
+            return True
+        if self.is_dual and self.outer_source == self.SOURCE_NEW:
+            return True
+        return False
+
+
+class PatternColorApprovalDecision(models.Model):
+    DEPT_MD = 'MD'
+    DEPT_ED = 'ED'
+    DEPT_CAD = 'CAD'
+    DEPT_CHOICES = [
+        (DEPT_MD, 'MD'),
+        (DEPT_ED, 'ED'),
+        (DEPT_CAD, 'CAD'),
+    ]
+
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, _('Pending')),
+        (STATUS_APPROVED, _('Approved')),
+        (STATUS_REJECTED, _('Rejected')),
+    ]
+
+    selection = models.ForeignKey(PatternColorSelection, on_delete=models.CASCADE, related_name='decisions')
+    department = models.CharField(max_length=10, choices=DEPT_CHOICES)
+    approver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='color_approval_decisions')
+    decision = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    remarks = models.TextField(blank=True, default='')
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('selection', 'department')
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.department} decision on #{self.selection_id}: {self.decision}"

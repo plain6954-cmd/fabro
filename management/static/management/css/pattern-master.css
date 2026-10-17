@@ -1144,7 +1144,7 @@
 
         /* Desktop Viewport-Fit Layout: Zero page scrolling, internal table scroll only */
         @media (min-width: 992px) {
-            html:not(.is-color-subwindow), body:not(.is-color-subwindow) {
+            html:not(.is-color-subwindow):not(.is-design-tab), body:not(.is-color-subwindow):not(.is-design-tab) {
                 overflow-y: hidden;
                 height: 100vh;
                 height: 100dvh;

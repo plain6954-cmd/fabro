@@ -110,7 +110,7 @@ def create_upload_ticket(user, batch, *, filename, size, content_type, removal_i
         f'complaint_media/uploads/user_{user.pk}/{batch.id}/{upload_id}/'
         f'{uuid.uuid4().hex}{extension}'
     )
-    upload = ComplaintMediaUpload.objects.create(
+    return ComplaintMediaUpload.objects.create(
         id=upload_id,
         batch=batch,
         storage_path=storage_path,
@@ -118,12 +118,11 @@ def create_upload_ticket(user, batch, *, filename, size, content_type, removal_i
         expected_size=size,
         expected_content_type=content_type,
     )
-    try:
-        signed_url = create_signed_upload_url(storage_path, content_type=content_type)
-    except Exception:
-        upload.delete()
-        raise
-    return upload, signed_url
+
+
+def sign_upload_ticket(upload):
+    """Sign after the ticket transaction commits so no row lock spans S3 setup."""
+    return create_signed_upload_url(upload.storage_path, content_type=upload.expected_content_type)
 
 
 def _object_size_and_type(info):
@@ -142,18 +141,17 @@ def _object_size_and_type(info):
     return size, normalize_content_type(content_type)
 
 
-def verify_pending_uploads(user, batch, upload_ids, *, complaint=None, existing_count=0):
+def _pending_uploads(user, batch, upload_ids, *, complaint, existing_count, for_update):
     unique_ids = list(dict.fromkeys(str(upload_id) for upload_id in upload_ids if upload_id))
     if existing_count + len(unique_ids) > MAX_COMPLAINT_MEDIA_FILES:
         raise ValidationError(f'Keep at most {MAX_COMPLAINT_MEDIA_FILES} media files on one complaint.')
     if not unique_ids:
         return []
 
-    uploads = list(
-        ComplaintMediaUpload.objects.select_for_update()
-        .select_related('batch')
-        .filter(id__in=unique_ids)
-    )
+    queryset = ComplaintMediaUpload.objects.select_related('batch').filter(id__in=unique_ids)
+    if for_update:
+        queryset = queryset.select_for_update()
+    uploads = list(queryset)
     if len(uploads) != len(unique_ids):
         raise ValidationError('One or more media uploads are missing or invalid.')
 
@@ -172,18 +170,60 @@ def verify_pending_uploads(user, batch, upload_ids, *, complaint=None, existing_
         if upload.batch.complaint_id != (complaint.pk if complaint else None):
             raise ValidationError('A media upload belongs to a different complaint.')
 
+    return uploads
+
+
+def _verified_object_metadata(upload, info):
+    actual_size, actual_type = _object_size_and_type(info)
+    extension = os.path.splitext(upload.storage_path)[1].lower()
+    if actual_size != upload.expected_size or actual_size > MAX_COMPLAINT_MEDIA_SIZE:
+        raise ValidationError(f'{upload.original_name}: uploaded object size does not match.')
+    if actual_type != upload.expected_content_type:
+        raise ValidationError(f'{upload.original_name}: uploaded object MIME type does not match.')
+    if actual_type not in ALLOWED_COMPLAINT_MEDIA_TYPES.get(extension, set()):
+        raise ValidationError(f'{upload.original_name}: uploaded object type is unsupported.')
+    return actual_size, actual_type
+
+
+def inspect_pending_uploads(user, batch, upload_ids, *, complaint=None, existing_count=0):
+    """Perform remote HEAD requests before any complaint transaction or row lock."""
+    uploads = _pending_uploads(
+        user, batch, upload_ids, complaint=complaint,
+        existing_count=existing_count, for_update=False,
+    )
+    inspected = {}
+    for upload in uploads:
         try:
             info = get_object_info(upload.storage_path)
         except S3StorageError as exc:
             raise ValidationError(f'{upload.original_name}: uploaded object was not found.') from exc
-        actual_size, actual_type = _object_size_and_type(info)
-        extension = os.path.splitext(upload.storage_path)[1].lower()
-        if actual_size != upload.expected_size or actual_size > MAX_COMPLAINT_MEDIA_SIZE:
-            raise ValidationError(f'{upload.original_name}: uploaded object size does not match.')
-        if actual_type != upload.expected_content_type:
-            raise ValidationError(f'{upload.original_name}: uploaded object MIME type does not match.')
-        if actual_type not in ALLOWED_COMPLAINT_MEDIA_TYPES.get(extension, set()):
-            raise ValidationError(f'{upload.original_name}: uploaded object type is unsupported.')
+        inspected[str(upload.id)] = (
+            upload.storage_path, _verified_object_metadata(upload, info)
+        )
+    return inspected
+
+
+def verify_pending_uploads(user, batch, upload_ids, *, complaint=None, existing_count=0,
+                           inspected=None):
+    """Revalidate and lock DB state; never trust the earlier storage inspection alone."""
+    uploads = _pending_uploads(
+        user, batch, upload_ids, complaint=complaint,
+        existing_count=existing_count, for_update=True,
+    )
+    for upload in uploads:
+        if inspected is None:
+            try:
+                info = get_object_info(upload.storage_path)
+            except S3StorageError as exc:
+                raise ValidationError(f'{upload.original_name}: uploaded object was not found.') from exc
+            _verified_object_metadata(upload, info)
+            continue
+        metadata = inspected.get(str(upload.id))
+        if not metadata or metadata[0] != upload.storage_path:
+            raise ValidationError('A media upload changed while it was being verified.')
+        actual_size, actual_type = metadata[1]
+        if actual_size != upload.expected_size or actual_type != upload.expected_content_type:
+            raise ValidationError('A media upload changed while it was being verified.')
     return uploads
 
 
@@ -197,38 +237,52 @@ def attach_verified_uploads(complaint, uploads):
 
 
 def discard_uploads(user, upload_ids):
-    uploads = list(
-        ComplaintMediaUpload.objects.filter(
-            id__in=upload_ids,
-            batch__user=user,
-            status=ComplaintMediaUpload.Status.PENDING,
+    # Claim the rows before deleting objects so a concurrent finalizer cannot
+    # attach an object while it is being removed from storage.
+    with transaction.atomic():
+        uploads = list(
+            ComplaintMediaUpload.objects.select_for_update().filter(
+                id__in=upload_ids,
+                batch__user=user,
+                status=ComplaintMediaUpload.Status.PENDING,
+            )
         )
-    )
+        ComplaintMediaUpload.objects.filter(id__in=[upload.id for upload in uploads]).update(
+            status=ComplaintMediaUpload.Status.REJECTED
+        )
     if not uploads:
         return 0
-    paths = [upload.storage_path for upload in uploads]
     try:
-        delete_objects(paths)
+        delete_objects([upload.storage_path for upload in uploads])
     except S3StorageError:
-        logger.warning('Unable to delete pending object storage media uploads.', exc_info=True)
-        return 0
-    return ComplaintMediaUpload.objects.filter(id__in=[upload.id for upload in uploads]).update(
-        status=ComplaintMediaUpload.Status.REJECTED
-    )
+        # Partial storage deletion is possible. Keep every ticket rejected so
+        # a missing object cannot be attached; log ticket IDs for cleanup.
+        logger.warning(
+            'Unable to delete rejected object storage media uploads; upload_ids=%s',
+            [str(upload.id) for upload in uploads], exc_info=True,
+        )
+    return len(uploads)
 
 
 def cleanup_expired_uploads(now=None):
     now = now or timezone.now()
-    uploads = list(
-        ComplaintMediaUpload.objects.filter(
-            status=ComplaintMediaUpload.Status.PENDING,
-            batch__expires_at__lte=now,
-        )
-    )
-    if not uploads:
-        return 0
-    delete_objects([upload.storage_path for upload in uploads])
     with transaction.atomic():
-        return ComplaintMediaUpload.objects.filter(id__in=[upload.id for upload in uploads]).update(
+        uploads = list(
+            ComplaintMediaUpload.objects.select_for_update().filter(
+                status=ComplaintMediaUpload.Status.PENDING,
+                batch__expires_at__lte=now,
+            )
+        )
+        ComplaintMediaUpload.objects.filter(id__in=[upload.id for upload in uploads]).update(
             status=ComplaintMediaUpload.Status.REJECTED
         )
+    if not uploads:
+        return 0
+    try:
+        delete_objects([upload.storage_path for upload in uploads])
+    except S3StorageError:
+        logger.warning(
+            'Unable to delete expired object storage media uploads; upload_ids=%s',
+            [str(upload.id) for upload in uploads], exc_info=True,
+        )
+    return len(uploads)

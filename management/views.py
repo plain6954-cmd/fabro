@@ -83,6 +83,9 @@ from .models import (
     PatternDesignImage,
     PatternDesignApproval,
     PatternEditLog,
+    PatternMeasurementFile,
+    PatternColorSelection,
+    PatternColorApprovalDecision,
     SKU,
     SubModel,
     UserProfile,
@@ -258,6 +261,23 @@ def _can_user_access_designer_approvals(user):
     if prof.role == WorkflowRoles.ADMIN:
         return True
     if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.PM, ApprovalRoles.ED):
+        return True
+    return False
+
+
+def _can_user_access_color_approvals(user):
+    if is_active_superuser(user):
+        return True
+    if not user or not user.is_authenticated:
+        return False
+    prof = getattr(user, 'workflow_profile', None)
+    if not prof:
+        return False
+    if prof.role == WorkflowRoles.ADMIN:
+        return True
+    if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (
+        ApprovalRoles.MD, ApprovalRoles.ED, ApprovalRoles.CAD, ApprovalRoles.PM
+    ):
         return True
     return False
 
@@ -1982,10 +2002,12 @@ def get_design_folders_api(request):
             vehicle_info = {
                 'id': yr.id,
                 'name': formatted_name,
+                'serial_number': yr.serial_number or f"{yr.id}",
                 'brand': brand_name,
                 'model': model_name,
                 'year_range': years,
                 'sub_model': sub_name,
+                'photo_url': yr.photograph_url,
                 'google_drive_url': yr.google_drive_url or '',
                 'drive_links': _get_vehicle_drive_links_data(yr),
             }
@@ -4132,9 +4154,91 @@ def approvals_list_view(request):
     profile = get_user_profile(request.user)
     user_role = getattr(profile, 'role', '')
     can_access_designer_stage = _can_user_access_designer_approvals(request.user)
+    can_access_color_stage = _can_user_access_color_approvals(request.user)
     workspace_stage = request.GET.get('stage', 'plan').strip().lower()
-    if workspace_stage not in {'plan', 'verification', 'designer'}:
+    if workspace_stage not in {'plan', 'verification', 'designer', 'colors'}:
         workspace_stage = 'plan'
+    if workspace_stage == 'colors':
+        if not can_access_color_stage:
+            raise PermissionDenied('Only MD, ED, CAD, PM, and Admin users can access color approvals.')
+
+        base_count_qs = PatternColorSelection.objects.filter(is_new_color=True)
+        total_active_count = base_count_qs.filter(status='pending').count()
+
+        approval_role = getattr(profile, 'approval_role', None) if profile else None
+        is_admin_user = bool(request.user.is_superuser or (profile and profile.role == WorkflowRoles.ADMIN))
+
+        my_pending_count = 0
+        if approval_role in (ApprovalRoles.MD, ApprovalRoles.ED, ApprovalRoles.CAD):
+            my_pending_count = base_count_qs.filter(
+                status='pending',
+                decisions__department=approval_role,
+                decisions__decision='pending'
+            ).distinct().count()
+        elif is_admin_user or approval_role == ApprovalRoles.PM:
+            my_pending_count = total_active_count
+
+        partially_approved_count = base_count_qs.filter(
+            status='pending',
+            decisions__decision='approved'
+        ).distinct().count()
+        rejection_count = base_count_qs.filter(status='rejected').count()
+        approved_count = base_count_qs.filter(status='approved').count()
+
+        qs = PatternColorSelection.objects.filter(is_new_color=True).select_related(
+            'vehicle__sub_model__model__brand', 'submitted_by', 'inner_existing_color', 'outer_existing_color'
+        ).prefetch_related('decisions__approver').order_by('-created_at')
+
+        status_filter = request.GET.get('status', 'active')
+        if status_filter == 'active':
+            qs = qs.filter(status='pending')
+        elif status_filter == 'my_pending':
+            if approval_role in (ApprovalRoles.MD, ApprovalRoles.ED, ApprovalRoles.CAD):
+                qs = qs.filter(status='pending', decisions__department=approval_role, decisions__decision='pending').distinct()
+            else:
+                qs = qs.filter(status='pending')
+        elif status_filter == 'partially_approved':
+            qs = qs.filter(status='pending', decisions__decision='approved').distinct()
+        elif status_filter in ('rejected', 'rework', 'reconsideration'):
+            qs = qs.filter(status='rejected')
+        elif status_filter == 'approved':
+            qs = qs.filter(status='approved')
+
+        search_query = request.GET.get('search', '').strip()
+        if search_query:
+            qs = qs.filter(
+                Q(vehicle__serial_number__icontains=search_query) |
+                Q(vehicle__sub_model__model__brand__name__icontains=search_query) |
+                Q(vehicle__sub_model__model__name__icontains=search_query) |
+                Q(inner_pantone_code__icontains=search_query) |
+                Q(outer_pantone_code__icontains=search_query) |
+                Q(inner_color_name__icontains=search_query) |
+                Q(outer_color_name__icontains=search_query) |
+                Q(submitted_by__username__icontains=search_query)
+            )
+
+        color_page = Paginator(qs, 20).get_page(request.GET.get('page'))
+        pagination_params = request.GET.copy()
+        pagination_params.pop('page', None)
+
+        from management.services.color_approval import serialize_color_selection
+        color_items = [serialize_color_selection(sel, request.user) for sel in color_page.object_list]
+
+        return render(request, 'management/approvals_list.html', {
+            'workspace_stage': workspace_stage,
+            'status_filter': status_filter,
+            'search_query': search_query,
+            'total_active_count': total_active_count,
+            'my_pending_count': my_pending_count,
+            'partially_approved_count': partially_approved_count,
+            'rejection_count': rejection_count,
+            'approved_count': approved_count,
+            'color_items': color_items,
+            'page_obj': color_page,
+            'pagination_params': pagination_params.urlencode(),
+            'can_access_designer_stage': can_access_designer_stage,
+            'can_access_color_stage': can_access_color_stage,
+        })
     if workspace_stage == 'designer':
         if not can_access_designer_stage:
             raise PermissionDenied('Only CAD, PM, and Admin users can access designer upload approvals.')
@@ -4564,6 +4668,7 @@ def approvals_list_view(request):
         'workspace_stage': workspace_stage,
 
         'can_access_designer_stage': can_access_designer_stage,
+        'can_access_color_stage': can_access_color_stage,
         'page_obj': approval_page,
         'pagination_querystring': pagination_params.urlencode(),
     })
@@ -4812,6 +4917,11 @@ def open_notification(request, notification_id):
 
     complaint = notification.complaint
     if not complaint:
+        if notification.notification_type == 'color_approval':
+            if notification.color_selection_id:
+                sel = notification.color_selection
+                return redirect(f"{reverse('car_details')}?vehicle_id={sel.vehicle_id}#measurements")
+            return redirect(f"{reverse('approvals_list')}?stage=colors")
         if notification.notification_type == 'design_approval':
             if notification.design_image_id:
                 return redirect('design_approval_detail', image_id=notification.design_image_id)
@@ -6665,4 +6775,246 @@ class PushAwareLogoutView(LogoutView):
         response = super().post(request, *args, **kwargs)
         response.delete_cookie('fabro_push_subscription', samesite='Lax')
         return response
+
+
+# =====================================================================
+# Pattern Master Measurements & Color Approval API Views
+# =====================================================================
+
+@login_required
+@require_POST
+def upload_measurement_files_api(request):
+    vehicle_id = request.POST.get('vehicle_id')
+    category = request.POST.get('category')
+    if not vehicle_id:
+        return JsonResponse({'status': 'error', 'message': _('Vehicle ID is required.')}, status=400)
+    if category not in (PatternMeasurementFile.CATEGORY_SCANNED, PatternMeasurementFile.CATEGORY_INTERIOR):
+        return JsonResponse({'status': 'error', 'message': _('Invalid measurement file category.')}, status=400)
+
+    try:
+        vehicle = YearRange.objects.get(id=vehicle_id)
+    except YearRange.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': _('Vehicle not found.')}, status=404)
+
+    files = request.FILES.getlist('files') or request.FILES.getlist('file')
+    if not files:
+        return JsonResponse({'status': 'error', 'message': _('No files provided for upload.')}, status=400)
+
+    client_key = request.POST.get('client_upload_key')
+    saved_files = []
+    errors = []
+
+    from management.services.measurement_files import save_measurement_file, serialize_measurement_file
+
+    for f in files:
+        try:
+            meas_file, _ = save_measurement_file(
+                vehicle=vehicle,
+                category=category,
+                uploaded_file=f,
+                user=request.user,
+                client_key=client_key,
+            )
+            saved_files.append(serialize_measurement_file(meas_file, request))
+        except ValidationError as e:
+            errors.append(f"{f.name}: {e.message if hasattr(e, 'message') else str(e)}")
+        except Exception as e:
+            logger.exception("Error saving measurement file %s", f.name)
+            errors.append(f"{f.name}: {str(e)}")
+
+    if not saved_files and errors:
+        return JsonResponse({'status': 'error', 'message': '; '.join(errors)}, status=400)
+
+    return JsonResponse({
+        'status': 'success',
+        'files': saved_files,
+        'errors': errors,
+    })
+
+
+@login_required
+def get_measurement_files_api(request):
+    vehicle_id = request.GET.get('vehicle_id')
+    if not vehicle_id:
+        return JsonResponse({'status': 'error', 'message': _('Vehicle ID is required.')}, status=400)
+
+    from management.services.measurement_files import serialize_measurement_file
+
+    qs = PatternMeasurementFile.objects.filter(vehicle_id=vehicle_id).select_related('uploaded_by').order_by('-uploaded_at')
+
+    category = request.GET.get('category')
+    if category:
+        qs = qs.filter(category=category)
+
+    scanned_files = []
+    interior_files = []
+    for f in qs:
+        serialized = serialize_measurement_file(f, request)
+        if f.category == PatternMeasurementFile.CATEGORY_SCANNED:
+            scanned_files.append(serialized)
+        else:
+            interior_files.append(serialized)
+
+    return JsonResponse({
+        'status': 'success',
+        'scanned_files': scanned_files,
+        'interior_files': interior_files,
+    })
+
+
+@login_required
+@require_POST
+def delete_measurement_file_api(request, file_id):
+    meas_file = get_object_or_404(PatternMeasurementFile, pk=file_id)
+    if not (request.user.is_superuser or request.user == meas_file.uploaded_by or _can_manage_catalog(request.user)):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+
+    if meas_file.file:
+        meas_file.file.delete(save=False)
+    meas_file.delete()
+    return JsonResponse({'status': 'success', 'message': _('File deleted successfully.')})
+
+
+@login_required
+def measurement_file_download(request, file_id):
+    meas_file = get_object_or_404(PatternMeasurementFile, pk=file_id)
+    if not meas_file.file:
+        return HttpResponse(_('File is unavailable.'), status=404)
+    return redirect(meas_file.file.url)
+
+
+@login_required
+@require_POST
+def save_color_selection_api(request):
+    vehicle_id = request.POST.get('vehicle_id')
+    if not vehicle_id:
+        return JsonResponse({'status': 'error', 'message': _('Vehicle ID is required.')}, status=400)
+
+    try:
+        vehicle = YearRange.objects.get(id=vehicle_id)
+    except YearRange.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': _('Vehicle not found.')}, status=404)
+
+    swatch_file = request.FILES.get('swatch_image')
+    client_key = request.POST.get('client_submission_key')
+
+    from management.services.color_approval import save_color_selection, serialize_color_selection
+
+    try:
+        selection, created = save_color_selection(
+            vehicle=vehicle,
+            user=request.user,
+            data=request.POST,
+            swatch_file=swatch_file,
+            client_key=client_key,
+        )
+        return JsonResponse({
+            'status': 'success',
+            'created': created,
+            'selection': serialize_color_selection(selection, request.user),
+        })
+    except ValidationError as e:
+        msg = e.message if hasattr(e, 'message') else '; '.join(e.messages) if hasattr(e, 'messages') else str(e)
+        return JsonResponse({'status': 'error', 'message': msg}, status=400)
+    except Exception as e:
+        logger.exception("Error saving color selection")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+def get_color_selection_details_api(request):
+    selection_id = request.GET.get('selection_id')
+    vehicle_id = request.GET.get('vehicle_id')
+
+    from management.services.color_approval import serialize_color_selection
+
+    selection = None
+    if selection_id:
+        try:
+            selection = PatternColorSelection.objects.select_related(
+                'vehicle__sub_model__model__brand',
+                'inner_existing_color',
+                'outer_existing_color',
+                'submitted_by'
+            ).get(id=selection_id)
+        except PatternColorSelection.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': _('Selection not found.')}, status=404)
+    elif vehicle_id:
+        selection = PatternColorSelection.objects.filter(
+            vehicle_id=vehicle_id
+        ).select_related(
+            'vehicle__sub_model__model__brand',
+            'inner_existing_color',
+            'outer_existing_color',
+            'submitted_by'
+        ).order_by('-created_at').first()
+
+    if not selection:
+        return JsonResponse({
+            'status': 'success',
+            'selection': None,
+        })
+
+    return JsonResponse({
+        'status': 'success',
+        'selection': serialize_color_selection(selection, request.user),
+    })
+
+
+@login_required
+@require_POST
+def submit_color_decision_api(request):
+    decision_id = request.POST.get('decision_id')
+    decision_choice = request.POST.get('decision')
+    remarks = request.POST.get('remarks', '')
+
+    if not decision_id:
+        return JsonResponse({'status': 'error', 'message': _('Decision ID is required.')}, status=400)
+
+    from management.services.color_approval import submit_color_decision, serialize_color_selection
+
+    try:
+        decision = submit_color_decision(
+            user=request.user,
+            decision_id=decision_id,
+            decision_choice=decision_choice,
+            remarks=remarks,
+        )
+        return JsonResponse({
+            'status': 'success',
+            'selection': serialize_color_selection(decision.selection, request.user),
+        })
+    except ValidationError as e:
+        msg = e.message if hasattr(e, 'message') else '; '.join(e.messages) if hasattr(e, 'messages') else str(e)
+        return JsonResponse({'status': 'error', 'message': msg}, status=400)
+    except PermissionDenied as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=403)
+    except Exception as e:
+        logger.exception("Error submitting color decision")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def upload_vehicle_photo(request, vehicle_id):
+    if not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': _('Only super users can upload vehicle images.')}, status=403)
+
+    vehicle = get_object_or_404(YearRange, pk=vehicle_id)
+    photo_file = request.FILES.get('photo')
+    if not photo_file:
+        return JsonResponse({'status': 'error', 'message': _('No image file was provided.')}, status=400)
+
+    if photo_file.size > 10 * 1024 * 1024:
+        return JsonResponse({'status': 'error', 'message': _('Image size exceeds 10 MB limit.')}, status=400)
+
+    vehicle.photo = photo_file
+    vehicle.save(update_fields=['photo'])
+
+    return JsonResponse({
+        'status': 'success',
+        'message': _('Vehicle image uploaded successfully.'),
+        'photo_url': vehicle.photo.url if vehicle.photo else '',
+    })
+
 

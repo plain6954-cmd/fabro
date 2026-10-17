@@ -13,6 +13,7 @@
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/approvals.css' %}?v=20260912-compact5" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261017" data-fabro-page-asset>
     <style data-fabro-page-asset>
         .workspace-subtitle-mobile { display: none; }
         .filters-bottom-sheet-backdrop { display: none; }
@@ -99,19 +100,48 @@
                         </h1>
                         <p class="workspace-subtitle">
                             <span class="workspace-subtitle-desktop">
-                                {% if workspace_stage == 'verification' %}{% translate "Post-execution verification matrix" %}{% elif workspace_stage == 'designer' %}{% translate "3D Pattern design upload approval tracker" %}{% else %}{% translate "Pre-execution action plan approval matrix" %}{% endif %} &amp; {% translate "reviewer tracker" %} •
+                                {% if workspace_stage == 'verification' %}{% translate "Post-execution verification matrix" %}{% elif workspace_stage == 'designer' %}{% translate "3D Pattern design upload approval tracker" %}{% elif workspace_stage == 'colors' %}{% translate "New Color approval matrix" %}{% else %}{% translate "Pre-execution action plan approval matrix" %}{% endif %} &amp; {% translate "reviewer tracker" %} •
                                 <strong>{{ workflow_role_label }}</strong> 
                                 {% if workflow_profile.country %}({{ workflow_profile.country.name }}){% endif %}
                             </span>
                             <span class="workspace-subtitle-mobile">
-                                {% if workspace_stage == 'verification' %}{% translate "Post-execution verification tracker" %}{% elif workspace_stage == 'designer' %}{% translate "3D Design approval tracker" %}{% else %}{% translate "Pre-execution approval tracker" %}{% endif %} · {{ workflow_role_label }}{% if workflow_profile.country %} ({{ workflow_profile.country.name }}){% endif %}
+                                {% if workspace_stage == 'verification' %}{% translate "Post-execution verification tracker" %}{% elif workspace_stage == 'designer' %}{% translate "3D Design approval tracker" %}{% elif workspace_stage == 'colors' %}{% translate "New Color approval tracker" %}{% else %}{% translate "Pre-execution approval tracker" %}{% endif %} · {{ workflow_role_label }}{% if workflow_profile.country %} ({{ workflow_profile.country.name }}){% endif %}
                             </span>
                         </p>
                     </div>
                 </div>
 
                 <!-- KPI METRICS SUMMARY -->
-                {% if workspace_stage == 'designer' %}
+                {% if workspace_stage == 'colors' %}
+                <div class="kpi-row">
+                    <a href="?stage=colors&status=active" class="kpi-chip {% if status_filter == 'active' %}urgent{% endif %}">
+                        <i class="fas fa-bolt"></i> {% translate "Active In Review" %}
+                        <span class="kpi-count">{{ total_active_count }}</span>
+                    </a>
+                    {% if my_pending_count > 0 %}
+                    <a href="?stage=colors&status=my_pending" class="kpi-chip urgent" style="animation: pulse 2s infinite;">
+                        <i class="fas fa-hourglass-half"></i> {% translate "Waiting My Vote" %}
+                        <span class="kpi-count">{{ my_pending_count }}</span>
+                    </a>
+                    {% endif %}
+                    <a href="?stage=colors&status=partially_approved" class="kpi-chip {% if status_filter == 'partially_approved' %}urgent{% endif %}">
+                        <i class="fas fa-tasks"></i> {% translate "Partially Approved" %}
+                        <span class="kpi-count">{{ partially_approved_count }}</span>
+                    </a>
+                    {% if rejection_count > 0 %}
+                    <a href="?stage=colors&status=rejected" class="kpi-chip {% if status_filter == 'rejected' %}urgent{% endif %}" style="background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
+                        <i class="fas fa-times-circle"></i> {% translate "Rejected" %}
+                        <span class="kpi-count" style="background: #f43f5e; color: #fff;">{{ rejection_count }}</span>
+                    </a>
+                    {% endif %}
+                    {% if approved_count > 0 %}
+                    <a href="?stage=colors&status=approved" class="kpi-chip {% if status_filter == 'approved' %}urgent{% endif %}" style="color: #86efac;">
+                        <i class="fas fa-check-circle"></i> {% translate "Approved" %}
+                        <span class="kpi-count" style="background: #22c55e; color: #fff;">{{ approved_count }}</span>
+                    </a>
+                    {% endif %}
+                </div>
+                {% elif workspace_stage == 'designer' %}
                 <div class="kpi-row">
                     <a href="?stage=designer&status=active" class="kpi-chip {% if status_filter == 'active' %}urgent{% endif %}">
                         <i class="fas fa-bolt"></i> {% translate "Active In Review" %}
@@ -180,8 +210,31 @@
                     <i class="fas fa-clipboard-check"></i> {% translate "Verify Execution" %}
                 </a>
                 {% if can_access_designer_stage %}
-                <a href="?stage=designer&status=active" class="tab-btn {% if workspace_stage == 'designer' %}active{% endif %}">
+                <a href="?stage=designer&status=active" class="tab-btn {% if workspace_stage == 'colors' %}
+                <div class="filter-tabs approval-state-tabs">
+                    <a href="?stage=colors&status=active{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
+                        <i class="fas fa-hourglass-half"></i> {% translate "Active Pending" %}
+                    </a>
+                    <a href="?stage=colors&status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
+                        <i class="fas fa-user-clock"></i> {% translate "My Pending Reviews" %} {% if my_pending_count %}({{ my_pending_count }}){% endif %}
+                    </a>
+                    <a href="?stage=colors&status=partially_approved{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'partially_approved' %}active{% endif %}">
+                        <i class="fas fa-tasks"></i> {% translate "Partially Approved" %}
+                    </a>
+                    <a href="?stage=colors&status=rejected{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'rejected' %}active{% endif %}">
+                        <i class="fas fa-times-circle"></i> {% translate "Rejected" %}
+                    </a>
+                    <a href="?stage=colors&status=approved{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'approved' %}active{% endif %}">
+                        <i class="fas fa-check-circle"></i> {% translate "Approved" %}
+                    </a>
+                </div>
+                {% elif workspace_stage == 'designer' %}active{% endif %}">
                     <i class="fas fa-drafting-compass"></i> {% translate "Designer Uploads" %}
+                </a>
+                {% endif %}
+                {% if can_access_color_stage %}
+                <a href="?stage=colors&status=active" class="tab-btn {% if workspace_stage == 'colors' %}active{% endif %}">
+                    <i class="fas fa-palette"></i> {% translate "New Color Approvals" %}
                 </a>
                 {% endif %}
             </div>
@@ -546,6 +599,154 @@
                         </p>
                         {% if search_query %}
                         <a href="{% url 'approvals_list' %}?stage=designer&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
+                            <i class="fas fa-redo"></i> {% translate "Reset Search" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% elif workspace_stage == 'colors' %}
+                {% if color_items %}
+                    {% for item in color_items %}
+                    <article class="approval-card {% if item.current_user_department and item.decisions|default:'' and item.status == 'pending' %}needs-my-vote{% endif %}" id="card-color-{{ item.id }}">
+                        <!-- CARD HEADER -->
+                        <div class="card-header-row">
+                            <div class="card-id-block">
+                                <span class="complaint-id-badge" title="{% translate "Vehicle Pattern Serial" %}">
+                                    <i class="fas fa-car-side"></i> #{{ item.vehicle.serial_number }}
+                                </span>
+                                <span class="type-pill" style="background: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.4); color: #f472b6;">
+                                    <i class="fas fa-palette"></i> {{ item.tone_type|title }}
+                                </span>
+                                {% if item.status == 'pending' and item.current_user_department %}
+                                <span class="status-pill pending" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; font-weight: 800; animation: pulse 2s infinite;">
+                                    <i class="fas fa-bell"></i> {% translate "ACTION REQUIRED: Your Vote is Pending" %}
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="card-date-status-block" style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); display: flex; align-items: center; gap: 0.65rem;">
+                                <span><i class="fas fa-calendar-alt"></i> {{ item.submitted_at }}</span>
+                                <span class="status-pill {{ item.status }}">
+                                    {% if item.status == 'approved' %}
+                                        {% translate "Approved" %}
+                                    {% elif item.status == 'rejected' %}
+                                        {% translate "Rejected" %}
+                                    {% else %}
+                                        {% translate "Pending Review" %}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- CARD BODY: 2 COLUMNS -->
+                        <div class="card-body-grid">
+                            <!-- LEFT: COLOR DETAILS & SWATCHES -->
+                            <div class="complaint-overview-col">
+                                <div style="display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 0.75rem;">
+                                    {% if item.swatch_url %}
+                                    <div style="width: 110px; height: 90px; border-radius: 8px; overflow: hidden; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.12); flex-shrink: 0; position: relative;">
+                                        <img src="{{ item.swatch_url }}" alt="Swatch" style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                    {% endif %}
+                                    <div class="meta-tags-grid" style="flex: 1; grid-template-columns: auto 1fr;">
+                                        <span class="meta-label"><i class="fas fa-car"></i> {% translate "Vehicle:" %}</span>
+                                        <span class="meta-value"><strong>{{ item.vehicle.brand }} {{ item.vehicle.model }} {{ item.vehicle.sub_model }} {{ item.vehicle.year_range }}</strong></span>
+
+                                        <span class="meta-label"><i class="fas fa-user"></i> {% translate "Submitted By:" %}</span>
+                                        <span class="meta-value">{{ item.submitted_by|default:"-" }}</span>
+
+                                        <span class="meta-label"><i class="fas fa-circle" style="color: {{ item.inner_color.hex|default:'#000' }};"></i> {% translate "Inner Color:" %}</span>
+                                        <span class="meta-value">
+                                            <strong>{{ item.inner_color.name }}</strong> ({{ item.inner_color.hex }})
+                                            {% if item.inner_color.pantone %}<span style="color:#94a3b8; font-size:0.75rem;">[{{ item.inner_color.pantone }}]</span>{% endif %}
+                                            <span class="badge" style="font-size:0.65rem; background: rgba(255,255,255,0.08); padding:1px 5px;">{{ item.inner_color.source|title }}</span>
+                                        </span>
+
+                                        {% if item.is_dual and item.outer_color %}
+                                        <span class="meta-label"><i class="fas fa-circle" style="color: {{ item.outer_color.hex|default:'#000' }};"></i> {% translate "Outer Color:" %}</span>
+                                        <span class="meta-value">
+                                            <strong>{{ item.outer_color.name }}</strong> ({{ item.outer_color.hex }})
+                                            {% if item.outer_color.pantone %}<span style="color:#94a3b8; font-size:0.75rem;">[{{ item.outer_color.pantone }}]</span>{% endif %}
+                                            <span class="badge" style="font-size:0.65rem; background: rgba(255,255,255,0.08); padding:1px 5px;">{{ item.outer_color.source|title }}</span>
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT: REVIEWER MATRIX & ACTION -->
+                            <div class="reviewer-grid-col">
+                                <div class="approver-matrix-card">
+                                    <div class="matrix-header-row">
+                                        <div class="matrix-title">
+                                            <i class="fas fa-users-cog"></i> {% translate "Review Decision Matrix" %}
+                                        </div>
+                                    </div>
+                                    <div class="reviewers-status-grid" style="grid-template-columns: repeat(3, 1fr);">
+                                        <!-- MD -->
+                                        <div class="reviewer-chip {{ item.decisions.MD.status }}">
+                                            <div class="reviewer-role-block">
+                                                <span class="reviewer-role-code">MD</span>
+                                                <span class="reviewer-decision-pill {{ item.decisions.MD.status }}">
+                                                    {{ item.decisions.MD.status|title }}
+                                                </span>
+                                            </div>
+                                            {% if item.decisions.MD.approver %}
+                                            <span class="reviewer-name">{{ item.decisions.MD.approver }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <!-- ED -->
+                                        <div class="reviewer-chip {{ item.decisions.ED.status }}">
+                                            <div class="reviewer-role-block">
+                                                <span class="reviewer-role-code">ED</span>
+                                                <span class="reviewer-decision-pill {{ item.decisions.ED.status }}">
+                                                    {{ item.decisions.ED.status|title }}
+                                                </span>
+                                            </div>
+                                            {% if item.decisions.ED.approver %}
+                                            <span class="reviewer-name">{{ item.decisions.ED.approver }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <!-- CAD -->
+                                        <div class="reviewer-chip {{ item.decisions.CAD.status }}">
+                                            <div class="reviewer-role-block">
+                                                <span class="reviewer-role-code">CAD</span>
+                                                <span class="reviewer-decision-pill {{ item.decisions.CAD.status }}">
+                                                    {{ item.decisions.CAD.status|title }}
+                                                </span>
+                                            </div>
+                                            {% if item.decisions.CAD.approver %}
+                                            <span class="reviewer-name">{{ item.decisions.CAD.approver }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer-actions" style="margin-top: 0.75rem; display: flex; justify-content: flex-end;">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openColorApprovalDrawer({{ item.id }}, this)" style="display: flex; align-items: center; gap: 0.4rem; font-weight: 600; padding: 0.45rem 0.85rem;">
+                                        <i class="fas fa-stamp"></i>
+                                        <span>{% translate "Review & Decide" %}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-approvals-box">
+                        <i class="fas fa-palette empty-icon"></i>
+                        <h3 class="empty-title">{% translate "No Color Approvals Found" %}</h3>
+                        <p style="margin: 0; font-size: 0.88rem;">
+                            {% if search_query %}
+                                {% translate "No color proposals matched your search query." %}
+                            {% elif status_filter == 'my_pending' %}
+                                {% translate "Great job! You have no pending color reviews waiting for your decision." %}
+                            {% else %}
+                                {% translate "There are currently no new-color proposals in this approval stage." %}
+                            {% endif %}
+                        </p>
+                        {% if search_query %}
+                        <a href="{% url 'approvals_list' %}?stage=colors&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
                             <i class="fas fa-redo"></i> {% translate "Reset Search" %}
                         </a>
                         {% endif %}
@@ -1253,6 +1454,14 @@
         Object.assign(window, {openDecisionModal, closeDecisionModal, handleModalOverlayClick, selectDecision, submitQuickDecision, openQuickDesignReviewModal, closeDesignReviewModal, handleDesignModalOverlayClick, openDesignPreviewModal, closeDesignPreviewModal, submitQuickDesignDecision, handleFilterSelectChange, openFiltersSheet, closeFiltersSheet, handleFilterBackdropClick, clearFiltersSheet, applyFiltersSheet});
     })();
     </script>
+        <!-- Slide-In Color Approval Drawer -->
+        {% include 'management/includes/color_approval_drawer.html' %}
+        <script src="{% static 'management/js/color_approval_drawer.js' %}?v=20261017" data-fabro-page-asset></script>
+        <script data-fabro-page-asset>
+        window.onColorDecisionSubmitted = function(selectionId, res) {
+            window.location.reload();
+        };
+        </script>
     </div>
 {% if not is_htmx_request %}
 </body>

@@ -12,6 +12,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261017" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -2343,120 +2344,549 @@
             <form id="designOptionsGlobalCsrf" style="display: none;" aria-hidden="true">
                 {% csrf_token %}
             </form>
-            <div class="design-options-section">
-                <!-- VIEW 1: Folders Dashboard -->
-                <div id="designFoldersView">
-                    <div class="design-section-header">
-                        <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="switchPatternTab('pattern-list')" title="{% translate "Back to Pattern List" %}" style="height: 2.35rem; padding: 0 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;">
-                                <i class="fas fa-arrow-left"></i>
-                                <span>{% translate "Back to Patterns" %}</span>
-                            </button>
-                            <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-                                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                    <h2 class="design-section-title" style="margin: 0;">
-                                        <i class="fas fa-folder-open" style="color: var(--primary-color);"></i>
-                                        {% translate "Design Folders" %}
-                                    </h2>
-                                    <span class="tab-badge" id="designFoldersCountBadge">0</span>
-                                </div>
-                                <div class="design-vehicle-subheading" id="designVehicleSubheading" style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.95rem; font-weight: 600; color: #a78bfa;">
-                                    <i class="fas fa-car-side" style="font-size: 0.85rem; opacity: 0.85;"></i>
-                                    <span id="designVehicleNameDisplay"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 0.65rem; align-items: center;">
-                            <div style="position: relative;">
-                                <input type="text" id="designFolderSearchInput" class="form-input" placeholder="{% translate "Search this page..." %}"
-                                       style="width: 160px; height: 2.35rem; font-size: 0.8rem; padding-left: 2rem;" oninput="filterDesignFolders()">
-                                <i class="fas fa-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--dark-text-secondary); pointer-events: none;"></i>
-                            </div>
-
-                            <!-- Google Drive Button & Dropdown -->
-                            <div style="position: relative;" id="vehicleGoogleDriveDropdownContainer">
-                                <button type="button" class="btn btn-secondary google-drive-btn" id="vehicleGoogleDriveBtn" onclick="toggleGoogleDriveDropdown(event)" title="{% translate "Google Drive Links" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); transition: all 0.2s ease;">
-                                    <svg class="google-drive-svg" width="18" height="18" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                                        <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" fill="#00ac47"/>
-                                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 10.15z" fill="#ea4335"/>
-                                        <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                                        <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                                    </svg>
-                                </button>
-
-                                <div class="google-drive-dropdown-menu" id="vehicleGoogleDriveDropdownMenu" style="display: none; position: absolute; right: 0; top: calc(100% + 6px); background: #1a1a20; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 10px; box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7); width: 330px; z-index: 1055; overflow: hidden;">
-                                    <!-- Dropdown Header -->
-                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);">
-                                        <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 600; color: #fff;">
-                                            <svg width="15" height="15" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                                                <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" fill="#00ac47"/>
-                                                <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 10.15z" fill="#ea4335"/>
-                                                <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                                                <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                                                <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                                            </svg>
-                                            <span>{% translate "Google Drive Links" %}</span>
-                                        </div>
-                                        <span class="badge" id="vehicleDriveLinksCountBadge" style="font-size: 0.68rem; padding: 0.1rem 0.45rem; background: rgba(255, 255, 255, 0.08); border-radius: 8px; color: var(--dark-text-secondary); display: none;">0</span>
-                                    </div>
-
-                                    {% if can_manage_design_assets %}
-                                    <!-- Design asset managers can link vehicle Drive folders. -->
-                                    <div id="googleDriveAddSection" style="padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
-                                        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                                            <input type="text" id="vehicleDriveLinkTitleInput" class="form-input" placeholder="{% translate "Title / Label (optional)" %}" style="font-size: 0.78rem; padding: 0.35rem 0.55rem; height: 30px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #fff; width: 100%; box-sizing: border-box;">
-                                            <div style="display: flex; gap: 0.35rem;">
-                                                <input type="url" id="vehicleDriveLinkUrlInput" class="form-input" placeholder="{% translate "Paste Drive URL..." %}" style="flex: 1; min-width: 0; font-size: 0.78rem; padding: 0.35rem 0.55rem; height: 30px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #fff; box-sizing: border-box;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitAddDriveLink();}">
-                                                <button type="button" id="vehicleDriveLinkAddBtn" class="btn btn-primary" onclick="submitAddDriveLink()" title="{% translate "Add Link" %}" style="height: 30px; padding: 0 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 6px; white-space: nowrap; flex-shrink: 0;">
-                                                    <i class="fas fa-plus"></i>
-                                                    <span>{% translate "Add" %}</span>
-                                                </button>
-                                            </div>
-                                            <div id="vehicleDriveLinkError" style="color: #ef4444; font-size: 0.72rem; display: none; margin-top: 0.1rem;"></div>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-
-                                    <!-- Scrollable Menu with all links -->
-                                    <div id="vehicleDriveLinksScrollContainer" style="max-height: 220px; overflow-y: auto; padding: 0.45rem; scrollbar-width: thin;">
-                                        <div id="vehicleDriveLinksList" style="display: flex; flex-direction: column; gap: 0.3rem;">
-                                            <!-- Dynamically populated links -->
-                                        </div>
-                                        <div id="vehicleDriveLinksEmpty" style="display: none; padding: 1.2rem 0.6rem; text-align: center; color: var(--dark-text-secondary); font-size: 0.78rem;">
-                                            <i class="fab fa-google-drive" style="font-size: 1.3rem; opacity: 0.35; margin-bottom: 0.35rem; display: block;"></i>
-                                            <span>{% translate "No Drive links added yet." %}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {% if can_manage_design_assets %}
-                            <!-- Add Dropdown (Simple Plus Button) -->
-                            <div style="position: relative;" id="designAddDropdownContainer">
-                                <button type="button" class="btn btn-primary design-add-plus-btn" id="designAddDropdownBtn" onclick="toggleDesignAddDropdown(event)" title="{% translate "Add (Folder or Image)" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.95rem;">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-
-                                <div class="design-add-dropdown-menu" id="designAddDropdownMenu" style="display: none; position: absolute; right: 0; top: calc(100% + 6px); background: #1e1e24; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); min-width: 140px; z-index: 1050; padding: 0.35rem; overflow: hidden;">
-                                    <button type="button" class="design-dropdown-item" onclick="selectDesignAddOption('folder')" style="width: 100%; display: flex; align-items: center; gap: 0.65rem; padding: 0.55rem 0.75rem; border: none; background: transparent; color: var(--dark-text); font-size: 0.85rem; font-weight: 500; border-radius: 6px; cursor: pointer; text-align: left; transition: background 0.15s ease;">
-                                        <i class="fas fa-folder-plus" style="color: #f59e0b; width: 16px; text-align: center;"></i>
-                                        <span>{% translate "Folder" %}</span>
-                                    </button>
-                                    <button type="button" class="design-dropdown-item" onclick="selectDesignAddOption('image')" style="width: 100%; display: flex; align-items: center; gap: 0.65rem; padding: 0.55rem 0.75rem; border: none; background: transparent; color: var(--dark-text); font-size: 0.85rem; font-weight: 500; border-radius: 6px; cursor: pointer; text-align: left; transition: background 0.15s ease;">
-                                        <i class="fas fa-image" style="color: #3b82f6; width: 16px; text-align: center;"></i>
-                                        <span>{% translate "Image" %}</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <input type="file" id="directVehicleImageFileInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl" style="display: none;" onchange="handleDirectVehicleImageSelected(this.files)">
-                            {% endif %}
-                        </div>
+                        <div class="pattern-design-layout-container">
+                <!-- Vehicle Heading Bar -->
+                <div class="pattern-design-top-bar">
+                    <div class="pattern-vehicle-heading">
+                        <button type="button" class="pattern-back-btn" onclick="switchPatternTab('pattern-list')" title="{% translate "Back to Patterns" %}">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <i class="fas fa-car pattern-vehicle-icon"></i>
+                        <span class="pattern-serial-pill" id="designVehicleSerialBadge">#</span>
+                        <h1 class="pattern-vehicle-title" id="designVehicleNameDisplay"></h1>
                     </div>
 
+                    <div style="display: flex; gap: 0.65rem; align-items: center;">
+                        <div style="position: relative;">
+                            <input type="text" id="designFolderSearchInput" class="form-input" placeholder="{% translate "Search files, folders, or tags..." %}"
+                                   style="width: 220px; height: 2.35rem; font-size: 0.8rem; padding-left: 2rem; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 8px;" oninput="filterDesignFolders()">
+                            <i class="fas fa-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #64748b; pointer-events: none;"></i>
+                        </div>
+
+                        <!-- Grid View Button -->
+                        <button type="button" class="btn btn-secondary" id="designViewGridBtn" title="{% translate "Grid View" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--fabro-border); color: #fff;">
+                            <i class="fas fa-th-large" style="font-size: 0.9rem;"></i>
+                        </button>
+
+                        <!-- List View Button -->
+                        <button type="button" class="btn btn-secondary" id="designViewListBtn" title="{% translate "List View" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--fabro-border); color: var(--fabro-text-secondary);">
+                            <i class="fas fa-list-ul" style="font-size: 0.9rem;"></i>
+                        </button>
+
+                        <!-- Google Drive Button & Dropdown -->
+                        <div style="position: relative;" id="vehicleGoogleDriveDropdownContainer">
+                            <button type="button" class="btn btn-secondary google-drive-btn" id="vehicleGoogleDriveBtn" onclick="toggleGoogleDriveDropdown(event)" title="{% translate "Google Drive Links" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--fabro-border); transition: all 0.2s ease;">
+                                <svg class="google-drive-svg" width="18" height="18" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                    <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                    <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" fill="#00ac47"/>
+                                    <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 10.15z" fill="#ea4335"/>
+                                    <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                    <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                    <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                </svg>
+                            </button>
+
+                            <div class="google-drive-dropdown-menu" id="vehicleGoogleDriveDropdownMenu" style="display: none; position: absolute; right: 0; top: calc(100% + 6px); background: #1a1a20; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 10px; box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7); width: 330px; z-index: 1055; overflow: hidden;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);">
+                                    <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 600; color: #fff;">
+                                        <span>{% translate "Google Drive Links" %}</span>
+                                    </div>
+                                    <span class="badge" id="vehicleDriveLinksCountBadge" style="font-size: 0.68rem; padding: 0.1rem 0.45rem; background: rgba(255, 255, 255, 0.08); border-radius: 8px; color: var(--dark-text-secondary); display: none;">0</span>
+                                </div>
+                                {% if can_manage_design_assets %}
+                                <div id="googleDriveAddSection" style="padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
+                                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                        <input type="text" id="vehicleDriveLinkTitleInput" class="form-input" placeholder="{% translate "Title / Label (optional)" %}" style="font-size: 0.78rem; padding: 0.35rem 0.55rem; height: 30px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #fff; width: 100%; box-sizing: border-box;">
+                                        <div style="display: flex; gap: 0.35rem;">
+                                            <input type="url" id="vehicleDriveLinkUrlInput" class="form-input" placeholder="{% translate "Paste Drive URL..." %}" style="flex: 1; min-width: 0; font-size: 0.78rem; padding: 0.35rem 0.55rem; height: 30px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #fff; box-sizing: border-box;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitAddDriveLink();}">
+                                            <button type="button" id="vehicleDriveLinkAddBtn" class="btn btn-primary" onclick="submitAddDriveLink()" title="{% translate "Add Link" %}" style="height: 30px; padding: 0 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 6px; white-space: nowrap; flex-shrink: 0;">
+                                                <i class="fas fa-plus"></i>
+                                                <span>{% translate "Add" %}</span>
+                                            </button>
+                                        </div>
+                                        <div id="vehicleDriveLinkError" style="color: #ef4444; font-size: 0.72rem; display: none; margin-top: 0.1rem;"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div id="vehicleDriveLinksScrollContainer" style="max-height: 220px; overflow-y: auto; padding: 0.45rem; scrollbar-width: thin;">
+                                    <div id="vehicleDriveLinksList" style="display: flex; flex-direction: column; gap: 0.3rem;"></div>
+                                    <div id="vehicleDriveLinksEmpty" style="display: none; padding: 1.2rem 0.6rem; text-align: center; color: var(--dark-text-secondary); font-size: 0.78rem;">
+                                        <span>{% translate "No Drive links added yet." %}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if can_manage_design_assets %}
+                        <input type="file" id="directVehicleImageFileInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl" style="display: none;" onchange="handleDirectVehicleImageSelected(this.files)">
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Split Layout: Sidebar + Main Workspaces -->
+                <div class="design-split-layout">
+                    <!-- Left Sidebar -->
+                    <aside class="design-sidebar">
+                        <!-- Vehicle Photograph -->
+                        <div class="vehicle-photo-container{% if request.user.is_superuser %} is-superuser-editable{% endif %}" id="vehiclePhotoContainer">
+                            <img id="designVehiclePhoto" class="vehicle-photo-img" src="" alt="Vehicle Photo" style="display: none;">
+                            <div id="designVehiclePhotoPlaceholder" class="vehicle-photo-placeholder">
+                                <i class="fas fa-car" style="font-size: 2.2rem; opacity: 0.4;"></i>
+                                <span>{% translate "No Photograph Available" %}</span>
+                            </div>
+                            {% if request.user.is_superuser %}
+                            <label for="vehiclePhotoInput" class="vehicle-photo-upload-overlay" title="{% translate 'Upload Vehicle Photograph' %}">
+                                <i class="fas fa-camera"></i>
+                                <span id="vehiclePhotoUploadLabel">{% translate "Upload Photo" %}</span>
+                            </label>
+                            <input type="file" id="vehiclePhotoInput" accept="image/*" style="display: none;" onchange="window.uploadVehiclePhoto(this.files[0])">
+                            {% endif %}
+                        </div>
+
+                        <!-- Sidebar Navigation -->
+                        <div class="sidebar-nav-card">
+                            <!-- MEASUREMENTS Section -->
+                            <button type="button" class="sidebar-nav-section-header" onclick="window.switchSidebarSection('measurements')">
+                                <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-ruler-combined" style="color: var(--fabro-text-primary);"></i>
+                                    <span>{% translate "MEASUREMENTS" %}</span>
+                                </span>
+                                <i class="fas fa-chevron-down" style="font-size: 0.75rem; opacity: 0.7;"></i>
+                            </button>
+                            <div class="sidebar-nav-items" id="sidebarNavSectionMeasurements">
+                                <button type="button" class="sidebar-nav-item" id="sidebarNavMeasScanned" onclick="window.switchSidebarSection('measurements'); document.getElementById('panelScannedPatterns')?.scrollIntoView({behavior: 'smooth'});">
+                                    <i class="far fa-images"></i>
+                                    <span>{% translate "Scanned Patterns & Data" %}</span>
+                                </button>
+                                <button type="button" class="sidebar-nav-item" id="sidebarNavMeasInterior" onclick="window.switchSidebarSection('measurements'); document.getElementById('panelInteriorMedia')?.scrollIntoView({behavior: 'smooth'});">
+                                    <i class="fas fa-camera"></i>
+                                    <span>{% translate "Interior Pictures & Videos" %}</span>
+                                </button>
+                                <button type="button" class="sidebar-nav-item" id="sidebarNavMeasColor" onclick="window.switchSidebarSection('measurements'); document.getElementById('panelColorPicker')?.scrollIntoView({behavior: 'smooth'});">
+                                    <i class="fas fa-palette"></i>
+                                    <span>{% translate "Color Picker" %}</span>
+                                </button>
+                            </div>
+
+                            <!-- 3D DESIGN Section -->
+                            <button type="button" class="sidebar-nav-section-header" onclick="window.switchSidebarSection('3d-design')" style="border-top: 1px solid var(--fabro-border-subtle);">
+                                <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-cube" style="color: var(--fabro-text-primary);"></i>
+                                    <span>{% translate "3D DESIGN" %}</span>
+                                </span>
+                                <i class="fas fa-chevron-right" style="font-size: 0.75rem; opacity: 0.7;"></i>
+                            </button>
+                            <div class="sidebar-nav-items" id="sidebarNavSection3DDesign" style="display: none;">
+                                <button type="button" class="sidebar-nav-item" id="sidebarNav3DFolders" onclick="window.switchSidebarSection('3d-design')">
+                                    <i class="far fa-folder"></i>
+                                    <span>{% translate "Folders & Image Gallery" %}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- Main Workspace Area -->
+                    <main class="design-workspace-main">
+                        <!-- 1. MEASUREMENTS WORKSPACE -->
+                        <div id="patternMeasurementsWorkspace">
+                            <!-- Section Title Banner: MEASUREMENTS -->
+                            <div class="measurements-section-banner">
+                                <div class="measurements-banner-icon">
+                                    <i class="fas fa-drafting-compass"></i>
+                                </div>
+                                <div class="measurements-banner-content">
+                                    <h2 class="measurements-banner-title">{% translate "MEASUREMENTS" %}</h2>
+                                    <p class="measurements-banner-subtitle">{% translate "Upload scanned patterns, interior pictures, and select colors for this vehicle." %}</p>
+                                </div>
+                            </div>
+
+                            <div class="measurements-grid">
+                                <!-- PANEL 1: Scanned Patterns & Data -->
+                                <div class="measurement-panel" id="panelScannedPatterns">
+                                    <div class="measurement-panel-header">
+                                        <div class="panel-header-left">
+                                            <span class="panel-number-badge badge-red">1</span>
+                                            <i class="fas fa-file-lines panel-header-icon"></i>
+                                            <h3 class="measurement-panel-title">{% translate "Scanned Patterns & Data" %}</h3>
+                                        </div>
+                                        <div class="supported-formats-wrapper">
+                                            <div class="btn-supported-formats" tabindex="0">
+                                                <i class="fas fa-info-circle"></i>
+                                                <span>{% translate "Supported Formats" %}</span>
+                                            </div>
+                                            <div class="supported-formats-popover">
+                                                <div class="formats-popover-title">
+                                                    <i class="fas fa-file-lines" style="color: #38bdf8;"></i>
+                                                    <span>{% translate "Pattern Files" %}</span>
+                                                </div>
+                                                <div class="formats-popover-row">
+                                                    <span class="formats-label">{% translate "Formats" %}:</span>
+                                                    <span class="formats-chips">
+                                                        <span class="format-chip">DXF</span>
+                                                        <span class="format-chip">PDF</span>
+                                                        <span class="format-chip">JPG</span>
+                                                        <span class="format-chip">PNG</span>
+                                                        <span class="format-chip">HEIC</span>
+                                                        <span class="format-chip">WEBP</span>
+                                                    </span>
+                                                </div>
+                                                <div class="formats-popover-row">
+                                                    <span class="formats-label">{% translate "Max Size" %}:</span>
+                                                    <span class="formats-val">50 MB / file</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="measurement-panel-body">
+                                        <div class="measurement-dropzone" id="scannedPatternDropzone">
+                                            <i class="fas fa-cloud-arrow-up dropzone-icon"></i>
+                                            <p class="measurement-dropzone-text">
+                                                <strong>{% translate "Drag and drop files here" %}</strong><br>
+                                                <span class="browse-link">{% translate "or click to browse" %}</span>
+                                            </p>
+                                            <span class="measurement-dropzone-hint">{% translate "Supports: DXF, PDF, JPG, PNG, JPEG, HEIC, WEBP" %}</span>
+                                            <span class="measurement-dropzone-limit">{% translate "(Max 50 MB per file)" %}</span>
+                                        </div>
+                                        <input type="file" id="scannedPatternFileInput" multiple accept=".dxf,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" style="display: none;">
+                                        <div id="scannedUploadProgress" style="display: none; height: 3px; background: #38bdf8; border-radius: 2px; transition: width 0.2s ease; width: 0%;"></div>
+
+                                        <!-- Uploaded Files Section -->
+                                        <div class="panel-files-section">
+                                            <div class="panel-files-header">
+                                                <span class="files-count-label">{% translate "Uploaded Files" %} (<span id="scannedFilesCountBadge">0</span>)</span>
+                                                <div class="sort-control">
+                                                    <span class="sort-label">{% translate "Sort:" %}</span>
+                                                    <select id="scannedFilesSortSelect" class="sort-select" onchange="window.sortScannedFiles(this.value)">
+                                                        <option value="newest">{% translate "Newest" %}</option>
+                                                        <option value="oldest">{% translate "Oldest" %}</option>
+                                                        <option value="name">{% translate "Name" %}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="measurement-file-list" id="scannedFilesList">
+                                                <div class="panel-empty-state">
+                                                    <svg class="empty-folder-svg" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+                                                    </svg>
+                                                    <strong class="empty-state-title">{% translate "No files uploaded yet" %}</strong>
+                                                    <p class="empty-state-desc">{% translate "Upload scanned patterns, DXF files, PDFs or reference images." %}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- PANEL 2: Interior Pictures & Videos -->
+                                <div class="measurement-panel" id="panelInteriorMedia">
+                                    <div class="measurement-panel-header">
+                                        <div class="panel-header-left">
+                                            <span class="panel-number-badge badge-blue">2</span>
+                                            <i class="fas fa-camera panel-header-icon"></i>
+                                            <h3 class="measurement-panel-title">{% translate "Interior Pictures & Videos" %}</h3>
+                                        </div>
+                                        <div class="supported-formats-wrapper">
+                                            <div class="btn-supported-formats" tabindex="0">
+                                                <i class="fas fa-info-circle"></i>
+                                                <span>{% translate "Supported Formats" %}</span>
+                                            </div>
+                                            <div class="supported-formats-popover">
+                                                <div class="formats-popover-title">
+                                                    <i class="fas fa-photo-film" style="color: #a855f7;"></i>
+                                                    <span>{% translate "Media Files" %}</span>
+                                                </div>
+                                                <div class="formats-popover-row">
+                                                    <span class="formats-label">{% translate "Formats" %}:</span>
+                                                    <span class="formats-chips">
+                                                        <span class="format-chip">MP4</span>
+                                                        <span class="format-chip">MOV</span>
+                                                        <span class="format-chip">AVI</span>
+                                                        <span class="format-chip">JPG</span>
+                                                        <span class="format-chip">PNG</span>
+                                                        <span class="format-chip">HEIC</span>
+                                                        <span class="format-chip">WEBP</span>
+                                                    </span>
+                                                </div>
+                                                <div class="formats-popover-row">
+                                                    <span class="formats-label">{% translate "Max Size" %}:</span>
+                                                    <span class="formats-val">500 MB / file</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="measurement-panel-body">
+                                        <div class="measurement-dropzone" id="interiorMediaDropzone">
+                                            <i class="fas fa-cloud-arrow-up dropzone-icon"></i>
+                                            <p class="measurement-dropzone-text">
+                                                <strong>{% translate "Drag and drop files here" %}</strong><br>
+                                                <span class="browse-link">{% translate "or click to browse" %}</span>
+                                            </p>
+                                            <span class="measurement-dropzone-hint">{% translate "Supports: MP4, MOV, AVI, JPG, PNG, JPEG, HEIC, WEBP" %}</span>
+                                            <span class="measurement-dropzone-limit">{% translate "(Max 500 MB per file)" %}</span>
+                                        </div>
+                                        <input type="file" id="interiorMediaFileInput" multiple accept="image/*,video/*,.heic,.heif" style="display: none;">
+                                        <div id="interiorUploadProgress" style="display: none; height: 3px; background: #a855f7; border-radius: 2px; transition: width 0.2s ease; width: 0%;"></div>
+
+                                        <!-- Uploaded Files Section -->
+                                        <div class="panel-files-section">
+                                            <div class="panel-files-header">
+                                                <span class="files-count-label">{% translate "Uploaded Files" %} (<span id="interiorMediaCountBadge">0</span>)</span>
+                                                <div class="sort-control">
+                                                    <span class="sort-label">{% translate "Sort:" %}</span>
+                                                    <select id="interiorMediaSortSelect" class="sort-select" onchange="window.sortInteriorMedia(this.value)">
+                                                        <option value="newest">{% translate "Newest" %}</option>
+                                                        <option value="oldest">{% translate "Oldest" %}</option>
+                                                        <option value="name">{% translate "Name" %}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="interior-media-grid" id="interiorMediaGrid">
+                                                <div class="panel-empty-state">
+                                                    <svg class="empty-folder-svg" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+                                                    </svg>
+                                                    <strong class="empty-state-title">{% translate "No files uploaded yet" %}</strong>
+                                                    <p class="empty-state-desc">{% translate "Upload interior photos or videos for reference." %}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- PANEL 3: Color Picker -->
+                                <div class="measurement-panel" id="panelColorPicker">
+                                    <div class="measurement-panel-header">
+                                        <div class="panel-header-left">
+                                            <span class="panel-number-badge badge-green">3</span>
+                                            <i class="fas fa-palette panel-header-icon"></i>
+                                            <h3 class="measurement-panel-title">{% translate "Color Picker" %}</h3>
+                                        </div>
+                                    </div>
+                                    <div class="measurement-panel-body">
+                                        <!-- Top Segmented Controls: Existing vs Pantone/New -->
+                                        <div class="color-top-segmented-control">
+                                            <button type="button" class="color-segmented-tab color-top-tab-btn is-active" id="colorTopTabExisting" data-mode="existing" onclick="window.switchColorTopTab('existing')">
+                                                <span>{% translate "Existing Colors" %}</span>
+                                            </button>
+                                            <button type="button" class="color-segmented-tab color-top-tab-btn" id="colorTopTabNew" data-mode="new" onclick="window.switchColorTopTab('new')">
+                                                <span>{% translate "Pantone Code / New Color" %}</span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Radio Selection: Single Tone vs Dual Tone -->
+                                        <div class="tone-radio-group">
+                                            <label class="tone-radio-label">
+                                                <input type="radio" name="tone_choice" value="single" checked onchange="window.switchToneTab('single')">
+                                                <span class="custom-radio-indicator"></span>
+                                                <span>{% translate "Single Tone" %}</span>
+                                            </label>
+                                            <label class="tone-radio-label">
+                                                <input type="radio" name="tone_choice" value="dual" onchange="window.switchToneTab('dual')">
+                                                <span class="custom-radio-indicator"></span>
+                                                <span>{% translate "Dual Tone" %}</span>
+                                            </label>
+                                        </div>
+
+                                        <!-- TAB 1: Existing Colors Mode -->
+                                        <div id="colorPickerExistingView">
+                                            <!-- Single Tone -->
+                                            <div id="existingSingleToneContainer">
+                                                <label class="form-label" style="font-size: 0.78rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.35rem;">
+                                                    {% translate "Select Color" %}
+                                                </label>
+                                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                                    <select id="selectExistingSingleColor" class="color-picker-select" data-swatch-target="existingSingleSwatch" style="flex: 1; min-width: 0;">
+                                                        <option value="">{% translate "Select a color" %}</option>
+                                                    </select>
+                                                    <div id="existingSingleSwatch" style="width: 38px; height: 38px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: #000; flex-shrink: 0;"></div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Dual Tone (Side by Side) -->
+                                            <div id="existingDualToneContainer" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+                                                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.6rem; min-width: 0;">
+                                                    <label class="form-label" style="font-size: 0.72rem; font-weight: 700; color: #fff; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">{% translate "Inner Color" %}</label>
+                                                    <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                                        <select id="selectExistingDualInnerColor" class="color-picker-select" data-swatch-target="existingDualInnerSwatch" style="flex: 1; min-width: 0;">
+                                                            <option value="">{% translate "Select Inner Color" %}</option>
+                                                        </select>
+                                                        <div id="existingDualInnerSwatch" style="width: 38px; height: 38px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #000; flex-shrink: 0;"></div>
+                                                    </div>
+                                                </div>
+                                                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.6rem; min-width: 0;">
+                                                    <label class="form-label" style="font-size: 0.72rem; font-weight: 700; color: #fff; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">{% translate "Outer Color" %}</label>
+                                                    <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                                        <select id="selectExistingDualOuterColor" class="color-picker-select" data-swatch-target="existingDualOuterSwatch" style="flex: 1; min-width: 0;">
+                                                            <option value="">{% translate "Select Outer Color" %}</option>
+                                                        </select>
+                                                        <div id="existingDualOuterSwatch" style="width: 38px; height: 38px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #000; flex-shrink: 0;"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB 2: Pantone Code / New Color Mode -->
+                                        <div id="colorPickerNewView" style="display: none;">
+                                            <!-- Single Tone -->
+                                            <div id="newSingleToneContainer">
+                                                <div style="margin-bottom: 0.65rem;">
+                                                    <label class="form-label" for="newSinglePantoneInput" style="font-size: 0.76rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.25rem;">
+                                                        {% translate "Pantone Code" %}
+                                                    </label>
+                                                    <div style="position: relative;">
+                                                        <input type="text" id="newSinglePantoneInput" class="form-input" placeholder="e.g. PANTONE 19-1664 TCX" style="height: 34px; font-size: 0.8rem; padding: 0.3rem 2rem 0.3rem 0.65rem; width: 100%; box-sizing: border-box; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
+                                                        <i class="fas fa-search" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.75rem; pointer-events: none;"></i>
+                                                    </div>
+                                                </div>
+
+                                                <div class="visual-color-picker-box">
+                                                    <div id="newSingleCanvas" class="sat-val-canvas"></div>
+                                                    <input type="range" id="newSingleHueSlider" class="hue-slider" min="0" max="360" value="0">
+                                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                                        <input type="text" id="newSingleHexInput" class="form-input" value="#DC2626" maxlength="7" style="flex: 1; height: 32px; font-size: 0.82rem; font-family: monospace; font-weight: 700; padding: 0.25rem 0.5rem; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
+                                                        <div id="newSingleSwatch" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: #DC2626; flex-shrink: 0;"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Dual Tone (Side by Side) -->
+                                            <div id="newDualToneContainer" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+                                                <!-- Inner Color Panel -->
+                                                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.55rem; min-width: 0;">
+                                                    <label class="form-label" style="font-size: 0.72rem; font-weight: 700; color: #fff; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">
+                                                        {% translate "Inner Color" %}
+                                                    </label>
+                                                    <div class="source-segmented-group">
+                                                        <button type="button" class="source-segmented-btn dual-inner-src-btn is-active" data-source="new" onclick="window.switchDualInnerSource('new')">
+                                                            {% translate "New Color" %}
+                                                        </button>
+                                                        <button type="button" class="source-segmented-btn dual-inner-src-btn" data-source="existing" onclick="window.switchDualInnerSource('existing')">
+                                                            {% translate "From Existing" %}
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- If New -->
+                                                    <div id="dualInnerNewColorBox">
+                                                        <input type="text" id="dualInnerNewPantoneInput" class="form-input" placeholder="Pantone Code" style="height: 28px; font-size: 0.74rem; margin-bottom: 0.35rem; padding: 0.2rem 0.45rem; width: 100%; box-sizing: border-box; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
+                                                        <div class="visual-color-picker-box" style="padding: 0.45rem; gap: 0.35rem;">
+                                                            <div id="dualInnerNewCanvas" class="sat-val-canvas" style="height: 68px;"></div>
+                                                            <input type="range" id="dualInnerNewHueSlider" class="hue-slider" min="0" max="360" value="0" style="height: 8px;">
+                                                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                                                <input type="text" id="dualInnerNewHexInput" class="form-input" value="#DC2626" maxlength="7" style="flex: 1; height: 26px; font-size: 0.74rem; font-family: monospace; font-weight: 700; padding: 0.15rem 0.35rem; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
+                                                                <div id="dualInnerNewSwatch" style="width: 26px; height: 26px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background: #DC2626; flex-shrink: 0;"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- If Existing -->
+                                                    <div id="dualInnerExistingColorBox" style="display: none;">
+                                                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                                            <select id="selectDualInnerFromExisting" class="color-picker-select" data-swatch-target="dualInnerExistingSwatch" style="flex: 1; min-width: 0;">
+                                                                <option value="">{% translate "Select Color" %}</option>
+                                                            </select>
+                                                            <div id="dualInnerExistingSwatch" style="width: 38px; height: 38px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #000; flex-shrink: 0;"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Outer Color Panel -->
+                                                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.55rem; min-width: 0;">
+                                                    <label class="form-label" style="font-size: 0.72rem; font-weight: 700; color: #fff; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">
+                                                        {% translate "Outer Color" %}
+                                                    </label>
+                                                    <div class="source-segmented-group">
+                                                        <button type="button" class="source-segmented-btn dual-outer-src-btn is-active" data-source="new" onclick="window.switchDualOuterSource('new')">
+                                                            {% translate "New Color" %}
+                                                        </button>
+                                                        <button type="button" class="source-segmented-btn dual-outer-src-btn" data-source="existing" onclick="window.switchDualOuterSource('existing')">
+                                                            {% translate "From Existing" %}
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- If New -->
+                                                    <div id="dualOuterNewColorBox">
+                                                        <input type="text" id="dualOuterNewPantoneInput" class="form-input" placeholder="Pantone Code" style="height: 28px; font-size: 0.74rem; margin-bottom: 0.35rem; padding: 0.2rem 0.45rem; width: 100%; box-sizing: border-box; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
+                                                        <div class="visual-color-picker-box" style="padding: 0.45rem; gap: 0.35rem;">
+                                                            <div id="dualOuterNewCanvas" class="sat-val-canvas" style="height: 68px;"></div>
+                                                            <input type="range" id="dualOuterNewHueSlider" class="hue-slider" min="0" max="360" value="220" style="height: 8px;">
+                                                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                                                <input type="text" id="dualOuterNewHexInput" class="form-input" value="#2563EB" maxlength="7" style="flex: 1; height: 26px; font-size: 0.74rem; font-family: monospace; font-weight: 700; padding: 0.15rem 0.35rem; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
+                                                                <div id="dualOuterNewSwatch" style="width: 26px; height: 26px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background: #2563EB; flex-shrink: 0;"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- If Existing -->
+                                                    <div id="dualOuterExistingColorBox" style="display: none;">
+                                                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                                            <select id="selectDualOuterFromExisting" class="color-picker-select" data-swatch-target="dualOuterExistingSwatch" style="flex: 1; min-width: 0;">
+                                                                <option value="">{% translate "Select Color" %}</option>
+                                                            </select>
+                                                            <div id="dualOuterExistingSwatch" style="width: 38px; height: 38px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #000; flex-shrink: 0;"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Matching Swatch Photo (Optional) -->
+                                        <div class="matching-swatch-box">
+                                            <label class="swatch-label">{% translate "Matching Swatch Photo (Optional)" %}</label>
+                                            <input type="file" id="matchingSwatchPhotoInput" accept="image/*" style="display: none;" onchange="window.handleSwatchPhotoSelected(this)">
+                                            <div class="swatch-upload-dropzone" onclick="document.getElementById('matchingSwatchPhotoInput').click()">
+                                                <i class="fas fa-cloud-arrow-up swatch-dropzone-icon"></i>
+                                                <div class="swatch-dropzone-text">
+                                                    <strong class="swatch-title">{% translate "Upload Image" %}</strong>
+                                                    <span class="swatch-subtitle">{% translate "Matching swatch photo" %}</span>
+                                                    <span class="swatch-format">{% translate "JPG, PNG, HEIC (Max 10 MB)" %}</span>
+                                                </div>
+                                            </div>
+                                            <div id="matchingSwatchPreview" style="display: none; margin-top: 0.45rem; position: relative;">
+                                                <img id="matchingSwatchImg" src="" alt="Swatch Preview" style="width: 100%; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);">
+                                                <button type="button" onclick="window.clearSwatchPhoto()" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 4px; background: rgba(0,0,0,0.7); border: none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Save Color Selection Button -->
+                                        <button type="button" id="btnSaveColorSelection" class="btn-save-color-selection" onclick="window.saveColorSelection()">
+                                            <i class="fas fa-save"></i>
+                                            <span>{% translate "Save Color Selection" %}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div><!-- /.measurements-grid -->
+
+                            <!-- New Color Approval Status Card (Full-width banner below panels as in Image 2) -->
+                            <div id="patternColorStatusCard" class="color-approval-status-banner" style="display: none;">
+                                <div class="color-approval-status-left">
+                                    <div class="color-approval-status-icon">
+                                        <i class="fas fa-palette"></i>
+                                    </div>
+                                    <div class="color-approval-status-info">
+                                        <div class="color-approval-status-title-row">
+                                            <span class="color-approval-status-title">{% translate "New Color Approval" %}</span>
+                                            <span id="colorStatusCardPill" class="color-approval-status-pill pending">{% translate "Pending Approval" %}</span>
+                                        </div>
+                                        <p class="color-approval-status-desc">{% translate "This color has been submitted for approval. You can view the approval status and remarks from each department." %}</p>
+                                    </div>
+                                </div>
+                                <div class="color-approval-status-right">
+                                    <button type="button" id="btnViewColorApprovalDetails" class="btn-view-approval-details">
+                                        <i class="far fa-eye"></i>
+                                        <span>{% translate "View Approval Details" %}</span>
+                                        <i class="fas fa-chevron-right" style="font-size: 0.7rem;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div><!-- /#patternMeasurementsWorkspace -->
+
+                        <!-- 2. 3D DESIGN FOLDERS WORKSPACE -->
+                        <div id="pattern3DDesignWorkspace" style="display: none;">
+
+                    <div id="designFoldersView">
                     <!-- Folders Grid Container -->
                     <div class="design-folders-grid" id="designFoldersGrid">
                         <!-- Populated by JavaScript and updated on folder changes -->
@@ -2611,11 +3041,39 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </div><!-- /#designFolderDetailView -->
+                </div><!-- /#pattern3DDesignWorkspace -->
+            </main><!-- /.design-workspace-main -->
+        </div><!-- /.design-split-layout -->
+    </div><!-- /.pattern-design-layout-container -->
+</div><!-- /#tab-pane-design-options -->
+
+<!-- Interior Media Preview Lightbox Modal -->
+<!-- Interior Media Preview Modal -->
+<div id="interiorMediaPreviewModal" class="modal" style="display: none; z-index: 1095; align-items: center; justify-content: center; background: rgba(0,0,0,0.85);" onclick="if(event.target===this) window.closeInteriorMediaPreview()">
+    <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center;">
+        <button type="button" onclick="window.closeInteriorMediaPreview()" style="position: absolute; top: -36px; right: 0; background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+        <div id="interiorMediaPreviewContainer"></div>
     </div>
+</div>
+
+<!-- Slide-In Color Approval Drawer -->
+{% include 'management/includes/color_approval_drawer.html' %}
+
+<!-- Colors JSON for Dynamic Search Dropdowns -->
+<script id="carDetailsColorsData" type="application/json">
+[
+    {% for c in colors %}
+    {"id": {{ c.id }}, "name": "{{ c.name|escapejs }}", "color_code": "{{ c.color_code|escapejs }}", "hex_code": "{{ c.hex_code|escapejs }}", "pantone_code": "{{ c.pantone_code|default:''|escapejs }}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+<script src="{% static 'management/js/color_approval_drawer.js' %}?v=20261017" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_measurements.js' %}?v=20261017" data-fabro-page-asset></script>
+        </div><!-- /page-container -->
+    </div><!-- /app-content -->
 
     <!-- Add Folder Modal -->
     <div id="addFolderModal" class="modal">
@@ -4769,6 +5227,8 @@
                 }
                 if (paneDesign) paneDesign.style.display = 'none';
                 if (pageContainer) pageContainer.classList.remove('is-design-tab');
+                document.body.classList.remove('is-design-tab');
+                document.documentElement.classList.remove('is-design-tab');
                 try {
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.delete('vehicle_id');
@@ -4780,6 +5240,8 @@
                 if (paneDesign) paneDesign.style.display = 'block';
                 if (paneList) paneList.style.display = 'none';
                 if (pageContainer) pageContainer.classList.add('is-design-tab');
+                document.body.classList.add('is-design-tab');
+                document.documentElement.classList.add('is-design-tab');
                 try {
                     const newUrl = new URL(window.location.href);
                     if (typeof currentVehicleId !== 'undefined' && currentVehicleId) {
@@ -4799,7 +5261,7 @@
         }
 
         pageScope.listen(window, 'hashchange', function() {
-            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-')) {
+            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-') || window.location.hash.includes('design') || window.location.hash.includes('measurements')) {
                 switchPatternTab('design-options');
             } else {
                 switchPatternTab('pattern-list');
@@ -4808,6 +5270,10 @@
 
         // Initialize
         window.fabroOnPageLoad(function() {
+            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-') || window.location.hash.includes('design') || window.location.hash.includes('measurements') || window.location.search.includes('vehicle_id')) {
+                switchPatternTab('design-options');
+            }
+
             // Logo preview filename display
             const brandLogoInput = document.getElementById('brandLogoInput');
             const logoPreviewName = document.getElementById('logoPreviewName');
@@ -6585,8 +7051,14 @@
             // Check hash or query param on page load
             const urlParams = new URLSearchParams(window.location.search);
             const vParam = urlParams.get('vehicle_id');
-            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-') || window.location.search.includes('tab=design-options') || vParam) {
+            if (vParam) {
+                currentVehicleId = parseInt(vParam, 10);
+            }
+            if (window.location.hash === '#design-options' || window.location.hash === '#measurements' || window.location.hash.startsWith('#design-folder-') || window.location.search.includes('tab=design-options') || vParam) {
                 switchPatternTab('design-options');
+                if (window.location.hash === '#measurements' && typeof window.switchSidebarSection === 'function') {
+                    window.switchSidebarSection('measurements');
+                }
             }
         });
 
@@ -6674,6 +7146,9 @@
                             currentGoogleDriveUrl = data.vehicle.google_drive_url || '';
                             currentVehicleDriveLinks = data.vehicle.drive_links || [];
                             renderVehicleDriveLinks();
+                            if (typeof window.initMeasurementsWorkspace === 'function') {
+                                window.initMeasurementsWorkspace(data.vehicle.id, data.vehicle);
+                            }
                         } else if (currentVehicleName) {
                             updateVehicleSubheadings(currentVehicleName);
                         }

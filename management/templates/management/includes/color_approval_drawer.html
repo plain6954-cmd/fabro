@@ -1,0 +1,233 @@
+{% load i18n %}
+<!-- Slide-in Approval Drawer for New Color Approvals (Matching Images 2 & 3) -->
+<div class="fabro-approval-backdrop" id="fabroColorApprovalBackdrop" onclick="handleColorApprovalBackdropClick(event)" aria-hidden="true"></div>
+
+<aside class="fabro-approval-drawer" id="fabroColorApprovalDrawer" role="dialog" aria-modal="true" aria-labelledby="colorApprovalDrawerTitle" aria-hidden="true" tabindex="-1">
+    <!-- Drawer Header -->
+    <div class="drawer-header" style="padding: 1.15rem 1.25rem; border-bottom: 1px solid var(--fabro-border); display: flex; align-items: center; justify-content: space-between; background: var(--fabro-workspace); position: sticky; top: 0; z-index: 10;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+            <div class="drawer-header-logo">
+                <i class="fas fa-palette"></i>
+            </div>
+            <div style="min-width: 0;">
+                <h2 id="colorApprovalDrawerTitle" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {% translate "Color Approval Details" %}
+                </h2>
+                <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: var(--fabro-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {% translate "Review status and remarks for the submitted color(s)." %}
+                </p>
+            </div>
+        </div>
+        <button type="button" class="drawer-close-btn" onclick="closeColorApprovalDrawer()" aria-label="{% translate "Close approval drawer" %}" style="width: 28px; height: 28px; border-radius: 6px; background: transparent; border: none; color: var(--fabro-text-secondary); font-size: 1.15rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.15s ease;">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="drawer-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem;">
+        <!-- Loading State -->
+        <div id="drawerLoadingState" style="padding: 3rem 1rem; text-align: center; color: var(--fabro-text-secondary);">
+            <i class="fas fa-circle-notch fa-spin" style="font-size: 1.8rem; color: var(--fabro-red); margin-bottom: 0.75rem;"></i>
+            <p style="margin: 0; font-size: 0.85rem;">{% translate "Loading approval details..." %}</p>
+        </div>
+
+        <!-- Content Loaded -->
+        <div id="drawerContent" style="display: none; flex-direction: column; gap: 1.25rem;">
+
+            <!-- Submitted Color Details Card -->
+            <div class="drawer-section-card">
+                <!-- Dual Swatches Grid (Inner & Outer or Single) -->
+                <div id="drawerColorsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
+                    <!-- Inner Color Block -->
+                    <div id="drawerInnerColorBlock" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.75rem; background: #14161a; border-radius: 8px; border: 1px solid var(--fabro-border);">
+                        <div id="drawerInnerSwatch" style="width: 44px; height: 44px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div id="drawerInnerPantoneWrap" style="font-size: 0.7rem; color: var(--fabro-text-secondary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <span id="drawerInnerPantone">PANTONE</span>
+                            </div>
+                            <strong id="drawerInnerName" style="font-size: 0.82rem; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></strong>
+                            <div style="font-size: 0.7rem; color: var(--fabro-text-muted); font-family: monospace;">
+                                HEX <span id="drawerInnerHex" style="color: #cbd5e1;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outer Color Block (dual tone) -->
+                    <div id="drawerOuterColorBlock" style="display: none; align-items: center; gap: 0.75rem; padding: 0.65rem 0.75rem; background: #14161a; border-radius: 8px; border: 1px solid var(--fabro-border);">
+                        <div id="drawerOuterSwatch" style="width: 44px; height: 44px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div id="drawerOuterPantoneWrap" style="font-size: 0.7rem; color: var(--fabro-text-secondary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <span id="drawerOuterPantone">PANTONE</span>
+                            </div>
+                            <strong id="drawerOuterName" style="font-size: 0.82rem; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></strong>
+                            <div style="font-size: 0.7rem; color: var(--fabro-text-muted); font-family: monospace;">
+                                HEX <span id="drawerOuterHex" style="color: #cbd5e1;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swatch Photo & Metadata Row -->
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 0.25rem;">
+                    <!-- Swatch Photo Preview (if present) -->
+                    <div id="drawerSwatchPhotoSection" style="display: none;">
+                        <a id="drawerSwatchPhotoLink" href="" target="_blank" rel="noopener noreferrer" style="display: block; position: relative; width: 70px; height: 70px; border-radius: 6px; overflow: hidden; border: 1px solid var(--fabro-border);">
+                            <img id="drawerSwatchPhotoImg" src="" alt="Swatch Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; opacity: 0; transition: opacity 0.15s ease;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+                                <i class="fas fa-search-plus"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Metadata Rows -->
+                    <div style="flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.76rem; color: var(--fabro-text-secondary);">
+                        <div style="display: flex; align-items: center; gap: 0.45rem;">
+                            <i class="far fa-calendar" style="color: var(--fabro-text-muted); font-size: 0.8rem; width: 14px;"></i>
+                            <span>{% translate "Submitted On:" %} <strong id="drawerSubmittedAt" style="color: #e2e8f0; font-weight: 500;"></strong></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.45rem;">
+                            <i class="far fa-user" style="color: var(--fabro-text-muted); font-size: 0.8rem; width: 14px;"></i>
+                            <span>{% translate "Submitted By:" %} <strong id="drawerSubmittedBy" style="color: #e2e8f0; font-weight: 500;"></strong></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.45rem;">
+                            <i class="fas fa-couch" style="color: var(--fabro-text-muted); font-size: 0.8rem; width: 14px;"></i>
+                            <span>{% translate "Application:" %} <strong id="drawerToneTypeBadge" style="color: #e2e8f0; font-weight: 500;"></strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviewer Decision Stepper Timeline (MD, ED, CAD) -->
+            <div class="drawer-section-card">
+                <h3 class="drawer-section-title">
+                    <i class="fas fa-user-shield" style="color: #64748b;"></i>
+                    <span>{% translate "Approval Status" %}</span>
+                </h3>
+
+                <div class="drawer-stepper-timeline">
+                    <!-- MD Row -->
+                    <div class="stepper-row" id="drawerDeptRow_MD">
+                        <div class="stepper-node-dot pending" id="drawerDeptDot_MD"></div>
+                        <div class="stepper-header">
+                            <div class="stepper-role-left">
+                                <div class="stepper-role-avatar md">MD</div>
+                                <div class="stepper-role-info">
+                                    <span class="stepper-role-title">{% translate "MD Approval" %}</span>
+                                    <span class="stepper-role-subtitle">{% translate "Management Director" %}</span>
+                                </div>
+                            </div>
+                            <span id="drawerDeptStatus_MD" class="stepper-badge pending">
+                                <i class="fas fa-clock"></i> {% translate "Pending" %}
+                            </span>
+                        </div>
+                        <div id="drawerDeptRemarksBox_MD" class="stepper-remarks-bubble">
+                            <span style="color: var(--fabro-text-muted); font-style: italic;">{% translate "No remarks yet." %}</span>
+                        </div>
+                        <div class="stepper-timestamp">
+                            <i class="far fa-clock"></i>
+                            <span id="drawerDeptDate_MD">—</span>
+                        </div>
+                    </div>
+
+                    <!-- ED Row -->
+                    <div class="stepper-row" id="drawerDeptRow_ED">
+                        <div class="stepper-node-dot pending" id="drawerDeptDot_ED"></div>
+                        <div class="stepper-header">
+                            <div class="stepper-role-left">
+                                <div class="stepper-role-avatar ed">ED</div>
+                                <div class="stepper-role-info">
+                                    <span class="stepper-role-title">{% translate "ED Approval" %}</span>
+                                    <span class="stepper-role-subtitle">{% translate "Engineering Director" %}</span>
+                                </div>
+                            </div>
+                            <span id="drawerDeptStatus_ED" class="stepper-badge pending">
+                                <i class="fas fa-clock"></i> {% translate "Pending" %}
+                            </span>
+                        </div>
+                        <div id="drawerDeptRemarksBox_ED" class="stepper-remarks-bubble">
+                            <span style="color: var(--fabro-text-muted); font-style: italic;">{% translate "No remarks yet." %}</span>
+                        </div>
+                        <div class="stepper-timestamp">
+                            <i class="far fa-clock"></i>
+                            <span id="drawerDeptDate_ED">—</span>
+                        </div>
+                    </div>
+
+                    <!-- CAD Row -->
+                    <div class="stepper-row" id="drawerDeptRow_CAD">
+                        <div class="stepper-node-dot pending" id="drawerDeptDot_CAD"></div>
+                        <div class="stepper-header">
+                            <div class="stepper-role-left">
+                                <div class="stepper-role-avatar cad">CAD</div>
+                                <div class="stepper-role-info">
+                                    <span class="stepper-role-title">{% translate "CAD Approval" %}</span>
+                                    <span class="stepper-role-subtitle">{% translate "CAD Team" %}</span>
+                                </div>
+                            </div>
+                            <span id="drawerDeptStatus_CAD" class="stepper-badge pending">
+                                <i class="fas fa-clock"></i> {% translate "Pending" %}
+                            </span>
+                        </div>
+                        <div id="drawerDeptRemarksBox_CAD" class="stepper-remarks-bubble">
+                            <span style="color: var(--fabro-text-muted); font-style: italic;">{% translate "No remarks yet." %}</span>
+                        </div>
+                        <div class="stepper-timestamp">
+                            <i class="far fa-clock"></i>
+                            <span id="drawerDeptDate_CAD">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overall Status Footer inside Status Card -->
+                <div style="margin-top: 0.35rem; padding-top: 0.85rem; border-top: 1px solid var(--fabro-border); display: flex; flex-direction: column; gap: 0.35rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.86rem; font-weight: 700; color: #fff;">{% translate "Overall Status" %}</span>
+                        <span id="drawerStatusBadge" class="stepper-badge pending">{% translate "Pending Approval" %}</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.74rem; color: var(--fabro-text-secondary);">
+                        {% translate "The color will be added after all required departments approve." %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Approver Action Section (visible only when current user can decide) -->
+            <div id="drawerApproverActionCard" style="display: none; background: rgba(237, 23, 36, 0.05); border: 1px solid rgba(237, 23, 36, 0.25); border-radius: 8px; padding: 1rem;">
+                <h3 style="font-size: 0.88rem; font-weight: 700; color: #fff; margin: 0 0 0.85rem 0; display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="fas fa-stamp" style="color: var(--fabro-red);"></i>
+                    <span>{% translate "Submit Your Review Decision (" %}<span id="drawerUserDeptLabel"></span>)</span>
+                </h3>
+
+                <!-- Decision Radio Buttons -->
+                <div style="display: flex; gap: 0.75rem; margin-bottom: 0.85rem;">
+                    <button type="button" id="btnDecisionApprove" class="btn btn-sm" onclick="setDrawerDecisionChoice('approved')" style="flex: 1; padding: 0.55rem; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; border-radius: 6px; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.35); color: #86efac; cursor: pointer; transition: all 0.2s ease;">
+                        <i class="fas fa-check-circle"></i>
+                        <span>{% translate "Approve Color" %}</span>
+                    </button>
+                    <button type="button" id="btnDecisionReject" class="btn btn-sm" onclick="setDrawerDecisionChoice('rejected')" style="flex: 1; padding: 0.55rem; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; border-radius: 6px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; cursor: pointer; transition: all 0.2s ease;">
+                        <i class="fas fa-times-circle"></i>
+                        <span>{% translate "Reject Color" %}</span>
+                    </button>
+                </div>
+
+                <!-- Hidden decision input -->
+                <input type="hidden" id="drawerSelectedDecision" value="">
+
+                <!-- Remarks Textarea -->
+                <div style="margin-bottom: 0.85rem;">
+                    <label class="form-label" for="drawerDecisionRemarks" style="font-size: 0.78rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.3rem; display: flex; justify-content: space-between;">
+                        <span>{% translate "Remarks / Feedback" %} <span id="drawerRemarksReqStar" style="color: #ef4444; display: none;">*</span></span>
+                        <span id="drawerRemarksCharCount" style="color: var(--fabro-text-muted); font-size: 0.72rem;">0/1000</span>
+                    </label>
+                    <textarea id="drawerDecisionRemarks" class="form-input" rows="3" maxlength="1000" placeholder="{% translate "Enter decision remarks or feedback..." %}" style="width: 100%; box-sizing: border-box; font-size: 0.82rem; resize: vertical; min-height: 70px; background: #14161a; border: 1px solid var(--fabro-border); border-radius: 6px; color: #fff; padding: 0.5rem;" oninput="handleDrawerRemarksInput(this)"></textarea>
+                    <div id="drawerDecisionError" style="color: #ef4444; font-size: 0.74rem; margin-top: 0.35rem; display: none;"></div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="button" id="btnSubmitDrawerDecision" class="btn btn-primary" onclick="submitDrawerDecision()" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 6px; background: var(--fabro-red); border: none; color: #fff; cursor: pointer;">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>{% translate "Submit Decision" %}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</aside>
