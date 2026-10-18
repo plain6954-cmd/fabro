@@ -997,6 +997,7 @@ class PatternDesignImage(models.Model):
     rejection_reason = models.TextField(blank=True, default='')
     completed_at = models.DateTimeField(null=True, blank=True)
     designer_remarks = models.TextField(blank=True, default='')
+    is_reference = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         ordering = ['-uploaded_at']

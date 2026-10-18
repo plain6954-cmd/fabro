@@ -2889,11 +2889,13 @@
                                                 </div>
                                             </div>
                                             <div class="panel-header-right" style="flex-shrink: 0; margin-left: auto;">
-                                                <input type="file" id="refImageUploadInput" multiple accept="image/*" style="display: none;" onchange="window.handleRefImageSelected(this.files)">
+                                                {% if can_upload_reference_images %}
+<input type="file" id="refImageUploadInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl,.3ds,.fbx,.obj,.blend,.stl,.max,.c4d,.dae" style="display: none;" onchange="window.handleRefImageSelected(this.files)">
                                                 <button type="button" class="btn btn-secondary btn-compact-upload" id="btnUploadRefImages" onclick="document.getElementById('refImageUploadInput').click()" style="height: 2rem; padding: 0 0.85rem; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--fabro-border); color: #fff; transition: all 0.2s ease; white-space: nowrap;">
                                                     <i class="fas fa-plus" style="font-size: 0.7rem; color: var(--fabro-red);"></i>
                                                     <span>{% translate "Upload Images" %}</span>
                                                 </button>
+{% endif %}
                                             </div>
                                         </div>
 
@@ -2928,6 +2930,22 @@
                                             </div>
 
                                             <!-- Controls bar: Search, Sort, View toggles (Strict single horizontal row) -->
+                                            {% if is_designer %}
+                                            <input type="file"
+                                                   id="design3DUploadInput"
+                                                   multiple
+                                                   accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl,.3ds,.fbx,.obj,.blend,.stl,.max,.c4d,.dae"
+                                                   style="display:none;"
+                                                   onchange="window.handle3DDesignSelected(this.files)">
+                                            <button type="button"
+                                                    id="btnUpload3DDesigns"
+                                                    class="btn btn-secondary btn-compact-upload"
+                                                    onclick="document.getElementById('design3DUploadInput').click()"
+                                                    style="height:32px; padding:0 0.85rem; font-size:0.78rem; font-weight:600; border-radius:6px; white-space:nowrap;">
+                                                <i class="fas fa-plus"></i>
+                                                <span>{% translate "Upload Designs" %}</span>
+                                            </button>
+                                            {% endif %}
                                             <div class="design-files-controls-bar" style="display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; flex-shrink: 0; margin-left: auto;">
                                                 <div style="position: relative; flex-shrink: 0;">
                                                     <input type="text" id="design3DFilesSearch" class="form-input" placeholder="{% translate "Search files..." %}"
@@ -3293,7 +3311,10 @@
 </script>
 <script src="{% static 'management/js/color_approval_drawer.js' %}?v=20261017" data-fabro-page-asset></script>
 <script src="{% static 'management/js/pattern_measurements.js' %}?v=20261018-v2" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261018-v4" data-fabro-page-asset></script>
+<script>
+window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}false{% endif %};
+</script>
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261018-v7" data-fabro-page-asset></script>
         </div><!-- /page-container -->
 
     <!-- Add Folder Modal -->

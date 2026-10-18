@@ -2414,3 +2414,99 @@ body.is-design-tab::before {
         padding-bottom: env(safe-area-inset-bottom);
     }
 }
+
+/* Tiny Delete Button Box on Pictures for Super Users and Approvers */
+.tiny-pic-delete-btn {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: rgba(15, 17, 21, 0.85);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(239, 68, 68, 0.6);
+    color: #f87171;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    z-index: 12;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    padding: 0;
+    line-height: 1;
+}
+
+.tiny-pic-delete-btn:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: scale(1.12);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+}
+
+.tiny-pic-delete-btn i {
+    pointer-events: none;
+}
+
+.ref-image-thumb-box {
+    position: relative !important;
+}
+
+.ref-image-thumb-box .tiny-pic-delete-btn {
+    top: 6px;
+    right: 6px;
+}
+
+.fabro-design-tile .tile-media-container {
+    position: relative !important;
+}
+
+.fabro-design-gallery.view-grid .tile-media-container .tiny-pic-delete-btn {
+    bottom: 8px;
+    right: 8px;
+}
+
+.fabro-design-gallery.view-list .tile-media-container .tiny-pic-delete-btn {
+    display: none;
+}
+
+.btn-tile-delete {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #f87171;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-size: 0.72rem;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.btn-tile-delete:hover {
+    background: #dc2626;
+    border-color: #ef4444;
+    color: #fff;
+    transform: scale(1.08);
+}
+
+.fabro-design-gallery.view-list .btn-tile-delete {
+    display: inline-flex;
+}
+
+.drawer-file-thumb {
+    position: relative !important;
+}
+
+.drawer-file-thumb .tiny-pic-delete-btn {
+    bottom: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    font-size: 0.65rem;
+}

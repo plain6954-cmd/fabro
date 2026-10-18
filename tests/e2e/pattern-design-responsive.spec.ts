@@ -116,7 +116,7 @@ vehicle = YearRange.objects.first()
 for index in range(5):
     PatternDesignImage.objects.get_or_create(
         vehicle=vehicle, title=f'E2E reference {index + 1}.png',
-        defaults={'image': f'pattern_designs/e2e-reference-{index + 1}.png', 'uploaded_by': designer, 'file_size': 1024},
+        defaults={'image': f'pattern_designs/e2e-reference-{index + 1}.png', 'uploaded_by': designer, 'file_size': 1024, 'is_reference': True},
     )
 `);
   await login(page);

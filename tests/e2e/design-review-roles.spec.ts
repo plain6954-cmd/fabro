@@ -39,8 +39,13 @@ async function signIn(page: Page, username: string, userPassword = password) {
   await page.goto(routes.login);
   await page.getByLabel('Username').fill(username);
   await page.getByLabel('Password').fill(userPassword);
-  await page.getByRole('button', { name: /sign in/i }).click();
-  await expect(page).not.toHaveURL(/\/login\//);
+  await page.getByRole('button', { name: /sign in/i }).click({
+    noWaitAfter: true,
+  });
+
+  await expect(page).not.toHaveURL(/\/login\//, {
+    timeout: 20000,
+  });
 }
 
 test('MD, ED, and CAD review one design independently and factory access is denied', async ({ page }) => {

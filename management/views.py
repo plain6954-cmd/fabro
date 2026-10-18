@@ -239,6 +239,41 @@ def _can_manage_design_assets(user):
     return can_user_manage_design_assets(user)
 
 
+def _can_upload_reference_images(user):
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    if is_active_superuser(user):
+        return True
+    profile = getattr(user, 'workflow_profile', None)
+    return bool(
+        profile
+        and profile.role == WorkflowRoles.APPROVER
+        and profile.approval_role in (ApprovalRoles.MD, ApprovalRoles.CAD, ApprovalRoles.ED)
+    )
+
+
+def _can_upload_3d_designs(user):
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    profile = getattr(user, 'workflow_profile', None)
+    return bool(
+        profile
+        and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER
+    )
+
+
+def _can_delete_design_assets(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and user.is_active
+        and (
+            is_active_superuser(user)
+            or user.has_perm('management.delete_patterndesignimage')
+        )
+    )
+
+
 def _can_approve_design_assets(user):
     if is_active_superuser(user):
         return True
@@ -1000,6 +1035,8 @@ def car_details(request):
         'scoped_search_enabled': scoped_search_enabled,
         'can_manage_catalog': can_manage_catalog,
         'can_manage_design_assets': can_user_manage_design_assets(request.user),
+        'can_delete_design_assets': _can_delete_design_assets(request.user),
+        'can_upload_reference_images': _can_upload_reference_images(request.user),
         'can_approve_designs': _can_approve_design_assets(request.user),
         'is_designer': is_designer_user,
         'user_approval_role': user_approval_role,
@@ -2070,6 +2107,8 @@ def _serialize_design_image_details(img, user=None):
         'rejection_reason': getattr(img, 'rejection_reason', '') or '',
         'designer_remarks': getattr(img, 'designer_remarks', '') or '',
         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
+        'can_delete': _can_delete_design_assets(user),
+        'is_reference': getattr(img, 'is_reference', False),
         'cad': {
             'status': appr.cad_status if appr else 'pending',
             'reviewer': (appr.cad_reviewer.get_full_name() or appr.cad_reviewer.username) if (appr and appr.cad_reviewer) else '',
@@ -2147,12 +2186,13 @@ def get_design_folders_api(request):
                         'rejection_reason': getattr(img, 'rejection_reason', '') or '',
                         'can_approve': _can_user_review_design_image(request.user, img),
                         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
+                        'is_reference': getattr(img, 'is_reference', False),
                     })
 
             # Fetch all 3D design files for this vehicle
             all_vehicle_design_images = _visible_design_images_qs(
                 request.user,
-                PatternDesignImage.objects.filter(Q(vehicle=yr) | Q(folder__vehicle=yr)).select_related('uploaded_by', 'folder').prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer').distinct().order_by('-uploaded_at')
+                PatternDesignImage.objects.filter(Q(vehicle=yr) | Q(folder__vehicle=yr), is_reference=False).select_related('uploaded_by', 'folder').prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer').distinct().order_by('-uploaded_at')
             )
             for d_img in all_vehicle_design_images:
                 serialized = _serialize_design_image_details(d_img, request.user)
@@ -2192,20 +2232,27 @@ def get_design_folders_api(request):
         })
 
     prof = getattr(request.user, 'workflow_profile', None) if request.user.is_authenticated else None
+    can_approve = _can_approve_design_assets(request.user)
+    is_su = is_active_superuser(request.user) if request.user.is_authenticated else False
+    can_delete = _can_delete_design_assets(request.user)
+
     user_info = {
         'username': request.user.username if request.user.is_authenticated else '',
         'role': getattr(prof, 'role', '') if prof else '',
         'approval_role': getattr(prof, 'approval_role', '') if prof else '',
         'is_designer': bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER) if prof else False,
-        'is_superuser': is_active_superuser(request.user) if request.user.is_authenticated else False,
+        'is_superuser': is_su,
+        'can_approve': can_approve,
+        'can_delete': can_delete,
     }
 
     return JsonResponse({
         'status': 'success',
         'folders': data,
-        'can_approve_designs': _can_approve_design_assets(request.user),
+        'can_approve_designs': can_approve,
+        'can_delete_designs': can_delete,
         'direct_images': direct_images_data,
-        'reference_images': [item for item in direct_images_data if item['file_type'] == 'image'],
+        'reference_images': [item for item in direct_images_data if item.get('is_reference')],
         'design_files': design_files_data,
         'vehicle': vehicle_info,
         'user_info': user_info,
@@ -2333,7 +2380,7 @@ def rename_design_folder_api(request, folder_id):
 @login_required
 @require_POST
 def delete_design_folder_api(request, folder_id):
-    if not _can_manage_design_assets(request.user):
+    if not _can_delete_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     folder = get_object_or_404(PatternDesignFolder, id=folder_id)
     for img in folder.images.all():
@@ -2405,7 +2452,16 @@ def _serialize_uploaded_design(image):
 
 def _upload_design_files(request, *, folder=None, vehicle=None):
     """Validate and store one upload batch, with retry identity and rollback."""
-    if not _can_manage_design_assets(request.user):
+    is_ref_upload = (
+        request.POST.get('is_reference') in ('1', 'true', 'True')
+        or request.POST.get('upload_category') == 'reference'
+    )
+    permitted = (
+        _can_upload_reference_images(request.user)
+        if is_ref_upload
+        else _can_upload_3d_designs(request.user)
+    )
+    if not permitted:
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     files = request.FILES.getlist('images') or request.FILES.getlist('image')
     if not files:
@@ -2437,6 +2493,7 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
             image.uploaded_by_id != request.user.pk or image.folder_id != (folder.pk if folder else None)
             or image.vehicle_id != (vehicle.pk if vehicle else None)
             or image.file_size != files[keys.index(image.client_upload_key)].size
+            or image.is_reference != is_ref_upload
             for image in existing
         ):
             return JsonResponse({'status': 'error', 'message': _('Upload ID already used for different files.')}, status=409)
@@ -2476,11 +2533,13 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
                 finally:
                     file_obj.seek(0)
 
+            is_ref_upload = request.POST.get('is_reference') in ('1', 'true', 'True') or request.POST.get('upload_category') == 'reference'
             image = PatternDesignImage(
                 folder=folder, vehicle=vehicle,
                 title=(request.POST.get('title', '').strip() if len(files) == 1 else '')[:255] or file_obj.name[:255],
                 file_size=file_obj.size, uploaded_by=request.user,
                 client_upload_key=keys[index] if keys else None,
+                is_reference=is_ref_upload,
             )
             created.append(image)
             file_obj.seek(0)
@@ -2492,18 +2551,22 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
 
         with transaction.atomic():
             actor = _locked_upload_actor(request.user)
-            if not actor.is_active or not _can_manage_design_assets(actor):
+            upload_allowed = (
+                _can_upload_reference_images(actor)
+                if is_ref_upload
+                else _can_upload_3d_designs(actor)
+            )
+            if not upload_allowed:
                 raise PermissionDenied(_('Permission denied.'))
             if folder:
                 PatternDesignFolder.objects.select_for_update().get(pk=folder.pk)
             else:
                 YearRange.objects.select_for_update().get(pk=vehicle.pk)
-            is_freelancer = get_user_profile(actor).role == WorkflowRoles.FREELANCE_3D_DESIGNER
             for image in created:
                 image.uploaded_by = actor
-                image.approval_status = 'pending' if is_freelancer else 'approved'
+                image.approval_status = 'approved' if is_ref_upload else 'pending'
                 image.save()
-                if is_freelancer:
+                if not is_ref_upload:
                     submit_design_for_approval(image, actor)
             response = JsonResponse({
                 'status': 'success', 'uploaded_count': len(created),
@@ -2644,7 +2707,7 @@ def update_vehicle_google_drive_api(request, vehicle_id):
 @login_required
 @require_POST
 def delete_design_image_api(request, image_id):
-    if not _can_manage_design_assets(request.user):
+    if not _can_delete_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     img = get_object_or_404(PatternDesignImage, id=image_id)
     folder_id = img.folder_id

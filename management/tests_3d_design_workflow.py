@@ -194,6 +194,7 @@ class ThreeDDesignWorkflowTests(TestCase):
             vehicle=self.year,
             image='pattern_designs/reference.png',
             title='Reference Photo.png',
+            is_reference=True,
             uploaded_by=self.designer,
             approval_status='approved',
         )
@@ -209,7 +210,7 @@ class ThreeDDesignWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual([item['title'] for item in data['reference_images']], ['Reference Photo.png'])
-        self.assertEqual({item['title'] for item in data['design_files']}, {'Reference Photo.png', 'Pattern.obj'})
+        self.assertEqual({item['title'] for item in data['design_files']}, {'Pattern.obj'})
 
     def test_design_file_types_include_native_3d_formats_without_treating_unknown_files_as_images(self):
         from management.views import ALLOWED_DESIGN_EXTENSIONS, _get_design_file_info

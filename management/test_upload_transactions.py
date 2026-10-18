@@ -150,8 +150,11 @@ class ComplaintUploadTransactionTests(TransactionTestCase):
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class DesignerUploadTransactionTests(TransactionTestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_superuser(
-            username='design_boundary_admin', email='design@example.invalid', password=None,
+        self.user = get_user_model().objects.create_user(
+            username='design_boundary_designer', email='design@example.invalid', password=None,
+        )
+        UserProfile.objects.filter(user=self.user).update(
+            role=WorkflowRoles.FREELANCE_3D_DESIGNER
         )
         self.folder = PatternDesignFolder.objects.create(name='Isolated design folder')
         self.client.force_login(self.user)

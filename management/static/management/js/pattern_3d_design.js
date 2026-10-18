@@ -15,6 +15,7 @@
     const state = {
         vehicleId: null,
         vehicleData: null,
+        canDelete: false,
         referenceImages: [],
         designFiles: [],
         selectedFileId: null,
@@ -49,6 +50,60 @@
     /**
      * Load the 3D Design Workspace data for a given vehicle
      */
+        function canCurrentUserDelete(item) {
+        return state.canDelete === true;
+    }
+
+    async function delete3DDesignFile(fileId, fileTitle) {
+        if (!fileId) return;
+        const entry = [...state.referenceImages, ...state.designFiles].find(f => f.id === fileId);
+        const displayName = fileTitle || (entry && entry.title) || 'this file';
+        if (!confirm(`Are you sure you want to delete "${displayName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/api/design-images/${fileId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                },
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                // Remove from state
+                state.referenceImages = state.referenceImages.filter(f => f.id !== fileId);
+                state.designFiles = state.designFiles.filter(f => f.id !== fileId);
+
+                // Update count badges
+                const refBadge = document.getElementById('refImagesCountBadge');
+                if (refBadge) refBadge.textContent = state.referenceImages.length;
+
+                const filesBadge = document.getElementById('design3DFilesCountBadge');
+                if (filesBadge) filesBadge.textContent = state.designFiles.length;
+
+                // Re-render
+                renderReferenceImages(state.referenceImages);
+                render3DDesignFiles();
+
+                // If currently open in drawer
+                if (state.selectedFileId === fileId) {
+                    if (state.designFiles.length > 0) {
+                        selectDrawerFile(state.designFiles[0].id);
+                    } else {
+                        closeApprovalDrawer();
+                    }
+                }
+            } else {
+                alert(data.message || 'Error deleting file.');
+            }
+        } catch (err) {
+            console.error('[3D Design] Error deleting file:', err);
+            alert('An error occurred while deleting the file.');
+        }
+    }
+    window.delete3DDesignFile = delete3DDesignFile;
+
     async function load3DDesignWorkspace(vehicleId) {
         if (!vehicleId) return;
         const requestId = ++state.loadRequestId;
@@ -65,18 +120,19 @@
                 const allDirect = data.reference_images || data.direct_images || [];
                 const allFiles = data.design_files || [];
 
-                // Reference images: files that are swatch photos or images
+                // Reference images: only reference photos & swatch media
                 const refImgs = allDirect.filter(img =>
-                    img.file_type === 'image' || /\.(jpe?g|png|webp|gif|bmp)$/i.test(img.title || img.url || '')
+                    img.is_reference === true
                 );
                 state.referenceImages = refImgs;
+                const refImageIds = new Set(refImgs.map(img => img.id));
 
-                // Design files: 3D model files (or non-swatch files)
-                const d3dFiles = allFiles.filter(f =>
-                    f.file_type !== 'image' || !/swatch|sample|stitch/i.test(f.title || '')
-                );
-                state.designFiles = d3dFiles.length > 0 ? d3dFiles : allFiles;
+                // 3D Design files: strictly 3D model files (never reference images)
+                const d3dFiles = allFiles.filter(f => !f.is_reference && !refImageIds.has(f.id));
+                state.designFiles = d3dFiles;
                 state.currentUser = data.user_info || {};
+                state.canApproveDesigns = data.can_approve_designs || false;
+                state.canDelete = data.user_info?.can_delete === true;
 
                 // Update Badges
                 const refBadge = document.getElementById('refImagesCountBadge');
@@ -175,10 +231,15 @@
             }
             const refSizeText = img.file_size ? (Math.round(img.file_size / 1024) + ' KB') : '';
 
+            const delBtnRef = canCurrentUserDelete(img)
+                ? `<button type="button" class="tiny-pic-delete-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${img.id})" title="Delete this image"><i class="fas fa-trash-alt"></i></button>`
+                : '';
+
             html += `
                 <div class="ref-image-card" data-ref-index="${index}" role="button" tabindex="0" aria-label="Preview ${escapeHtml(img.title)}">
                     <div class="ref-image-thumb-box">
                         ${refThumbHtml}
+                        ${delBtnRef}
                     </div>
                     <div class="ref-image-meta">
                         <div class="ref-image-name" title="${escapeHtml(img.title)}">${escapeHtml(img.title)}</div>
@@ -229,6 +290,7 @@
         if (!fileList || fileList.length === 0 || !state.vehicleId) return;
 
         const formData = new FormData();
+        formData.append('is_reference', '1');
         Array.from(fileList).forEach(file => {
             formData.append('images', file);
         });
@@ -249,6 +311,42 @@
             }
         } catch (err) {
             console.error('[3D Design] Reference image upload error:', err);
+        }
+    }
+
+    async function handle3DDesignSelected(fileList) {
+        const input = document.getElementById('design3DUploadInput');
+        if (!fileList || !fileList.length || !state.vehicleId) return;
+
+        const vehicleId = state.vehicleId;
+        const formData = new FormData();
+        formData.append('is_reference', '0');
+        Array.from(fileList).forEach(file => formData.append('images', file));
+
+        if (input) input.disabled = true;
+        try {
+            const resp = await fetch(`/api/vehicles/${vehicleId}/design-images/upload/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrfToken() },
+                body: formData,
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Design upload failed.');
+            }
+
+            if (state.vehicleId === vehicleId) {
+                await load3DDesignWorkspace(vehicleId);
+            }
+        } catch (error) {
+            console.error('[3D Design] Upload failed:', error);
+            alert(error.message || 'Unable to upload designs.');
+        } finally {
+            if (input) {
+                input.value = '';
+                input.disabled = false;
+            }
         }
     }
 
@@ -338,6 +436,7 @@
 
                     <div class="tile-media-container" onclick="window.openApprovalDrawer(${file.id})">
                         ${mediaHtml}
+                        ${canCurrentUserDelete(file) ? `<button type="button" class="tiny-pic-delete-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id})" title="Delete this file"><i class="fas fa-trash-alt"></i></button>` : ''}
                     </div>
 
                     <div class="tile-body">
@@ -381,6 +480,7 @@
                                 <i class="fas fa-clipboard-check"></i>
                                 <span>Approval Workflow</span>
                             </button>
+                            ${canCurrentUserDelete(file) ? `<button type="button" class="btn-tile-delete" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id})" title="Delete this file"><i class="fas fa-trash-alt"></i></button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -559,9 +659,12 @@
             const is3DModel = ['3ds', 'step', 'stp', 'fbx', 'obj', 'blend', 'iges', 'igs', 'stl', 'dxf', 'dwg', 'cad', 'nc', 'cut'].includes(ext) || file.file_type === 'cad';
             const isImg = !is3DModel && (file.file_type === 'image' || /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.title || ''));
             const thumbSrc = file.url || file.preview_url;
-            thumbBox.innerHTML = isImg
-                ? `<img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(file.title)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\\'fas fa-cube\\\' style=\\\'font-size:1.8rem;color:#c084fc;\\\'></i>';">`
-                : `<i class="fas fa-cube" style="font-size:1.8rem;color:#c084fc;"></i>`;
+            const drawerDelBtn = canCurrentUserDelete(file)
+                ? `<button type="button" class="tiny-pic-delete-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id})" title="Delete this file" style="position:absolute;bottom:4px;right:4px;"><i class="fas fa-trash-alt"></i></button>`
+                : '';
+            thumbBox.innerHTML = (isImg
+                ? `<img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(file.title)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-cube\' style=\'font-size:1.8rem;color:#c084fc;\'></i>';">`
+                : `<i class="fas fa-cube" style="font-size:1.8rem;color:#c084fc;"></i>`) + drawerDelBtn;
         }
 
         // 2. Update MD Reviewer Card
@@ -777,6 +880,31 @@
     /**
      * Preview Image Lightbox Modal
      */
+
+    function openReferenceFile(image) {
+        if (!image) return;
+
+        const ext = String(image.file_ext || '').replace(/^\./, '').toLowerCase();
+        const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'].includes(ext);
+
+        if (isImage) {
+            previewImageLightbox(image.url || image.preview_url, image.title);
+            return;
+        }
+
+        // Use FABRO's authenticated file-download endpoint.
+        const downloadUrl = image.original_url ||
+            `/design-images/${encodeURIComponent(image.id)}/download/`;
+
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+
     function previewImageLightbox(src, title) {
         const modal = document.getElementById('interiorMediaPreviewModal');
         const container = document.getElementById('interiorMediaPreviewContainer');
@@ -793,6 +921,7 @@
     window.load3DDesignWorkspace = load3DDesignWorkspace;
     window.scrollRefImages = scrollRefImages;
     window.handleRefImageSelected = handleRefImageSelected;
+    window.handle3DDesignSelected = handle3DDesignSelected;
     window.filter3DDesignFiles = filter3DDesignFiles;
     window.sort3DDesignFiles = sort3DDesignFiles;
     window.switch3DFilesView = switch3DFilesView;
@@ -822,7 +951,7 @@
                 const card = event.target.closest('.ref-image-card');
                 if (!card) return;
                 const image = state.referenceImages[Number(card.dataset.refIndex)];
-                if (image) previewImageLightbox(image.url || image.preview_url, image.title);
+                if (image) openReferenceFile(image);
             }, { signal: eventController.signal });
             track.addEventListener('keydown', (event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -830,7 +959,7 @@
                 if (!card) return;
                 event.preventDefault();
                 const image = state.referenceImages[Number(card.dataset.refIndex)];
-                if (image) previewImageLightbox(image.url || image.preview_url, image.title);
+                if (image) openReferenceFile(image);
             }, { signal: eventController.signal });
         }
     }
