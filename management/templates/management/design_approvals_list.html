@@ -35,7 +35,7 @@
             </h1>
             <p style="font-size: 0.85rem; color: var(--dark-text-secondary, #94a3b8); margin: 0.25rem 0 0 0;">
                 {% if is_designer %}
-                    {% translate "Track review progress and feedback from CAD and ED approvers." %}
+                    {% translate "Track review progress and feedback from CAD, ED, and MD approvers." %}
                 {% else %}
                     {% translate "Review, inspect, and approve pattern design submissions from 3D designers." %}
                 {% endif %}
@@ -145,7 +145,7 @@
                         </div>
                     </div>
 
-                    <!-- Dual Review Matrix Badges -->
+                    <!-- Independent review matrix -->
                     <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
                         <!-- CAD Review -->
                         <div style="display: flex; flex-direction: column; gap: 0.15rem;">
@@ -170,6 +170,19 @@
                                 <span style="font-size: 0.75rem; color: #ef4444; font-weight: 600;"><i class="fas fa-times"></i> {% translate "Declined" %}</span>
                             {% else %}
                                 <span style="font-size: 0.75rem; color: #f59e0b; font-weight: 600;"><i class="fas fa-clock"></i> {% translate "Pending" %}</span>
+                            {% endif %}
+                        </div>
+                        <div style="height: 24px; width: 1px; background: rgba(255,255,255,0.1);"></div>
+                        <div style="display:flex;flex-direction:column;gap:0.15rem;">
+                            <span style="font-size:0.68rem;text-transform:uppercase;color:#94a3b8;font-weight:700;">MD</span>
+                            {% if item.current_md_status == 'approved' %}
+                                <span style="font-size:0.75rem;color:#10b981;font-weight:600;">{% translate "Approved" %}</span>
+                            {% elif item.current_md_status == 'rejected' %}
+                                <span style="font-size:0.75rem;color:#ef4444;font-weight:600;">{% translate "Declined" %}</span>
+                            {% elif item.current_md_status == 'not_required' %}
+                                <span style="font-size:0.75rem;color:#94a3b8;font-weight:600;">{% translate "Not required (historical)" %}</span>
+                            {% else %}
+                                <span style="font-size:0.75rem;color:#f59e0b;font-weight:600;">{% translate "Pending" %}</span>
                             {% endif %}
                         </div>
                     </div>

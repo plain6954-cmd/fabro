@@ -30,7 +30,7 @@ test('vehicle pages support add, search, edit and deletion approval requests', a
   await expect(page.locator('#vehicle-search-options')).toContainText('X-Code');
   await expect(page.locator('#vehicle-search-options')).toContainText('Brand');
   await expect(page.locator('#vehicle-search-options')).toContainText('Model');
-  await expect(page.locator('#vehicle-search-options')).toContainText('Sub-Model');
+  await expect(page.locator('#vehicle-search-options')).toContainText('Sub Model');
   await page.locator('#vehicle-search-options [data-search-by="x_code"]').click();
   await expect.poll(() => new URL(page.url()).searchParams.get('search_by')).toBe('x_code');
   await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(sample.vehicleLayout);

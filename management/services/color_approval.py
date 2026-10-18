@@ -3,7 +3,7 @@ import re
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, PermissionDenied
-from django.db import transaction
+from django.db import connection, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -14,6 +14,7 @@ from management.models import (
     Notification,
     PatternColorApprovalDecision,
     PatternColorSelection,
+    WorkflowRoles,
     YearRange,
 )
 from management.services.push_notifications import send_push_on_commit
@@ -179,9 +180,10 @@ def _notify_approvers_new_color_proposal(selection, vehicle, submitter):
     target_roles = [ApprovalRoles.MD, ApprovalRoles.ED, ApprovalRoles.CAD]
     approver_users = list(
         User.objects.filter(
+            workflow_profile__role=WorkflowRoles.APPROVER,
             workflow_profile__approval_role__in=target_roles,
             is_active=True,
-        ).select_related('workflow_profile')
+        ).exclude(pk=submitter.pk).select_related('workflow_profile').distinct()
     )
 
     title = _("New Color Approval Request")
@@ -222,14 +224,16 @@ def submit_color_decision(user, decision_id, decision_choice, remarks):
             raise ValidationError(_("Approval decision record not found."))
 
         selection = PatternColorSelection.objects.select_for_update().get(id=decision.selection_id)
-        if selection.status == PatternColorSelection.STATUS_APPROVED:
-            raise ValidationError(_("This color selection is already fully approved."))
+        if selection.status != PatternColorSelection.STATUS_PENDING:
+            raise ValidationError(_("This color selection is no longer awaiting approval."))
+        if decision.decision != PatternColorApprovalDecision.STATUS_PENDING:
+            raise ValidationError(_("This department has already reviewed this color selection."))
 
         profile = getattr(user, 'workflow_profile', None)
         user_approval_role = getattr(profile, 'approval_role', '')
 
         # Enforce authorized department match
-        if user_approval_role != decision.department:
+        if not profile or profile.role != WorkflowRoles.APPROVER or user_approval_role != decision.department:
             raise PermissionDenied(
                 _("You are not authorized to submit decisions for the %(dept)s department.") % {'dept': decision.department}
             )
@@ -269,7 +273,7 @@ def submit_color_decision(user, decision_id, decision_choice, remarks):
                 send_push_on_commit(
                     user=selection.submitted_by,
                     title=title,
-                    body=msg,
+                    body=_('%(dept)s requested changes to your color proposal.') % {'dept': decision.department},
                     url=f"/car-details/?vehicle_id={selection.vehicle_id}#measurements",
                     tag=f"color_rej_{selection.id}",
                 )
@@ -305,37 +309,42 @@ def submit_color_decision(user, decision_id, decision_choice, remarks):
 
 
 def _integrate_approved_colors_into_color_master(selection):
-    # Inner / Single color if new
-    if selection.inner_source == PatternColorSelection.SOURCE_NEW and not selection.inner_existing_color:
-        rgb_str, cmyk_str = derive_rgb_cmyk_from_hex(selection.inner_hex_code)
+    # PostgreSQL serializes code allocation and duplicate checks across
+    # concurrent approvals. SQLite tests run under their normal transaction.
+    if connection.vendor == 'postgresql':
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT pg_advisory_xact_lock(%s)', [90210047])
+
+    def matching_or_new_color(hex_code, pantone_code, name):
+        existing = ColorMaster.objects.filter(
+            hex_code__iexact=hex_code,
+            pantone_code__iexact=pantone_code,
+        ).order_by('id').first()
+        if existing:
+            return existing
+        rgb_str, cmyk_str = derive_rgb_cmyk_from_hex(hex_code)
         code = get_next_colormaster_code()
-        name = selection.inner_color_name or f"Color {code}"
-        cm = ColorMaster.objects.create(
+        return ColorMaster.objects.create(
             color_code=code,
-            name=name.upper(),
-            hex_code=selection.inner_hex_code,
-            pantone_code=selection.inner_pantone_code,
+            name=(name or f"Color {code}").upper(),
+            hex_code=hex_code,
+            pantone_code=pantone_code,
             rgb_code=rgb_str,
             cmyk_code=cmyk_str,
             status='Active',
         )
-        selection.inner_existing_color = cm
+
+    # Inner / Single color if new
+    if selection.inner_source == PatternColorSelection.SOURCE_NEW and not selection.inner_existing_color:
+        selection.inner_existing_color = matching_or_new_color(
+            selection.inner_hex_code, selection.inner_pantone_code, selection.inner_color_name,
+        )
 
     # Outer color if dual tone and new
     if selection.is_dual and selection.outer_source == PatternColorSelection.SOURCE_NEW and not selection.outer_existing_color:
-        rgb_str, cmyk_str = derive_rgb_cmyk_from_hex(selection.outer_hex_code)
-        code = get_next_colormaster_code()
-        name = selection.outer_color_name or f"Color {code}"
-        cm = ColorMaster.objects.create(
-            color_code=code,
-            name=name.upper(),
-            hex_code=selection.outer_hex_code,
-            pantone_code=selection.outer_pantone_code,
-            rgb_code=rgb_str,
-            cmyk_code=cmyk_str,
-            status='Active',
+        selection.outer_existing_color = matching_or_new_color(
+            selection.outer_hex_code, selection.outer_pantone_code, selection.outer_color_name,
         )
-        selection.outer_existing_color = cm
 
     selection.save(update_fields=['inner_existing_color', 'outer_existing_color'])
 
@@ -360,7 +369,9 @@ def serialize_color_selection(selection, current_user=None):
             }
         can_decide = bool(
             current_user
+            and profile and profile.role == WorkflowRoles.APPROVER
             and user_approval_role == dept
+            and d.decision == PatternColorApprovalDecision.STATUS_PENDING
             and selection.status == PatternColorSelection.STATUS_PENDING
         )
         return {
@@ -412,5 +423,5 @@ def serialize_color_selection(selection, current_user=None):
             'ED': _dept_data('ED'),
             'CAD': _dept_data('CAD'),
         },
-        'current_user_department': user_approval_role if user_approval_role in ('MD', 'ED', 'CAD') else None,
+        'current_user_department': user_approval_role if profile and profile.role == WorkflowRoles.APPROVER and user_approval_role in ('MD', 'ED', 'CAD') else None,
     }

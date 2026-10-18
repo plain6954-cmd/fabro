@@ -272,6 +272,60 @@ class MeasurementsColorApprovalTestCase(TestCase):
         with self.assertRaises(Exception):
             submit_color_decision(self.md_user, decisions['ED'].id, 'approved', 'Cross-dept attempt')
 
+        # A stale approval_role on a different workflow role grants no review power.
+        self.md_user.workflow_profile.role = WorkflowRoles.FACTORY_VIEWER
+        self.md_user.workflow_profile.save(update_fields=['role'])
+        with self.assertRaises(Exception):
+            submit_color_decision(self.md_user, decisions['MD'].id, 'approved', 'Stale role')
+
+    def test_decisions_are_single_use_and_rejection_is_terminal(self):
+        selection, _ = save_color_selection(self.vehicle, self.regular_user, {
+            'tone_type': 'single', 'inner_source': 'new',
+            'inner_pantone_code': '2000 U', 'inner_hex_code': '#123456',
+        })
+        decisions = {d.department: d for d in selection.decisions.all()}
+        submit_color_decision(self.md_user, decisions['MD'].id, 'approved', 'First review')
+        with self.assertRaises(Exception):
+            submit_color_decision(self.md_user, decisions['MD'].id, 'rejected', 'Changed mind')
+        submit_color_decision(self.ed_user, decisions['ED'].id, 'rejected', 'Needs revision')
+        with self.assertRaises(Exception):
+            submit_color_decision(self.cad_user, decisions['CAD'].id, 'approved', 'Late vote')
+        selection.refresh_from_db()
+        self.assertEqual(selection.status, PatternColorSelection.STATUS_REJECTED)
+        self.assertFalse(ColorMaster.objects.filter(hex_code='#123456').exists())
+
+    def test_matching_new_inner_and_outer_colors_reuse_one_master_record(self):
+        before = ColorMaster.objects.count()
+        selection, _ = save_color_selection(self.vehicle, self.regular_user, {
+            'tone_type': 'dual',
+            'inner_source': 'new', 'inner_pantone_code': '3210 U',
+            'inner_hex_code': '#123ABC', 'inner_color_name': 'Inner Blue',
+            'outer_source': 'new', 'outer_pantone_code': '3210 U',
+            'outer_hex_code': '#123ABC', 'outer_color_name': 'Outer Blue',
+        })
+        decisions = {d.department: d for d in selection.decisions.all()}
+        submit_color_decision(self.md_user, decisions['MD'].id, 'approved', '')
+        submit_color_decision(self.ed_user, decisions['ED'].id, 'approved', '')
+        submit_color_decision(self.cad_user, decisions['CAD'].id, 'approved', '')
+        selection.refresh_from_db()
+        self.assertEqual(ColorMaster.objects.count(), before + 1)
+        self.assertEqual(selection.inner_existing_color_id, selection.outer_existing_color_id)
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_rejection_push_omits_reviewer_remarks(self, push):
+        selection, _ = save_color_selection(self.vehicle, self.regular_user, {
+            'tone_type': 'single', 'inner_source': 'new',
+            'inner_pantone_code': '8000 U', 'inner_hex_code': '#FEDCBA',
+        })
+        decision = selection.decisions.get(department='MD')
+        push.reset_mock()
+        private_remark = 'Customer phone and internal details stay in Fabro'
+        with self.captureOnCommitCallbacks(execute=True):
+            submit_color_decision(self.md_user, decision.id, 'rejected', private_remark)
+        self.assertEqual(push.call_count, 1)
+        self.assertNotIn(private_remark, push.call_args.args[2])
+        self.assertIn(private_remark, Notification.objects.filter(color_selection=selection, recipient=self.regular_user).latest('id').message)
+
     def test_api_endpoints_integration(self):
         self.client.force_login(self.regular_user)
 

@@ -69,6 +69,14 @@ class DesignApprovalWorkflowTests(TestCase):
         cls.ed_profile.approval_role = ApprovalRoles.ED
         cls.ed_profile.save()
 
+        cls.md_user = User.objects.create_user(
+            username='md_approver_1', password='Password123!', email='md@fabro.test',
+        )
+        cls.md_profile = cls.md_user.workflow_profile
+        cls.md_profile.role = WorkflowRoles.APPROVER
+        cls.md_profile.approval_role = ApprovalRoles.MD
+        cls.md_profile.save()
+
         # 5. Unrelated users: PM Approver & Country Executive
         cls.pm_user = User.objects.create_user(
             username='pm_approver_1',
@@ -182,7 +190,7 @@ class DesignApprovalWorkflowTests(TestCase):
         submit_design_for_approval(img, self.designer)
 
         self.client.force_login(self.cad_user)
-        res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'Pattern matches CAD template'})
+        res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'Pattern matches CAD template', 'change_type': 'minor'})
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertEqual(data['status'], 'success')
@@ -203,7 +211,7 @@ class DesignApprovalWorkflowTests(TestCase):
         decline_reason = "Left bolster seam allowance is insufficient."
         res = self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': decline_reason}),
+            json.dumps({'reason': decline_reason, 'change_type': 'major'}),
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 200)
@@ -222,7 +230,7 @@ class DesignApprovalWorkflowTests(TestCase):
         submit_design_for_approval(img, self.designer)
 
         self.client.force_login(self.ed_user)
-        res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'Engineering dimensions verified'})
+        res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'Engineering dimensions verified', 'change_type': 'minor'})
         self.assertEqual(res.status_code, 200)
 
         appr = img.latest_approval
@@ -240,7 +248,7 @@ class DesignApprovalWorkflowTests(TestCase):
         decline_reason = "Airbag deploy seam notch must be 15mm from center."
         res = self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': decline_reason}),
+            json.dumps({'reason': decline_reason, 'change_type': 'major'}),
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 200)
@@ -259,13 +267,13 @@ class DesignApprovalWorkflowTests(TestCase):
 
         # CAD approves -> only cad_status is affected, ed_status remains pending
         self.client.force_login(self.cad_user)
-        self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
         appr = img.latest_approval
         self.assertEqual(appr.cad_status, 'approved')
         self.assertEqual(appr.ed_status, 'pending')
 
         # CAD attempting to approve again gets 409 Conflict
-        repeat_cad = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        repeat_cad = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
         self.assertEqual(repeat_cad.status_code, 409)
 
     # Test 10: Designer cannot approve their own design
@@ -320,13 +328,13 @@ class DesignApprovalWorkflowTests(TestCase):
 
         # CAD approves with comment
         self.client.force_login(self.cad_user)
-        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'CAD approved dimensions.'})
+        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'CAD approved dimensions.', 'change_type': 'minor'})
 
         # ED declines with comment
         self.client.force_login(self.ed_user)
         self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': 'ED requires seat belt cut modification.'}),
+            json.dumps({'reason': 'ED requires seat belt cut modification.', 'change_type': 'major'}),
             content_type='application/json'
         )
 
@@ -347,7 +355,7 @@ class DesignApprovalWorkflowTests(TestCase):
         # CAD approves
         self.client.force_login(self.cad_user)
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'Looks solid.'})
+            self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'Looks solid.', 'change_type': 'minor'})
 
         cad_notif = Notification.objects.filter(recipient=self.designer, design_image=img).latest('created_at')
         self.assertIn('CAD', cad_notif.title)
@@ -357,7 +365,7 @@ class DesignApprovalWorkflowTests(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             self.client.post(
                 reverse('reject_design_image_api', args=[img.id]),
-                json.dumps({'reason': 'Adjust margin.'}),
+                json.dumps({'reason': 'Adjust margin.', 'change_type': 'major'}),
                 content_type='application/json'
             )
 
@@ -376,7 +384,7 @@ class DesignApprovalWorkflowTests(TestCase):
 
         # CAD approves alone
         self.client.force_login(self.cad_user)
-        self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'pending')
         self.assertEqual(img.latest_approval.status, 'partially_approved')
@@ -385,22 +393,29 @@ class DesignApprovalWorkflowTests(TestCase):
         img2 = self._create_sample_design_image()
         submit_design_for_approval(img2, self.designer)
         self.client.force_login(self.ed_user)
-        self.client.post(reverse('approve_design_image_api', args=[img2.id]))
+        self.client.post(reverse('approve_design_image_api', args=[img2.id]), {'change_type': 'minor'})
         img2.refresh_from_db()
         self.assertEqual(img2.approval_status, 'pending')
         self.assertEqual(img2.latest_approval.status, 'partially_approved')
 
-    # Test 19: CAD + ED approval results in overall approved state
+    # Test 19: CAD, ED, and MD approval results in overall approved state
     def test_19_both_cad_and_ed_approval_results_in_overall_approved(self):
         img = self._create_sample_design_image()
         from management.services.design_approvals import submit_design_for_approval
         submit_design_for_approval(img, self.designer)
 
         self.client.force_login(self.cad_user)
-        self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
 
         self.client.force_login(self.ed_user)
-        self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
+
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'pending')
+        self.assertEqual(img.latest_approval.md_status, 'pending')
+
+        self.client.force_login(self.md_user)
+        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
 
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'approved')
@@ -414,12 +429,12 @@ class DesignApprovalWorkflowTests(TestCase):
 
         # CAD approves, ED declines
         self.client.force_login(self.cad_user)
-        self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
 
         self.client.force_login(self.ed_user)
         self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': 'Thickness wrong'}),
+            json.dumps({'reason': 'Thickness wrong', 'change_type': 'major'}),
             content_type='application/json'
         )
 
@@ -433,7 +448,7 @@ class DesignApprovalWorkflowTests(TestCase):
         img = self._create_sample_design_image()
         from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
         submit_design_for_approval(img, self.designer)
-        record_design_review_decision(img, self.cad_user, 'rejected', 'Fix outer border')
+        record_design_review_decision(img, self.cad_user, 'rejected', 'Fix outer border', change_type='major')
 
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'rejected')
@@ -451,7 +466,7 @@ class DesignApprovalWorkflowTests(TestCase):
         self.assertEqual(img.latest_approval.ed_status, 'pending')
 
         # Both CAD and ED received new notification
-        notifs = Notification.objects.filter(design_image=img).order_by('-created_at')[:2]
+        notifs = Notification.objects.filter(design_image=img, title='Design Resubmitted for Approval')
         recipients = set(notifs.values_list('recipient__username', flat=True))
         self.assertIn(self.cad_user.username, recipients)
         self.assertIn(self.ed_user.username, recipients)
@@ -463,8 +478,8 @@ class DesignApprovalWorkflowTests(TestCase):
         submit_design_for_approval(img, self.designer)
 
         # CAD approved in Cycle 1, ED rejected in Cycle 1
-        record_design_review_decision(img, self.cad_user, 'approved', 'CAD approved in rev 1')
-        record_design_review_decision(img, self.ed_user, 'rejected', 'ED rejected in rev 1')
+        record_design_review_decision(img, self.cad_user, 'approved', 'CAD approved in rev 1', change_type='minor')
+        record_design_review_decision(img, self.ed_user, 'rejected', 'ED rejected in rev 1', change_type='major')
 
         # Designer resubmits -> Cycle 2
         submit_design_for_approval(img, self.designer, is_resubmission=True)
@@ -493,7 +508,7 @@ class DesignApprovalWorkflowTests(TestCase):
 
         self.client.force_login(self.cad_user)
         with self.captureOnCommitCallbacks(execute=True):
-            res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'All good'})
+            res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'All good', 'change_type': 'minor'})
 
         self.assertEqual(res.status_code, 200)
         img.refresh_from_db()
@@ -507,7 +522,7 @@ class DesignApprovalWorkflowTests(TestCase):
         submit_design_for_approval(img, self.designer)
 
         with self.captureOnCommitCallbacks(execute=True):
-            record_design_review_decision(img, self.cad_user, 'approved', 'Looks good')
+            record_design_review_decision(img, self.cad_user, 'approved', 'Looks good', change_type='minor')
 
         notif = Notification.objects.filter(recipient=self.designer, design_image=img).first()
         self.assertIsNotNone(notif)
@@ -519,7 +534,7 @@ class DesignApprovalWorkflowTests(TestCase):
         from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
         submit_design_for_approval(img, self.designer)
 
-        record_design_review_decision(img, self.cad_user, 'approved', 'Approved!')
+        record_design_review_decision(img, self.cad_user, 'approved', 'Approved!', change_type='minor')
 
         # Submitting designer received notification
         self.assertTrue(Notification.objects.filter(recipient=self.designer, design_image=img).exists())
@@ -533,8 +548,8 @@ class DesignApprovalWorkflowTests(TestCase):
         from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
         submit_design_for_approval(img, self.designer)
 
-        record_design_review_decision(img, self.cad_user, 'rejected', 'Wrong stitch line')
-        record_design_review_decision(img, self.ed_user, 'approved', 'Engineering geometry is fine')
+        record_design_review_decision(img, self.cad_user, 'rejected', 'Wrong stitch line', change_type='major')
+        record_design_review_decision(img, self.ed_user, 'approved', 'Engineering geometry is fine', change_type='minor')
 
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'rejected')
@@ -552,8 +567,8 @@ class DesignApprovalWorkflowTests(TestCase):
         from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
         submit_design_for_approval(img, self.designer)
 
-        record_design_review_decision(img, self.cad_user, 'rejected', 'CAD issue')
-        record_design_review_decision(img, self.ed_user, 'rejected', 'ED issue')
+        record_design_review_decision(img, self.cad_user, 'rejected', 'CAD issue', change_type='major')
+        record_design_review_decision(img, self.ed_user, 'rejected', 'ED issue', change_type='major')
 
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'rejected')
@@ -566,7 +581,7 @@ class DesignApprovalWorkflowTests(TestCase):
         from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
         submit_design_for_approval(img, self.designer)
 
-        record_design_review_decision(img, self.cad_user, 'rejected', 'CAD rejected first')
+        record_design_review_decision(img, self.cad_user, 'rejected', 'CAD rejected first', change_type='major')
 
         self.client.force_login(self.ed_user)
         res = self.client.get(reverse('design_approvals_list') + '?status=pending')
@@ -579,7 +594,7 @@ class DesignApprovalWorkflowTests(TestCase):
         img = self._create_sample_design_image()
         from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
         submit_design_for_approval(img, self.designer)
-        record_design_review_decision(img, self.cad_user, 'rejected', 'Needs thicker margin')
+        record_design_review_decision(img, self.cad_user, 'rejected', 'Needs thicker margin', change_type='major')
 
         new_photo = SimpleUploadedFile(
             'revised_cushion.jpg',
@@ -619,8 +634,8 @@ class DesignApprovalWorkflowTests(TestCase):
         self.assertEqual(second.status_code, 200)
         self.assertEqual(first.json()['images'][0]['id'], second.json()['images'][0]['id'])
         self.assertEqual(PatternDesignImage.objects.filter(vehicle=self.vehicle).count(), 1)
-        self.assertEqual(Notification.objects.filter(design_image_id=first.json()['images'][0]['id']).count(), 2)
-        self.assertEqual(mock_push.call_count, 2)
+        self.assertEqual(Notification.objects.filter(design_image_id=first.json()['images'][0]['id']).count(), 3)
+        self.assertEqual(mock_push.call_count, 3)
 
     @patch('management.views.submit_design_for_approval', side_effect=RuntimeError('simulated failure'))
     def test_failed_upload_rolls_back_records_and_reports_server_error(self, unused_mock):
@@ -640,7 +655,7 @@ class DesignApprovalWorkflowTests(TestCase):
         from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
         image = self._create_sample_design_image()
         submit_design_for_approval(image, self.designer)
-        record_design_review_decision(image, self.cad_user, 'rejected', 'Needs revision')
+        record_design_review_decision(image, self.cad_user, 'rejected', 'Needs revision', change_type='major')
         self.client.force_login(self.designer)
         url = reverse('resubmit_design_image_api', args=[image.pk])
         self.assertEqual(self.client.post(url).status_code, 200)

@@ -42,12 +42,23 @@ INTERIOR_EXTENSIONS = {
     '.mkv': 'video',
 }
 
+REFERENCE_EXTENSIONS = {
+    '.jpg': 'image',
+    '.jpeg': 'image',
+    '.png': 'image',
+    '.webp': 'image',
+    '.heic': 'image',
+    '.heif': 'image',
+}
+
 
 def get_allowed_extensions_for_category(category):
     if category == PatternMeasurementFile.CATEGORY_SCANNED:
         return SCANNED_EXTENSIONS
     if category == PatternMeasurementFile.CATEGORY_INTERIOR:
         return INTERIOR_EXTENSIONS
+    if category == PatternMeasurementFile.CATEGORY_REFERENCE:
+        return REFERENCE_EXTENSIONS
     return {}
 
 

@@ -995,6 +995,8 @@ class PatternDesignImage(models.Model):
     )
     rejected_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True, default='')
+    completed_at = models.DateTimeField(null=True, blank=True)
+    designer_remarks = models.TextField(blank=True, default='')
 
     class Meta:
         ordering = ['-uploaded_at']
@@ -1030,6 +1032,11 @@ class PatternDesignImage(models.Model):
         return appr.cad_comment if appr else ''
 
     @property
+    def current_cad_change_type(self):
+        appr = self.latest_approval
+        return appr.cad_change_type if appr else ''
+
+    @property
     def current_ed_status(self):
         appr = self.latest_approval
         return appr.ed_status if appr else ('approved' if self.approval_status == 'approved' else 'pending')
@@ -1038,6 +1045,26 @@ class PatternDesignImage(models.Model):
     def current_ed_comment(self):
         appr = self.latest_approval
         return appr.ed_comment if appr else ''
+
+    @property
+    def current_ed_change_type(self):
+        appr = self.latest_approval
+        return appr.ed_change_type if appr else ''
+
+    @property
+    def current_md_status(self):
+        appr = self.latest_approval
+        return appr.md_status if appr else ('not_required' if self.approval_status == 'approved' else 'pending')
+
+    @property
+    def current_md_comment(self):
+        appr = self.latest_approval
+        return appr.md_comment if appr else ''
+
+    @property
+    def current_md_change_type(self):
+        appr = self.latest_approval
+        return appr.md_change_type if appr else ''
 
 
 class PatternDesignApproval(models.Model):
@@ -1074,6 +1101,7 @@ class PatternDesignApproval(models.Model):
     )
     cad_status = models.CharField(max_length=20, default='pending')
     cad_comment = models.TextField(blank=True, default='')
+    cad_change_type = models.CharField(max_length=20, blank=True, default='')
     cad_decided_at = models.DateTimeField(null=True, blank=True)
 
     ed_reviewer = models.ForeignKey(
@@ -1085,7 +1113,20 @@ class PatternDesignApproval(models.Model):
     )
     ed_status = models.CharField(max_length=20, default='pending')
     ed_comment = models.TextField(blank=True, default='')
+    ed_change_type = models.CharField(max_length=20, blank=True, default='')
     ed_decided_at = models.DateTimeField(null=True, blank=True)
+
+    md_reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='md_design_reviews',
+    )
+    md_status = models.CharField(max_length=20, default='pending')
+    md_comment = models.TextField(blank=True, default='')
+    md_change_type = models.CharField(max_length=20, blank=True, default='')
+    md_decided_at = models.DateTimeField(null=True, blank=True)
 
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1199,9 +1240,11 @@ class ColorMaterialOption(models.Model):
 class PatternMeasurementFile(models.Model):
     CATEGORY_SCANNED = 'scanned_pattern'
     CATEGORY_INTERIOR = 'interior_media'
+    CATEGORY_REFERENCE = 'reference_image'
     CATEGORY_CHOICES = [
         (CATEGORY_SCANNED, _('Scanned Patterns & Data')),
         (CATEGORY_INTERIOR, _('Interior Pictures & Videos')),
+        (CATEGORY_REFERENCE, _('Reference Images (Match Swatch Photo)')),
     ]
     vehicle = models.ForeignKey(YearRange, on_delete=models.CASCADE, related_name='measurement_files')
     category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, db_index=True)

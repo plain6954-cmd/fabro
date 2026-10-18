@@ -56,8 +56,8 @@
         fetch(`/api/pattern-color-selection/details/?selection_id=${selectionId}`)
             .then(r => r.json())
             .then(res => {
-                if (res.status === 'success' && res.data) {
-                    renderDrawerData(res.data);
+                if (res.status === 'success' && res.selection) {
+                    renderDrawerData(res.selection);
                     if (loading) loading.style.display = 'none';
                     if (content) content.style.display = 'flex';
                 } else {

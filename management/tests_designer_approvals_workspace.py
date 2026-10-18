@@ -178,7 +178,7 @@ class DesignerApprovalsWorkspaceTests(TestCase):
         self.assertEqual(res_stage.status_code, 403)
 
     def test_partial_review_filter_and_action_modal_are_available(self):
-        record_design_review_decision(self.design_img, self.cad_user, 'approved', 'Ready for ED')
+        record_design_review_decision(self.design_img, self.cad_user, 'approved', 'Ready for ED', change_type='minor')
         self.client.force_login(self.pm_user)
         response = self.client.get(reverse('approvals_list') + '?stage=designer&status=partially_approved')
         self.assertEqual(response.status_code, 200)

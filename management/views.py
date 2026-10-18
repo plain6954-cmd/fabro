@@ -164,6 +164,9 @@ def _ensure_pattern_thumbnail(design_image):
         return design_image.thumbnail.url
     if not design_image.image:
         return ''
+    storage_cls = getattr(getattr(design_image.image, 'storage', None), '__class__', None)
+    if storage_cls and 'S3' in storage_cls.__name__:
+        return design_image.image.url
     try:
         design_image.image.open('rb')
         with Image.open(design_image.image) as source:
@@ -245,7 +248,7 @@ def _can_approve_design_assets(user):
     return bool(
         prof and (
             prof.role == WorkflowRoles.ADMIN
-            or prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.PM)
+            or (prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.PM))
         )
     )
 
@@ -260,7 +263,7 @@ def _can_user_access_designer_approvals(user):
         return False
     if prof.role == WorkflowRoles.ADMIN:
         return True
-    if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.PM, ApprovalRoles.ED):
+    if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.PM, ApprovalRoles.ED, ApprovalRoles.MD):
         return True
     return False
 
@@ -978,6 +981,10 @@ def car_details(request):
     total_colors_count = ColorMaster.objects.count()
     total_patterns_count = YearRange.objects.count()
 
+    user_profile = get_user_profile(request.user)
+    is_designer_user = bool(user_profile and user_profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    user_approval_role = getattr(user_profile, 'approval_role', '')
+
     return render(request, 'management/car_details.html', {
         'form': form,
         'car_data': car_data,
@@ -992,6 +999,10 @@ def car_details(request):
         'new_search_enabled': new_search_enabled,
         'scoped_search_enabled': scoped_search_enabled,
         'can_manage_catalog': can_manage_catalog,
+        'can_manage_design_assets': can_user_manage_design_assets(request.user),
+        'can_approve_designs': _can_approve_design_assets(request.user),
+        'is_designer': is_designer_user,
+        'user_approval_role': user_approval_role,
         'page_obj': vehicle_page,
         'pagination_bubbles': pagination_bubbles,
         'pagination_querystring': pagination_params.urlencode(),
@@ -1986,11 +1997,113 @@ def _get_vehicle_drive_links_data(vehicle):
     return data
 
 
+def _serialize_design_image_details(img, user=None):
+    if not img or not img.image:
+        return None
+    f_type, f_ext = _get_design_file_info(img.title or img.image.name)
+    t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
+    appr = getattr(img, 'latest_approval', None)
+
+    completed_ts = img.completed_at or img.uploaded_at
+    completed_display = timezone.localtime(completed_ts).strftime('%b %d, %Y %I:%M %p') if completed_ts else ''
+
+    approved_display = ''
+    if img.approval_status == 'approved' and img.approved_at:
+        approved_display = timezone.localtime(img.approved_at).strftime('%b %d, %Y %I:%M %p')
+    elif img.approval_status == 'rejected':
+        approved_display = _('Not approved')
+    else:
+        approved_display = _('Pending')
+
+    prof = getattr(user, 'workflow_profile', None) if user and user.is_authenticated else None
+    user_appr_role = getattr(prof, 'approval_role', '') if prof else ''
+    is_su = is_active_superuser(user) if user and user.is_authenticated else False
+
+    is_design_reviewer = bool(prof and prof.role == WorkflowRoles.APPROVER)
+    can_review_cad = (is_su or (is_design_reviewer and user_appr_role == ApprovalRoles.CAD)) and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.cad_status == 'pending') and img.approval_status == 'pending'
+    can_review_ed = (is_su or (is_design_reviewer and user_appr_role == ApprovalRoles.ED)) and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.ed_status == 'pending') and img.approval_status == 'pending'
+    can_review_md = (is_su or (is_design_reviewer and user_appr_role == ApprovalRoles.MD)) and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.md_status == 'pending') and img.approval_status == 'pending'
+
+    history = []
+    prefetched_approvals = getattr(img, '_prefetched_objects_cache', {}).get('approval_requests')
+    history_requests = (
+        sorted(prefetched_approvals, key=lambda request: request.cycle, reverse=True)
+        if prefetched_approvals is not None
+        else img.approval_requests.order_by('-cycle')
+    )
+    for req in history_requests:
+        history.append({
+            'cycle': req.cycle,
+            'status': req.status,
+            'submitted_at': timezone.localtime(req.submitted_at).strftime('%b %d, %Y %I:%M %p') if req.submitted_at else '',
+            'cad_status': req.cad_status,
+            'cad_reviewer': (req.cad_reviewer.get_full_name() or req.cad_reviewer.username) if req.cad_reviewer else '',
+            'cad_comment': req.cad_comment,
+            'cad_change_type': req.cad_change_type,
+            'cad_decided_at': timezone.localtime(req.cad_decided_at).strftime('%b %d, %Y %I:%M %p') if req.cad_decided_at else '',
+            'ed_status': req.ed_status,
+            'ed_reviewer': (req.ed_reviewer.get_full_name() or req.ed_reviewer.username) if req.ed_reviewer else '',
+            'ed_comment': req.ed_comment,
+            'ed_change_type': req.ed_change_type,
+            'ed_decided_at': timezone.localtime(req.ed_decided_at).strftime('%b %d, %Y %I:%M %p') if req.ed_decided_at else '',
+            'md_status': req.md_status,
+            'md_reviewer': (req.md_reviewer.get_full_name() or req.md_reviewer.username) if req.md_reviewer else '',
+            'md_comment': req.md_comment,
+            'md_change_type': req.md_change_type,
+            'md_decided_at': timezone.localtime(req.md_decided_at).strftime('%b %d, %Y %I:%M %p') if req.md_decided_at else '',
+        })
+
+    return {
+        'id': img.id,
+        'url': t_url or img.image.url,
+        'preview_url': img.image.url,
+        'original_url': reverse('pattern_design_image_download', args=[img.pk]),
+        'title': img.title or os.path.basename(img.image.name),
+        'file_size': img.file_size,
+        'file_size_display': f"{round(img.file_size / 1024, 1)} KB" if img.file_size < 1024 * 1024 else f"{round(img.file_size / (1024 * 1024), 2)} MB",
+        'file_type': f_type,
+        'file_ext': f_ext,
+        'uploaded_at': timezone.localtime(img.uploaded_at).strftime('%b %d, %Y %I:%M %p'),
+        'completed_at': completed_display,
+        'approved_at': approved_display,
+        'approval_status': getattr(img, 'approval_status', 'pending'),
+        'rejection_reason': getattr(img, 'rejection_reason', '') or '',
+        'designer_remarks': getattr(img, 'designer_remarks', '') or '',
+        'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
+        'cad': {
+            'status': appr.cad_status if appr else 'pending',
+            'reviewer': (appr.cad_reviewer.get_full_name() or appr.cad_reviewer.username) if (appr and appr.cad_reviewer) else '',
+            'comment': appr.cad_comment if appr else '',
+            'change_type': appr.cad_change_type if appr else '',
+            'decided_at': timezone.localtime(appr.cad_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.cad_decided_at) else '',
+        },
+        'ed': {
+            'status': appr.ed_status if appr else 'pending',
+            'reviewer': (appr.ed_reviewer.get_full_name() or appr.ed_reviewer.username) if (appr and appr.ed_reviewer) else '',
+            'comment': appr.ed_comment if appr else '',
+            'change_type': appr.ed_change_type if appr else '',
+            'decided_at': timezone.localtime(appr.ed_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.ed_decided_at) else '',
+        },
+        'md': {
+            'status': appr.md_status if appr else 'pending',
+            'reviewer': (appr.md_reviewer.get_full_name() or appr.md_reviewer.username) if (appr and appr.md_reviewer) else '',
+            'comment': appr.md_comment if appr else '',
+            'change_type': appr.md_change_type if appr else '',
+            'decided_at': timezone.localtime(appr.md_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.md_decided_at) else '',
+        },
+        'can_review_cad': can_review_cad,
+        'can_review_ed': can_review_ed,
+        'can_review_md': can_review_md,
+        'history': history,
+    }
+
+
 @login_required
 def get_design_folders_api(request):
     vehicle_id = request.GET.get('vehicle_id')
     vehicle_info = None
     direct_images_data = []
+    design_files_data = []
     if vehicle_id:
         try:
             yr = YearRange.objects.select_related('sub_model__model__brand').get(id=vehicle_id)
@@ -2014,7 +2127,7 @@ def get_design_folders_api(request):
             folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(image_total=Count('images')).order_by('-created_at', '-pk')
             direct_page = Paginator(
                 _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at')),
-                4,
+                100,
             ).get_page(request.GET.get('image_page'))
             direct_imgs = direct_page.object_list
             for img in direct_imgs:
@@ -2035,6 +2148,16 @@ def get_design_folders_api(request):
                         'can_approve': _can_user_review_design_image(request.user, img),
                         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
                     })
+
+            # Fetch all 3D design files for this vehicle
+            all_vehicle_design_images = _visible_design_images_qs(
+                request.user,
+                PatternDesignImage.objects.filter(Q(vehicle=yr) | Q(folder__vehicle=yr)).select_related('uploaded_by', 'folder').prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer').distinct().order_by('-uploaded_at')
+            )
+            for d_img in all_vehicle_design_images:
+                serialized = _serialize_design_image_details(d_img, request.user)
+                if serialized:
+                    design_files_data.append(serialized)
         except YearRange.DoesNotExist:
             folders = PatternDesignFolder.objects.none()
             direct_page = Paginator(PatternDesignImage.objects.none(), 4).get_page(1)
@@ -2067,12 +2190,25 @@ def get_design_folders_api(request):
             'preview_images': previews_by_folder.get(f.pk, []),
             'vehicle_id': f.vehicle_id,
         })
+
+    prof = getattr(request.user, 'workflow_profile', None) if request.user.is_authenticated else None
+    user_info = {
+        'username': request.user.username if request.user.is_authenticated else '',
+        'role': getattr(prof, 'role', '') if prof else '',
+        'approval_role': getattr(prof, 'approval_role', '') if prof else '',
+        'is_designer': bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER) if prof else False,
+        'is_superuser': is_active_superuser(request.user) if request.user.is_authenticated else False,
+    }
+
     return JsonResponse({
         'status': 'success',
         'folders': data,
         'can_approve_designs': _can_approve_design_assets(request.user),
         'direct_images': direct_images_data,
+        'reference_images': [item for item in direct_images_data if item['file_type'] == 'image'],
+        'design_files': design_files_data,
         'vehicle': vehicle_info,
+        'user_info': user_info,
         'folder_pagination': {'page': folder_page.number, 'pages': folder_page.paginator.num_pages, 'total': folder_page.paginator.count},
         'image_pagination': {'page': direct_page.number, 'pages': direct_page.paginator.num_pages, 'total': direct_page.paginator.count},
     })
@@ -2226,17 +2362,20 @@ ALLOWED_DESIGN_EXTENSIONS = {
     '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg',
     '.pdf',
     '.dwg', '.dxf', '.step', '.stp', '.iges', '.igs', '.cad', '.nc', '.cut', '.plt', '.hpgl',
+    '.3ds', '.fbx', '.obj', '.blend', '.stl', '.max', '.c4d', '.dae',
 }
 
 
 def _get_design_file_info(file_name):
     ext = os.path.splitext(file_name or '')[1].lower()
-    if ext == '.pdf':
+    if ext in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg'}:
+        return 'image', ext.lstrip('.').upper()
+    elif ext == '.pdf':
         return 'pdf', 'PDF'
-    elif ext in {'.dwg', '.dxf', '.step', '.stp', '.iges', '.igs', '.cad', '.nc', '.cut', '.plt', '.hpgl'}:
+    elif ext in {'.dwg', '.dxf', '.step', '.stp', '.iges', '.igs', '.cad', '.nc', '.cut', '.plt', '.hpgl', '.3ds', '.fbx', '.obj', '.blend', '.stl', '.max', '.c4d', '.dae'}:
         return 'cad', ext.lstrip('.').upper()
     else:
-        return 'image', ext.lstrip('.').upper()
+        return 'file', ext.lstrip('.').upper() or 'FILE'
 
 
 def _unique_design_storage_name(file_name):
@@ -2534,18 +2673,21 @@ def approve_design_image_api(request, image_id):
     img = get_object_or_404(PatternDesignImage, id=image_id)
     comment = request.POST.get('comment', '') or ''
     stage = request.POST.get('stage') or request.GET.get('stage') or ''
-    if not comment or not stage:
+    change_type = request.POST.get('change_type') or ''
+    if not comment or not stage or not change_type:
         try:
             data = json.loads(request.body.decode('utf-8'))
             if not comment:
                 comment = data.get('comment', '') or ''
             if not stage:
                 stage = data.get('stage') or ''
+            if not change_type:
+                change_type = data.get('change_type') or ''
         except Exception:
             pass
 
     try:
-        approval, img = record_design_review_decision(img, request.user, 'approved', comment, stage=stage)
+        approval, img = record_design_review_decision(img, request.user, 'approved', comment, stage=stage, change_type=change_type)
     except PermissionDenied as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
     except ValidationError as exc:
@@ -2558,6 +2700,11 @@ def approve_design_image_api(request, image_id):
         'approval_status': img.approval_status,
         'cad_status': approval.cad_status,
         'ed_status': approval.ed_status,
+        'md_status': approval.md_status,
+        'cad_change_type': approval.cad_change_type,
+        'ed_change_type': approval.ed_change_type,
+        'md_change_type': approval.md_change_type,
+        'approved_at': timezone.localtime(img.approved_at).strftime('%b %d, %Y %I:%M %p') if img.approved_at else '',
         'message': _('Design image approved successfully.')
     })
 
@@ -2573,9 +2720,10 @@ def reject_design_image_api(request, image_id):
 
     reason = (data.get('reason') or data.get('comment') or '').strip()
     stage = data.get('stage') or request.POST.get('stage') or request.GET.get('stage') or ''
+    change_type = data.get('change_type') or request.POST.get('change_type') or ''
 
     try:
-        approval, img = record_design_review_decision(img, request.user, 'rejected', reason, stage=stage)
+        approval, img = record_design_review_decision(img, request.user, 'rejected', reason, stage=stage, change_type=change_type)
     except PermissionDenied as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
     except ValidationError as exc:
@@ -2589,6 +2737,10 @@ def reject_design_image_api(request, image_id):
         'rejection_reason': reason,
         'cad_status': approval.cad_status,
         'ed_status': approval.ed_status,
+        'md_status': approval.md_status,
+        'cad_change_type': approval.cad_change_type,
+        'ed_change_type': approval.ed_change_type,
+        'md_change_type': approval.md_change_type,
         'message': _('Design image rejected with feedback.')
     })
 
@@ -2693,7 +2845,7 @@ def resubmit_design_image_api(request, image_id):
     return JsonResponse({
         'status': 'success', 'approval_status': 'pending',
         'cycle': approval.cycle,
-        'message': _('Design resubmitted successfully for CAD and ED review.'),
+        'message': _('Design resubmitted successfully for CAD, ED, and MD review.'),
     })
 
 
@@ -2706,7 +2858,7 @@ def design_approvals_list(request):
     is_su = is_active_superuser(user)
     if not (is_designer or is_su or
             (prof and prof.role == WorkflowRoles.ADMIN) or
-            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.PM))):
+            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.PM))):
         raise PermissionDenied(_("You cannot access design approvals."))
 
     latest_appr_cad = Subquery(
@@ -2715,6 +2867,9 @@ def design_approvals_list(request):
     latest_appr_ed = Subquery(
         PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('ed_status')[:1]
     )
+    latest_appr_md = Subquery(
+        PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('md_status')[:1]
+    )
 
     # Base queryset: only images with approval requests
     qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).select_related(
@@ -2722,6 +2877,7 @@ def design_approvals_list(request):
     ).annotate(
         latest_cad_status=latest_appr_cad,
         latest_ed_status=latest_appr_ed,
+        latest_md_status=latest_appr_md,
     ).prefetch_related('approval_requests').distinct().order_by('-uploaded_at')
 
     if is_designer:
@@ -2738,14 +2894,17 @@ def design_approvals_list(request):
             qs = qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
         elif approval_role == ApprovalRoles.ED:
             qs = qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
+        elif approval_role == ApprovalRoles.MD:
+            qs = qs.filter(latest_md_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
         elif is_su:
-            qs = qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user)
+            qs = qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending') | Q(latest_md_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user)
         else:
             qs = qs.filter(approval_status='pending')
 
     base_count_qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).annotate(
         latest_cad_status=latest_appr_cad,
         latest_ed_status=latest_appr_ed,
+        latest_md_status=latest_appr_md,
     )
     if is_designer:
         base_count_qs = base_count_qs.filter(uploaded_by=user)
@@ -2754,8 +2913,10 @@ def design_approvals_list(request):
         pending_count = base_count_qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
     elif approval_role == ApprovalRoles.ED:
         pending_count = base_count_qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
+    elif approval_role == ApprovalRoles.MD:
+        pending_count = base_count_qs.filter(latest_md_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
     elif is_su:
-        pending_count = base_count_qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
+        pending_count = base_count_qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending') | Q(latest_md_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
     else:
         pending_count = base_count_qs.filter(approval_status='pending').distinct().count()
 
@@ -2767,7 +2928,9 @@ def design_approvals_list(request):
             item.can_review_by_user = True
         elif approval_role == ApprovalRoles.ED and getattr(item, 'latest_ed_status', '') == 'pending' and item.uploaded_by_id != user.id:
             item.can_review_by_user = True
-        elif is_su and item.uploaded_by_id != user.id and (getattr(item, 'latest_cad_status', '') == 'pending' or getattr(item, 'latest_ed_status', '') == 'pending'):
+        elif approval_role == ApprovalRoles.MD and getattr(item, 'latest_md_status', '') == 'pending' and item.uploaded_by_id != user.id:
+            item.can_review_by_user = True
+        elif is_su and item.uploaded_by_id != user.id and (getattr(item, 'latest_cad_status', '') == 'pending' or getattr(item, 'latest_ed_status', '') == 'pending' or getattr(item, 'latest_md_status', '') == 'pending'):
             item.can_review_by_user = True
 
     context = {
@@ -2779,6 +2942,7 @@ def design_approvals_list(request):
         'is_designer': is_designer,
         'can_review_as_cad': bool(approval_role == ApprovalRoles.CAD or is_su),
         'can_review_as_ed': bool(approval_role == ApprovalRoles.ED or is_su),
+        'can_review_as_md': bool(approval_role == ApprovalRoles.MD or is_su),
         'is_superuser': is_su,
     }
     return render(request, 'management/design_approvals_list.html', context)
@@ -2789,7 +2953,7 @@ def design_approval_detail(request, image_id):
     design_image = get_object_or_404(
         PatternDesignImage.objects.select_related(
             'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
-        ).prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer'),
+        ).prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer'),
         id=image_id
     )
     user = request.user
@@ -2799,7 +2963,7 @@ def design_approval_detail(request, image_id):
     is_su = is_active_superuser(user)
     if not (is_designer or is_su or
             (prof and prof.role == WorkflowRoles.ADMIN) or
-            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.PM))):
+            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.PM))):
         raise PermissionDenied(_("You cannot access design approvals."))
 
     # Access control: Freelancers can only view their own designs
@@ -2813,8 +2977,9 @@ def design_approval_detail(request, image_id):
             stage = request.POST.get('stage')
             decision = request.POST.get('decision')
             comment = request.POST.get('comment', '')
+            change_type = request.POST.get('change_type', '')
             try:
-                record_design_review_decision(design_image, user, decision, comment, stage=stage)
+                record_design_review_decision(design_image, user, decision, comment, stage=stage, change_type=change_type)
                 messages.success(request, _("Your review decision has been recorded."))
             except Exception as exc:
                 messages.error(request, str(exc))
@@ -2826,7 +2991,7 @@ def design_approval_detail(request, image_id):
                     replacement_file=request.FILES.get('image'),
                     title=request.POST.get('title', '').strip(),
                 )
-                messages.success(request, _("Design resubmitted successfully for CAD and ED review."))
+                messages.success(request, _("Design resubmitted successfully for CAD, ED, and MD review."))
             except (PermissionDenied, ValidationError) as exc:
                 messages.error(request, str(exc))
             except Exception:
@@ -2838,16 +3003,23 @@ def design_approval_detail(request, image_id):
     history_cycles = list(design_image.approval_requests.all().order_by('-cycle'))
 
     can_review_cad = bool(
-        (approval_role == ApprovalRoles.CAD or is_su)
+        ((prof and prof.role == WorkflowRoles.APPROVER and approval_role == ApprovalRoles.CAD) or is_su)
         and latest_approval
         and latest_approval.cad_status == 'pending'
         and design_image.uploaded_by_id != user.id
     )
     can_review_ed = bool(
-        (approval_role == ApprovalRoles.ED or is_su)
+        ((prof and prof.role == WorkflowRoles.APPROVER and approval_role == ApprovalRoles.ED) or is_su)
         and latest_approval
         and latest_approval.ed_status == 'pending'
         and design_image.uploaded_by_id != user.id
+    )
+    can_review_md = bool(
+        ((prof and prof.role == WorkflowRoles.APPROVER and approval_role == ApprovalRoles.MD) or is_su)
+        and latest_approval
+        and latest_approval.md_status == 'pending'
+        and design_image.uploaded_by_id != user.id
+        and design_image.approval_status != 'approved'
     )
     can_resubmit = bool(
         (design_image.uploaded_by_id == user.id or is_su)
@@ -2856,11 +3028,13 @@ def design_approval_detail(request, image_id):
 
     context = {
         'design_image': design_image,
+        'design_file_type': _get_design_file_info(design_image.title or design_image.image.name)[0],
         'latest_approval': latest_approval,
         'history_cycles': history_cycles,
         'is_designer': is_designer,
         'can_review_as_cad': can_review_cad,
         'can_review_as_ed': can_review_ed,
+        'can_review_as_md': can_review_md,
         'can_resubmit': can_resubmit,
         'is_superuser': is_su,
     }
@@ -4241,12 +4415,15 @@ def approvals_list_view(request):
         })
     if workspace_stage == 'designer':
         if not can_access_designer_stage:
-            raise PermissionDenied('Only CAD, PM, and Admin users can access designer upload approvals.')
+            raise PermissionDenied('Only CAD, ED, MD, PM, and Admin users can access designer upload approvals.')
         latest_appr_cad = Subquery(
             PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('cad_status')[:1]
         )
         latest_appr_ed = Subquery(
             PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('ed_status')[:1]
+        )
+        latest_appr_md = Subquery(
+            PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('md_status')[:1]
         )
         latest_appr_cycle = Subquery(
             PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('cycle')[:1]
@@ -4258,6 +4435,7 @@ def approvals_list_view(request):
         base_count_qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).annotate(
             latest_cad_status=latest_appr_cad,
             latest_ed_status=latest_appr_ed,
+            latest_md_status=latest_appr_md,
             latest_review_status=latest_appr_status,
         )
         total_active_count = base_count_qs.filter(approval_status='pending').distinct().count()
@@ -4269,6 +4447,8 @@ def approvals_list_view(request):
             my_pending_count = base_count_qs.filter(approval_status='pending', latest_cad_status='pending').exclude(uploaded_by=request.user).distinct().count()
         elif approval_role in (ApprovalRoles.ED,):
             my_pending_count = base_count_qs.filter(approval_status='pending', latest_ed_status='pending').exclude(uploaded_by=request.user).distinct().count()
+        elif approval_role == ApprovalRoles.MD:
+            my_pending_count = base_count_qs.filter(approval_status='pending', latest_md_status='pending').exclude(uploaded_by=request.user).distinct().count()
         elif is_admin_user or approval_role == ApprovalRoles.PM:
             my_pending_count = total_active_count
 
@@ -4281,11 +4461,13 @@ def approvals_list_view(request):
         ).annotate(
             latest_cad_status=latest_appr_cad,
             latest_ed_status=latest_appr_ed,
+            latest_md_status=latest_appr_md,
             latest_cycle=latest_appr_cycle,
             latest_review_status=latest_appr_status,
         ).prefetch_related(
             'approval_requests__cad_reviewer',
             'approval_requests__ed_reviewer',
+            'approval_requests__md_reviewer',
         ).distinct().order_by('-uploaded_at')
 
         status_filter = request.GET.get('status', 'active')
@@ -4296,6 +4478,8 @@ def approvals_list_view(request):
                 qs = qs.filter(approval_status='pending', latest_cad_status='pending').exclude(uploaded_by=request.user)
             elif approval_role in (ApprovalRoles.ED,):
                 qs = qs.filter(approval_status='pending', latest_ed_status='pending').exclude(uploaded_by=request.user)
+            elif approval_role == ApprovalRoles.MD:
+                qs = qs.filter(approval_status='pending', latest_md_status='pending').exclude(uploaded_by=request.user)
             else:
                 qs = qs.filter(approval_status='pending')
         elif status_filter == 'partially_approved':
@@ -4330,6 +4514,8 @@ def approvals_list_view(request):
                 can_review = True
             elif img.approval_status == 'pending' and approval_role == ApprovalRoles.ED and getattr(img, 'latest_ed_status', '') == 'pending' and img.uploaded_by_id != request.user.id:
                 can_review = True
+            elif img.approval_status == 'pending' and approval_role == ApprovalRoles.MD and getattr(img, 'latest_md_status', '') == 'pending' and img.uploaded_by_id != request.user.id:
+                can_review = True
 
             vehicle_desc = None
             if img.vehicle:
@@ -4347,6 +4533,9 @@ def approvals_list_view(request):
             ed_reviewer_name = "ED Approver"
             if appr and appr.ed_reviewer:
                 ed_reviewer_name = appr.ed_reviewer.get_full_name() or appr.ed_reviewer.username
+            md_reviewer_name = "MD Approver"
+            if appr and appr.md_reviewer:
+                md_reviewer_name = appr.md_reviewer.get_full_name() or appr.md_reviewer.username
 
             designer_items.append({
                 'id': img.id,
@@ -4366,16 +4555,20 @@ def approvals_list_view(request):
                 'cycle': appr.cycle if appr else 1,
                 'current_cad_status': getattr(img, 'latest_cad_status', appr.cad_status if appr else 'pending'),
                 'current_ed_status': getattr(img, 'latest_ed_status', appr.ed_status if appr else 'pending'),
+                'current_md_status': getattr(img, 'latest_md_status', appr.md_status if appr else 'pending'),
                 'cad_reviewer_name': cad_reviewer_name,
                 'ed_reviewer_name': ed_reviewer_name,
+                'md_reviewer_name': md_reviewer_name,
                 'cad_comment': appr.cad_comment if appr else '',
                 'ed_comment': appr.ed_comment if appr else '',
+                'md_comment': appr.md_comment if appr else '',
                 'can_review_by_user': can_review,
             })
 
         return render(request, 'management/approvals_list.html', {
             'workspace_stage': 'designer',
             'can_access_designer_stage': can_access_designer_stage,
+            'can_access_color_stage': can_access_color_stage,
             'designer_items': designer_items,
             'status_filter': status_filter,
             'search_query': search_query,
@@ -6788,7 +6981,7 @@ def upload_measurement_files_api(request):
     category = request.POST.get('category')
     if not vehicle_id:
         return JsonResponse({'status': 'error', 'message': _('Vehicle ID is required.')}, status=400)
-    if category not in (PatternMeasurementFile.CATEGORY_SCANNED, PatternMeasurementFile.CATEGORY_INTERIOR):
+    if category not in (PatternMeasurementFile.CATEGORY_SCANNED, PatternMeasurementFile.CATEGORY_INTERIOR, PatternMeasurementFile.CATEGORY_REFERENCE):
         return JsonResponse({'status': 'error', 'message': _('Invalid measurement file category.')}, status=400)
 
     try:
@@ -6848,17 +7041,37 @@ def get_measurement_files_api(request):
 
     scanned_files = []
     interior_files = []
+    reference_files = []
     for f in qs:
         serialized = serialize_measurement_file(f, request)
         if f.category == PatternMeasurementFile.CATEGORY_SCANNED:
             scanned_files.append(serialized)
-        else:
+        elif f.category == PatternMeasurementFile.CATEGORY_INTERIOR:
             interior_files.append(serialized)
+        elif f.category == PatternMeasurementFile.CATEGORY_REFERENCE:
+            reference_files.append(serialized)
+
+    color_sel = PatternColorSelection.objects.filter(vehicle_id=vehicle_id).exclude(swatch_image='').first()
+    if color_sel and color_sel.swatch_image:
+        reference_files.insert(0, {
+            'id': f"swatch_{color_sel.id}",
+            'filename': os.path.basename(color_sel.swatch_image.name),
+            'url': color_sel.swatch_image.url,
+            'download_url': color_sel.swatch_image.url,
+            'file_size': getattr(color_sel.swatch_image, 'size', 0),
+            'file_size_display': f"{round(getattr(color_sel.swatch_image, 'size', 0) / 1024, 1)} KB",
+            'file_type': 'image',
+            'file_ext': os.path.splitext(color_sel.swatch_image.name)[1].lower(),
+            'uploaded_at': timezone.localtime(color_sel.created_at).strftime('%b %d, %Y %H:%M'),
+            'uploaded_by': color_sel.submitted_by.username if color_sel.submitted_by else '',
+            'is_swatch': True,
+        })
 
     return JsonResponse({
         'status': 'success',
         'scanned_files': scanned_files,
         'interior_files': interior_files,
+        'reference_files': reference_files,
     })
 
 

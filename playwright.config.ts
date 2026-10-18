@@ -24,6 +24,7 @@ export default defineConfig({
   globalTeardown: './tests/helpers/globalTeardown.ts',
   use: {
     baseURL: e2eBaseURL,
+    channel: process.env.E2E_BROWSER_CHANNEL === 'chrome' ? 'chrome' : undefined,
     reducedMotion: 'reduce',
     trace: 'off',
     screenshot: 'only-on-failure',

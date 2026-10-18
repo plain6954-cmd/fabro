@@ -210,7 +210,20 @@
                     <i class="fas fa-clipboard-check"></i> {% translate "Verify Execution" %}
                 </a>
                 {% if can_access_designer_stage %}
-                <a href="?stage=designer&status=active" class="tab-btn {% if workspace_stage == 'colors' %}
+                <a href="?stage=designer&status=active" class="tab-btn {% if workspace_stage == 'designer' %}active{% endif %}">
+                    <i class="fas fa-drafting-compass"></i> {% translate "Designer Uploads" %}
+                </a>
+                {% endif %}
+                {% if can_access_color_stage %}
+                <a href="?stage=colors&status=active" class="tab-btn {% if workspace_stage == 'colors' %}active{% endif %}">
+                    <i class="fas fa-palette"></i> {% translate "New Color Approvals" %}
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- CONTROLS & FILTER TABS -->
+            <div class="filter-controls-row">
+                {% if workspace_stage == 'colors' %}
                 <div class="filter-tabs approval-state-tabs">
                     <a href="?stage=colors&status=active{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
                         <i class="fas fa-hourglass-half"></i> {% translate "Active Pending" %}
@@ -227,21 +240,11 @@
                     <a href="?stage=colors&status=approved{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'approved' %}active{% endif %}">
                         <i class="fas fa-check-circle"></i> {% translate "Approved" %}
                     </a>
+                    <a href="?stage=colors&status=all{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'all' %}active{% endif %}">
+                        <i class="fas fa-list-alt"></i> {% translate "All History" %}
+                    </a>
                 </div>
-                {% elif workspace_stage == 'designer' %}active{% endif %}">
-                    <i class="fas fa-drafting-compass"></i> {% translate "Designer Uploads" %}
-                </a>
-                {% endif %}
-                {% if can_access_color_stage %}
-                <a href="?stage=colors&status=active" class="tab-btn {% if workspace_stage == 'colors' %}active{% endif %}">
-                    <i class="fas fa-palette"></i> {% translate "New Color Approvals" %}
-                </a>
-                {% endif %}
-            </div>
-
-            <!-- CONTROLS & FILTER TABS -->
-            <div class="filter-controls-row">
-                {% if workspace_stage == 'designer' %}
+                {% elif workspace_stage == 'designer' %}
                 <div class="filter-tabs approval-state-tabs">
                     <a href="?stage=designer&status=active{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
                         <i class="fas fa-hourglass-half"></i> {% translate "Active Pending" %}
@@ -299,6 +302,7 @@
                                value="{{ search_query }}" class="header-search-input" autocomplete="off"
                                aria-label="{% translate "Search approvals" %}" aria-describedby="approvals-search-options-title"
                                aria-haspopup="listbox" aria-expanded="false">
+                        {% if workspace_stage != 'colors' and workspace_stage != 'designer' %}
                         <span class="search-field-label" id="approvals-search-field-label">{% translate "All Fields" %}</span>
                         <div class="search-options" id="approvals-search-options">
                             <p class="search-options-title" id="approvals-search-options-title">{% translate "Search this keyword in" %}</p>
@@ -341,11 +345,13 @@
                                 </button>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                     <button type="submit" class="btn btn-primary approvals-search-submit-btn" title="{% translate "Search" %}" aria-label="{% translate "Search approvals" %}">
                         <i class="fas fa-arrow-right"></i>
                     </button>
 
+                    {% if workspace_stage != 'colors' and workspace_stage != 'designer' %}
                     <button type="button" class="btn-action-secondary mobile-filters-trigger" id="mobileFiltersTrigger" onclick="openFiltersSheet()" aria-haspopup="dialog" aria-expanded="false" aria-controls="filtersSheet" aria-label="{% translate "Filter approvals" %}" title="{% translate "Filters" %}">
                         <i class="fas fa-sliders-h"></i>
                         <span class="filter-count-badge" id="mobileFilterCountBadge" {% if not selected_priority and not selected_type and not selected_country %}style="display: none;"{% endif %}>
@@ -413,6 +419,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
                     {% if search_query or selected_priority or selected_type or selected_country %}
                     <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary desktop-clear-filters-btn" title="{% translate "Clear Filters" %}" style="padding: 0.35rem 0.6rem;">
@@ -549,6 +556,12 @@
                                                 "{{ item.ed_comment }}"
                                             </div>
                                             {% endif %}
+                                        </div>
+                                        <div class="approver-box status-{{ item.current_md_status|default:'pending' }}">
+                                            <div class="approver-role-tag">MD</div>
+                                            <div class="reviewer-status-text">{% if item.current_md_status == 'not_required' %}{% translate "Not required (historical)" %}{% else %}{{ item.current_md_status|default:'pending'|title }}{% endif %}</div>
+                                            <div class="reviewer-name-sub">{{ item.md_reviewer_name }}</div>
+                                            {% if item.md_comment %}<div class="reviewer-comment" style="font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:0.25rem;">"{{ item.md_comment }}"</div>{% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -1022,6 +1035,13 @@
 
                 <div id="designDecisionNotice" style="padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem; font-weight: 600;"></div>
 
+                <label for="modalDesignChangeType" style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.35rem;">{% translate "Change Classification" %}</label>
+                <select id="modalDesignChangeType" required style="width:100%;padding:0.55rem;margin-bottom:0.75rem;border-radius:6px;">
+                    <option value="">{% translate "Select change type" %}</option>
+                    <option value="minor">{% translate "Minor Change" %}</option>
+                    <option value="major">{% translate "Major Change" %}</option>
+                </select>
+
                 <div>
                     <label for="modalDesignComment" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">
                         {% translate "Review Comments" %} <span id="designCommentRequiredHint" style="color: #ef4444; font-size: 0.75rem; display: none;">{% translate "(Required when declining)" %}</span>:
@@ -1181,6 +1201,7 @@
             document.getElementById('modalDesignDecision').value = decision;
             document.getElementById('modalDesignInfo').querySelector('strong').textContent = title;
             document.getElementById('modalDesignComment').value = '';
+            document.getElementById('modalDesignChangeType').value = '';
             document.getElementById('modalDesignErrorMessage').style.display = 'none';
             document.getElementById('designCommentRequiredHint').style.display = decision === 'rejected' ? 'inline' : 'none';
             const notice = document.getElementById('designDecisionNotice');
@@ -1220,8 +1241,14 @@
             const imageId = document.getElementById('modalDesignImageId').value;
             const decision = document.getElementById('modalDesignDecision').value;
             const comment = document.getElementById('modalDesignComment').value.trim();
+            const changeType = document.getElementById('modalDesignChangeType').value;
             const error = document.getElementById('modalDesignErrorMessage');
             const button = document.getElementById('modalDesignSubmitBtn');
+            if (!changeType) {
+                error.textContent = window.FabroI18n.gettext('Please select either Minor Change or Major Change.');
+                error.style.display = 'block';
+                return;
+            }
             if (decision === 'rejected' && !comment) {
                 error.textContent = window.FabroI18n.gettext('A comment is required when declining a design.');
                 error.style.display = 'block';
@@ -1232,6 +1259,7 @@
             try {
                 const form = new FormData();
                 form.append('comment', comment);
+                form.append('change_type', changeType);
                 const response = await fetch(`/api/design-images/${imageId}/${decision === 'rejected' ? 'reject' : 'approve'}/`, {
                     method: 'POST',
                     headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },

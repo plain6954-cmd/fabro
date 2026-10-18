@@ -722,8 +722,8 @@
         fetch(`/api/pattern-color-selection/details/?vehicle_id=${vehicleId}`)
             .then(r => r.json())
             .then(res => {
-                if (res.status === 'success' && res.data) {
-                    const data = res.data;
+                if (res.status === 'success' && res.selection) {
+                    const data = res.selection;
                     card.style.display = 'flex';
 
                     const pill = document.getElementById('colorStatusCardPill');
@@ -775,21 +775,26 @@
     }
 
     function switchSidebarSection(section) {
-        const measSection = document.getElementById('sidebarNavSectionMeasurements');
-        const design3DSection = document.getElementById('sidebarNavSection3DDesign');
         const measWorkspace = document.getElementById('patternMeasurementsWorkspace');
         const design3DWorkspace = document.getElementById('pattern3DDesignWorkspace');
+        const measNavBtn = document.getElementById('sidebarNavMeasurementsBtn');
+        const design3DNavBtn = document.getElementById('sidebarNav3DDesignBtn');
 
-        document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('is-active'));
+        document.querySelectorAll('.sidebar-nav-card .sidebar-nav-item').forEach(el => el.classList.remove('is-active'));
 
         if (section === '3d-design') {
             if (measWorkspace) measWorkspace.style.display = 'none';
             if (design3DWorkspace) design3DWorkspace.style.display = 'block';
-            const navBtn = document.getElementById('sidebarNav3DFolders');
-            if (navBtn) navBtn.classList.add('is-active');
+            if (design3DNavBtn) design3DNavBtn.classList.add('is-active');
+            if (typeof window.load3DDesignWorkspace === 'function') {
+                const urlParams = new URLSearchParams(window.location.search);
+                const vId = urlParams.get('vehicle_id') || currentVehicleId;
+                if (vId) window.load3DDesignWorkspace(parseInt(vId, 10));
+            }
         } else {
             if (design3DWorkspace) design3DWorkspace.style.display = 'none';
             if (measWorkspace) measWorkspace.style.display = 'block';
+            if (measNavBtn) measNavBtn.classList.add('is-active');
         }
     }
 
@@ -817,9 +822,18 @@
         if (vehicleData) {
             const photoImg = document.getElementById('designVehiclePhoto');
             const placeholder = document.getElementById('designVehiclePhotoPlaceholder');
+            if (photoImg) {
+                photoImg.onload = () => {
+                    photoImg.style.display = 'block';
+                    if (placeholder) placeholder.style.display = 'none';
+                };
+                photoImg.onerror = () => {
+                    photoImg.style.display = 'none';
+                    if (placeholder) placeholder.style.display = '';
+                };
+            }
             if (vehicleData.photo_url) {
-                if (photoImg) { photoImg.src = vehicleData.photo_url; photoImg.style.display = 'block'; }
-                if (placeholder) placeholder.style.display = 'none';
+                if (photoImg) { photoImg.style.display = 'none'; photoImg.src = vehicleData.photo_url; }
             } else {
                 if (photoImg) photoImg.style.display = 'none';
                 if (placeholder) placeholder.style.display = 'flex';

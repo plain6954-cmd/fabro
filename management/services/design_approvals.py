@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def get_approvers_for_role(approval_role):
     """
-    Find active approver accounts configured for the given role (CAD or ED).
+    Find active approver accounts configured for the given review role.
     """
     return list(User.objects.filter(
         is_active=True,
@@ -43,7 +43,7 @@ def get_latest_approval_request(design_image):
 def submit_design_for_approval(design_image, designer, is_resubmission=False, comment=''):
     """
     Create or advance an explicit approval request for a PatternDesignImage.
-    Both CAD and ED reviewers will receive in-app and Web Push notifications.
+    CAD, ED, and MD reviewers receive in-app and Web Push notifications.
     """
     with transaction.atomic():
         # Serialize review-cycle changes on the design row. The caller's copy
@@ -61,6 +61,7 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
                 status='pending',
                 cad_status='pending',
                 ed_status='pending',
+                md_status='pending',
             )
             design_image.approval_status = 'pending'
             design_image.approved_by = None
@@ -82,6 +83,7 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
                     'status': 'pending',
                     'cad_status': 'pending',
                     'ed_status': 'pending',
+                    'md_status': 'pending',
                 }
             )
             if not created:
@@ -98,10 +100,6 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
             object_name=design_image.title or str(design_image.id),
         )
 
-        # Notify CAD and ED
-        cad_users = get_approvers_for_role(ApprovalRoles.CAD)
-        ed_users = get_approvers_for_role(ApprovalRoles.ED)
-
         review_url = f"/design-approvals/{design_image.id}/"
         tag = f"design-approval-{design_image.id}"
 
@@ -112,38 +110,23 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
             notif_title = _("New Design Approval Request")
             notif_body = _("A new design is waiting for your approval.")
 
-        # Dispatch CAD notifications
-        for cad_user in cad_users:
-            if cad_user == designer:
-                continue
+        # One notification per reviewer account, even if role data is unusual.
+        recipients = {
+            reviewer.pk: reviewer
+            for role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
+            for reviewer in get_approvers_for_role(role)
+            if reviewer.pk != designer.pk
+        }
+        for reviewer in recipients.values():
             Notification.objects.create(
-                recipient=cad_user,
+                recipient=reviewer,
                 design_image=design_image,
                 title=notif_title,
                 message=notif_body,
                 notification_type='design_approval',
             )
             send_push_on_commit(
-                user=cad_user,
-                title=notif_title,
-                body=notif_body,
-                url=review_url,
-                tag=tag,
-            )
-
-        # Dispatch ED notifications
-        for ed_user in ed_users:
-            if ed_user == designer:
-                continue
-            Notification.objects.create(
-                recipient=ed_user,
-                design_image=design_image,
-                title=notif_title,
-                message=notif_body,
-                notification_type='design_approval',
-            )
-            send_push_on_commit(
-                user=ed_user,
+                user=reviewer,
                 title=notif_title,
                 body=notif_body,
                 url=review_url,
@@ -153,16 +136,17 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
     return approval
 
 
-def record_design_review_decision(design_image, reviewer_user, decision, comment='', stage=None):
+def record_design_review_decision(design_image, reviewer_user, decision, comment='', stage=None, change_type=''):
     """
-    Record an independent CAD or ED review decision for a submitted design.
+    Record an independent CAD, ED, or MD review decision for a submitted design.
     - Reviewer identity is verified via request.user and their profile approval_role,
-      or via active superuser status with an explicit/inferred review stage ('cad' or 'ed').
-    - CAD cannot submit an ED decision; ED cannot submit a CAD decision.
+      or via active superuser status with an explicit/inferred review stage ('cad', 'ed', or 'md').
+    - CAD cannot submit an ED/MD decision; ED cannot submit CAD/MD; MD cannot submit CAD/ED.
+    - Mandatory change classification ('minor' or 'major') required for all decisions.
     - Designer cannot approve their own design.
-    - Decline REQUIRES a mandatory comment.
-    - Both CAD and ED must approve for the design to be fully approved.
-    - Either reviewer declining shifts overall status to changes required ('rejected').
+    - Decline/Reject REQUIRES a mandatory comment.
+    - CAD, ED, and MD must each approve before final approval.
+    - Any reviewer declining shifts overall status to changes required ('rejected').
     - Submitting designer is notified via in-app notification and Web Push.
     """
     if not reviewer_user or not reviewer_user.is_authenticated:
@@ -188,26 +172,30 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
             reviewer_role = ApprovalRoles.CAD
         elif stage_clean in ('ed', ApprovalRoles.ED.lower()):
             reviewer_role = ApprovalRoles.ED
+        elif stage_clean in ('md', ApprovalRoles.MD.lower()):
+            reviewer_role = ApprovalRoles.MD
         elif not stage_clean:
             # If not explicitly specified, inspect pending stage on latest approval
-            if approval.cad_status == 'pending' and approval.ed_status != 'pending':
+            if approval.cad_status == 'pending' and approval.ed_status != 'pending' and approval.md_status != 'pending':
                 reviewer_role = ApprovalRoles.CAD
-            elif approval.ed_status == 'pending' and approval.cad_status != 'pending':
+            elif approval.ed_status == 'pending' and approval.cad_status != 'pending' and approval.md_status != 'pending':
                 reviewer_role = ApprovalRoles.ED
-            elif user_approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED):
+            elif approval.md_status == 'pending' and approval.cad_status != 'pending' and approval.ed_status != 'pending':
+                reviewer_role = ApprovalRoles.MD
+            elif user_approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD):
                 reviewer_role = user_approval_role
             else:
-                raise ValidationError(_("Please specify whether you are reviewing for CAD or ED stage."))
+                raise ValidationError(_("Please specify whether you are reviewing for CAD, ED, or MD stage."))
         else:
-            raise ValidationError(_("Invalid review stage. Must be 'cad' or 'ed'."))
+            raise ValidationError(_("Invalid review stage. Must be 'cad', 'ed', or 'md'."))
     else:
-        # Reviewer must have an approval role of CAD or ED
-        if not prof or prof.role != WorkflowRoles.APPROVER or user_approval_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
-            raise PermissionDenied(_("Only authorized CAD or ED approvers may review designs."))
+        # Reviewer must have an approval role of CAD, ED, or MD
+        if not prof or prof.role != WorkflowRoles.APPROVER or user_approval_role not in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD):
+            raise PermissionDenied(_("Only authorized CAD, ED, or MD approvers may review designs."))
         reviewer_role = user_approval_role
         if stage:
             stage_clean = str(stage).strip().lower()
-            if stage_clean in ('cad', 'ed') and stage_clean != reviewer_role.lower():
+            if stage_clean in ('cad', 'ed', 'md') and stage_clean != reviewer_role.lower():
                 raise PermissionDenied(_("You cannot review a stage other than your assigned role."))
 
     decision = (decision or '').strip().lower()
@@ -218,6 +206,10 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
 
     if decision not in ('approved', 'rejected'):
         raise ValidationError(_("Invalid decision. Must be 'approved' or 'rejected'."))
+
+    change_type_clean = (change_type or '').strip().lower()
+    if change_type_clean not in ('minor', 'major'):
+        raise ValidationError(_("Please select either Minor Change or Major Change."))
 
     comment_clean = (comment or '').strip()
     if decision == 'rejected' and not comment_clean:
@@ -236,6 +228,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
                 raise ValueError(_("CAD decision has already been submitted for this revision cycle."))
             approval.cad_status = decision
             approval.cad_comment = comment_clean
+            approval.cad_change_type = change_type_clean
             approval.cad_reviewer = reviewer_user
             approval.cad_decided_at = now
         elif reviewer_role == ApprovalRoles.ED:
@@ -243,14 +236,47 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
                 raise ValueError(_("ED decision has already been submitted for this revision cycle."))
             approval.ed_status = decision
             approval.ed_comment = comment_clean
+            approval.ed_change_type = change_type_clean
             approval.ed_reviewer = reviewer_user
             approval.ed_decided_at = now
+        elif reviewer_role == ApprovalRoles.MD:
+            if approval.md_status != 'pending':
+                raise ValueError(_("MD decision has already been submitted for this revision cycle."))
+            approval.md_status = decision
+            approval.md_comment = comment_clean
+            approval.md_change_type = change_type_clean
+            approval.md_reviewer = reviewer_user
+            approval.md_decided_at = now
 
         # Compute overall status:
-        # CAD Approved + ED Approved = APPROVED
-        # Either CAD or ED Rejected = REJECTED (Changes Required)
+        # CAD Approved + ED Approved + MD Approved = APPROVED
+        # Any of CAD, ED, MD Rejected = REJECTED (Changes Required)
         # Otherwise = PENDING / PARTIALLY APPROVED
-        if approval.cad_status == 'approved' and approval.ed_status == 'approved':
+        cad_ok = (approval.cad_status == 'approved')
+        ed_ok = (approval.ed_status == 'approved')
+        md_ok = (approval.md_status in ('approved', 'not_required'))
+
+        rejecters = []
+        if approval.cad_status == 'rejected':
+            rejecters.append(('CAD', approval.cad_reviewer or reviewer_user, approval.cad_comment))
+        if approval.ed_status == 'rejected':
+            rejecters.append(('ED', approval.ed_reviewer or reviewer_user, approval.ed_comment))
+        if approval.md_status == 'rejected':
+            rejecters.append(('MD', approval.md_reviewer or reviewer_user, approval.md_comment))
+
+        if rejecters:
+            approval.status = 'rejected'
+            design_image.approval_status = 'rejected'
+            if len(rejecters) > 1:
+                design_image.rejected_by = rejecters[0][1]
+                design_image.rejection_reason = " | ".join(f"{r_role}: {r_comm}" for r_role, _, r_comm in rejecters)
+            else:
+                design_image.rejected_by = rejecters[0][1]
+                design_image.rejection_reason = rejecters[0][2]
+            design_image.rejected_at = now
+            design_image.approved_by = None
+            design_image.approved_at = None
+        elif cad_ok and ed_ok and md_ok:
             approval.status = 'approved'
             design_image.approval_status = 'approved'
             design_image.approved_by = reviewer_user
@@ -258,24 +284,6 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
             design_image.rejected_by = None
             design_image.rejected_at = None
             design_image.rejection_reason = ''
-        elif approval.cad_status == 'rejected' or approval.ed_status == 'rejected':
-            approval.status = 'rejected'
-            design_image.approval_status = 'rejected'
-            rejection_parts = []
-            primary_rejecter = None
-            if approval.cad_status == 'rejected':
-                primary_rejecter = approval.cad_reviewer or reviewer_user
-                rejection_parts.append(f"CAD: {approval.cad_comment}" if approval.ed_status == 'rejected' else approval.cad_comment)
-            if approval.ed_status == 'rejected':
-                if not primary_rejecter or reviewer_role == ApprovalRoles.ED:
-                    primary_rejecter = approval.ed_reviewer or reviewer_user
-                rejection_parts.append(f"ED: {approval.ed_comment}" if approval.cad_status == 'rejected' else approval.ed_comment)
-
-            design_image.rejected_by = primary_rejecter or reviewer_user
-            design_image.rejected_at = now
-            design_image.rejection_reason = " | ".join(rejection_parts) if rejection_parts else comment_clean
-            design_image.approved_by = None
-            design_image.approved_at = None
         else:
             approval.status = 'partially_approved'
             design_image.approval_status = 'pending'
@@ -297,7 +305,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
         # Notify the submitting designer
         designer = design_image.uploaded_by
         if designer and designer.is_active:
-            role_label = "CAD" if reviewer_role == ApprovalRoles.CAD else "ED"
+            role_label = reviewer_role
             review_url = f"/design-approvals/{design_image.id}/"
             tag = f"design-decision-{design_image.id}"
 

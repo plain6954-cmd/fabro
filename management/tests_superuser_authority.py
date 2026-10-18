@@ -359,7 +359,7 @@ class SuperuserAuthorityTestCase(TestCase):
     # =========================================================================
     # 5. Designer Verification Tests
     # =========================================================================
-    def test_superuser_designer_verification_two_stage_workflow(self):
+    def test_superuser_designer_verification_three_stage_workflow(self):
         tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
         dummy_file = SimpleUploadedFile('test_pattern.gif', tiny_gif, content_type='image/gif')
         design_image = PatternDesignImage.objects.create(
@@ -383,9 +383,10 @@ class SuperuserAuthorityTestCase(TestCase):
 
         detail_res = self.client.get(reverse('design_approval_detail', args=[design_image.id]))
         self.assertEqual(detail_res.status_code, 200)
-        # Both CAD and ED review forms are visible to superuser
+        # CAD, ED and MD review forms are visible to superuser
         self.assertTrue(detail_res.context['can_review_as_cad'])
         self.assertTrue(detail_res.context['can_review_as_ed'])
+        self.assertTrue(detail_res.context['can_review_as_md'])
 
         # 2. Superuser approves CAD stage
         cad_res = self.client.post(reverse('design_approval_detail', args=[design_image.id]), {
@@ -393,6 +394,7 @@ class SuperuserAuthorityTestCase(TestCase):
             'stage': 'cad',
             'decision': 'approved',
             'comment': 'CAD dimensions verified by Superuser',
+            'change_type': 'minor',
         })
         self.assertEqual(cad_res.status_code, 302)
 
@@ -414,15 +416,30 @@ class SuperuserAuthorityTestCase(TestCase):
             'stage': 'ed',
             'decision': 'approved',
             'comment': 'ED engineering verified by Superuser',
+            'change_type': 'minor',
         })
         self.assertEqual(ed_res.status_code, 302)
 
         approval.refresh_from_db()
         design_image.refresh_from_db()
 
-        # Now BOTH CAD and ED are approved -> full approval!
+        # CAD and ED are approved; MD remains independently pending.
         self.assertEqual(approval.ed_status, 'approved')
         self.assertEqual(approval.ed_reviewer, self.superuser)
+        self.assertEqual(approval.status, 'partially_approved')
+        self.assertEqual(design_image.approval_status, 'pending')
+
+        md_res = self.client.post(reverse('design_approval_detail', args=[design_image.id]), {
+            'action': 'review',
+            'stage': 'md',
+            'decision': 'approved',
+            'comment': 'MD review completed by Superuser',
+            'change_type': 'minor',
+        })
+        self.assertEqual(md_res.status_code, 302)
+        approval.refresh_from_db()
+        design_image.refresh_from_db()
+        self.assertEqual(approval.md_status, 'approved')
         self.assertEqual(approval.status, 'approved')
         self.assertEqual(design_image.approval_status, 'approved')
         self.assertEqual(design_image.approved_by, self.superuser)
@@ -430,8 +447,10 @@ class SuperuserAuthorityTestCase(TestCase):
         # Audit log verifies superuser actions
         cad_log = ActivityLog.objects.filter(user=self.superuser, action='design_approved_cad').first()
         ed_log = ActivityLog.objects.filter(user=self.superuser, action='design_approved_ed').first()
+        md_log = ActivityLog.objects.filter(user=self.superuser, action='design_approved_md').first()
         self.assertIsNotNone(cad_log)
         self.assertIsNotNone(ed_log)
+        self.assertIsNotNone(md_log)
 
     def test_superuser_rejects_designer_upload_with_mandatory_comment(self):
         tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
@@ -448,12 +467,12 @@ class SuperuserAuthorityTestCase(TestCase):
         # Rejection without comment fails with ValidationError
         with self.assertRaises(ValidationError):
             record_design_review_decision(
-                design_image, self.superuser, 'rejected', comment='', stage='cad'
+                design_image, self.superuser, 'rejected', comment='', stage='cad', change_type='major'
             )
 
         # Rejection with mandatory comment succeeds
         record_design_review_decision(
-            design_image, self.superuser, 'rejected', comment='Needs 5mm seam allowance adjustment', stage='cad'
+            design_image, self.superuser, 'rejected', comment='Needs 5mm seam allowance adjustment', stage='cad', change_type='major'
         )
 
         approval = design_image.latest_approval

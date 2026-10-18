@@ -41,6 +41,8 @@ test('design folder and image pagination reaches later server pages', async ({ p
   });
 
   await page.goto(`${routes.vehicles}?vehicle_id=1#design-options`);
+  await page.locator('#sidebarNav3DDesignBtn').click();
+  await page.locator('#btnToggleLegacyFolders').click();
   await expect(page.locator('#designFoldersGrid')).toContainText('First folder');
   await page.locator('#nextDesignFoldersBtn').click();
   await expect(page.locator('#designFoldersGrid')).toContainText('Later folder');

@@ -12,7 +12,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261017" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261018-compact" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -36,10 +36,13 @@
                 min-width: 0 !important;
                 box-sizing: border-box !important;
             }
-            #tab-pane-pattern-list {
+            #tab-pane-pattern-list:not([style*="display: none"]) {
                 display: flex !important;
                 flex-direction: column !important;
                 width: 100% !important;
+            }
+            #tab-pane-pattern-list[style*="display: none"] {
+                display: none !important;
             }
             .search-field-label,
             .search-options,
@@ -2356,25 +2359,9 @@
                         <h1 class="pattern-vehicle-title" id="designVehicleNameDisplay"></h1>
                     </div>
 
-                    <div style="display: flex; gap: 0.65rem; align-items: center;">
-                        <div style="position: relative;">
-                            <input type="text" id="designFolderSearchInput" class="form-input" placeholder="{% translate "Search files, folders, or tags..." %}"
-                                   style="width: 220px; height: 2.35rem; font-size: 0.8rem; padding-left: 2rem; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 8px;" oninput="filterDesignFolders()">
-                            <i class="fas fa-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #64748b; pointer-events: none;"></i>
-                        </div>
-
-                        <!-- Grid View Button -->
-                        <button type="button" class="btn btn-secondary" id="designViewGridBtn" title="{% translate "Grid View" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--fabro-border); color: #fff;">
-                            <i class="fas fa-th-large" style="font-size: 0.9rem;"></i>
-                        </button>
-
-                        <!-- List View Button -->
-                        <button type="button" class="btn btn-secondary" id="designViewListBtn" title="{% translate "List View" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--fabro-border); color: var(--fabro-text-secondary);">
-                            <i class="fas fa-list-ul" style="font-size: 0.9rem;"></i>
-                        </button>
-
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <!-- Google Drive Button & Dropdown -->
-                        <div style="position: relative;" id="vehicleGoogleDriveDropdownContainer">
+                        <div style="position: relative; display: inline-flex; align-items: center;" id="vehicleGoogleDriveDropdownContainer">
                             <button type="button" class="btn btn-secondary google-drive-btn" id="vehicleGoogleDriveBtn" onclick="toggleGoogleDriveDropdown(event)" title="{% translate "Google Drive Links" %}" style="width: 2.35rem; height: 2.35rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--fabro-border); transition: all 0.2s ease;">
                                 <svg class="google-drive-svg" width="18" height="18" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
                                     <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
@@ -2417,8 +2404,15 @@
                             </div>
                         </div>
 
+                        <!-- Approval Workflow Button (triggers slide-in drawer) -->
+                        <button type="button" class="btn btn-secondary" id="btnOpenTopApprovalWorkflow" onclick="window.toggleApprovalDrawer()" title="{% translate "Approval Workflow" %}" style="margin-left: 0.5rem; height: 2.35rem; padding: 0 0.85rem; display: inline-flex; align-items: center; gap: 0.45rem; border-radius: 8px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(129, 140, 248, 0.35); color: #c7d2fe; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease;">
+                            <i class="fas fa-clipboard-check" style="color: #a5b4fc; font-size: 0.85rem;"></i>
+                            <span>{% translate "Approval Workflow" %}</span>
+                        </button>
+
+
                         {% if can_manage_design_assets %}
-                        <input type="file" id="directVehicleImageFileInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl" style="display: none;" onchange="handleDirectVehicleImageSelected(this.files)">
+                        <input type="file" id="directVehicleImageFileInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl,.3ds,.fbx,.obj,.blend,.stl,.max,.c4d,.dae" style="display: none;" onchange="handleDirectVehicleImageSelected(this.files)">
                         {% endif %}
                     </div>
                 </div>
@@ -2443,45 +2437,16 @@
                             {% endif %}
                         </div>
 
-                        <!-- Sidebar Navigation -->
-                        <div class="sidebar-nav-card">
-                            <!-- MEASUREMENTS Section -->
-                            <button type="button" class="sidebar-nav-section-header" onclick="window.switchSidebarSection('measurements')">
-                                <span style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-ruler-combined" style="color: var(--fabro-text-primary);"></i>
-                                    <span>{% translate "MEASUREMENTS" %}</span>
-                                </span>
-                                <i class="fas fa-chevron-down" style="font-size: 0.75rem; opacity: 0.7;"></i>
+                        <!-- Sidebar Navigation: Strictly 2 Options (Measurements & 3D Design) -->
+                        <div class="sidebar-nav-card" style="padding: 0.35rem 0;">
+                            <button type="button" class="sidebar-nav-item is-active" id="sidebarNavMeasurementsBtn" onclick="window.switchSidebarSection('measurements')">
+                                <i class="fas fa-ruler-combined"></i>
+                                <span>{% translate "Measurements" %}</span>
                             </button>
-                            <div class="sidebar-nav-items" id="sidebarNavSectionMeasurements">
-                                <button type="button" class="sidebar-nav-item" id="sidebarNavMeasScanned" onclick="window.switchSidebarSection('measurements'); document.getElementById('panelScannedPatterns')?.scrollIntoView({behavior: 'smooth'});">
-                                    <i class="far fa-images"></i>
-                                    <span>{% translate "Scanned Patterns & Data" %}</span>
-                                </button>
-                                <button type="button" class="sidebar-nav-item" id="sidebarNavMeasInterior" onclick="window.switchSidebarSection('measurements'); document.getElementById('panelInteriorMedia')?.scrollIntoView({behavior: 'smooth'});">
-                                    <i class="fas fa-camera"></i>
-                                    <span>{% translate "Interior Pictures & Videos" %}</span>
-                                </button>
-                                <button type="button" class="sidebar-nav-item" id="sidebarNavMeasColor" onclick="window.switchSidebarSection('measurements'); document.getElementById('panelColorPicker')?.scrollIntoView({behavior: 'smooth'});">
-                                    <i class="fas fa-palette"></i>
-                                    <span>{% translate "Color Picker" %}</span>
-                                </button>
-                            </div>
-
-                            <!-- 3D DESIGN Section -->
-                            <button type="button" class="sidebar-nav-section-header" onclick="window.switchSidebarSection('3d-design')" style="border-top: 1px solid var(--fabro-border-subtle);">
-                                <span style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-cube" style="color: var(--fabro-text-primary);"></i>
-                                    <span>{% translate "3D DESIGN" %}</span>
-                                </span>
-                                <i class="fas fa-chevron-right" style="font-size: 0.75rem; opacity: 0.7;"></i>
+                            <button type="button" class="sidebar-nav-item" id="sidebarNav3DDesignBtn" onclick="window.switchSidebarSection('3d-design')">
+                                <i class="fas fa-cube"></i>
+                                <span>{% translate "3D Design" %}</span>
                             </button>
-                            <div class="sidebar-nav-items" id="sidebarNavSection3DDesign" style="display: none;">
-                                <button type="button" class="sidebar-nav-item" id="sidebarNav3DFolders" onclick="window.switchSidebarSection('3d-design')">
-                                    <i class="far fa-folder"></i>
-                                    <span>{% translate "Folders & Image Gallery" %}</span>
-                                </button>
-                            </div>
                         </div>
                     </aside>
 
@@ -2883,170 +2848,241 @@
                             </div>
                         </div><!-- /#patternMeasurementsWorkspace -->
 
-                        <!-- 2. 3D DESIGN FOLDERS WORKSPACE -->
+                        <!-- 2. 3D DESIGN WORKSPACE -->
                         <div id="pattern3DDesignWorkspace" style="display: none;">
-
-                    <div id="designFoldersView">
-                    <!-- Folders Grid Container -->
-                    <div class="design-folders-grid" id="designFoldersGrid">
-                        <!-- Populated by JavaScript and updated on folder changes -->
-                    </div>
-                    <div class="matrix-pagination-bar" id="designFoldersPaginationBar" style="display: none;">
-                        <div class="matrix-pagination-info" id="designFoldersPaginationInfo"></div>
-                        <div class="matrix-pagination-actions">
-                            <button type="button" class="btn btn-secondary btn-sm" id="prevDesignFoldersBtn" onclick="changeDesignFolderPage(-1)">{% translate "Previous" %}</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="nextDesignFoldersBtn" onclick="changeDesignFolderPage(1)">{% translate "Next" %}</button>
-                        </div>
-                    </div>
-
-                    <!-- Direct Images Section on Vehicle Design Page -->
-                    <div id="designDirectImagesSection" style="margin-top: 2rem; display: none;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--dark-text); display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-images" style="color: #3b82f6;"></i>
-                                    <span>{% translate "Vehicle Images" %}</span>
-                                </h3>
-                                <span class="tab-badge" id="designDirectImagesCountBadge">0</span>
-                            </div>
-                        </div>
-
-                        <!-- 2x2 Matrix for Direct Images -->
-                        <div id="directImagesMatrixWrapper" class="design-matrix-wrapper">
-                            <div class="design-matrix-grid" id="directImagesMatrixGrid">
-                                <!-- Rendered via JavaScript -->
-                            </div>
-                            <div class="matrix-pagination-bar" id="directImagesPaginationBar" style="display: none;">
-                                <div class="matrix-pagination-info" id="directImagesPaginationInfo"></div>
-                                <div class="matrix-pagination-actions">
-                                    <button type="button" class="btn btn-secondary btn-sm" id="prevDirectMatrixBtn" onclick="changeDirectMatrixPage(-1)" style="height: 2rem; padding: 0 0.85rem; font-size: 0.78rem;">
-                                        <i class="fas fa-chevron-left"></i> {% translate "Prev 4" %}
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-sm" id="nextDirectMatrixBtn" onclick="changeDirectMatrixPage(1)" style="height: 2rem; padding: 0 0.85rem; font-size: 0.78rem;">
-                                        {% translate "Next 4" %} <i class="fas fa-chevron-right"></i>
+                            <!-- Section Title Banner: 3D DESIGN -->
+                            <div class="measurements-section-banner">
+                                <div class="measurements-banner-icon" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.35); color: #c084fc;">
+                                    <i class="fas fa-cube"></i>
+                                </div>
+                                <div class="measurements-banner-content">
+                                    <h2 class="measurements-banner-title">{% translate "3D DESIGN" %}</h2>
+                                    <p class="measurements-banner-subtitle">{% translate "Manage 3D design files, reference images, and approver workflows." %}</p>
+                                </div>
+                                <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+                                    <button type="button" class="btn btn-secondary btn-sm" id="btnToggleLegacyFolders" onclick="window.toggleLegacyFoldersView()" style="height: 2.2rem; padding: 0 0.75rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid var(--fabro-border); border-radius: 6px; color: var(--fabro-text-secondary);">
+                                        <i class="far fa-folder"></i>
+                                        <span id="toggleLegacyFoldersText">{% translate "Folders View" %}</span>
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Empty State for Folders & Images -->
-                    <div id="designFoldersEmptyState" style="display: none; padding: 3.5rem 1rem; text-align: center;">
-                        <div style="max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                            <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(220, 38, 38, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary-color); font-size: 2rem; border: 1px solid rgba(220, 38, 38, 0.25);">
-                                <i class="fas fa-folder-plus"></i>
-                            </div>
-                            <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--dark-text);">{% translate "No Folders or Images Yet" %}</h3>
-                            <p style="font-size: 0.85rem; color: var(--dark-text-secondary); margin: 0; line-height: 1.5;">
-                                {% translate "Create folders or upload design images directly to organize pattern variations, aesthetic pairings, and stitching references for this vehicle." %}
-                            </p>
-                            {% if can_manage_design_assets %}
-                            <div style="display: flex; gap: 0.65rem; margin-top: 0.5rem; flex-wrap: wrap; justify-content: center;">
-                                <button type="button" class="btn btn-primary" onclick="openAddFolderModal()">
-                                    <i class="fas fa-folder-plus"></i>
-                                    <span>{% translate "Add Folder" %}</span>
-                                </button>
-                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('directVehicleImageFileInput').click()">
-                                    <i class="fas fa-image"></i>
-                                    <span>{% translate "Add File" %}</span>
-                                </button>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
+                            <!-- Main Workspace Container (Sections 1, 2, and 3) -->
+                            <div id="primary3DDesignView" class="design-workspace-3d-layout">
+                                <!-- Main Content Column: Section 1 & Section 2 -->
+                                <div class="design-workspace-content-column">
+                                    <!-- SECTION 1: REFERENCE IMAGES (Match Swatch Photo) -->
+                                    <section class="measurement-panel ref-images-panel" id="sectionReferenceImages" style="margin-bottom: 0.75rem;">
+                                        <div class="measurement-panel-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 1rem;">
+                                            <div class="panel-header-left" style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+                                                <span class="panel-number-badge badge-red" style="flex-shrink: 0;">1</span>
+                                                <div style="display: flex; flex-direction: column; min-width: 0;">
+                                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap;">
+                                                        <h3 class="measurement-panel-title" style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #fff; white-space: nowrap;">
+                                                            {% translate "REFERENCE IMAGES (Match Swatch Photo)" %}
+                                                        </h3>
+                                                        <span class="tab-badge" id="refImagesCountBadge" style="background: rgba(255,255,255,0.08); font-size: 0.7rem; padding: 0.1rem 0.45rem; border-radius: 6px; color: var(--fabro-text-secondary); flex-shrink: 0;">0</span>
+                                                    </div>
+                                                    <span style="font-size: 0.75rem; color: var(--fabro-text-muted); display: block; line-height: 1.3; margin-top: 2px;">
+                                                        {% translate "Uploaded reference swatch photos and media." %}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="panel-header-right" style="flex-shrink: 0; margin-left: auto;">
+                                                <input type="file" id="refImageUploadInput" multiple accept="image/*" style="display: none;" onchange="window.handleRefImageSelected(this.files)">
+                                                <button type="button" class="btn btn-secondary btn-compact-upload" id="btnUploadRefImages" onclick="document.getElementById('refImageUploadInput').click()" style="height: 2rem; padding: 0 0.85rem; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--fabro-border); color: #fff; transition: all 0.2s ease; white-space: nowrap;">
+                                                    <i class="fas fa-plus" style="font-size: 0.7rem; color: var(--fabro-red);"></i>
+                                                    <span>{% translate "Upload Images" %}</span>
+                                                </button>
+                                            </div>
+                                        </div>
 
-                <!-- VIEW 2: Inside Folder View (2x2 Matrix Image Grid) -->
-                <div id="designFolderDetailView" style="display: none;">
-                    <div class="design-section-header">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="backToFoldersList()" title="{% translate "Back to all folders" %}" style="height: 2.25rem; padding: 0 0.85rem; font-size: 0.8rem;">
-                                <i class="fas fa-arrow-left"></i>
-                                <span>{% translate "Folders" %}</span>
-                            </button>
-                            <div style="display: flex; flex-direction: column; gap: 0.15rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <h2 class="design-section-title" id="activeFolderNameDisplay" style="margin: 0; font-size: 1.15rem;"></h2>
-                                    {% if can_manage_design_assets %}
-                                    <button type="button" class="design-folder-action-btn" onclick="openRenameCurrentFolderModal()" title="{% translate "Rename Folder" %}">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </button>
-                                    {% endif %}
-                                    <span class="tab-badge" id="activeFolderImageCountBadge">0</span>
-                                </div>
-                                <div class="design-vehicle-subheading" style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 600; color: #a78bfa;">
-                                    <i class="fas fa-car-side" style="font-size: 0.78rem; opacity: 0.85;"></i>
-                                    <span class="designVehicleDetailNameDisplay"></span>
-                                </div>
-                            </div>
-                        </div>
+                                        <!-- Horizontal scrollable strip container -->
+                                        <div class="ref-gallery-scroll-container" style="position: relative; margin-top: 0.85rem;">
+                                            <button type="button" class="ref-scroll-arrow prev" id="refScrollPrev" onclick="window.scrollRefImages(-1)" title="{% translate "Scroll Left" %}" style="display: none;">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </button>
+                                            <div class="ref-images-track" id="refImagesScrollTrack">
+                                                <div class="ref-images-empty-placeholder" id="refImagesEmptyState" style="padding: 1.5rem 1rem; text-align: center; color: var(--fabro-text-muted); font-size: 0.8rem; width: 100%;">
+                                                    <i class="far fa-images" style="font-size: 1.4rem; opacity: 0.4; margin-bottom: 0.35rem; display: block;"></i>
+                                                    <span>{% translate "No reference images uploaded yet. Click [+] Upload Images to add swatch photos." %}</span>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="ref-scroll-arrow next" id="refScrollNext" onclick="window.scrollRefImages(1)" title="{% translate "Scroll Right" %}" style="display: none;">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                    </section>
 
-                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            {% if can_manage_design_assets %}
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="pasteImageFromClipboard()" title="{% translate "Paste image from clipboard (or press Ctrl+V)" %}" style="height: 2.25rem; padding: 0 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc;">
-                                <i class="fas fa-paste"></i>
-                                <span>{% translate "Paste Image" %}</span>
-                            </button>
-                            <span class="paste-hint-badge" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: #cbd5e1; background: rgba(255, 255, 255, 0.07); padding: 0.35rem 0.65rem; border-radius: 6px; border: 1px dashed rgba(255, 255, 255, 0.2);" title="{% translate "Copy any image to clipboard and press Ctrl+V to paste directly into this folder" %}">
-                                <kbd style="background: rgba(0,0,0,0.3); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.72rem; font-family: inherit;">Ctrl+V</kbd>
-                            </span>
-                            <input type="file" id="designImageFileInput" multiple accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl" style="display: none;" onchange="handleDesignImageSelected(this.files)">
-                            <button type="button" class="btn btn-primary" onclick="document.getElementById('designImageFileInput').click()" title="{% translate "Upload Images" %}" style="height: 2.25rem; padding: 0 0.95rem; font-size: 0.82rem;">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <span>{% translate "Upload Files" %}</span>
-                            </button>
-                            <button type="button" class="btn btn-danger icon-btn" onclick="confirmDeleteCurrentFolder()" title="{% translate "Delete Folder" %}" style="width: 2.25rem; height: 2.25rem; font-size: 0.85rem; border-radius: 6px;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
+                                    <!-- SECTION 2: UPLOADED 3D DESIGN FILES -->
+                                    <section class="measurement-panel design-files-panel" id="section3DDesignFiles">
+                                        <div class="measurement-panel-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 1rem;">
+                                            <div class="panel-header-left" style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+                                                <span class="panel-number-badge badge-red" style="flex-shrink: 0;">2</span>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap;">
+                                                    <h3 class="measurement-panel-title" style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #fff; white-space: nowrap;">
+                                                        {% translate "UPLOADED 3D DESIGN FILES" %}
+                                                    </h3>
+                                                    <span class="tab-badge" id="design3DFilesCountBadge" style="background: rgba(255,255,255,0.08); font-size: 0.7rem; padding: 0.1rem 0.45rem; border-radius: 6px; color: var(--fabro-text-secondary); flex-shrink: 0;">0</span>
+                                                </div>
+                                            </div>
 
-                    <!-- Inside Folder Content Area -->
-                    <div id="designFolderContentArea">
-                        <!-- Dropzone when empty -->
-                        <div id="designEmptyImagesDropzone" class="design-upload-dropzone" style="display: none;"
-                             onclick="{% if can_manage_design_assets %}document.getElementById('designImageFileInput').click(){% endif %}">
-                            <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(220, 38, 38, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary-color); font-size: 1.8rem;">
-                                <i class="fas fa-images"></i>
-                            </div>
-                            <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--dark-text);">{% translate "No Images In This Folder" %}</h3>
-                            <p style="font-size: 0.85rem; color: var(--dark-text-secondary); margin: 0; max-width: 400px;">
-                                {% if can_manage_design_assets %}
-                                {% translate "Click here to upload, click Paste Image, or press Ctrl+V to paste directly from your clipboard. Images will preview in a 2x2 matrix." %}
-                                {% else %}
-                                {% translate "No design images have been uploaded to this folder yet." %}
+                                            <!-- Controls bar: Search, Sort, View toggles (Strict single horizontal row) -->
+                                            <div class="design-files-controls-bar" style="display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; flex-shrink: 0; margin-left: auto;">
+                                                <div style="position: relative; flex-shrink: 0;">
+                                                    <input type="text" id="design3DFilesSearch" class="form-input" placeholder="{% translate "Search files..." %}"
+                                                           style="width: 170px !important; height: 32px !important; font-size: 0.76rem; padding-left: 1.75rem; background: #111317; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; box-sizing: border-box;" oninput="window.filter3DDesignFiles()">
+                                                    <i class="fas fa-search" style="position: absolute; left: 0.55rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: #64748b; pointer-events: none;"></i>
+                                                </div>
+
+                                                <select id="design3DFilesSort" class="form-input design-sort-select" onchange="window.sort3DDesignFiles(this.value)" style="width: 140px !important; min-width: 130px !important; max-width: 155px !important; height: 32px !important; font-size: 0.76rem; padding: 0 1.8rem 0 0.55rem; background: #111317; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; box-sizing: border-box; display: inline-block; flex-shrink: 0;">
+                                                    <option value="newest">{% translate "Newest First" %}</option>
+                                                    <option value="oldest">{% translate "Oldest First" %}</option>
+                                                    <option value="name">{% translate "Name (A-Z)" %}</option>
+                                                    <option value="status">{% translate "Status" %}</option>
+                                                </select>
+
+                                                <div class="btn-group" style="display: inline-flex; border: 1px solid var(--fabro-border); border-radius: 6px; overflow: hidden; flex-shrink: 0;">
+                                                    <button type="button" id="design3DGridBtn" class="btn btn-sm is-active" onclick="window.switch3DFilesView('grid')" title="{% translate "Grid View" %}" style="height: 32px; width: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: #282c35; color: #fff; border: none; border-radius: 0;">
+                                                        <i class="fas fa-th-large" style="font-size: 0.78rem;"></i>
+                                                    </button>
+                                                    <button type="button" id="design3DListBtn" class="btn btn-sm" onclick="window.switch3DFilesView('list')" title="{% translate "List View" %}" style="height: 32px; width: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: #111317; color: var(--fabro-text-secondary); border: none; border-radius: 0;">
+                                                        <i class="fas fa-list" style="font-size: 0.78rem;"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Gallery Container -->
+                                        <div class="fabro-design-gallery view-grid" id="design3DFilesGallery" style="margin-top: 1rem;">
+                                            <div class="design-files-empty-state" id="design3DFilesEmptyState" style="padding: 2.5rem 1rem; text-align: center; color: var(--fabro-text-muted); font-size: 0.85rem; width: 100%;">
+                                                <i class="fas fa-cube" style="font-size: 2rem; opacity: 0.35; margin-bottom: 0.65rem; display: block; color: #a855f7;"></i>
+                                                <h4 style="color: #cbd5e1; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.35rem;">{% translate "No 3D Design Files Uploaded Yet" %}</h4>
+                                                <p style="margin: 0; font-size: 0.8rem; color: var(--fabro-text-muted);">{% translate "Files uploaded for this vehicle will appear here with reviewer status and approval workflows." %}</p>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div><!-- /.design-workspace-content-column -->
+
+                                <!-- SECTION 3: ROLE-SPECIFIC DESIGNER PANEL (Visible ONLY for Designer role) -->
+                                {% if is_designer %}
+                                <aside class="designer-workflow-panel-col" id="designerWorkflowPanelCol">
+                                    <div class="designer-workflow-panel" id="designerWorkflowPanel">
+                                        <div class="designer-panel-header">
+                                            <div style="display: flex; align-items: center; gap: 0.45rem;">
+                                                <i class="fas fa-id-badge" style="color: var(--fabro-red);"></i>
+                                                <h4 style="margin: 0; font-size: 0.88rem; font-weight: 700; color: #fff;">{% translate "Designer Workspace" %}</h4>
+                                            </div>
+                                            <span class="badge" style="background: rgba(237, 23, 36, 0.15); border: 1px solid rgba(237, 23, 36, 0.3); color: #fca5a5; font-size: 0.68rem; padding: 0.15rem 0.45rem; border-radius: 4px;">
+                                                {% translate "Freelance 3D" %}
+                                            </span>
+                                        </div>
+
+                                        <div class="designer-panel-body" style="padding: 0.85rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                                            <div class="designer-meta-item">
+                                                <label class="designer-meta-label">{% translate "Pattern Number" %}</label>
+                                                <div class="designer-meta-val">
+                                                    <span class="badge" id="designerPatternNumberPill" style="background: #251216; border: 1px solid rgba(237, 23, 36, 0.35); color: #ff6b75; font-size: 0.76rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 4px;">
+                                                        —
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div class="designer-meta-item">
+                                                <label class="designer-meta-label">{% translate "Designer" %}</label>
+                                                <div class="designer-meta-val" id="designerNameDisplay" style="font-size: 0.82rem; font-weight: 600; color: #f1f5f9;">
+                                                    {{ request.user.username }}
+                                                </div>
+                                            </div>
+
+                                            <div class="designer-meta-item">
+                                                <label class="designer-meta-label">{% translate "Completed Date / Time" %}</label>
+                                                <div class="designer-meta-val" id="designerCompletedTimeDisplay" style="font-size: 0.8rem; color: #cbd5e1;">
+                                                    —
+                                                </div>
+                                            </div>
+
+                                            <div class="designer-meta-item">
+                                                <label class="designer-meta-label">{% translate "Approval Date / Time" %}</label>
+                                                <div class="designer-meta-val" id="designerApprovalTimeDisplay" style="font-size: 0.8rem; color: #cbd5e1;">
+                                                    —
+                                                </div>
+                                            </div>
+
+                                            <div class="designer-meta-item">
+                                                <label class="designer-meta-label">{% translate "Designer Remarks / Notes" %}</label>
+                                                <textarea id="designerRemarksInput" class="form-input" rows="3" placeholder="{% translate "Add revision notes or remarks here..." %}" style="width: 100%; font-size: 0.78rem; background: #111317; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0.45rem; resize: vertical; box-sizing: border-box;"></textarea>
+                                            </div>
+
+                                            <div style="margin-top: 0.5rem;">
+                                                <button type="button" class="btn btn-primary" id="btnDesignerUploadFile" onclick="document.getElementById('directVehicleImageFileInput').click()" style="width: 100%; height: 2.35rem; font-size: 0.82rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 6px;">
+                                                    <i class="fas fa-cloud-upload-alt"></i>
+                                                    <span>{% translate "Upload 3D Design File" %}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </aside>
                                 {% endif %}
-                            </p>
-                        </div>
+                            </div><!-- /#primary3DDesignView -->
 
-                        <!-- 2x2 Matrix Display -->
-                        <div id="designMatrixWrapper" class="design-matrix-wrapper" style="display: none;">
-                            <div class="design-matrix-grid" id="designMatrixGrid">
-                                <!-- 4 matrix cards rendered per 2x2 view -->
+                            <!-- Legacy Folders View (Preserved for compatibility, hidden by default) -->
+                            <div id="legacyFoldersWrapper" style="display: none; margin-top: 1.5rem;">
+                                <div id="designFoldersView">
+                                    <div class="design-folders-grid" id="designFoldersGrid"></div>
+                                    <div class="matrix-pagination-bar" id="designFoldersPaginationBar" style="display: none;">
+                                        <div class="matrix-pagination-info" id="designFoldersPaginationInfo"></div>
+                                        <div class="matrix-pagination-actions">
+                                            <button type="button" class="btn btn-secondary btn-sm" id="prevDesignFoldersBtn" onclick="changeDesignFolderPage(-1)">{% translate "Previous" %}</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" id="nextDesignFoldersBtn" onclick="changeDesignFolderPage(1)">{% translate "Next" %}</button>
+                                        </div>
+                                    </div>
+                                    <section id="designDirectImagesSection" style="display: none; margin-top: 1.5rem;">
+                                        <div class="design-section-header">
+                                            <h3 class="design-section-title">{% translate "Vehicle Files" %} <span class="tab-badge" id="designDirectImagesCountBadge">0</span></h3>
+                                        </div>
+                                        <div id="directImagesMatrixWrapper" class="design-matrix-wrapper">
+                                            <div class="design-matrix-grid" id="directImagesMatrixGrid"></div>
+                                            <div class="matrix-pagination-bar" id="directImagesPaginationBar" style="display: none;">
+                                                <div class="matrix-pagination-info" id="directImagesPaginationInfo"></div>
+                                                <div class="matrix-pagination-actions">
+                                                    <button type="button" class="btn btn-secondary btn-sm" id="prevDirectMatrixBtn" onclick="changeDirectMatrixPage(-1)">{% translate "Previous" %}</button>
+                                                    <button type="button" class="btn btn-secondary btn-sm" id="nextDirectMatrixBtn" onclick="changeDirectMatrixPage(1)">{% translate "Next" %}</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                    <div id="designFoldersEmptyState" style="display: none; padding: 2rem 1rem; text-align: center; color: var(--fabro-text-muted);">{% translate "No design folders or files yet." %}</div>
+                                </div>
+                                <div id="designFolderDetailView" style="display: none;">
+                                    <div class="design-section-header">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="backToFoldersList()">
+                                                <i class="fas fa-arrow-left"></i> {% translate "Folders" %}
+                                            </button>
+                                            <h2 class="design-section-title" id="activeFolderNameDisplay" style="margin: 0; font-size: 1.15rem;"></h2>
+                                            <span class="tab-badge" id="activeFolderImageCountBadge">0</span>
+                                        </div>
+                                    </div>
+                                    <div id="designMatrixWrapper" class="design-matrix-wrapper">
+                                        <div class="design-matrix-grid" id="designMatrixGrid"></div>
+                                        <div class="matrix-pagination-bar" id="matrixPaginationBar" style="display: none;">
+                                            <div class="matrix-pagination-info" id="matrixPaginationInfo"></div>
+                                            <div class="matrix-pagination-actions">
+                                                <button type="button" class="btn btn-secondary btn-sm" id="prevMatrixBtn" onclick="changeMatrixPage(-1)">{% translate "Previous" %}</button>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="nextMatrixBtn" onclick="changeMatrixPage(1)">{% translate "Next" %}</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                        </div><!-- /#pattern3DDesignWorkspace -->
+                    </main><!-- /.design-workspace-main -->
+                </div><!-- /.design-split-layout -->
+            </div><!-- /.pattern-design-layout-container -->
+        </div><!-- /#tab-pane-design-options -->
 
-                            <!-- Matrix Pagination Bar -->
-                            <div class="matrix-pagination-bar" id="matrixPaginationBar">
-                                <div class="matrix-pagination-info" id="matrixPaginationInfo">
-                                    <!-- Showing 1–4 of 12 images (Matrix Page 1 of 3) -->
-                                </div>
-                                <div class="matrix-pagination-actions">
-                                    <button type="button" class="btn btn-secondary btn-sm" id="prevMatrixBtn" onclick="changeMatrixPage(-1)" style="height: 2rem; padding: 0 0.85rem; font-size: 0.78rem;">
-                                        <i class="fas fa-chevron-left"></i> {% translate "Prev 4" %}
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-sm" id="nextMatrixBtn" onclick="changeMatrixPage(1)" style="height: 2rem; padding: 0 0.85rem; font-size: 0.78rem;">
-                                        {% translate "Next 4" %} <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div><!-- /#designFolderDetailView -->
-                </div><!-- /#pattern3DDesignWorkspace -->
-            </main><!-- /.design-workspace-main -->
-        </div><!-- /.design-split-layout -->
-    </div><!-- /.pattern-design-layout-container -->
-</div><!-- /#tab-pane-design-options -->
+
 
 <!-- Interior Media Preview Lightbox Modal -->
 <!-- Interior Media Preview Modal -->
@@ -3062,6 +3098,191 @@
 <!-- Slide-In Color Approval Drawer -->
 {% include 'management/includes/color_approval_drawer.html' %}
 
+<!-- Slide-In 3D Design Approval Workflow Drawer -->
+<div class="fabro-approval-backdrop" id="designApprovalDrawerBackdrop" onclick="window.closeApprovalDrawer()"></div>
+
+<div class="fabro-approval-drawer" id="designApprovalDrawer" role="dialog" aria-modal="true" aria-labelledby="approvalDrawerTitle" style="bottom: auto !important; height: auto !important; border-bottom: 1px solid var(--fabro-border) !important; border-bottom-left-radius: 12px !important;">
+    <div class="drawer-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--fabro-border); background: #16181d;">
+        <div style="display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-clipboard-check" style="color: #a5b4fc; font-size: 1.05rem;"></i>
+                <h3 id="approvalDrawerTitle" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff;">
+                    {% translate "Approval Workflow" %}
+                </h3>
+            </div>
+            <span style="font-size: 0.76rem; color: var(--fabro-text-muted); margin-top: 2px;">
+                {% translate "Review and approve this 3D design file" %}
+            </span>
+        </div>
+        <button type="button" class="drawer-close-btn" onclick="window.closeApprovalDrawer()" title="{% translate "Close" %}" style="background: transparent; border: none; color: var(--fabro-text-muted); font-size: 1.2rem; cursor: pointer; padding: 0.25rem; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.2s ease;">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="drawer-body" style="padding: 1.25rem 1.25rem 2.25rem 1.25rem; display: flex; flex-direction: column; gap: 1.25rem;">
+        <!-- File Switcher Dropdown -->
+        <div class="drawer-file-switcher-box" style="display: flex; flex-direction: column; gap: 0.35rem;">
+            <label style="font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--fabro-text-muted);">
+                {% translate "Select 3D File to Review" %}
+            </label>
+            <select id="drawerFileSelector" class="form-input" onchange="window.selectDrawerFile(this.value)" style="width: 100%; height: 2.3rem; font-size: 0.82rem; background: #191c21; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0 0.65rem;">
+                <!-- Populated by JS -->
+            </select>
+        </div>
+
+        <!-- Selected File Preview Card -->
+        <div class="drawer-file-preview-card" id="drawerSelectedFileCard" style="background: #191c21; border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.85rem; display: flex; gap: 0.85rem; align-items: center;">
+            <div class="drawer-file-thumb" id="drawerFileThumb" style="width: 72px; height: 72px; border-radius: 6px; overflow: hidden; background: #0f1115; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.06);">
+                <!-- img or icon -->
+            </div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <div id="drawerFileName" style="font-size: 0.88rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        —
+                    </div>
+                    <span id="drawerFileOverallStatusPill" class="stepper-badge pending" style="font-size: 0.7rem;">Pending</span>
+                </div>
+                <div style="font-size: 0.74rem; color: var(--fabro-text-secondary); display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <span id="drawerFileSize">0 KB</span>
+                    <span>•</span>
+                    <span id="drawerFileUploadedBy">—</span>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--fabro-text-muted); display: flex; flex-direction: column; gap: 1px; margin-top: 2px;">
+                    <div><i class="far fa-clock" style="font-size: 0.68rem; margin-right: 3px;"></i> Completed: <span id="drawerCompletedTime" style="color: #cbd5e1;">—</span></div>
+                    <div><i class="fas fa-check-double" style="font-size: 0.68rem; margin-right: 3px;"></i> Approved: <span id="drawerApprovedTime" style="color: #cbd5e1;">Pending</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviewer Opinion Cards: MD, ED, CAD -->
+        <div class="drawer-reviewers-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--fabro-text-muted);">
+                {% translate "Reviewer Status (MD, ED, CAD)" %}
+            </div>
+
+            <!-- MD Card -->
+            <div class="drawer-reviewer-card" id="drawerMdCard" style="background: #191c21; border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.85rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <span class="badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 4px;">MD</span>
+                        <span id="drawerMdReviewerName" style="font-size: 0.82rem; font-weight: 600; color: #fff;">Shabeer Vayoli</span>
+                    </div>
+                    <span class="stepper-badge pending" id="drawerMdStatusBadge">Pending</span>
+                </div>
+                <div style="font-size: 0.74rem; color: var(--fabro-text-secondary); display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                    <span id="drawerMdDesignation">Managing Director</span>
+                    <span id="drawerMdDecidedTime">—</span>
+                </div>
+                <div id="drawerMdChangeTypeBadge" style="display: none; margin-bottom: 0.35rem;">
+                    <span class="badge" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc; font-size: 0.68rem; padding: 0.1rem 0.45rem; border-radius: 4px;"></span>
+                </div>
+                <div class="stepper-remarks-bubble" id="drawerMdRemarks" style="font-size: 0.76rem; display: none;"></div>
+            </div>
+
+            <!-- ED Card -->
+            <div class="drawer-reviewer-card" id="drawerEdCard" style="background: #191c21; border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.85rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 4px;">ED</span>
+                        <span id="drawerEdReviewerName" style="font-size: 0.82rem; font-weight: 600; color: #fff;">ED</span>
+                    </div>
+                    <span class="stepper-badge pending" id="drawerEdStatusBadge">Pending</span>
+                </div>
+                <div style="font-size: 0.74rem; color: var(--fabro-text-secondary); display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                    <span id="drawerEdDesignation">Executive Director</span>
+                    <span id="drawerEdDecidedTime">—</span>
+                </div>
+                <div id="drawerEdChangeTypeBadge" style="display: none; margin-bottom: 0.35rem;">
+                    <span class="badge" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc; font-size: 0.68rem; padding: 0.1rem 0.45rem; border-radius: 4px;"></span>
+                </div>
+                <div class="stepper-remarks-bubble" id="drawerEdRemarks" style="font-size: 0.76rem; display: none;"></div>
+            </div>
+
+            <!-- CAD Card -->
+            <div class="drawer-reviewer-card" id="drawerCadCard" style="background: #191c21; border: 1px solid var(--fabro-border); border-radius: 8px; padding: 0.85rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 4px;">CAD</span>
+                        <span id="drawerCadReviewerName" style="font-size: 0.82rem; font-weight: 600; color: #fff;">CAD</span>
+                    </div>
+                    <span class="stepper-badge pending" id="drawerCadStatusBadge">Pending</span>
+                </div>
+                <div style="font-size: 0.74rem; color: var(--fabro-text-secondary); display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                    <span id="drawerCadDesignation">CAD Specialist</span>
+                    <span id="drawerCadDecidedTime">—</span>
+                </div>
+                <div id="drawerCadChangeTypeBadge" style="display: none; margin-bottom: 0.35rem;">
+                    <span class="badge" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc; font-size: 0.68rem; padding: 0.1rem 0.45rem; border-radius: 4px;"></span>
+                </div>
+                <div class="stepper-remarks-bubble" id="drawerCadRemarks" style="font-size: 0.76rem; display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Decision Submission Controls -->
+        <div class="drawer-decision-box" id="drawerDecisionBox" style="display: none; background: #1f232b; border: 1px solid rgba(237, 23, 36, 0.25); border-radius: 8px; padding: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div style="font-size: 0.82rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="fas fa-edit" style="color: var(--fabro-red);"></i>
+                    <span>{% translate "Submit Review Decision" %} (<span id="drawerActiveReviewStageLabel">CAD</span>)</span>
+                </div>
+            </div>
+
+            <!-- Mandatory Change Classification -->
+            <div style="margin-bottom: 0.85rem;">
+                <label style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
+                    {% translate "Change Classification" %} <span style="color: var(--fabro-red);">*</span>
+                </label>
+                <div class="change-type-selector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <label class="change-type-option" id="lblChangeTypeMinor" style="display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.65rem; background: #16181d; border: 1px solid var(--fabro-border); border-radius: 6px; cursor: pointer; font-size: 0.78rem; color: #cbd5e1;">
+                        <input type="radio" name="drawerChangeType" value="minor" id="radioChangeTypeMinor" style="accent-color: var(--fabro-red);">
+                        <span>{% translate "Minor Change" %}</span>
+                    </label>
+                    <label class="change-type-option" id="lblChangeTypeMajor" style="display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.65rem; background: #16181d; border: 1px solid var(--fabro-border); border-radius: 6px; cursor: pointer; font-size: 0.78rem; color: #cbd5e1;">
+                        <input type="radio" name="drawerChangeType" value="major" id="radioChangeTypeMajor" style="accent-color: var(--fabro-red);">
+                        <span>{% translate "Major Change" %}</span>
+                    </label>
+                </div>
+                <div id="drawerChangeTypeError" style="color: #ef4444; font-size: 0.72rem; display: none; margin-top: 0.25rem;">
+                    {% translate "Please select either Minor Change or Major Change." %}
+                </div>
+            </div>
+
+            <!-- Remarks -->
+            <div style="margin-bottom: 0.85rem;">
+                <label style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
+                    {% translate "Remarks / Feedback" %} <span id="drawerRemarksReqStar" style="color: var(--fabro-red); display: none;">*</span>
+                </label>
+                <textarea id="drawerDecisionRemarks" class="form-input" rows="3" placeholder="{% translate "Enter feedback or mandatory reason when rejecting..." %}" style="width: 100%; font-size: 0.78rem; background: #16181d; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0.45rem; resize: vertical; box-sizing: border-box;"></textarea>
+                <div id="drawerRemarksError" style="color: #ef4444; font-size: 0.72rem; display: none; margin-top: 0.25rem;">
+                    {% translate "Remarks are mandatory when rejecting a design." %}
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+                <button type="button" class="btn btn-success" id="drawerBtnApprove" onclick="window.submitDrawerDecision('approved')" style="height: 2.25rem; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; background: #059669; border: 1px solid #10b981; color: #fff; border-radius: 6px;">
+                    <i class="fas fa-check"></i>
+                    <span>{% translate "Approve" %}</span>
+                </button>
+                <button type="button" class="btn btn-outline-danger" id="drawerBtnReject" onclick="window.submitDrawerDecision('rejected')" style="height: 2.25rem; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.5); color: #f87171; border-radius: 6px;">
+                    <i class="fas fa-times"></i>
+                    <span>{% translate "Reject" %}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Audit History Timeline -->
+        <div class="drawer-history-box" style="margin-top: 0.5rem;">
+            <div style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--fabro-text-muted); margin-bottom: 0.65rem;">
+                {% translate "Approval History & Cycles" %}
+            </div>
+            <div id="drawerHistoryTimeline" style="display: flex; flex-direction: column; gap: 0.65rem;">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Colors JSON for Dynamic Search Dropdowns -->
 <script id="carDetailsColorsData" type="application/json">
 [
@@ -3071,9 +3292,9 @@
 ]
 </script>
 <script src="{% static 'management/js/color_approval_drawer.js' %}?v=20261017" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_measurements.js' %}?v=20261017" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_measurements.js' %}?v=20261018-v2" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261018-v4" data-fabro-page-asset></script>
         </div><!-- /page-container -->
-    </div><!-- /app-content -->
 
     <!-- Add Folder Modal -->
     <div id="addFolderModal" class="modal">
@@ -7053,11 +7274,14 @@
             const vParam = urlParams.get('vehicle_id');
             if (vParam) {
                 currentVehicleId = parseInt(vParam, 10);
+                window.currentVehicleId = currentVehicleId;
             }
-            if (window.location.hash === '#design-options' || window.location.hash === '#measurements' || window.location.hash.startsWith('#design-folder-') || window.location.search.includes('tab=design-options') || vParam) {
+            if (window.location.hash === '#design-options' || window.location.hash === '#measurements' || window.location.hash === '#3d-design' || window.location.hash === '#3d' || window.location.hash.startsWith('#design-folder-') || window.location.search.includes('tab=design-options') || vParam) {
                 switchPatternTab('design-options');
                 if (window.location.hash === '#measurements' && typeof window.switchSidebarSection === 'function') {
                     window.switchSidebarSection('measurements');
+                } else if ((window.location.hash === '#3d-design' || window.location.hash === '#3d') && typeof window.switchSidebarSection === 'function') {
+                    window.switchSidebarSection('3d-design');
                 }
             }
         });
@@ -7068,8 +7292,12 @@
 
         function openVehicleDesignSettings(vehicleId, vehicleName) {
             currentVehicleId = vehicleId;
+            window.currentVehicleId = vehicleId;
             currentVehicleName = vehicleName || '';
             updateVehicleSubheadings(currentVehicleName);
+            if (typeof window.load3DDesignWorkspace === 'function') {
+                window.load3DDesignWorkspace(vehicleId);
+            }
 
             // Reset folder view
             activeDesignFolder = null;
@@ -7154,6 +7382,9 @@
                         }
                         filterDesignFolders();
                         renderDirectImagesMatrix();
+                        if (typeof window.load3DDesignWorkspace === 'function' && targetVehicleId) {
+                            window.load3DDesignWorkspace(targetVehicleId);
+                        }
 
                         // Auto-restore folder if hash or sessionStorage matches
                         let targetFolderId = null;
@@ -9716,7 +9947,11 @@
             pageScope.listen(window, 'resize', () => updateSubtaskbarGlider());
             pageScope.listen(window, 'popstate', () => {
                 const p = new URLSearchParams(window.location.search);
-                switchSubwindow(p.get('subwindow') || 'patterns');
+                const subwindow = p.get('subwindow') || 'patterns';
+                switchSubwindow(subwindow);
+                if (subwindow !== 'colors' && (p.has('vehicle_id') || /^#(?:design-options|measurements|3d-design|3d|design-folder-)/.test(window.location.hash))) {
+                    switchPatternTab('design-options');
+                }
             });
             pageScope.onCleanup(() => {
                 document.body.classList.remove('is-color-subwindow', 'modal-open');
@@ -10001,6 +10236,7 @@
             </div>
         </div>
     </div>
+    </div><!-- /app-content: keep page dialogs and scripts in HTMX swaps -->
 {% if not is_htmx_request %}
 </body>
 </html>

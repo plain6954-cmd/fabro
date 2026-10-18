@@ -5304,7 +5304,7 @@ class PatternMasterSheetImportTests(TestCase):
 2,TOYOTA,COROLLA,2020,2024,BR2,N1,4,5,X101,Container 1,Pending
 """
 
-    def run_import(self, apply=False):
+    def run_import(self, apply=False, backup_file=None):
         with TemporaryDirectory() as directory:
             path = Path(directory) / 'vehicles.csv'
             path.write_text(self.CSV, encoding='utf-8')
@@ -5312,25 +5312,28 @@ class PatternMasterSheetImportTests(TestCase):
             args = [str(path)]
             if apply:
                 args.append('--apply')
+            if backup_file is not None:
+                args.extend(['--backup-file', str(backup_file)])
             call_command('import_pattern_master_csv', *args, stdout=output)
             return output.getvalue()
 
-    def test_dry_run_rolls_back_all_changes(self):
-        output = self.run_import()
-        self.assertIn('DRY RUN', output)
+    def test_import_requires_restorable_backup_before_touching_patterns(self):
+        from django.core.management.base import CommandError
+        with TemporaryDirectory() as directory:
+            with self.assertRaisesMessage(CommandError, 'Restorable backup file'):
+                self.run_import(backup_file=Path(directory) / 'missing-backup.json')
         self.assertEqual(YearRange.objects.count(), 0)
 
-    def test_apply_preserves_rows_with_the_same_vehicle_and_year(self):
-        output = self.run_import(apply=True)
-        vehicles = list(YearRange.objects.order_by('serial_number'))
-        self.assertIn('2 sheet rows preserved', output)
-        self.assertEqual(len(vehicles), 2)
-        self.assertEqual(vehicles[0].serial_number, 'S0001')
-        self.assertEqual(vehicles[0].br, 'BR1')
-        self.assertEqual(vehicles[1].serial_number, 'S0002')
-        self.assertEqual(vehicles[1].br, 'BR2')
-        self.assertEqual(vehicles[1].x_code, 'X101')
-        self.assertIsNone(vehicles[1].layout_code)
+    def test_apply_requires_explicit_token_before_touching_patterns(self):
+        from django.core.management.base import CommandError
+        MasterSetting.objects.create(category='Country', name='GCC')
+        MasterSetting.objects.create(category='Country', name='KSA')
+        with TemporaryDirectory() as directory:
+            backup = Path(directory) / 'verified-backup.json'
+            backup.write_text('[{"model":"management.yearrange","pk":1,"fields":{}}]', encoding='utf-8')
+            with self.assertRaisesMessage(CommandError, '--confirm-token REPLACE-PATTERNS-OCT17'):
+                self.run_import(apply=True, backup_file=backup)
+        self.assertEqual(YearRange.objects.count(), 0)
 
 
 class SkuManagementCompactDesignTests(TestCase):
@@ -5892,7 +5895,7 @@ class Freelance3DDesignerWorkflowTests(TestCase):
         notif_recipients = set(Notification.objects.filter(notification_type='design_approval').values_list('recipient__username', flat=True))
         self.assertIn(self.cad_user.username, notif_recipients)
         self.assertIn(self.ed_user.username, notif_recipients)
-        self.assertNotIn(self.md_user.username, notif_recipients)
+        self.assertIn(self.md_user.username, notif_recipients)
         self.assertNotIn(self.country_user.username, notif_recipients)
 
     def test_visibility_gating_for_pending_images(self):
@@ -5950,7 +5953,7 @@ class Freelance3DDesignerWorkflowTests(TestCase):
 
         # CAD approver approves
         self.client.force_login(self.cad_user)
-        res = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()['status'], 'success')
         self.assertEqual(res.json()['approval_status'], 'pending')
@@ -5958,22 +5961,27 @@ class Freelance3DDesignerWorkflowTests(TestCase):
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'pending')
 
-        # ED approver also approves -> overall approved!
+        # ED approval alone still waits for the independent MD review.
         self.client.force_login(self.ed_user)
-        res_ed = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        res_ed = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
         self.assertEqual(res_ed.status_code, 200)
-        self.assertEqual(res_ed.json()['approval_status'], 'approved')
+        self.assertEqual(res_ed.json()['approval_status'], 'pending')
+
+        self.client.force_login(self.md_user)
+        res_md = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
+        self.assertEqual(res_md.status_code, 200)
+        self.assertEqual(res_md.json()['approval_status'], 'approved')
 
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'approved')
-        self.assertEqual(img.approved_by, self.ed_user)
+        self.assertEqual(img.approved_by, self.md_user)
         self.assertIsNotNone(img.approved_at)
 
-        repeat_res = self.client.post(reverse('approve_design_image_api', args=[img.id]))
+        repeat_res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'change_type': 'minor'})
         self.assertEqual(repeat_res.status_code, 409)
         reject_after_approval = self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': 'Late objection'}),
+            json.dumps({'reason': 'Late objection', 'change_type': 'minor'}),
             content_type='application/json',
         )
         self.assertEqual(reject_after_approval.status_code, 409)
@@ -6010,7 +6018,7 @@ class Freelance3DDesignerWorkflowTests(TestCase):
         # Empty reason rejected with 400
         res = self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': '   '}),
+            json.dumps({'reason': '   ', 'change_type': 'major'}),
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 400)
@@ -6019,7 +6027,7 @@ class Freelance3DDesignerWorkflowTests(TestCase):
         rejection_reason = "Headrest pattern dimensions do not align with 2024 seat frames."
         res = self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': rejection_reason}),
+            json.dumps({'reason': rejection_reason, 'change_type': 'major'}),
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 200)

@@ -1198,7 +1198,7 @@
                 overflow: visible !important;
             }
 
-            #tab-pane-pattern-list {
+            #tab-pane-pattern-list:not([style*="display: none"]) {
                 display: flex !important;
                 flex-direction: column !important;
                 width: 100% !important;
@@ -3738,7 +3738,7 @@
                 box-sizing: border-box !important;
             }
 
-            #tab-pane-pattern-list {
+            #tab-pane-pattern-list:not([style*="display: none"]) {
                 display: flex !important;
                 flex-direction: column !important;
             }
