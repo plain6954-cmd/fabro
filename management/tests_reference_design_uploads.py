@@ -109,12 +109,25 @@ class ReferenceDesignUploadTests(TestCase):
         )
         url = reverse('delete_design_image_api', args=[image.pk])
 
-        for user in [self.designer, self.pm] + self.reviewers:
+        # Reviewers and PM cannot delete the designer's uploaded file without permission
+        for user in [self.pm] + self.reviewers:
             with self.subTest(user=user.username):
                 self.client.force_login(user)
                 self.assertEqual(self.client.post(url).status_code, 403)
                 self.assertTrue(PatternDesignImage.objects.filter(pk=image.pk).exists())
 
+        # The designer who uploaded it can delete their own uploaded design image
+        self.client.force_login(self.designer)
+        with patch('management.views.default_storage.delete'):
+            self.assertEqual(self.client.post(url).status_code, 200)
+        self.assertFalse(PatternDesignImage.objects.filter(pk=image.pk).exists())
+
+        # Manager with explicit delete permission can delete any design image
+        image2 = PatternDesignImage.objects.create(
+            vehicle=self.vehicle, image='pattern_designs/test2.obj',
+            title='test2.obj', uploaded_by=self.designer,
+        )
+        url2 = reverse('delete_design_image_api', args=[image2.pk])
         permission = Permission.objects.get(
             content_type__app_label='management',
             codename='delete_patterndesignimage',
@@ -123,8 +136,8 @@ class ReferenceDesignUploadTests(TestCase):
         manager.user_permissions.add(permission)
         self.client.force_login(manager)
         with patch('management.views.default_storage.delete'):
-            self.assertEqual(self.client.post(url).status_code, 200)
-        self.assertFalse(PatternDesignImage.objects.filter(pk=image.pk).exists())
+            self.assertEqual(self.client.post(url2).status_code, 200)
+        self.assertFalse(PatternDesignImage.objects.filter(pk=image2.pk).exists())
 
     def test_folder_deletion_requires_explicit_permission(self):
         folder = PatternDesignFolder.objects.create(

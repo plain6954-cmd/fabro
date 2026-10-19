@@ -146,6 +146,8 @@ from .services.s3_storage import (
 )
 from .services.push_notifications import send_push_on_commit
 from .services.design_approvals import (
+    can_admin_review_designs,
+    design_review_roles,
     get_approvers_for_role,
     submit_design_for_approval,
     record_design_review_decision,
@@ -274,6 +276,20 @@ def _can_delete_design_assets(user):
     )
 
 
+def _can_delete_design_image(user, img):
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    if is_active_superuser(user) or user.has_perm('management.delete_patterndesignimage'):
+        return True
+    prof = getattr(user, 'workflow_profile', None)
+    is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
+    # Freelance 3D Designers can delete their own uploaded 3D design files
+    if is_designer and not getattr(img, 'is_reference', False):
+        if img.uploaded_by_id == user.id or img.uploaded_by is None:
+            return True
+    return False
+
+
 def _can_approve_design_assets(user):
     if is_active_superuser(user):
         return True
@@ -321,24 +337,13 @@ def _can_user_access_color_approvals(user):
 
 
 def _can_user_review_design_image(user, img):
-    if not user or not user.is_authenticated:
+    if not user or not user.is_authenticated or img.uploaded_by_id == user.id:
         return False
-    if img.uploaded_by_id == user.id:
-        return False
-    appr = getattr(img, 'latest_approval', None)
-    if not appr:
-        return False
-    if is_active_superuser(user):
-        return appr.cad_status == 'pending' or appr.ed_status == 'pending'
-    prof = getattr(user, 'workflow_profile', None)
-    appr_role = getattr(prof, 'approval_role', None) if prof else None
-    if not prof or prof.role != WorkflowRoles.APPROVER or appr_role not in (ApprovalRoles.CAD, ApprovalRoles.ED):
-        return False
-    if appr_role == ApprovalRoles.CAD:
-        return appr.cad_status == 'pending'
-    if appr_role == ApprovalRoles.ED:
-        return appr.ed_status == 'pending'
-    return False
+    approval = getattr(img, 'latest_approval', None)
+    return bool(approval and any(
+        getattr(approval, role.lower() + '_status', '') == 'pending'
+        for role in design_review_roles(user)
+    ))
 
 
 def _visible_design_images_qs(user, base_qs):
@@ -2056,10 +2061,10 @@ def _serialize_design_image_details(img, user=None):
     user_appr_role = getattr(prof, 'approval_role', '') if prof else ''
     is_su = is_active_superuser(user) if user and user.is_authenticated else False
 
-    is_design_reviewer = bool(prof and prof.role == WorkflowRoles.APPROVER)
-    can_review_cad = (is_su or (is_design_reviewer and user_appr_role == ApprovalRoles.CAD)) and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.cad_status == 'pending') and img.approval_status == 'pending'
-    can_review_ed = (is_su or (is_design_reviewer and user_appr_role == ApprovalRoles.ED)) and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.ed_status == 'pending') and img.approval_status == 'pending'
-    can_review_md = (is_su or (is_design_reviewer and user_appr_role == ApprovalRoles.MD)) and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.md_status == 'pending') and img.approval_status == 'pending'
+    allowed_roles = design_review_roles(user)
+    can_review_cad = (ApprovalRoles.CAD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.cad_status == 'pending'))
+    can_review_ed = (ApprovalRoles.ED in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.ed_status == 'pending'))
+    can_review_md = (ApprovalRoles.MD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.md_status == 'pending'))
 
     history = []
     prefetched_approvals = getattr(img, '_prefetched_objects_cache', {}).get('approval_requests')
@@ -2107,7 +2112,7 @@ def _serialize_design_image_details(img, user=None):
         'rejection_reason': getattr(img, 'rejection_reason', '') or '',
         'designer_remarks': getattr(img, 'designer_remarks', '') or '',
         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
-        'can_delete': _can_delete_design_assets(user),
+        'can_delete': _can_delete_design_image(user, img),
         'is_reference': getattr(img, 'is_reference', False),
         'cad': {
             'status': appr.cad_status if appr else 'pending',
@@ -2130,6 +2135,7 @@ def _serialize_design_image_details(img, user=None):
             'change_type': appr.md_change_type if appr else '',
             'decided_at': timezone.localtime(appr.md_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.md_decided_at) else '',
         },
+        'can_admin_review': can_admin_review_designs(user),
         'can_review_cad': can_review_cad,
         'can_review_ed': can_review_ed,
         'can_review_md': can_review_md,
@@ -2707,11 +2713,12 @@ def update_vehicle_google_drive_api(request, vehicle_id):
 @login_required
 @require_POST
 def delete_design_image_api(request, image_id):
-    if not _can_delete_design_assets(request.user):
-        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     img = get_object_or_404(PatternDesignImage, id=image_id)
+    if not _can_delete_design_image(request.user, img):
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     folder_id = img.folder_id
     vehicle_id = img.vehicle_id
+    img_title = img.title or (img.image.name if img.image else f'Image {img.id}')
     if img.image:
         try:
             default_storage.delete(img.image.name)
@@ -2723,6 +2730,12 @@ def delete_design_image_api(request, image_id):
         except Exception:
             pass
     img.delete()
+    ActivityLog.objects.create(
+        user=request.user,
+        action='deleted',
+        object_type='Design Image',
+        object_name=img_title,
+    )
     remaining = PatternDesignImage.objects.filter(folder_id=folder_id).count() if folder_id else PatternDesignImage.objects.filter(vehicle_id=vehicle_id, folder__isnull=True).count()
     return JsonResponse({
         'status': 'success',
@@ -2986,15 +2999,12 @@ def design_approvals_list(request):
     page = Paginator(qs, 24).get_page(request.GET.get('page'))
     # Annotate only the visible page, avoiding a full-table render and review N+1.
     for item in page.object_list:
-        item.can_review_by_user = False
-        if approval_role == ApprovalRoles.CAD and getattr(item, 'latest_cad_status', '') == 'pending' and item.uploaded_by_id != user.id:
-            item.can_review_by_user = True
-        elif approval_role == ApprovalRoles.ED and getattr(item, 'latest_ed_status', '') == 'pending' and item.uploaded_by_id != user.id:
-            item.can_review_by_user = True
-        elif approval_role == ApprovalRoles.MD and getattr(item, 'latest_md_status', '') == 'pending' and item.uploaded_by_id != user.id:
-            item.can_review_by_user = True
-        elif is_su and item.uploaded_by_id != user.id and (getattr(item, 'latest_cad_status', '') == 'pending' or getattr(item, 'latest_ed_status', '') == 'pending' or getattr(item, 'latest_md_status', '') == 'pending'):
-            item.can_review_by_user = True
+        item.can_review_by_user = bool(
+            item.uploaded_by_id != user.id and any(
+                getattr(item, 'latest_' + role.lower() + '_status', '') == 'pending'
+                for role in design_review_roles(user)
+            )
+        )
 
     context = {
         'designs': page.object_list,
@@ -3003,9 +3013,10 @@ def design_approvals_list(request):
         'active_tab': active_tab,
         'pending_count': pending_count,
         'is_designer': is_designer,
-        'can_review_as_cad': bool(approval_role == ApprovalRoles.CAD or is_su),
-        'can_review_as_ed': bool(approval_role == ApprovalRoles.ED or is_su),
-        'can_review_as_md': bool(approval_role == ApprovalRoles.MD or is_su),
+        'can_review_as_cad': bool(ApprovalRoles.CAD in design_review_roles(user)),
+        'can_review_as_ed': bool(ApprovalRoles.ED in design_review_roles(user)),
+        'can_review_as_md': bool(ApprovalRoles.MD in design_review_roles(user)),
+        'can_admin_review': can_admin_review_designs(user),
         'is_superuser': is_su,
     }
     return render(request, 'management/design_approvals_list.html', context)
@@ -3066,23 +3077,22 @@ def design_approval_detail(request, image_id):
     history_cycles = list(design_image.approval_requests.all().order_by('-cycle'))
 
     can_review_cad = bool(
-        ((prof and prof.role == WorkflowRoles.APPROVER and approval_role == ApprovalRoles.CAD) or is_su)
+        (ApprovalRoles.CAD in design_review_roles(user))
         and latest_approval
         and latest_approval.cad_status == 'pending'
         and design_image.uploaded_by_id != user.id
     )
     can_review_ed = bool(
-        ((prof and prof.role == WorkflowRoles.APPROVER and approval_role == ApprovalRoles.ED) or is_su)
+        (ApprovalRoles.ED in design_review_roles(user))
         and latest_approval
         and latest_approval.ed_status == 'pending'
         and design_image.uploaded_by_id != user.id
     )
     can_review_md = bool(
-        ((prof and prof.role == WorkflowRoles.APPROVER and approval_role == ApprovalRoles.MD) or is_su)
+        (ApprovalRoles.MD in design_review_roles(user))
         and latest_approval
         and latest_approval.md_status == 'pending'
         and design_image.uploaded_by_id != user.id
-        and design_image.approval_status != 'approved'
     )
     can_resubmit = bool(
         (design_image.uploaded_by_id == user.id or is_su)
@@ -3099,6 +3109,7 @@ def design_approval_detail(request, image_id):
         'can_review_as_ed': can_review_ed,
         'can_review_as_md': can_review_md,
         'can_resubmit': can_resubmit,
+        'can_admin_review': can_admin_review_designs(user),
         'is_superuser': is_su,
     }
     return render(request, 'management/design_approval_detail.html', context)
@@ -4086,7 +4097,7 @@ def complaint_list(request):
     for u in team_users:
         p = getattr(u, 'workflow_profile', None)
         role_code = p.role if p else 'default'
-        role_label = p.get_role_display() if p and p.role else ('Workflow Admin' if u.is_superuser else 'Team Member')
+        role_label = p.display_role if p and p.role else ('Workflow Admin' if u.is_superuser else 'Team Member')
         flag_url = p.country_flag_url if p else None
         team_members_data.append({
             'id': u.id,
@@ -4507,11 +4518,11 @@ def approvals_list_view(request):
         is_admin_user = bool(request.user.is_superuser or (profile and profile.role == WorkflowRoles.ADMIN))
         my_pending_count = 0
         if approval_role == ApprovalRoles.CAD:
-            my_pending_count = base_count_qs.filter(approval_status='pending', latest_cad_status='pending').exclude(uploaded_by=request.user).distinct().count()
+            my_pending_count = base_count_qs.filter(latest_cad_status='pending').exclude(uploaded_by=request.user).distinct().count()
         elif approval_role in (ApprovalRoles.ED,):
-            my_pending_count = base_count_qs.filter(approval_status='pending', latest_ed_status='pending').exclude(uploaded_by=request.user).distinct().count()
+            my_pending_count = base_count_qs.filter(latest_ed_status='pending').exclude(uploaded_by=request.user).distinct().count()
         elif approval_role == ApprovalRoles.MD:
-            my_pending_count = base_count_qs.filter(approval_status='pending', latest_md_status='pending').exclude(uploaded_by=request.user).distinct().count()
+            my_pending_count = base_count_qs.filter(latest_md_status='pending').exclude(uploaded_by=request.user).distinct().count()
         elif is_admin_user or approval_role == ApprovalRoles.PM:
             my_pending_count = total_active_count
 
@@ -4538,11 +4549,11 @@ def approvals_list_view(request):
             qs = qs.filter(approval_status='pending')
         elif status_filter == 'my_pending':
             if approval_role == ApprovalRoles.CAD:
-                qs = qs.filter(approval_status='pending', latest_cad_status='pending').exclude(uploaded_by=request.user)
+                qs = qs.filter(latest_cad_status='pending').exclude(uploaded_by=request.user)
             elif approval_role in (ApprovalRoles.ED,):
-                qs = qs.filter(approval_status='pending', latest_ed_status='pending').exclude(uploaded_by=request.user)
+                qs = qs.filter(latest_ed_status='pending').exclude(uploaded_by=request.user)
             elif approval_role == ApprovalRoles.MD:
-                qs = qs.filter(approval_status='pending', latest_md_status='pending').exclude(uploaded_by=request.user)
+                qs = qs.filter(latest_md_status='pending').exclude(uploaded_by=request.user)
             else:
                 qs = qs.filter(approval_status='pending')
         elif status_filter == 'partially_approved':
@@ -4572,13 +4583,7 @@ def approvals_list_view(request):
         designer_items = []
         for img in designer_page.object_list:
             appr = getattr(img, 'latest_approval', None)
-            can_review = False
-            if img.approval_status == 'pending' and approval_role == ApprovalRoles.CAD and getattr(img, 'latest_cad_status', '') == 'pending' and img.uploaded_by_id != request.user.id:
-                can_review = True
-            elif img.approval_status == 'pending' and approval_role == ApprovalRoles.ED and getattr(img, 'latest_ed_status', '') == 'pending' and img.uploaded_by_id != request.user.id:
-                can_review = True
-            elif img.approval_status == 'pending' and approval_role == ApprovalRoles.MD and getattr(img, 'latest_md_status', '') == 'pending' and img.uploaded_by_id != request.user.id:
-                can_review = True
+            can_review = _can_user_review_design_image(request.user, img)
 
             vehicle_desc = None
             if img.vehicle:
@@ -6649,7 +6654,7 @@ def get_sorted_chat_users(current_user):
         except UserProfile.DoesNotExist:
             prof = None
         role_code = getattr(prof, 'role', '')
-        role_label = dict(WorkflowRoles.CHOICES).get(role_code, 'User')
+        role_label = prof.display_role if prof else ('Admin' if u.is_superuser else 'User')
         
         unread_count = u.chat_unread_count
         last_msg = last_messages.get(u.latest_message_id)
@@ -6715,7 +6720,9 @@ def chat_view(request):
 
     selected_role_label = ""
     if selected_user_profile:
-        selected_role_label = dict(WorkflowRoles.CHOICES).get(getattr(selected_user_profile, 'role', ''), 'User')
+        selected_role_label = selected_user_profile.display_role
+    elif selected_user and selected_user.is_superuser:
+        selected_role_label = "Admin"
 
     default_message = ""
     if selected_complaint:

@@ -955,6 +955,9 @@ msgstr "Edit Master Setting"
 msgid "Edit SKU - Fabro Leather"
 msgstr "Edit SKU - Fabro Leather"
 
+msgid "Edit User Profile & Role"
+msgstr "Edit User Profile & Role"
+
 msgid "Edit User Profile & Workflow Role"
 msgstr "Edit User Profile & Workflow Role"
 
@@ -2986,6 +2989,9 @@ msgstr "Welcome Back"
 
 msgid "Where the measurement was taken for this vehicle"
 msgstr "Where the measurement was taken for this vehicle"
+
+msgid "Role *"
+msgstr "Role *"
 
 msgid "Workflow Role *"
 msgstr "Workflow Role *"

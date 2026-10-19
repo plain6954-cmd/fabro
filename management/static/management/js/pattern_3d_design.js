@@ -50,8 +50,15 @@
     /**
      * Load the 3D Design Workspace data for a given vehicle
      */
-        function canCurrentUserDelete(item) {
-        return state.canDelete === true;
+    function canCurrentUserDelete(item) {
+        if (state.canDelete === true) return true;
+        if (item && item.can_delete === true) return true;
+        if (item && state.currentUser && state.currentUser.is_designer) {
+            if (!item.is_reference && (!item.uploaded_by || item.uploaded_by === state.currentUser.username)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     async function delete3DDesignFile(fileId, fileTitle) {
@@ -434,9 +441,17 @@
                         <input type="checkbox" class="file-tile-select" data-id="${file.id}" style="accent-color: var(--fabro-red); cursor: pointer;">
                     </div>
 
+                    <div class="tile-top-actions-overlay">
+                        ${statusPill}
+                        ${canCurrentUserDelete(file) ? `
+                            <button type="button" class="tile-delete-x-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file" aria-label="Delete this file">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+
                     <div class="tile-media-container" onclick="window.openApprovalDrawer(${file.id})">
                         ${mediaHtml}
-                        ${canCurrentUserDelete(file) ? `<button type="button" class="tiny-pic-delete-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id})" title="Delete this file"><i class="fas fa-trash-alt"></i></button>` : ''}
                     </div>
 
                     <div class="tile-body">
@@ -465,10 +480,6 @@
                             <span>Approved: <strong>${escapeHtml(file.approved_at || (isApproved ? 'Approved' : 'Pending'))}</strong></span>
                         </div>
 
-                        <div class="tile-status-badge-overlay">
-                            ${statusPill}
-                        </div>
-
                         <!-- Approver Reviewer Dots: MD, ED, CAD -->
                         <div class="approver-indicators-row">
                             <div class="approver-dots-group">
@@ -480,7 +491,7 @@
                                 <i class="fas fa-clipboard-check"></i>
                                 <span>Approval Workflow</span>
                             </button>
-                            ${canCurrentUserDelete(file) ? `<button type="button" class="btn-tile-delete" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id})" title="Delete this file"><i class="fas fa-trash-alt"></i></button>` : ''}
+                            ${canCurrentUserDelete(file) ? `<button type="button" class="btn-tile-delete" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file"><i class="fas fa-times"></i></button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -660,7 +671,7 @@
             const isImg = !is3DModel && (file.file_type === 'image' || /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.title || ''));
             const thumbSrc = file.url || file.preview_url;
             const drawerDelBtn = canCurrentUserDelete(file)
-                ? `<button type="button" class="tiny-pic-delete-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id})" title="Delete this file" style="position:absolute;bottom:4px;right:4px;"><i class="fas fa-trash-alt"></i></button>`
+                ? `<button type="button" class="tile-delete-x-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file" style="position:absolute;top:6px;right:6px;"><i class="fas fa-times"></i></button>`
                 : '';
             thumbBox.innerHTML = (isImg
                 ? `<img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(file.title)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-cube\' style=\'font-size:1.8rem;color:#c084fc;\'></i>';">`
@@ -678,28 +689,51 @@
 
         // 5. Update Decision Controls Box
         const decisionBox = document.getElementById('drawerDecisionBox');
-        let canReviewStage = null;
-        if (file.can_review_cad) canReviewStage = 'CAD';
-        else if (file.can_review_ed) canReviewStage = 'ED';
-        else if (file.can_review_md) canReviewStage = 'MD';
-
         if (decisionBox) {
-            if (canReviewStage) {
-                decisionBox.style.display = 'block';
+            const stages = ['cad', 'ed', 'md'].filter(role => file['can_review_' + role]);
+            decisionBox.style.display = stages.length ? 'block' : 'none';
+            decisionBox.dataset.activeStage = '';
+            let selector = document.getElementById('drawerReviewRoleSelector');
+            if (!selector) {
+                selector = document.createElement('div');
+                selector.id = 'drawerReviewRoleSelector';
+                selector.setAttribute('aria-label', 'Review as');
+                selector.style.cssText = 'display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px 0;';
+                decisionBox.prepend(selector);
+            }
+            selector.replaceChildren();
+            const selectStage = role => {
+                if (state.isSubmittingDecision) return;
+                decisionBox.dataset.activeStage = role;
                 const label = document.getElementById('drawerActiveReviewStageLabel');
-                if (label) label.textContent = canReviewStage;
-                decisionBox.dataset.activeStage = canReviewStage.toLowerCase();
-
-                // Reset inputs
-                const rMinor = document.getElementById('radioChangeTypeMinor');
-                const rMajor = document.getElementById('radioChangeTypeMajor');
-                if (rMinor) rMinor.checked = false;
-                if (rMajor) rMajor.checked = false;
-                const rem = document.getElementById('drawerDecisionRemarks');
-                if (rem) rem.value = '';
+                if (label) label.textContent = role ? role.toUpperCase() : 'Select reviewer above';
+                selector.querySelectorAll('button').forEach(button => {
+                    button.setAttribute('aria-pressed', String(button.dataset.stage === role));
+                    button.style.outline = button.dataset.stage === role ? '2px solid #a78bfa' : '';
+                });
+                ['radioChangeTypeMinor', 'radioChangeTypeMajor'].forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) input.checked = false;
+                });
+                const remarks = document.getElementById('drawerDecisionRemarks');
+                if (remarks) remarks.value = '';
                 hideDrawerErrors();
+            };
+            if (file.can_admin_review) {
+                ['cad', 'ed', 'md'].forEach(role => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.stage = role;
+                    button.className = 'workflow-btn';
+                    button.style.cssText = 'flex:0 0 auto;scroll-snap-align:start;min-height:44px;';
+                    button.textContent = role.toUpperCase() + (stages.includes(role) ? '' : ' — completed');
+                    button.disabled = !stages.includes(role);
+                    button.addEventListener('click', () => selectStage(role));
+                    selector.append(button);
+                });
+                selectStage(''); // Admin deliberately chooses; never advances to another role.
             } else {
-                decisionBox.style.display = 'none';
+                selectStage(stages[0] || '');
             }
         }
 
@@ -790,7 +824,8 @@
         hideDrawerErrors();
 
         const decisionBox = document.getElementById('drawerDecisionBox');
-        const stage = decisionBox?.dataset.activeStage || 'cad';
+        const stage = decisionBox?.dataset.activeStage || '';
+        if (!stage) { alert('Select CAD, ED, or MD before submitting a review.'); return; }
         const fileId = state.selectedFileId;
 
         if (!fileId) return;

@@ -8,7 +8,7 @@
         <tr>
             <td>{{ user.username }}</td>
             <td>{% for group in user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "None" %}{% endfor %}</td>
-            <td>{{ user.workflow_profile.get_role_display }}</td>
+            <td>{{ user.workflow_profile.display_role }}</td>
         </tr>
     {% empty %}
         <tr><td colspan="3">{% translate "No users found." %}</td></tr>

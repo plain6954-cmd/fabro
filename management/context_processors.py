@@ -24,10 +24,7 @@ def workflow_access(request):
     if profile is None:
         profile = get_user_profile(user)
         request._user_profile = profile
-    role_label = dict(WorkflowRoles.CHOICES).get(
-        getattr(profile, 'role', ''),
-        'User',
-    )
+    role_label = getattr(profile, 'display_role', '') if profile else ('Admin' if user.is_superuser else 'User')
     supplied = getattr(request, '_fabro_badges', {})
     badge_key = f'fabro:badges:v{cache_version()}:user:{user.pk}'
     cached_badges = cache.get(badge_key) or {}

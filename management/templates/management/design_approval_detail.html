@@ -134,8 +134,16 @@
                 </p>
             </div>
 
+            {% if can_admin_review %}
+            <nav aria-label="Review as" style="display:flex;gap:0.6rem;overflow-x:auto;scroll-snap-type:x mandatory;">
+                <a href="#review-cad" class="workflow-btn" style="flex-shrink:0;min-height:44px;scroll-snap-align:start;">CAD</a>
+                <a href="#review-ed" class="workflow-btn" style="flex-shrink:0;min-height:44px;scroll-snap-align:start;">ED</a>
+                <a href="#review-md" class="workflow-btn" style="flex-shrink:0;min-height:44px;scroll-snap-align:start;">MD</a>
+            </nav>
+            <p>Admin: choose a reviewer. Your account is recorded as the actual submitter.</p>
+            {% endif %}
             <!-- CAD Review Card -->
-            <div style="background: var(--dark-surface, #1e293b); border: 1px solid {% if latest_approval.cad_status == 'approved' %}rgba(16, 185, 129, 0.3){% elif latest_approval.cad_status == 'rejected' %}rgba(239, 68, 68, 0.3){% else %}rgba(255, 255, 255, 0.08){% endif %}; border-radius: 12px; padding: 1.25rem;">
+            <div id="review-cad" style="background: var(--dark-surface, #1e293b); border: 1px solid {% if latest_approval.cad_status == 'approved' %}rgba(16, 185, 129, 0.3){% elif latest_approval.cad_status == 'rejected' %}rgba(239, 68, 68, 0.3){% else %}rgba(255, 255, 255, 0.08){% endif %}; border-radius: 12px; padding: 1.25rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 6px;">CAD</span>
@@ -204,7 +212,7 @@
             </div>
 
             <!-- ED Review Card -->
-            <div style="background: var(--dark-surface, #1e293b); border: 1px solid {% if latest_approval.ed_status == 'approved' %}rgba(16, 185, 129, 0.3){% elif latest_approval.ed_status == 'rejected' %}rgba(239, 68, 68, 0.3){% else %}rgba(255, 255, 255, 0.08){% endif %}; border-radius: 12px; padding: 1.25rem;">
+            <div id="review-ed" style="background: var(--dark-surface, #1e293b); border: 1px solid {% if latest_approval.ed_status == 'approved' %}rgba(16, 185, 129, 0.3){% elif latest_approval.ed_status == 'rejected' %}rgba(239, 68, 68, 0.3){% else %}rgba(255, 255, 255, 0.08){% endif %}; border-radius: 12px; padding: 1.25rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <span style="background: rgba(168, 85, 247, 0.15); color: #a855f7; font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 6px;">ED</span>
@@ -273,7 +281,7 @@
             </div>
 
             <!-- MD review is independent and may request changes before final approval. -->
-            <div style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius:12px; padding:1.25rem;">
+            <div id="review-md" style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius:12px; padding:1.25rem;">
                 <h3 style="margin:0 0 0.75rem;color:var(--dark-text,#f8fafc);font-size:0.95rem;">{% translate "MD Review" %} — {% if latest_approval.md_status == 'not_required' %}Not required for this historical review{% else %}{{ latest_approval.md_status|title }}{% endif %}</h3>
                 {% if latest_approval.md_decided_at %}
                     <p style="font-size:0.78rem;color:var(--dark-text-secondary,#94a3b8);">{{ latest_approval.md_reviewer.username }} · {{ latest_approval.md_decided_at|date:"M d, Y H:i" }}{% if latest_approval.md_change_type %} · {{ latest_approval.md_change_type|title }} {% translate "Change" %}{% endif %}</p>

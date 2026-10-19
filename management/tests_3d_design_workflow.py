@@ -118,6 +118,44 @@ class ThreeDDesignWorkflowTests(TestCase):
         submit_design_for_approval(img, self.designer)
         return img
 
+    def test_superuser_md_cannot_impersonate_cad(self):
+        self.md_user.is_superuser = True
+        self.md_user.save(update_fields=['is_superuser'])
+        img = self._create_sample_design()
+        with self.assertRaises(PermissionDenied):
+            record_design_review_decision(img, self.md_user, 'approved', stage='cad', change_type='minor')
+        record_design_review_decision(img, self.md_user, 'approved', stage='md', change_type='minor')
+        approval = get_latest_approval_request(img)
+        self.assertEqual(approval.md_reviewer, self.md_user)
+        self.assertEqual(approval.cad_status, 'pending')
+
+    def test_explicit_admin_can_choose_md_before_cad(self):
+        self.admin.workflow_profile.role = WorkflowRoles.ADMIN
+        self.admin.workflow_profile.save()
+        img = self._create_sample_design()
+        with self.assertRaises(ValidationError):
+            record_design_review_decision(img, self.admin, 'approved', change_type='minor')
+        record_design_review_decision(img, self.admin, 'approved', stage='md', change_type='minor')
+        record_design_review_decision(img, self.admin, 'approved', stage='ed', change_type='major')
+        approval = get_latest_approval_request(img)
+        self.assertEqual(approval.cad_status, 'pending')
+        self.assertEqual(approval.md_reviewer, self.admin)
+        self.assertEqual(approval.ed_reviewer, self.admin)
+
+    def test_other_roles_can_review_after_rejection(self):
+        from management.views import _can_user_review_design_image
+        img = self._create_sample_design()
+        record_design_review_decision(img, self.md_user, 'rejected', 'Revise stitching', change_type='major')
+        img.refresh_from_db()
+        self.assertTrue(_can_user_review_design_image(self.cad_user, img))
+        record_design_review_decision(img, self.ed_user, 'approved', change_type='minor')
+        record_design_review_decision(img, self.cad_user, 'approved', change_type='minor')
+        approval = get_latest_approval_request(img)
+        self.assertEqual((approval.cad_status, approval.ed_status, approval.md_status),
+                         ('approved', 'approved', 'rejected'))
+        img.refresh_from_db()
+        self.assertEqual(img.approval_status, 'rejected')
+
     def test_change_type_recording_for_cad_ed_md(self):
         """Verify CAD, ED, and MD record change_type ('minor' / 'major') accurately."""
         img = self._create_sample_design()

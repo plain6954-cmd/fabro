@@ -22,6 +22,40 @@ from management.services.workflow import is_active_superuser
 logger = logging.getLogger(__name__)
 
 
+def can_admin_review_designs(user):
+    """Only an active account explicitly assigned Admin may act for reviewers."""
+    profile = getattr(user, 'workflow_profile', None)
+    return bool(user and user.is_authenticated and user.is_active
+                and profile and profile.role == WorkflowRoles.ADMIN)
+
+
+def design_review_roles(user):
+    if not user or not user.is_authenticated or not user.is_active:
+        return ()
+    if can_admin_review_designs(user):
+        return (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
+    profile = getattr(user, 'workflow_profile', None)
+    if (profile and profile.role == WorkflowRoles.APPROVER
+            and profile.approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)):
+        return (profile.approval_role,)
+    return ()
+
+
+def resolve_design_review_role(user, stage=None):
+    roles = design_review_roles(user)
+    if not roles:
+        raise PermissionDenied(_("Only assigned CAD, ED, MD approvers or Admin may review designs."))
+    stage_clean = str(stage or '').strip().lower()
+    if can_admin_review_designs(user):
+        if stage_clean not in ('cad', 'ed', 'md'):
+            raise ValidationError(_("Admin must explicitly select CAD, ED, or MD."))
+        return next(role for role in roles if role.lower() == stage_clean)
+    role = roles[0]
+    if stage_clean and stage_clean != role.lower():
+        raise PermissionDenied(_("You cannot review a stage other than your assigned role."))
+    return role
+
+
 def get_approvers_for_role(approval_role):
     """
     Find active approver accounts configured for the given review role.
@@ -140,7 +174,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     """
     Record an independent CAD, ED, or MD review decision for a submitted design.
     - Reviewer identity is verified via request.user and their profile approval_role,
-      or via active superuser status with an explicit/inferred review stage ('cad', 'ed', or 'md').
+      or via the explicit Admin profile with a deliberately selected review stage.
     - CAD cannot submit an ED/MD decision; ED cannot submit CAD/MD; MD cannot submit CAD/ED.
     - Mandatory change classification ('minor' or 'major') required for all decisions.
     - Designer cannot approve their own design.
@@ -156,47 +190,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     if design_image.uploaded_by_id == reviewer_user.id:
         raise PermissionDenied(_("Designer cannot approve their own design."))
 
-    is_su = is_active_superuser(reviewer_user)
-    prof = getattr(reviewer_user, 'workflow_profile', None)
-    user_approval_role = getattr(prof, 'approval_role', None) if prof else None
-
-    # Fetch latest approval request to inspect current stages if needed
-    approval = get_latest_approval_request(design_image)
-    if not approval:
-        raise ValidationError(_("This design has not been submitted for review."))
-
-    # Determine reviewer_role
-    if is_su:
-        stage_clean = str(stage).strip().lower() if stage else ''
-        if stage_clean in ('cad', ApprovalRoles.CAD.lower()):
-            reviewer_role = ApprovalRoles.CAD
-        elif stage_clean in ('ed', ApprovalRoles.ED.lower()):
-            reviewer_role = ApprovalRoles.ED
-        elif stage_clean in ('md', ApprovalRoles.MD.lower()):
-            reviewer_role = ApprovalRoles.MD
-        elif not stage_clean:
-            # If not explicitly specified, inspect pending stage on latest approval
-            if approval.cad_status == 'pending' and approval.ed_status != 'pending' and approval.md_status != 'pending':
-                reviewer_role = ApprovalRoles.CAD
-            elif approval.ed_status == 'pending' and approval.cad_status != 'pending' and approval.md_status != 'pending':
-                reviewer_role = ApprovalRoles.ED
-            elif approval.md_status == 'pending' and approval.cad_status != 'pending' and approval.ed_status != 'pending':
-                reviewer_role = ApprovalRoles.MD
-            elif user_approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD):
-                reviewer_role = user_approval_role
-            else:
-                raise ValidationError(_("Please specify whether you are reviewing for CAD, ED, or MD stage."))
-        else:
-            raise ValidationError(_("Invalid review stage. Must be 'cad', 'ed', or 'md'."))
-    else:
-        # Reviewer must have an approval role of CAD, ED, or MD
-        if not prof or prof.role != WorkflowRoles.APPROVER or user_approval_role not in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD):
-            raise PermissionDenied(_("Only authorized CAD, ED, or MD approvers may review designs."))
-        reviewer_role = user_approval_role
-        if stage:
-            stage_clean = str(stage).strip().lower()
-            if stage_clean in ('cad', 'ed', 'md') and stage_clean != reviewer_role.lower():
-                raise PermissionDenied(_("You cannot review a stage other than your assigned role."))
+    reviewer_role = resolve_design_review_role(reviewer_user, stage)
 
     decision = (decision or '').strip().lower()
     if decision in ('decline', 'declined'):
@@ -299,7 +293,9 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
             user=reviewer_user,
             action=f"design_{decision}_{reviewer_role.lower()}",
             object_type='Design Image',
-            object_name=f"{design_image.title or design_image.id} ({reviewer_role}: {decision})",
+            object_name=f"{design_image.title or design_image.id} ({reviewer_role}: {decision})"
+                        + (f" [Admin {reviewer_user.username} on behalf of {reviewer_role}]"
+                           if can_admin_review_designs(reviewer_user) else ""),
         )
 
         # Notify the submitting designer

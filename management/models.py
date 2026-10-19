@@ -470,8 +470,18 @@ class UserProfile(models.Model):
     class Meta:
         ordering = ['user__username']
 
+    @property
+    def display_role(self):
+        if self.role == WorkflowRoles.APPROVER and self.approval_role:
+            return self.approval_role
+        return self.get_role_display() or 'User'
+
+    @property
+    def net_role_display(self):
+        return self.display_role
+
     def __str__(self):
-        return f"{self.user.username} - {self.get_role_display()}"
+        return f"{self.user.username} - {self.display_role}"
 
     def save(self, *args, **kwargs):
         """Keep the profile country authoritative, even for non-form callers."""

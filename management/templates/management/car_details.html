@@ -8727,85 +8727,11 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
         let rejectTargetImageId = null;
 
         function approveDesignImage(imageId, btn) {
-            if (!imageId) return;
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            }
-            fetch(`/api/design-images/${imageId}/approve/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getDesignCsrfToken() }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    if (activeFolderImages && activeFolderImages.length) {
-                        const target = activeFolderImages.find(x => x.id === imageId);
-                        if (target) {
-                            target.approval_status = data.approval_status || 'approved';
-                            target.can_approve = false;
-                        }
-                    }
-                    if (directImagesState && directImagesState.length) {
-                        const target = directImagesState.find(x => x.id === imageId);
-                        if (target) {
-                            target.approval_status = data.approval_status || 'approved';
-                            target.can_approve = false;
-                        }
-                    }
-                    renderDesignMatrix();
-                    renderDirectImagesMatrix();
-                } else {
-                    alert(data.message || '{% translate "Error approving image." %}');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-check"></i>';
-                    }
-                }
-            })
-            .catch(err => {
-                console.error('Approve error:', err);
-                alert('{% translate "Network error." %}');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-check"></i>';
-                }
-            });
+            if (imageId) window.location.href = `/design-approvals/${imageId}/`;
         }
 
         function openRejectDesignModal(imageId, imageTitle) {
-            rejectTargetImageId = imageId;
-            imageTitle = imageTitle ?? activeFolderImages.find(image => image.id === imageId)?.title
-                ?? directImagesState.find(image => image.id === imageId)?.title ?? '';
-            const modal = document.getElementById('rejectDesignModal');
-            const input = document.getElementById('rejectDesignReasonInput');
-            const err = document.getElementById('rejectDesignError');
-            const titleEl = document.getElementById('rejectDesignImageTitleText');
-            const charEl = document.getElementById('rejectReasonCharCount');
-
-            if (input) {
-                input.value = '';
-                input.disabled = false;
-            }
-            if (err) {
-                err.textContent = '';
-                err.style.display = 'none';
-            }
-            if (titleEl) {
-                titleEl.textContent = imageTitle ? `{% translate "Image" %}: ${imageTitle}` : '';
-            }
-            if (charEl) charEl.textContent = '0/1000';
-
-            const btn = document.getElementById('confirmRejectDesignBtn');
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>{% translate "Send Rejection Feedback" %}</span>';
-            }
-
-            if (modal) {
-                modal.style.display = 'block';
-                setTimeout(() => input && input.focus(), 60);
-            }
+            if (imageId) window.location.href = `/design-approvals/${imageId}/`;
         }
 
         function closeRejectDesignModal() {

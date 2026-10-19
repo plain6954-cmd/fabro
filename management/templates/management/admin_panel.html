@@ -376,7 +376,7 @@
                                  data-full-name="{{ u.first_name }} {{ u.last_name }}"
                                  data-phone="{{ u.workflow_profile.phone_number|default:'' }}"
                                  data-role="{% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}{{ u.workflow_profile.approval_role }}{% else %}{{ u.workflow_profile.role }}{% endif %}"
-                                 data-role-display="{% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}{{ u.workflow_profile.approval_role }}{% else %}{{ u.workflow_profile.get_role_display|default:'User' }}{% endif %}"
+                                 data-role-display="{{ u.workflow_profile.display_role|default:'User' }}"
                                  data-country-id="{{ u.workflow_profile.country_id|default:'' }}"
                                  data-country-name="{{ u.workflow_profile.country.name|default:'' }}"
                                  data-department="{{ u.workflow_profile.department|default:'' }}"
@@ -412,11 +412,7 @@
                                     </div>
 
                                     <div class="erp-card-role-title">
-                                        {% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}
-                                            {{ u.workflow_profile.approval_role }}
-                                        {% else %}
-                                            {{ u.workflow_profile.get_role_display|default:"User" }}
-                                        {% endif %}
+                                        {{ u.workflow_profile.display_role|default:"User" }}
                                     </div>
 
                                     <div class="erp-card-info-item">
@@ -492,11 +488,7 @@
                                         <td>{{ u.first_name }} {{ u.last_name }}</td>
                                         <td>
                                             <span style="color: #ff6b77; font-weight: 700;">
-                                                {% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}
-                                                    {{ u.workflow_profile.approval_role }}
-                                                {% else %}
-                                                    {{ u.workflow_profile.get_role_display|default:"User" }}
-                                                {% endif %}
+                                                {{ u.workflow_profile.display_role|default:"User" }}
                                             </span>
                                         </td>
                                         <td>{{ u.email|default:"—" }}</td>
@@ -795,7 +787,7 @@
                             <input type="text" name="phone_number" class="erp-form-input" placeholder="+966 ...">
                         </div>
                         <div class="erp-form-group full-width">
-                            <label class="erp-form-label">{% translate "Workflow Role *" %}</label>
+                            <label class="erp-form-label">{% translate "Role *" %}</label>
                             <select name="role" class="erp-form-select">
                                 <option value="country_executive">{% translate "Country Executive" %}</option>
                                 <option value="factory_viewer" selected>{% translate "Factory Viewer" %}</option>
@@ -856,7 +848,7 @@
     <div id="editUserModal" class="erp-modal" style="display: none;">
         <div class="erp-modal-box">
             <div class="erp-modal-header">
-                <span class="erp-modal-title"><i class="fas fa-user-edit" style="color: #e63946;"></i> {% translate "Edit User Profile & Workflow Role" %}</span>
+                <span class="erp-modal-title"><i class="fas fa-user-edit" style="color: #e63946;"></i> {% translate "Edit User Profile & Role" %}</span>
                 <button type="button" class="erp-modal-close" onclick="closeEditUserModal()">×</button>
             </div>
             <form id="editUserForm" method="post" enctype="multipart/form-data" action="{% url 'edit_user' %}" onsubmit="saveEditUser(event)">
@@ -898,7 +890,7 @@
                             </button>
                         </div>
                         <div class="erp-form-group full-width">
-                            <label class="erp-form-label">{% translate "Workflow Role *" %}</label>
+                            <label class="erp-form-label">{% translate "Role *" %}</label>
                             <select name="role" id="editRole" class="erp-form-select">
                                 <option value="country_executive">{% translate "Country Executive" %}</option>
                                 <option value="factory_viewer">{% translate "Factory Viewer" %}</option>
