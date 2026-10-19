@@ -2745,8 +2745,10 @@ class FabroBackendTests(TestCase):
         response = self.client.get(reverse('car_details'))
         self.assertEqual(response.status_code, 200)
 
-        # 2. Cannot view approvals workspace (forbidden)
-        self.assertEqual(self.client.get(reverse('approvals_list')).status_code, 403)
+        # 2. Approvals opens only the designer workspace
+        approvals_response = self.client.get(reverse('approvals_list'))
+        self.assertEqual(approvals_response.status_code, 200)
+        self.assertEqual(approvals_response.context['workspace_stage'], 'designer')
 
         # 3. Cannot add complaints (forbidden)
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
@@ -2775,6 +2777,27 @@ class FabroBackendTests(TestCase):
         )
         self.assertIn(pattern_complaint.complaint_id, visible_ids)
         self.assertNotIn(production_complaint.complaint_id, visible_ids)
+        assigned_approval = ComplaintApproval.objects.create(
+            complaint=pattern_complaint,
+            approver_role=ApprovalRoles.PM,
+            approver_user=freelancer,
+        )
+        self.assertEqual(
+            self.client.get(reverse('approval_review', args=[assigned_approval.pk])).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.post(reverse('approval_review', args=[assigned_approval.pk]), {
+                'decision': DecisionStatuses.APPROVED,
+            }).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.post(reverse('quick_approval_decision_api', args=[assigned_approval.pk]), {
+                'decision': DecisionStatuses.APPROVED,
+            }).status_code,
+            403,
+        )
 
         # 6. Can create design folder and upload design assets
         create_folder_res = self.client.post(reverse('create_design_folder_api'), {
@@ -4337,6 +4360,15 @@ class DesignOptionsFolderAndImageTests(TestCase):
             email='design.admin@example.com',
             password='AdminPassword123!',
         )
+        self.designer_user = User.objects.create_user(
+            username='design_upload_freelancer',
+            email='design.upload@example.com',
+            password='DesignerPassword123!',
+            is_active=True,
+        )
+        designer_profile = self.designer_user.workflow_profile
+        designer_profile.role = WorkflowRoles.FREELANCE_3D_DESIGNER
+        designer_profile.save()
         self.client.force_login(self.admin_user)
 
     def test_design_folder_lifecycle_and_image_upload(self):
@@ -4368,19 +4400,26 @@ class DesignOptionsFolderAndImageTests(TestCase):
         f1 = SimpleUploadedFile('pattern_1.gif', tiny_gif, content_type='image/gif')
         f2 = SimpleUploadedFile('pattern_2.gif', tiny_gif, content_type='image/gif')
 
+        self.client.force_login(self.designer_user)
         upload_res = self.client.post(
             reverse('upload_design_images_api', args=[folder_id]),
             {'images': [f1, f2]}
         )
         self.assertEqual(upload_res.status_code, 200)
         self.assertEqual(upload_res.json()['uploaded_count'], 2)
+        self.assertEqual(len(upload_res.json()['images']), 2)
         self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 2)
 
         # 5. Detail API (used for 2x2 matrix display)
+        self.client.force_login(self.admin_user)
         detail_res = self.client.get(reverse('get_design_folder_detail_api', args=[folder_id]))
         self.assertEqual(detail_res.status_code, 200)
         detail_data = detail_res.json()
         self.assertEqual(len(detail_data['images']), 2)
+        self.assertEqual(
+            {image['id'] for image in detail_data['images']},
+            {image['id'] for image in upload_res.json()['images']},
+        )
 
         # 6. Delete single image
         img_id = detail_data['images'][0]['id']

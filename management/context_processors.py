@@ -34,7 +34,7 @@ def workflow_access(request):
     
     can_view_approvals_flag = can_user_view_approvals(user)
     pending_approvals_count = supplied.get('pending_approvals_count', cached_badges.get('pending_approvals_count'))
-    if not can_view_approvals_flag:
+    if not can_view_approvals_flag or (profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER):
         pending_approvals_count = 0
     elif pending_approvals_count is None:
         if profile and profile.role == WorkflowRoles.APPROVER:

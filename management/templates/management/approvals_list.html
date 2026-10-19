@@ -17,6 +17,73 @@
     <style data-fabro-page-asset>
         .workspace-subtitle-mobile { display: none; }
         .filters-bottom-sheet-backdrop { display: none; }
+        #designReviewModalOverlay {
+            --design-select-bg: #111827;
+            --design-select-text: #f8fafc;
+            --design-select-placeholder: #cbd5e1;
+            --design-select-scheme: dark;
+        }
+        body.light-mode #designReviewModalOverlay {
+            --design-select-bg: #fff;
+            --design-select-text: #0f172a;
+            --design-select-placeholder: #475569;
+            --design-select-scheme: light;
+        }
+        #designReviewModalOverlay .decision-modal-content {
+            box-sizing: border-box;
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
+            color: #f8fafc;
+        }
+        body.light-mode #designReviewModalOverlay .decision-modal-content { color: #0f172a; }
+        #designReviewModalOverlay #modalDesignInfo { color: #cbd5e1; }
+        body.light-mode #designReviewModalOverlay #modalDesignInfo { color: #334155; }
+        #designReviewModalOverlay .design-role-options {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            border: 0;
+            padding: 0;
+            margin: 0 0 0.75rem;
+        }
+        #designReviewModalOverlay .design-role-options legend { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; }
+        #designReviewModalOverlay .design-role-option {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            min-width: 0;
+            padding: 0.5rem;
+            border: 1px solid #64748b;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+        }
+        #designReviewModalOverlay .design-role-option:has(input:checked) { border-color: #34d399; background: #064e3b; color: #fff; }
+        #designReviewModalOverlay .design-role-option:has(input:disabled) { opacity: 0.6; cursor: not-allowed; }
+        body.light-mode #designReviewModalOverlay .design-role-option:has(input:checked) { background: #d1fae5; color: #064e3b; }
+        #designReviewModalOverlay .design-role-option:focus-within { outline: 2px solid #34d399; outline-offset: 2px; }
+        #designReviewModalOverlay #designReviewRoleNotice { margin: 0 0 0.75rem; font-size: 0.85rem; font-weight: 700; }
+        #designReviewModalOverlay #modalDesignChangeType {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 0.55rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #64748b;
+            border-radius: 6px;
+            background-color: var(--design-select-bg);
+            color: var(--design-select-text);
+            color-scheme: var(--design-select-scheme);
+            transition: none;
+        }
+        #designReviewModalOverlay #modalDesignChangeType:invalid,
+        #designReviewModalOverlay #modalDesignChangeType option[value=""] { color: var(--design-select-placeholder); }
+        #designReviewModalOverlay #modalDesignChangeType option { background-color: var(--design-select-bg); color: var(--design-select-text); }
+        #designReviewModalOverlay #modalDesignChangeType:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
+        #designReviewModalOverlay #modalDesignSubmitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+        @media (max-width: 420px) {
+            #designReviewModalOverlay .design-role-options { grid-template-columns: 1fr; }
+        }
         @media (max-width: 768px) {
             .workspace-subtitle { display: none !important; }
             .workspace-subtitle-desktop { display: none !important; }
@@ -203,18 +270,20 @@
             </div>
 
             <div class="filter-tabs stage-selector-tabs" role="navigation" aria-label="{% translate "Approval stage workspace" %}">
+                {% if not is_designer_freelancer %}
                 <a href="?stage=plan&status=active" class="tab-btn {% if workspace_stage == 'plan' %}active{% endif %}">
                     <i class="fas fa-clipboard-list"></i> {% translate "Before Execution" %}
                 </a>
                 <a href="?stage=verification&status=active" class="tab-btn {% if workspace_stage == 'verification' %}active{% endif %}">
                     <i class="fas fa-clipboard-check"></i> {% translate "Verify Execution" %}
                 </a>
+                {% endif %}
                 {% if can_access_designer_stage %}
-                <a href="?stage=designer&status=active" class="tab-btn {% if workspace_stage == 'designer' %}active{% endif %}">
+                <a href="?stage=designer&status={% if is_designer_freelancer %}all{% else %}active{% endif %}" class="tab-btn {% if workspace_stage == 'designer' %}active{% endif %}">
                     <i class="fas fa-drafting-compass"></i> {% translate "Designer Uploads" %}
                 </a>
                 {% endif %}
-                {% if can_access_color_stage %}
+                {% if can_access_color_stage and not is_designer_freelancer %}
                 <a href="?stage=colors&status=active" class="tab-btn {% if workspace_stage == 'colors' %}active{% endif %}">
                     <i class="fas fa-palette"></i> {% translate "New Color Approvals" %}
                 </a>
@@ -249,9 +318,9 @@
                     <a href="?stage=designer&status=active{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'active' %}active{% endif %}">
                         <i class="fas fa-hourglass-half"></i> {% translate "Active Pending" %}
                     </a>
-                    <a href="?stage=designer&status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
+                    {% if not is_designer_freelancer %}<a href="?stage=designer&status=my_pending{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'my_pending' %}active{% endif %}">
                         <i class="fas fa-user-clock"></i> {% translate "My Pending Reviews" %} {% if my_pending_count %}({{ my_pending_count }}){% endif %}
-                    </a>
+                    </a>{% endif %}
                     <a href="?stage=designer&status=partially_approved{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if status_filter == 'partially_approved' %}active{% endif %}">
                         <i class="fas fa-check-circle"></i> {% translate "Partially Approved" %}
                     </a>
@@ -435,7 +504,7 @@
             {% if workspace_stage == 'designer' %}
                 {% if designer_items %}
                     {% for item in designer_items %}
-                    <article class="approval-card {% if item.can_review_by_user %}needs-my-vote{% endif %}" id="card-design-{{ item.id }}">
+                    <article class="approval-card {% if item.can_review_by_user %}needs-my-vote{% endif %}" id="card-design-{{ item.id }}" data-cad-status="{{ item.current_cad_status }}" data-ed-status="{{ item.current_ed_status }}" data-md-status="{{ item.current_md_status }}">
                         <!-- CARD HEADER -->
                         <div class="card-header-row">
                             <div class="card-id-block">
@@ -1019,10 +1088,10 @@
 
     <!-- QUICK DESIGN REVIEW MODAL -->
     <div class="decision-modal-overlay" id="designReviewModalOverlay" onclick="handleDesignModalOverlayClick(event)">
-        <div class="decision-modal-content" onclick="event.stopPropagation()">
+        <div class="decision-modal-content" role="dialog" aria-modal="true" aria-labelledby="designModalTitle" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h3 class="modal-title" id="designModalTitle">{% translate "Submit Design Review" %}</h3>
-                <button type="button" class="modal-close-btn" onclick="closeDesignReviewModal()">×</button>
+                <button type="button" class="modal-close-btn" aria-label="{% translate "Close design review" %}" onclick="closeDesignReviewModal()">×</button>
             </div>
 
             <form id="quickDesignDecisionForm" onsubmit="submitQuickDesignDecision(event)">
@@ -1035,8 +1104,21 @@
 
                 <div id="designDecisionNotice" style="padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem; font-weight: 600;"></div>
 
+                {% if can_admin_review_designs %}
+                <fieldset class="design-role-options" id="designReviewRoleOptions">
+                    <legend>{% translate "Review role" %}</legend>
+                    {% for role in design_review_roles %}
+                    <label class="design-role-option">
+                        <input type="radio" name="designReviewRole" value="{{ role }}">
+                        <strong>{{ role }}</strong> <span class="design-role-status"></span>
+                    </label>
+                    {% endfor %}
+                </fieldset>
+                {% endif %}
+                <p id="designReviewRoleNotice" data-own-role="{% if not can_admin_review_designs %}{{ design_review_roles.0|default:'' }}{% endif %}" aria-live="polite"></p>
+
                 <label for="modalDesignChangeType" style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.35rem;">{% translate "Change Classification" %}</label>
-                <select id="modalDesignChangeType" required style="width:100%;padding:0.55rem;margin-bottom:0.75rem;border-radius:6px;">
+                <select id="modalDesignChangeType" required>
                     <option value="">{% translate "Select change type" %}</option>
                     <option value="minor">{% translate "Minor Change" %}</option>
                     <option value="major">{% translate "Major Change" %}</option>
@@ -1053,7 +1135,7 @@
 
                 <div class="modal-footer" style="margin-top: 1.25rem;">
                     <button type="button" class="btn-action-secondary" onclick="closeDesignReviewModal()">{% translate "Cancel" %}</button>
-                    <button type="submit" class="btn-action-primary" id="modalDesignSubmitBtn">
+                    <button type="submit" class="btn-action-primary" id="modalDesignSubmitBtn" disabled>
                         <i class="fas fa-paper-plane"></i> {% translate "Confirm Decision" %}
                     </button>
                 </div>
@@ -1194,15 +1276,50 @@
             }
         }
 
+        let designReviewSubmitting = false;
+
+        function selectedDesignReviewRole() {
+            return document.querySelector('#designReviewRoleOptions input:checked')?.value
+                || document.getElementById('designReviewRoleNotice').dataset.ownRole;
+        }
+
+        function updateDesignReviewForm() {
+            const role = selectedDesignReviewRole();
+            const imageId = document.getElementById('modalDesignImageId').value;
+            const card = document.getElementById(`card-design-${imageId}`);
+            const pending = role && card?.dataset[`${role.toLowerCase()}Status`] === 'pending';
+            const classification = document.getElementById('modalDesignChangeType').value;
+            const comment = document.getElementById('modalDesignComment').value.trim();
+            const decision = document.getElementById('modalDesignDecision').value;
+            const notice = document.getElementById('designReviewRoleNotice');
+            notice.textContent = role
+                ? (notice.dataset.ownRole
+                    ? window.FabroI18n.interpolate(window.FabroI18n.gettext('Reviewing as %(role)s'), { role })
+                    : window.FabroI18n.interpolate(window.FabroI18n.gettext('Reviewing on behalf of %(role)s'), { role }))
+                : window.FabroI18n.gettext('Select a pending role to review.');
+            document.getElementById('modalDesignSubmitBtn').disabled = designReviewSubmitting
+                || !pending || !['minor', 'major'].includes(classification)
+                || (decision === 'rejected' && !comment);
+        }
+
         function openQuickDesignReviewModal(imageId, title, decision) {
+            if (designReviewSubmitting) return;
             const modal = document.getElementById('designReviewModalOverlay');
             if (!modal) return;
+            document.getElementById('quickDesignDecisionForm').reset();
             document.getElementById('modalDesignImageId').value = imageId;
             document.getElementById('modalDesignDecision').value = decision;
             document.getElementById('modalDesignInfo').querySelector('strong').textContent = title;
-            document.getElementById('modalDesignComment').value = '';
-            document.getElementById('modalDesignChangeType').value = '';
-            document.getElementById('modalDesignErrorMessage').style.display = 'none';
+            const error = document.getElementById('modalDesignErrorMessage');
+            error.textContent = '';
+            error.style.display = 'none';
+            const card = document.getElementById(`card-design-${imageId}`);
+            document.querySelectorAll('#designReviewRoleOptions input').forEach(input => {
+                const status = card?.dataset[`${input.value.toLowerCase()}Status`] || 'unavailable';
+                input.disabled = status !== 'pending';
+                input.closest('label').querySelector('.design-role-status').textContent =
+                    `— ${window.FabroI18n.gettext(status === 'not_required' ? 'Not required' : status === 'unavailable' ? 'Unavailable' : status.charAt(0).toUpperCase() + status.slice(1))}`;
+            });
             document.getElementById('designCommentRequiredHint').style.display = decision === 'rejected' ? 'inline' : 'none';
             const notice = document.getElementById('designDecisionNotice');
             notice.textContent = decision === 'rejected'
@@ -1210,8 +1327,10 @@
                 : window.FabroI18n.gettext('Your approval will be recorded for this review cycle.');
             notice.style.background = decision === 'rejected' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)';
             notice.style.color = decision === 'rejected' ? '#fca5a5' : '#86efac';
+            updateDesignReviewForm();
             modal.classList.add('open');
-            document.getElementById('modalDesignComment').focus();
+            (document.querySelector('#designReviewRoleOptions input:not(:disabled)')
+                || document.getElementById('modalDesignChangeType')).focus();
         }
 
         function closeDesignReviewModal() {
@@ -1238,13 +1357,20 @@
 
         async function submitQuickDesignDecision(event) {
             event.preventDefault();
+            if (designReviewSubmitting) return;
             const imageId = document.getElementById('modalDesignImageId').value;
             const decision = document.getElementById('modalDesignDecision').value;
             const comment = document.getElementById('modalDesignComment').value.trim();
             const changeType = document.getElementById('modalDesignChangeType').value;
+            const stage = selectedDesignReviewRole();
             const error = document.getElementById('modalDesignErrorMessage');
-            const button = document.getElementById('modalDesignSubmitBtn');
-            if (!changeType) {
+            const card = document.getElementById(`card-design-${imageId}`);
+            if (!stage || card?.dataset[`${stage.toLowerCase()}Status`] !== 'pending') {
+                error.textContent = window.FabroI18n.gettext('Select a pending review role.');
+                error.style.display = 'block';
+                return;
+            }
+            if (!['minor', 'major'].includes(changeType)) {
                 error.textContent = window.FabroI18n.gettext('Please select either Minor Change or Major Change.');
                 error.style.display = 'block';
                 return;
@@ -1255,11 +1381,13 @@
                 return;
             }
             error.style.display = 'none';
-            button.disabled = true;
+            designReviewSubmitting = true;
+            updateDesignReviewForm();
             try {
                 const form = new FormData();
                 form.append('comment', comment);
                 form.append('change_type', changeType);
+                form.append('stage', stage.toLowerCase());
                 const response = await fetch(`/api/design-images/${imageId}/${decision === 'rejected' ? 'reject' : 'approve'}/`, {
                     method: 'POST',
                     headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
@@ -1276,9 +1404,16 @@
             } catch (cause) {
                 error.textContent = cause.message || window.FabroI18n.gettext('Network error. Please try again.');
                 error.style.display = 'block';
-                button.disabled = false;
+                designReviewSubmitting = false;
+                updateDesignReviewForm();
             }
         }
+
+        document.querySelectorAll('#designReviewRoleOptions input').forEach(input => {
+            input.addEventListener('change', updateDesignReviewForm);
+        });
+        document.getElementById('modalDesignChangeType')?.addEventListener('change', updateDesignReviewForm);
+        document.getElementById('modalDesignComment')?.addEventListener('input', updateDesignReviewForm);
 
         // Search Picker logic for Approvals Workspace
         window.fabroOnPageLoad(function () {

@@ -312,7 +312,7 @@ def _can_user_access_designer_approvals(user):
     prof = getattr(user, 'workflow_profile', None)
     if not prof:
         return False
-    if prof.role == WorkflowRoles.ADMIN:
+    if prof.role in (WorkflowRoles.ADMIN, WorkflowRoles.FREELANCE_3D_DESIGNER):
         return True
     if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.PM, ApprovalRoles.ED, ApprovalRoles.MD):
         return True
@@ -4397,13 +4397,16 @@ def factory_review_complaint(request, complaint_id):
 @gzip_page
 def approvals_list_view(request):
     if not can_user_view_approvals(request.user):
-        raise PermissionDenied('Only Country Executives, Approvers, Factory Executives, and Admins can view the Approvals workspace.')
+        raise PermissionDenied('You cannot view the Approvals workspace.')
 
     profile = get_user_profile(request.user)
     user_role = getattr(profile, 'role', '')
+    is_designer = user_role == WorkflowRoles.FREELANCE_3D_DESIGNER
     can_access_designer_stage = _can_user_access_designer_approvals(request.user)
     can_access_color_stage = _can_user_access_color_approvals(request.user)
-    workspace_stage = request.GET.get('stage', 'plan').strip().lower()
+    workspace_stage = request.GET.get('stage', 'designer' if is_designer else 'plan').strip().lower()
+    if is_designer and workspace_stage != 'designer':
+        raise PermissionDenied('Designers can access only their own Designer Uploads workspace.')
     if workspace_stage not in {'plan', 'verification', 'designer', 'colors'}:
         workspace_stage = 'plan'
     if workspace_stage == 'colors':
@@ -4512,19 +4515,21 @@ def approvals_list_view(request):
             latest_md_status=latest_appr_md,
             latest_review_status=latest_appr_status,
         )
+        if is_designer:
+            base_count_qs = base_count_qs.filter(uploaded_by=request.user)
         total_active_count = base_count_qs.filter(approval_status='pending').distinct().count()
 
-        approval_role = getattr(profile, 'approval_role', None) if profile else None
-        is_admin_user = bool(request.user.is_superuser or (profile and profile.role == WorkflowRoles.ADMIN))
+        allowed_design_roles = design_review_roles(request.user)
+        is_admin_user = can_admin_review_designs(request.user)
         my_pending_count = 0
-        if approval_role == ApprovalRoles.CAD:
-            my_pending_count = base_count_qs.filter(latest_cad_status='pending').exclude(uploaded_by=request.user).distinct().count()
-        elif approval_role in (ApprovalRoles.ED,):
-            my_pending_count = base_count_qs.filter(latest_ed_status='pending').exclude(uploaded_by=request.user).distinct().count()
-        elif approval_role == ApprovalRoles.MD:
-            my_pending_count = base_count_qs.filter(latest_md_status='pending').exclude(uploaded_by=request.user).distinct().count()
-        elif is_admin_user or approval_role == ApprovalRoles.PM:
-            my_pending_count = total_active_count
+        if is_admin_user:
+            my_pending_count = base_count_qs.filter(
+                Q(latest_cad_status='pending') | Q(latest_ed_status='pending') | Q(latest_md_status='pending')
+            ).exclude(uploaded_by=request.user).distinct().count()
+        elif allowed_design_roles:
+            my_pending_count = base_count_qs.filter(**{
+                f'latest_{allowed_design_roles[0].lower()}_status': 'pending'
+            }).exclude(uploaded_by=request.user).distinct().count()
 
         partially_approved_count = base_count_qs.filter(approval_status='pending', latest_review_status='partially_approved').distinct().count()
         rejection_count = base_count_qs.filter(approval_status='rejected').distinct().count()
@@ -4543,19 +4548,23 @@ def approvals_list_view(request):
             'approval_requests__ed_reviewer',
             'approval_requests__md_reviewer',
         ).distinct().order_by('-uploaded_at')
+        if is_designer:
+            qs = qs.filter(uploaded_by=request.user)
 
-        status_filter = request.GET.get('status', 'active')
+        status_filter = request.GET.get('status', 'all' if is_designer else 'active')
         if status_filter == 'active':
             qs = qs.filter(approval_status='pending')
         elif status_filter == 'my_pending':
-            if approval_role == ApprovalRoles.CAD:
-                qs = qs.filter(latest_cad_status='pending').exclude(uploaded_by=request.user)
-            elif approval_role in (ApprovalRoles.ED,):
-                qs = qs.filter(latest_ed_status='pending').exclude(uploaded_by=request.user)
-            elif approval_role == ApprovalRoles.MD:
-                qs = qs.filter(latest_md_status='pending').exclude(uploaded_by=request.user)
+            if is_admin_user:
+                qs = qs.filter(
+                    Q(latest_cad_status='pending') | Q(latest_ed_status='pending') | Q(latest_md_status='pending')
+                ).exclude(uploaded_by=request.user)
+            elif allowed_design_roles:
+                qs = qs.filter(**{
+                    f'latest_{allowed_design_roles[0].lower()}_status': 'pending'
+                }).exclude(uploaded_by=request.user)
             else:
-                qs = qs.filter(approval_status='pending')
+                qs = qs.none()
         elif status_filter == 'partially_approved':
             qs = qs.filter(approval_status='pending', latest_review_status='partially_approved')
         elif status_filter in ('rejected', 'rework', 'reconsideration'):
@@ -4647,6 +4656,8 @@ def approvals_list_view(request):
             'approved_count': approved_count,
             'profile': profile,
             'user_role': user_role,
+            'design_review_roles': allowed_design_roles,
+            'can_admin_review_designs': is_admin_user,
             'page_obj': designer_page,
             'pagination_querystring': pagination_params.urlencode(),
         })
@@ -4995,6 +5006,8 @@ def quick_approval_decision_api(request, approval_id):
 
 @login_required
 def approval_review(request, approval_id):
+    if _can_upload_3d_designs(request.user):
+        raise PermissionDenied('Designers cannot access complaint approvals.')
     approval = get_object_or_404(
         ComplaintApproval.objects.select_related(
             'complaint',

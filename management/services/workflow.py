@@ -226,6 +226,7 @@ def can_user_view_approvals(user):
     - All Approvers (PM, OM, CAD, ED, MD)
     - Workflow Admin / Superuser
     - Factory Executive
+    - 3D Designer Freelancer (own Designer Uploads only)
     Normal viewer (factory_viewer) is restricted.
     """
     if not user or not user.is_authenticated:
@@ -240,6 +241,7 @@ def can_user_view_approvals(user):
         WorkflowRoles.APPROVER,
         WorkflowRoles.ADMIN,
         WorkflowRoles.FACTORY_EXECUTIVE,
+        WorkflowRoles.FREELANCE_3D_DESIGNER,
     }
 
 

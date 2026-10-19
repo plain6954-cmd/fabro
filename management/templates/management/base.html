@@ -2618,6 +2618,10 @@
                 <i class="fas fa-drafting-compass"></i>
                 <span>{% translate "My Designs" %}</span>
             </a>
+            <a href="{% url 'approvals_list' %}?stage=designer&status=all" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' %}active{% endif %}" data-shell-badge-host="approvals">
+                <i class="fas fa-clipboard-check"></i>
+                <span>{% translate "Approvals" %}</span>
+            </a>
             <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
                 <i class="fas fa-comments"></i>
                 <span>{% translate "CHAT" %}</span>

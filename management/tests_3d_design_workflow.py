@@ -361,6 +361,77 @@ class ThreeDDesignWorkflowTests(TestCase):
         self.assertContains(detail, 'mdChangeType')
         self.assertTrue(detail.context['can_review_as_md'])
 
+    def test_designer_workspace_is_scoped_and_other_stages_are_forbidden(self):
+        def design(title, designer=self.designer):
+            image = PatternDesignImage.objects.create(
+                folder=self.folder,
+                image=f'pattern_designs/{title}.obj',
+                title=title,
+                uploaded_by=designer,
+                approval_status='pending',
+            )
+            submit_design_for_approval(image, designer)
+            return image
+
+        pending = design('Own pending')
+        partial = design('Own partial')
+        rejected = design('Own rejected')
+        approved = design('Own approved')
+        other_designer = User.objects.create_user(username='other_design_owner')
+        other_designer.workflow_profile.role = WorkflowRoles.FREELANCE_3D_DESIGNER
+        other_designer.workflow_profile.save()
+        foreign = design('Other designer private', other_designer)
+        record_design_review_decision(partial, self.cad_user, 'approved', 'CAD note', change_type='minor')
+        record_design_review_decision(rejected, self.ed_user, 'rejected', 'ED correction note', change_type='major')
+        record_design_review_decision(approved, self.cad_user, 'approved', change_type='minor')
+        record_design_review_decision(approved, self.ed_user, 'approved', change_type='minor')
+        record_design_review_decision(approved, self.md_user, 'approved', change_type='major')
+        record_design_review_decision(foreign, self.cad_user, 'rejected', 'Private note', change_type='major')
+
+        self.client.force_login(self.designer)
+        workspace = self.client.get(reverse('approvals_list'))
+        self.assertEqual(workspace.status_code, 200)
+        self.assertEqual(workspace.context['workspace_stage'], 'designer')
+        self.assertEqual(workspace.context['status_filter'], 'all')
+        self.assertEqual({item['id'] for item in workspace.context['designer_items']},
+                         {pending.id, partial.id, rejected.id, approved.id})
+        self.assertNotContains(workspace, 'Other designer private')
+        self.assertNotContains(workspace, 'Before Execution')
+        self.assertNotContains(workspace, 'Verify Execution')
+        self.assertNotContains(workspace, 'href="?stage=colors&status=active"')
+        self.assertNotContains(workspace, 'Approve Design')
+        for stage in ('plan', 'verification', 'colors', 'unknown'):
+            self.assertEqual(self.client.get(reverse('approvals_list'), {'stage': stage}).status_code, 403)
+        for status, expected in (('active', {pending.id, partial.id}),
+                                 ('partially_approved', {partial.id}),
+                                 ('rejected', {rejected.id}),
+                                 ('approved', {approved.id})):
+            response = self.client.get(reverse('approvals_list'), {'stage': 'designer', 'status': status})
+            self.assertEqual({item['id'] for item in response.context['designer_items']}, expected)
+
+        detail = self.client.get(reverse('design_approval_detail', args=[rejected.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, 'ED correction note')
+        self.assertContains(detail, 'Major Change')
+        self.assertIsNotNone(detail.context['latest_approval'].ed_decided_at)
+        self.assertFalse(detail.context['can_review_as_cad'])
+        self.assertFalse(detail.context['can_review_as_ed'])
+        self.assertFalse(detail.context['can_review_as_md'])
+        self.assertTrue(detail.context['can_resubmit'])
+        self.assertEqual(self.client.get(reverse('design_approval_detail', args=[foreign.id])).status_code, 403)
+        self.assertEqual(self.client.get(reverse('pattern_design_image_download', args=[foreign.id])).status_code, 404)
+        self.assertEqual(self.client.post(reverse('approve_design_image_api', args=[pending.id]),
+                                          {'stage': 'cad', 'change_type': 'minor'}).status_code, 403)
+        self.assertEqual(self.client.post(reverse('resubmit_design_image_api', args=[foreign.id]),
+                                          {'title': 'Not mine'}).status_code, 403)
+
+        resubmission = self.client.post(reverse('resubmit_design_image_api', args=[rejected.id]),
+                                        {'title': 'Own revised'})
+        self.assertEqual(resubmission.status_code, 200)
+        self.assertEqual(resubmission.json()['cycle'], 2)
+        history = self.client.get(reverse('design_approval_detail', args=[rejected.id]))
+        self.assertContains(history, 'Revision History')
+
     def test_one_files_review_does_not_change_another(self):
         first = self._create_sample_design()
         second = self._create_sample_design()
