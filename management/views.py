@@ -3026,7 +3026,8 @@ def design_approvals_list(request):
 def design_approval_detail(request, image_id):
     design_image = get_object_or_404(
         PatternDesignImage.objects.select_related(
-            'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
+            'uploaded_by', 'vehicle__sub_model__model__brand',
+            'folder__vehicle__sub_model__model__brand'
         ).prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer'),
         id=image_id
     )
@@ -3099,9 +3100,44 @@ def design_approval_detail(request, image_id):
         and design_image.approval_status == 'rejected'
     )
 
+    vehicle = design_image.vehicle or (design_image.folder.vehicle if design_image.folder else None)
+    vehicle_name = ''
+    if vehicle:
+        # Match Pattern Master's Brand Model Years Submodel naming convention.
+        sub_model = vehicle.sub_model
+        years = f'{vehicle.year_start}-{vehicle.year_end}' if vehicle.year_start and vehicle.year_end else str(vehicle).strip()
+        vehicle_name = ' '.join(part for part in (
+            sub_model.model.brand.name, sub_model.model.name, years,
+            sub_model.name if sub_model.name != '-' else '',
+        ) if part)
+
+    # Navigation stays within the same designer's folder (or direct pattern).
+    # Unassociated legacy files never expand into an unscoped gallery.
+    images = _visible_design_images_qs(user, PatternDesignImage.objects.filter(
+        uploaded_by_id=design_image.uploaded_by_id, is_reference=False,
+    ))
+    if design_image.folder_id:
+        images = images.filter(folder_id=design_image.folder_id)
+    elif design_image.vehicle_id:
+        images = images.filter(vehicle_id=design_image.vehicle_id, folder__isnull=True)
+    else:
+        images = images.filter(pk=design_image.pk)
+    preview_images = []
+    for image in images.order_by('uploaded_at', 'pk'):
+        if image.image and _get_design_file_info(image.image.name)[0] == 'image':
+            preview_images.append({
+                'id': image.pk,
+                'title': image.title or os.path.basename(image.image.name),
+                'url': reverse('pattern_design_image_download', args=[image.pk]),
+                'thumbnail': image.thumbnail.url if image.thumbnail else reverse('pattern_design_image_download', args=[image.pk]),
+            })
+
     context = {
         'design_image': design_image,
-        'design_file_type': _get_design_file_info(design_image.title or design_image.image.name)[0],
+        'design_vehicle': vehicle,
+        'design_vehicle_name': vehicle_name,
+        'preview_images': preview_images,
+        'design_file_type': _get_design_file_info(design_image.image.name or design_image.title)[0],
         'latest_approval': latest_approval,
         'history_cycles': history_cycles,
         'is_designer': is_designer,

@@ -1,0 +1,69 @@
+.design-identity {
+    position: sticky;
+    top: var(--design-navbar-height, 82px);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    background: var(--dark-surface);
+    color: var(--dark-text);
+}
+.design-identity div { min-width: 0; }
+.design-identity small { display: block; color: var(--dark-text-secondary); font-size: 0.72rem; }
+.design-identity strong { display: block; font-size: 0.88rem; overflow-wrap: anywhere; }
+.design-identity div:last-child { flex-shrink: 0; }
+.design-preview-open { all: unset; display: block; max-width: 100%; cursor: zoom-in; text-align: center; }
+.design-preview-open img { display: block; max-width: 100%; max-height: 480px; object-fit: contain; border-radius: 8px; }
+.design-preview-open:focus-visible, .design-preview-gallery button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+.design-preview-gallery { display: flex; gap: 0.5rem; padding: 0.75rem; overflow-x: auto; }
+.design-preview-gallery button { flex: 0 0 72px; width: 72px; height: 72px; padding: 4px; border: 1px solid var(--glass-border); border-radius: 6px; background: var(--dark-card); cursor: zoom-in; color: var(--dark-text); overflow-wrap: anywhere; overflow: hidden; }
+.design-preview-gallery img { width: 100%; height: 100%; object-fit: contain; }
+.design-image-viewer {
+    box-sizing: border-box;
+    width: min(1400px, calc(100vw - 24px));
+    height: calc(100dvh - 24px);
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: var(--dark-surface);
+    color: var(--dark-text);
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0.985);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+.design-image-viewer[open] { display: flex; flex-direction: column; }
+.design-image-viewer.is-visible { opacity: 1; transform: scale(1); }
+.design-image-viewer::backdrop { background: rgba(0, 0, 0, 0.9); }
+.design-viewer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; }
+.design-viewer-toolbar strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 0.85rem; }
+.design-viewer-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem; }
+.design-image-viewer button { flex-shrink: 0; min-width: 36px; min-height: 40px; padding: 0.3rem 0.5rem; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--dark-card); color: var(--dark-text); cursor: pointer; font: inherit; }
+.design-image-viewer button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+.design-image-viewer button:disabled { opacity: 0.45; cursor: default; }
+.design-viewer-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; user-select: none; background: rgba(0, 0, 0, 0.3); }
+.design-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; flex-shrink: 0; will-change: transform; cursor: grab; }
+.design-viewer-stage img:active { cursor: grabbing; }
+.design-viewer-stage p { padding: 1rem; text-align: center; }
+.design-viewer-stage [hidden], .design-preview-open [hidden], .design-preview-gallery [hidden] { display: none; }
+body.light-mode .design-identity, body.light-mode .design-image-viewer { background: var(--light-surface); color: var(--light-text); }
+body.light-mode .design-identity small { color: var(--light-text-secondary); }
+body.light-mode .design-image-viewer button { background: var(--light-card); color: var(--light-text); border-color: #d4d4d8; }
+@media (max-width: 568px) {
+    .design-identity { padding: 0.6rem; align-items: flex-start; }
+    .design-identity strong { font-size: 0.8rem; }
+    .design-image-viewer { width: calc(100vw - 12px); height: calc(100dvh - 12px); }
+    .design-viewer-controls { gap: 0.25rem; }
+    .design-viewer-controls button { min-width: 32px; }
+    #designViewerCounter { font-size: 0.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .design-image-viewer { transition: none; transform: none; }
+}

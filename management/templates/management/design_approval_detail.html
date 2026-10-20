@@ -12,6 +12,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <link href="{% static 'management/css/design_approval_preview.css' %}?v=20261021-02" rel="stylesheet" data-fabro-page-asset>
 {% if is_htmx_request %}
 </template>
 {% else %}
@@ -38,13 +39,21 @@
         </div>
     </div>
 
+    <header class="design-identity" aria-label="{% translate 'Pattern identification' %}">
+        <div><small>{% translate "Vehicle Name" %}</small><strong>{{ design_vehicle_name|default:"—" }}</strong></div>
+        <div><small>{% translate "Pattern Number" %}</small><strong>{{ design_vehicle.serial_number|default:"—" }}</strong></div>
+    </header>
+
     <!-- Main Two-Column Layout -->
     <div style="display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem; align-items: start;" class="design-review-grid">
         <!-- Left: Image Preview & Details -->
         <div style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden;">
             <div class="design-review-media-wrap" style="background: rgba(0, 0, 0, 0.3); padding: 1rem; display: flex; align-items: center; justify-content: center; min-height: 260px; position: relative;">
                 {% if design_image.image and design_file_type == 'image' %}
-                    <img src="{{ design_image.image.url }}" alt="{{ design_image.title }}" style="max-width: 100%; max-height: 480px; object-fit: contain; border-radius: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <button type="button" class="design-preview-open" data-design-preview="{{ design_image.pk }}" aria-label="{% translate 'Enlarge design image' %}">
+                        <img src="{% if design_image.thumbnail %}{{ design_image.thumbnail.url }}{% else %}{% url 'pattern_design_image_download' design_image.pk %}{% endif %}" alt="{{ design_image.title }}" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                        <span hidden>{% translate "Preview unavailable. Open viewer to retry." %}</span>
+                    </button>
                     <div style="display: none; align-items: center; justify-content: center; flex-direction: column; gap: 0.75rem; color: #94a3b8; padding: 2rem;">
                         <i class="fas fa-file-alt" style="font-size: 3.5rem;"></i>
                         <span>{{ design_image.title }}</span>
@@ -78,6 +87,17 @@
                 </div>
             </div>
 
+            {% if preview_images|length > 1 %}
+            <div class="design-preview-gallery" aria-label="{% translate 'Design images' %}">
+                {% for image in preview_images %}
+                <button type="button" data-design-preview="{{ image.id }}" aria-label="{% translate 'Enlarge' %} {{ image.title }}">
+                    <img src="{{ image.thumbnail }}" alt="{{ image.title }}" loading="lazy" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                    <span hidden>{{ image.title }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <div style="padding: 1.25rem;">
                 <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0 0 0.75rem 0; color: var(--dark-text, #f8fafc);">
                     {{ design_image.title }}
@@ -96,11 +116,11 @@
                             <i class="fas fa-calendar-alt"></i> {{ design_image.uploaded_at|date:"M d, Y H:i" }}
                         </div>
                     </div>
-                    {% if design_image.vehicle %}
+                    {% if design_vehicle %}
                     <div>
                         <span style="opacity: 0.75;">{% translate "Vehicle" %}:</span>
                         <div style="font-weight: 600; color: var(--dark-text, #f8fafc); margin-top: 0.15rem;">
-                            <i class="fas fa-car"></i> {{ design_image.vehicle }}
+                            <i class="fas fa-car"></i> {{ design_vehicle_name }}
                         </div>
                     </div>
                     {% elif design_image.folder %}
@@ -359,6 +379,27 @@
     </div>
 </div>
 
+{{ preview_images|json_script:"design-preview-images" }}
+<dialog id="designImageViewer" class="design-image-viewer" aria-labelledby="designViewerTitle">
+    <div class="design-viewer-toolbar">
+        <strong id="designViewerTitle"></strong>
+        <button type="button" data-viewer-action="close" aria-label="{% translate 'Close image viewer' %}">✕</button>
+    </div>
+    <div class="design-viewer-stage" id="designViewerStage">
+        <img id="designViewerImage" alt="" draggable="false" hidden>
+        <p id="designViewerLoading" role="status">{% translate "Loading image…" %}</p>
+        <p id="designViewerError" role="alert" hidden>{% translate "Image unavailable. Please try again." %} <button type="button" data-viewer-action="retry">{% translate "Retry" %}</button></p>
+    </div>
+    <div class="design-viewer-controls">
+        <button type="button" data-viewer-action="previous" aria-label="{% translate 'Previous image' %}">‹</button>
+        <span id="designViewerCounter" aria-live="polite"></span>
+        <button type="button" data-viewer-action="next" aria-label="{% translate 'Next image' %}">›</button>
+        <button type="button" data-viewer-action="out" aria-label="{% translate 'Zoom out' %}">−</button>
+        <button type="button" data-viewer-action="reset" aria-label="{% translate 'Reset zoom' %}" id="designViewerZoom">100%</button>
+        <button type="button" data-viewer-action="in" aria-label="{% translate 'Zoom in' %}">+</button>
+    </div>
+</dialog>
+<script src="{% static 'management/js/design_approval_preview.js' %}?v=20261021-02" data-fabro-page-asset></script>
 <script>
 function confirmDecline() {
     return confirm('{% translate "Are you sure you want to decline this design and request changes?" %}');
