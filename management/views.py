@@ -2794,7 +2794,7 @@ def reject_design_image_api(request, image_id):
     except Exception:
         data = request.POST
 
-    reason = (data.get('reason') or data.get('comment') or '').strip()
+    reason = data.get('reason') or data.get('comment') or ''
     stage = data.get('stage') or request.POST.get('stage') or request.GET.get('stage') or ''
     change_type = data.get('change_type') or request.POST.get('change_type') or ''
 

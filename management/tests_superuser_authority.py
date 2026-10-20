@@ -452,7 +452,7 @@ class SuperuserAuthorityTestCase(TestCase):
         self.assertIsNotNone(ed_log)
         self.assertIsNotNone(md_log)
 
-    def test_superuser_rejects_designer_upload_with_mandatory_comment(self):
+    def test_superuser_rejects_designer_upload_with_optional_comment(self):
         tiny_gif = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
         dummy_file = SimpleUploadedFile('test_pattern_2.gif', tiny_gif, content_type='image/gif')
         design_image = PatternDesignImage.objects.create(
@@ -464,21 +464,23 @@ class SuperuserAuthorityTestCase(TestCase):
         )
         submit_design_for_approval(design_image, self.designer)
 
-        # Rejection without comment fails with ValidationError
-        with self.assertRaises(ValidationError):
-            record_design_review_decision(
-                design_image, self.superuser, 'rejected', comment='', stage='cad', change_type='major'
-            )
-
-        # Rejection with mandatory comment succeeds
+        # Rejection without remarks succeeds independently for CAD.
         record_design_review_decision(
-            design_image, self.superuser, 'rejected', comment='Needs 5mm seam allowance adjustment', stage='cad', change_type='major'
+            design_image, self.superuser, 'rejected', comment='', stage='cad', change_type='minor'
+        )
+
+        # A different reviewer's remarks and classification are preserved.
+        record_design_review_decision(
+            design_image, self.superuser, 'rejected', comment='Needs 5mm seam allowance adjustment', stage='ed', change_type='major'
         )
 
         approval = design_image.latest_approval
         approval.refresh_from_db()
         design_image.refresh_from_db()
         self.assertEqual(approval.cad_status, 'rejected')
+        self.assertEqual(approval.cad_comment, '')
+        self.assertEqual(approval.cad_change_type, 'minor')
+        self.assertEqual(approval.ed_change_type, 'major')
         self.assertEqual(approval.status, 'rejected')
         self.assertEqual(design_image.approval_status, 'rejected')
         self.assertEqual(design_image.rejected_by, self.superuser)

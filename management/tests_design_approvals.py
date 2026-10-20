@@ -9,6 +9,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from management.models import (
+    ActivityLog,
     ApprovalRoles,
     Brand,
     ChatMessage,
@@ -302,8 +303,8 @@ class DesignApprovalWorkflowTests(TestCase):
         res_pm = self.client.post(reverse('approve_design_image_api', args=[img.id]))
         self.assertEqual(res_pm.status_code, 403)
 
-    # Test 12: Decline without comment is rejected
-    def test_12_decline_without_comment_is_rejected(self):
+    # Test 12: Remarks are optional, but classification is required.
+    def test_12_decline_without_classification_is_rejected(self):
         img = self._create_sample_design_image()
         from management.services.design_approvals import submit_design_for_approval
         submit_design_for_approval(img, self.designer)
@@ -319,6 +320,108 @@ class DesignApprovalWorkflowTests(TestCase):
         # Image remains pending
         img.refresh_from_db()
         self.assertEqual(img.approval_status, 'pending')
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_optional_remarks_all_reviewers_and_submission_paths(self, push):
+        """JSON, form APIs and detail forms share optional, lossless remarks."""
+        from management.services.design_approvals import submit_design_for_approval
+
+        md = User.objects.create_user(username='optional_remarks_md')
+        profile = md.workflow_profile
+        profile.role = WorkflowRoles.APPROVER
+        profile.approval_role = ApprovalRoles.MD
+        profile.save()
+        for stage, reviewer in [('cad', self.cad_user), ('ed', self.ed_user), ('md', md)]:
+            for decision in ('approved', 'rejected'):
+                for remarks in ('', '  Stitch seam\n  align edges.  '):
+                    for path in ('json', 'form', 'detail'):
+                        with self.subTest(stage=stage, decision=decision, remarks=remarks, path=path):
+                            img = PatternDesignImage.objects.create(
+                                vehicle=self.vehicle, uploaded_by=self.designer,
+                                image='pattern_designs/optional-remarks.obj',
+                                title=f'Optional {stage} {decision} {path} {bool(remarks)}',
+                            )
+                            submit_design_for_approval(img, self.designer)
+                            classification = 'major' if remarks else 'minor'
+                            payload = {'stage': stage, 'change_type': classification, 'comment': remarks}
+                            endpoint = reverse(
+                                'approve_design_image_api' if decision == 'approved' else 'reject_design_image_api',
+                                args=[img.id],
+                            )
+                            self.client.force_login(reviewer)
+                            push.reset_mock()
+                            with self.captureOnCommitCallbacks(execute=True):
+                                if path == 'json':
+                                    response = self.client.post(endpoint, json.dumps(payload), content_type='application/json')
+                                elif path == 'form':
+                                    # Preserve the existing rejection API's reason alias too.
+                                    if decision == 'rejected':
+                                        payload['reason'] = payload.pop('comment')
+                                    response = self.client.post(endpoint, payload)
+                                else:
+                                    endpoint = reverse('design_approval_detail', args=[img.id])
+                                    response = self.client.post(endpoint, dict(payload, action='review', decision=decision))
+                                push.assert_not_called()  # Delivery happens only after commit.
+                            self.assertEqual(response.status_code, 302 if path == 'detail' else 200)
+                            approval = img.latest_approval
+                            self.assertEqual(getattr(approval, f'{stage}_status'), decision)
+                            self.assertEqual(getattr(approval, f'{stage}_comment'), remarks)
+                            self.assertEqual(getattr(approval, f'{stage}_change_type'), classification)
+                            self.assertEqual(getattr(approval, f'{stage}_reviewer'), reviewer)
+                            self.assertIsNotNone(getattr(approval, f'{stage}_decided_at'))
+                            for other in {'cad', 'ed', 'md'} - {stage}:
+                                self.assertEqual(getattr(approval, f'{other}_status'), 'pending')
+                                self.assertEqual(getattr(approval, f'{other}_change_type'), '')
+                            img.refresh_from_db()
+                            self.assertEqual(img.approval_status, 'rejected' if decision == 'rejected' else 'pending')
+                            notifications = Notification.objects.filter(design_image=img, recipient=self.designer)
+                            self.assertEqual(notifications.count(), 1)
+                            self.assertFalse(Notification.objects.filter(design_image=img, recipient=self.other_designer).exists())
+                            self.assertIn(stage.upper(), notifications.get().title)
+                            if remarks:
+                                self.assertIn(remarks, notifications.get().message)
+                            else:
+                                self.assertNotIn('Comment:', notifications.get().message)
+                            push.assert_called_once()
+                            self.assertEqual(push.call_args.args[0], self.designer)
+                            self.assertEqual(push.call_args.kwargs['url'], reverse('design_approval_detail', args=[img.id]))
+                            self.assertNotIn('Stitch seam', push.call_args.args[2])
+                            self.assertEqual(ActivityLog.objects.filter(
+                                user=reviewer, action=f'design_{decision}_{stage}',
+                                object_type='Design Image', object_name__startswith=img.title,
+                            ).count(), 1)
+                            # Repeated/stale requests cannot overwrite the decision or notify twice.
+                            if path != 'detail':
+                                with self.captureOnCommitCallbacks(execute=True):
+                                    repeat = self.client.post(endpoint, {'stage': stage, 'change_type': 'minor', 'comment': 'Overwrite'})
+                                self.assertEqual(repeat.status_code, 409)
+                                approval.refresh_from_db()
+                                self.assertEqual(getattr(approval, f'{stage}_comment'), remarks)
+                                self.assertEqual(getattr(approval, f'{stage}_change_type'), classification)
+                                push.assert_called_once()
+                                self.assertEqual(notifications.count(), 1)
+                            self.client.force_login(self.designer)
+                            detail = self.client.get(reverse('design_approval_detail', args=[img.id]))
+                            self.assertEqual(detail.status_code, 200)
+                            self.assertContains(detail, classification.title() + ' Change')
+                            if remarks:
+                                self.assertContains(detail, remarks.strip())
+                            self.assertNotContains(detail, f'id="{stage}ReviewForm"')
+
+    def test_review_rejects_missing_decision_and_csrf(self):
+        from django.test import Client
+        from django.core.exceptions import ValidationError
+        from management.services.design_approvals import record_design_review_decision, submit_design_for_approval
+
+        img = self._create_sample_design_image()
+        submit_design_for_approval(img, self.designer)
+        with self.assertRaises(ValidationError):
+            record_design_review_decision(img, self.cad_user, '', change_type='minor')
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.cad_user)
+        response = csrf_client.post(reverse('reject_design_image_api', args=[img.id]), {'change_type': 'minor'})
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(img.latest_approval.cad_status, 'pending')
 
     # Test 13 & 14: CAD and ED comments are visible to submitting Designer
     def test_13_14_cad_and_ed_comments_visible_to_submitting_designer(self):
@@ -502,17 +605,18 @@ class DesignApprovalWorkflowTests(TestCase):
     # Test 23: Web Push failure does not prevent approval/decline from being saved
     @patch('management.services.push_notifications.send_push_to_user', side_effect=Exception('Network error'))
     def test_23_push_failure_does_not_break_review_operation(self, mock_push):
-        img = self._create_sample_design_image()
         from management.services.design_approvals import submit_design_for_approval
-        submit_design_for_approval(img, self.designer)
-
-        self.client.force_login(self.cad_user)
-        with self.captureOnCommitCallbacks(execute=True):
-            res = self.client.post(reverse('approve_design_image_api', args=[img.id]), {'comment': 'All good', 'change_type': 'minor'})
-
-        self.assertEqual(res.status_code, 200)
-        img.refresh_from_db()
-        self.assertEqual(img.latest_approval.cad_status, 'approved')
+        for endpoint, decision in [('approve_design_image_api', 'approved'), ('reject_design_image_api', 'rejected')]:
+            with self.subTest(decision=decision):
+                img = self._create_sample_design_image()
+                submit_design_for_approval(img, self.designer)
+                self.client.force_login(self.cad_user)
+                with self.captureOnCommitCallbacks(execute=True):
+                    res = self.client.post(reverse(endpoint, args=[img.id]), {'change_type': 'minor'})
+                self.assertEqual(res.status_code, 200)
+                img.refresh_from_db()
+                self.assertEqual(img.latest_approval.cad_status, decision)
+                self.assertEqual(Notification.objects.filter(design_image=img, recipient=self.designer).count(), 1)
 
     # Test 24: In-app notification remains available even if Web Push is unavailable
     @patch('management.services.push_notifications.is_web_push_configured', return_value=False)

@@ -1119,14 +1119,13 @@
 
                 <label for="modalDesignChangeType" style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.35rem;">{% translate "Change Classification" %}</label>
                 <select id="modalDesignChangeType" required>
-                    <option value="">{% translate "Select change type" %}</option>
-                    <option value="minor">{% translate "Minor Change" %}</option>
+                    <option value="minor" selected>{% translate "Minor Change" %}</option>
                     <option value="major">{% translate "Major Change" %}</option>
                 </select>
 
                 <div>
                     <label for="modalDesignComment" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">
-                        {% translate "Review Comments" %} <span id="designCommentRequiredHint" style="color: #ef4444; font-size: 0.75rem; display: none;">{% translate "(Required when declining)" %}</span>:
+                        {% translate "Review Comments" %} ({% translate "Optional" %}):
                     </label>
                     <textarea id="modalDesignComment" class="modal-textarea" placeholder="{% translate "Enter feedback, alterations needed, or stipulations..." %}"></textarea>
                 </div>
@@ -1289,8 +1288,6 @@
             const card = document.getElementById(`card-design-${imageId}`);
             const pending = role && card?.dataset[`${role.toLowerCase()}Status`] === 'pending';
             const classification = document.getElementById('modalDesignChangeType').value;
-            const comment = document.getElementById('modalDesignComment').value.trim();
-            const decision = document.getElementById('modalDesignDecision').value;
             const notice = document.getElementById('designReviewRoleNotice');
             notice.textContent = role
                 ? (notice.dataset.ownRole
@@ -1298,8 +1295,7 @@
                     : window.FabroI18n.interpolate(window.FabroI18n.gettext('Reviewing on behalf of %(role)s'), { role }))
                 : window.FabroI18n.gettext('Select a pending role to review.');
             document.getElementById('modalDesignSubmitBtn').disabled = designReviewSubmitting
-                || !pending || !['minor', 'major'].includes(classification)
-                || (decision === 'rejected' && !comment);
+                || !pending || !['minor', 'major'].includes(classification);
         }
 
         function openQuickDesignReviewModal(imageId, title, decision) {
@@ -1320,7 +1316,6 @@
                 input.closest('label').querySelector('.design-role-status').textContent =
                     `— ${window.FabroI18n.gettext(status === 'not_required' ? 'Not required' : status === 'unavailable' ? 'Unavailable' : status.charAt(0).toUpperCase() + status.slice(1))}`;
             });
-            document.getElementById('designCommentRequiredHint').style.display = decision === 'rejected' ? 'inline' : 'none';
             const notice = document.getElementById('designDecisionNotice');
             notice.textContent = decision === 'rejected'
                 ? window.FabroI18n.gettext('The designer will receive your decline and feedback.')
@@ -1360,7 +1355,7 @@
             if (designReviewSubmitting) return;
             const imageId = document.getElementById('modalDesignImageId').value;
             const decision = document.getElementById('modalDesignDecision').value;
-            const comment = document.getElementById('modalDesignComment').value.trim();
+            const comment = document.getElementById('modalDesignComment').value;
             const changeType = document.getElementById('modalDesignChangeType').value;
             const stage = selectedDesignReviewRole();
             const error = document.getElementById('modalDesignErrorMessage');
@@ -1372,11 +1367,6 @@
             }
             if (!['minor', 'major'].includes(changeType)) {
                 error.textContent = window.FabroI18n.gettext('Please select either Minor Change or Major Change.');
-                error.style.display = 'block';
-                return;
-            }
-            if (decision === 'rejected' && !comment) {
-                error.textContent = window.FabroI18n.gettext('A comment is required when declining a design.');
                 error.style.display = 'block';
                 return;
             }

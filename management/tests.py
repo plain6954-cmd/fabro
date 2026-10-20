@@ -6054,10 +6054,10 @@ class Freelance3DDesignerWorkflowTests(TestCase):
 
         self.client.force_login(self.ed_user)
 
-        # Empty reason rejected with 400
+        # Classification is still required when remarks are empty.
         res = self.client.post(
             reverse('reject_design_image_api', args=[img.id]),
-            json.dumps({'reason': '   ', 'change_type': 'major'}),
+            json.dumps({'reason': '   '}),
             content_type='application/json'
         )
         self.assertEqual(res.status_code, 400)

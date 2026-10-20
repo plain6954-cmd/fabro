@@ -184,13 +184,12 @@
                         <input type="hidden" name="stage" value="cad">
                         <label for="cadChangeType">{% translate "Change Classification" %}</label>
                         <select id="cadChangeType" name="change_type" required style="width:100%;margin:0.35rem 0 0.75rem;padding:0.55rem;border-radius:6px;">
-                            <option value="">{% translate "Select change type" %}</option>
-                            <option value="minor">{% translate "Minor Change" %}</option>
+                            <option value="minor" selected>{% translate "Minor Change" %}</option>
                             <option value="major">{% translate "Major Change" %}</option>
                         </select>
                         <div style="margin-bottom: 0.75rem;">
                             <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
-                                {% translate "CAD Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Mandatory if declining" %})</span>
+                                {% translate "CAD Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Optional" %})</span>
                             </label>
                             <textarea name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
                         </div>
@@ -198,7 +197,7 @@
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
                                 <i class="fas fa-check"></i> {% translate "Approve Design" %}
                             </button>
-                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return validateDecline('cadCommentInput');" style="background: #ef4444; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
+                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return confirmDecline();" style="background: #ef4444; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
                                 <i class="fas fa-times"></i> {% translate "Decline Design" %}
                             </button>
                         </div>
@@ -253,13 +252,12 @@
                         <input type="hidden" name="stage" value="ed">
                         <label for="edChangeType">{% translate "Change Classification" %}</label>
                         <select id="edChangeType" name="change_type" required style="width:100%;margin:0.35rem 0 0.75rem;padding:0.55rem;border-radius:6px;">
-                            <option value="">{% translate "Select change type" %}</option>
-                            <option value="minor">{% translate "Minor Change" %}</option>
+                            <option value="minor" selected>{% translate "Minor Change" %}</option>
                             <option value="major">{% translate "Major Change" %}</option>
                         </select>
                         <div style="margin-bottom: 0.75rem;">
                             <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
-                                {% translate "ED Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Mandatory if declining" %})</span>
+                                {% translate "ED Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Optional" %})</span>
                             </label>
                             <textarea name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
                         </div>
@@ -267,7 +265,7 @@
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
                                 <i class="fas fa-check"></i> {% translate "Approve Design" %}
                             </button>
-                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return validateDecline('edCommentInput');" style="background: #ef4444; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
+                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return confirmDecline();" style="background: #ef4444; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
                                 <i class="fas fa-times"></i> {% translate "Decline Design" %}
                             </button>
                         </div>
@@ -293,15 +291,14 @@
                         <input type="hidden" name="stage" value="md">
                         <label for="mdChangeType">{% translate "Change Classification" %}</label>
                         <select id="mdChangeType" name="change_type" required style="padding:0.55rem;border-radius:6px;">
-                            <option value="">{% translate "Select change type" %}</option>
-                            <option value="minor">{% translate "Minor Change" %}</option>
+                            <option value="minor" selected>{% translate "Minor Change" %}</option>
                             <option value="major">{% translate "Major Change" %}</option>
                         </select>
-                        <label for="mdCommentInput">{% translate "MD Review Comment" %} ({% translate "Mandatory if declining" %})</label>
+                        <label for="mdCommentInput">{% translate "MD Review Comment" %} ({% translate "Optional" %})</label>
                         <textarea name="comment" id="mdCommentInput" rows="3" style="width:100%;box-sizing:border-box;"></textarea>
                         <div class="design-review-buttons-wrap" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background:#10b981;color:#fff;">{% translate "Approve Design" %}</button>
-                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return validateDecline('mdCommentInput');" style="background:#ef4444;color:#fff;">{% translate "Decline Design" %}</button>
+                            <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return confirmDecline();" style="background:#ef4444;color:#fff;">{% translate "Decline Design" %}</button>
                         </div>
                     </form>
                 {% else %}
@@ -363,13 +360,7 @@
 </div>
 
 <script>
-function validateDecline(inputId) {
-    const el = document.getElementById(inputId);
-    if (!el || !el.value.trim()) {
-        alert('{% translate "A comment is mandatory when declining a design." %}');
-        if (el) el.focus();
-        return false;
-    }
+function confirmDecline() {
     return confirm('{% translate "Are you sure you want to decline this design and request changes?" %}');
 }
 </script>

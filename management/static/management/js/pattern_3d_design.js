@@ -713,9 +713,9 @@
                 });
                 ['radioChangeTypeMinor', 'radioChangeTypeMajor'].forEach(id => {
                     const input = document.getElementById(id);
-                    if (input) input.checked = false;
+                    if (input) input.checked = input.value === 'minor';
                 });
-                const remarks = document.getElementById('drawerDecisionRemarks');
+                const remarks = document.getElementById('designDrawerDecisionRemarks');
                 if (remarks) remarks.value = '';
                 hideDrawerErrors();
             };
@@ -811,9 +811,7 @@
 
     function hideDrawerErrors() {
         const errType = document.getElementById('drawerChangeTypeError');
-        const errRem = document.getElementById('drawerRemarksError');
         if (errType) errType.style.display = 'none';
-        if (errRem) errRem.style.display = 'none';
     }
 
     /**
@@ -839,16 +837,9 @@
         }
         const changeType = selectedRadio.value;
 
-        // Remarks Validation (Mandatory for Reject)
-        const remarksInput = document.getElementById('drawerDecisionRemarks');
-        const remarks = remarksInput ? remarksInput.value.trim() : '';
-
-        if (decision === 'rejected' && !remarks) {
-            const errRem = document.getElementById('drawerRemarksError');
-            if (errRem) errRem.style.display = 'block';
-            if (remarksInput) remarksInput.focus();
-            return;
-        }
+        // Remarks are optional; preserve the reviewer's text exactly.
+        const remarksInput = document.getElementById('designDrawerDecisionRemarks');
+        const remarks = remarksInput ? remarksInput.value : '';
 
         const endpoint = decision === 'approved'
             ? `/api/design-images/${fileId}/approve/`

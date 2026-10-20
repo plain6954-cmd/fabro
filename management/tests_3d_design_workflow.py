@@ -192,11 +192,13 @@ class ThreeDDesignWorkflowTests(TestCase):
         with self.assertRaises(ValidationError):
             record_design_review_decision(img, self.cad_user, 'approved', comment='CAD OK', change_type='invalid_type')
 
-    def test_rejection_requires_comment(self):
-        """Rejection by any reviewer strictly requires a non-empty comment."""
+    def test_rejection_allows_empty_comment(self):
+        """Remarks are optional; the decision and classification still persist."""
         img = self._create_sample_design()
-        with self.assertRaises(ValidationError):
-            record_design_review_decision(img, self.cad_user, 'rejected', comment='', change_type='minor')
+        approval, img = record_design_review_decision(img, self.cad_user, 'rejected', comment='', change_type='minor')
+        self.assertEqual(approval.cad_comment, '')
+        self.assertEqual(approval.cad_change_type, 'minor')
+        self.assertEqual(img.approval_status, 'rejected')
 
     def test_rejection_marks_overall_status_rejected(self):
         """Any reviewer rejection shifts overall approval_status to rejected."""
@@ -214,6 +216,14 @@ class ThreeDDesignWorkflowTests(TestCase):
         img = self._create_sample_design()
         with self.assertRaises(PermissionDenied):
             record_design_review_decision(img, self.pm_user, 'approved', comment='PM Review', change_type='minor')
+
+    def test_design_and_color_review_remarks_have_distinct_ids(self):
+        self.client.force_login(self.cad_user)
+        response = self.client.get(reverse('car_details'), {'vehicle_id': self.year.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="designDrawerDecisionRemarks"', count=1)
+        self.assertContains(response, 'for="designDrawerDecisionRemarks"', count=1)
+        self.assertContains(response, 'id="drawerDecisionRemarks"', count=1)
 
     def test_design_approval_detail_view(self):
         """View endpoint /design-approvals/<id>/ renders complete review cycle and change types."""

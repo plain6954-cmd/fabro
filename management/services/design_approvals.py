@@ -178,7 +178,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     - CAD cannot submit an ED/MD decision; ED cannot submit CAD/MD; MD cannot submit CAD/ED.
     - Mandatory change classification ('minor' or 'major') required for all decisions.
     - Designer cannot approve their own design.
-    - Decline/Reject REQUIRES a mandatory comment.
+    - Remarks are optional for both approval and rejection and preserved as submitted.
     - CAD, ED, and MD must each approve before final approval.
     - Any reviewer declining shifts overall status to changes required ('rejected').
     - Submitting designer is notified via in-app notification and Web Push.
@@ -205,9 +205,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     if change_type_clean not in ('minor', 'major'):
         raise ValidationError(_("Please select either Minor Change or Major Change."))
 
-    comment_clean = (comment or '').strip()
-    if decision == 'rejected' and not comment_clean:
-        raise ValidationError(_("A comment is mandatory when declining a design."))
+    comment_clean = comment or ''
 
     with transaction.atomic():
         design_image = PatternDesignImage.objects.select_for_update().get(pk=design_image.pk)
@@ -316,7 +314,9 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
                 push_title = f"{role_label} Review Completed"
                 push_body = f"{role_label} requested changes to your design."
                 inapp_title = f"{role_label} Review Completed"
-                inapp_message = f"{role_label} requested changes to your design '{design_image.title}'. Comment: {comment_clean}"
+                inapp_message = f"{role_label} requested changes to your design '{design_image.title}'."
+                if comment_clean:
+                    inapp_message += f" Comment: {comment_clean}"
 
                 # Also create ChatMessage for feedback continuity
                 try:

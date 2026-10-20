@@ -12,7 +12,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261018-compact" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261021-review" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -3247,15 +3247,15 @@
 
             <!-- Mandatory Change Classification -->
             <div style="margin-bottom: 0.85rem;">
-                <label style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
+                <label id="drawerChangeTypeLabel" style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
                     {% translate "Change Classification" %} <span style="color: var(--fabro-red);">*</span>
                 </label>
-                <div class="change-type-selector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <label class="change-type-option" id="lblChangeTypeMinor" style="display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.65rem; background: #16181d; border: 1px solid var(--fabro-border); border-radius: 6px; cursor: pointer; font-size: 0.78rem; color: #cbd5e1;">
-                        <input type="radio" name="drawerChangeType" value="minor" id="radioChangeTypeMinor" style="accent-color: var(--fabro-red);">
+                <div class="change-type-selector" role="radiogroup" aria-labelledby="drawerChangeTypeLabel">
+                    <label class="change-type-option" id="lblChangeTypeMinor">
+                        <input type="radio" name="drawerChangeType" value="minor" id="radioChangeTypeMinor" checked style="accent-color: var(--fabro-red);">
                         <span>{% translate "Minor Change" %}</span>
                     </label>
-                    <label class="change-type-option" id="lblChangeTypeMajor" style="display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.65rem; background: #16181d; border: 1px solid var(--fabro-border); border-radius: 6px; cursor: pointer; font-size: 0.78rem; color: #cbd5e1;">
+                    <label class="change-type-option" id="lblChangeTypeMajor">
                         <input type="radio" name="drawerChangeType" value="major" id="radioChangeTypeMajor" style="accent-color: var(--fabro-red);">
                         <span>{% translate "Major Change" %}</span>
                     </label>
@@ -3267,13 +3267,10 @@
 
             <!-- Remarks -->
             <div style="margin-bottom: 0.85rem;">
-                <label style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
-                    {% translate "Remarks / Feedback" %} <span id="drawerRemarksReqStar" style="color: var(--fabro-red); display: none;">*</span>
+                <label for="designDrawerDecisionRemarks" style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
+                    {% translate "Remarks / Feedback" %} ({% translate "Optional" %})
                 </label>
-                <textarea id="drawerDecisionRemarks" class="form-input" rows="3" placeholder="{% translate "Enter feedback or mandatory reason when rejecting..." %}" style="width: 100%; font-size: 0.78rem; background: #16181d; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0.45rem; resize: vertical; box-sizing: border-box;"></textarea>
-                <div id="drawerRemarksError" style="color: #ef4444; font-size: 0.72rem; display: none; margin-top: 0.25rem;">
-                    {% translate "Remarks are mandatory when rejecting a design." %}
-                </div>
+                <textarea id="designDrawerDecisionRemarks" class="form-input" rows="3" placeholder="{% translate "Enter optional feedback..." %}" style="width: 100%; font-size: 0.78rem; background: #16181d; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0.45rem; resize: vertical; box-sizing: border-box;"></textarea>
             </div>
 
             <!-- Action buttons -->
@@ -3314,7 +3311,7 @@
 <script>
 window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}false{% endif %};
 </script>
-<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261018-v7" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261021-review" data-fabro-page-asset></script>
         </div><!-- /page-container -->
 
     <!-- Add Folder Modal -->

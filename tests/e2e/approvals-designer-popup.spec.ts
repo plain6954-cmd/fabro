@@ -70,7 +70,7 @@ test('Designer Uploads popup records an explicit Admin MD opinion and keeps revi
 
   for (const light of [false, true]) {
     await page.evaluate(value => document.body.classList.toggle('light-mode', value), light);
-    for (const element of ['select', 'option[value=""]', 'option[value="minor"]', 'option[value="major"]']) {
+    for (const element of ['select', 'option[value="minor"]', 'option[value="major"]']) {
       const colors = await classification.evaluate((select, selector) => {
         const style = getComputedStyle(selector === 'select' ? select : select.querySelector(selector)!);
         return { color: style.color, background: style.backgroundColor };
@@ -81,7 +81,8 @@ test('Designer Uploads popup records an explicit Admin MD opinion and keeps revi
   await page.evaluate(() => document.body.classList.remove('light-mode'));
   await popup.getByRole('radio', { name: /MD/ }).check();
   await expect(popup.locator('#designReviewRoleNotice')).toHaveText('Reviewing on behalf of MD');
-  await expect(confirm).toBeDisabled();
+  await expect(classification).toHaveValue('minor');
+  await expect(confirm).toBeEnabled();
   await classification.selectOption('major');
   for (const light of [false, true]) {
     await page.evaluate(value => document.body.classList.toggle('light-mode', value), light);
@@ -104,13 +105,13 @@ test('Designer Uploads popup records an explicit Admin MD opinion and keeps revi
   await popup.getByRole('button', { name: 'Cancel' }).click();
   await second.getByRole('button', { name: 'Decline' }).click();
   await expect(popup.getByRole('radio', { name: /CAD/ })).not.toBeChecked();
-  await expect(classification).toHaveValue('');
+  await expect(classification).toHaveValue('minor');
   await expect(popup.locator('#modalDesignComment')).toHaveValue('');
   await popup.getByRole('radio', { name: /CAD/ }).check();
   await classification.selectOption('minor');
-  await expect(confirm).toBeDisabled();
+  await expect(confirm).toBeEnabled();
   await popup.locator('#modalDesignComment').fill('   ');
-  await expect(confirm).toBeDisabled();
+  await expect(confirm).toBeEnabled();
   await popup.locator('#modalDesignComment').fill('Needs adjustment');
   await expect(confirm).toBeEnabled();
   await page.setViewportSize({ width: 375, height: 667 });
@@ -139,8 +140,7 @@ test('Designer Uploads popup records an explicit Admin MD opinion and keeps revi
   }, imageId);
   expect(tampered).toBe(403);
   await classification.selectOption('major');
-  await expect(confirm).toBeDisabled();
-  await popup.locator('#modalDesignComment').fill('CAD requests changes');
+  await expect(confirm).toBeEnabled();
   await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), confirm.click()]);
   await page.goto('/approvals/?stage=designer&status=all');
   await expect(cadCard).toHaveAttribute('data-cad-status', 'rejected');
