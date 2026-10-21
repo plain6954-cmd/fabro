@@ -17,6 +17,8 @@ for username, role, approval_role in [
     ('fabro_e2e_ref_ed', WorkflowRoles.APPROVER, ApprovalRoles.ED),
     ('fabro_e2e_ref_designer', WorkflowRoles.FREELANCE_3D_DESIGNER, None),
     ('fabro_e2e_ref_pm', WorkflowRoles.APPROVER, ApprovalRoles.PM),
+    ('fabro_e2e_ref_om', WorkflowRoles.APPROVER, ApprovalRoles.OM),
+    ('fabro_e2e_ref_admin', WorkflowRoles.ADMIN, None),
 ]:
     user, _ = User.objects.get_or_create(username=username)
     user.set_password('FabroWorkflow!234')
@@ -61,17 +63,29 @@ test('reference and design upload buttons follow role permissions', async ({ pag
 
   for (const user of [
     { ...testUser, reference: true, design: false },
-    { username: 'fabro_e2e_ref_md', password, reference: true, design: false },
-    { username: 'fabro_e2e_ref_cad', password, reference: true, design: false },
-    { username: 'fabro_e2e_ref_ed', password, reference: true, design: false },
+    { username: 'fabro_e2e_ref_admin', password, reference: false, design: true },
+    { username: 'fabro_e2e_ref_md', password, reference: true, design: true },
+    { username: 'fabro_e2e_ref_cad', password, reference: true, design: true },
+    { username: 'fabro_e2e_ref_ed', password, reference: true, design: true },
     { username: 'fabro_e2e_ref_designer', password, reference: false, design: true },
-    { username: 'fabro_e2e_ref_pm', password, reference: false, design: false },
+    { username: 'fabro_e2e_ref_pm', password, reference: false, design: true },
+    { username: 'fabro_e2e_ref_om', password, reference: false, design: true },
   ]) {
     await signIn(page, user.username, user.password);
     await openDesignWorkspace(page);
 
     await expect(page.locator('#btnUploadRefImages')).toHaveCount(user.reference ? 1 : 0);
     await expect(page.locator('#btnUpload3DDesigns')).toHaveCount(user.design ? 1 : 0);
+    await expect(page.locator('#design3DUploadInput')).toBeHidden();
+    if (user.design) {
+      await expect(page.locator('#btnUpload3DDesigns')).toBeVisible();
+      await expect(page.locator('#btnUpload3DDesigns')).toHaveText('');
+      await expect(page.locator('#btnUpload3DDesigns')).toHaveAttribute('title', 'Upload Designs');
+      await expect(page.locator('#btnUpload3DDesigns')).toHaveAttribute('aria-label', 'Upload Designs');
+      const choosing = page.waitForEvent('filechooser');
+      await page.locator('#btnUpload3DDesigns').click();
+      expect((await choosing).isMultiple()).toBe(true);
+    }
   }
 });
 

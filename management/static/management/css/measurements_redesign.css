@@ -2383,8 +2383,8 @@ body.is-design-tab::before {
     flex-shrink: 0 !important;
 }
 
-#pattern3DDesignWorkspace .design-files-controls-bar input,
-#pattern3DDesignWorkspace .design-files-controls-bar input.form-input {
+#pattern3DDesignWorkspace .design-files-controls-bar input[type="text"],
+#pattern3DDesignWorkspace .design-files-controls-bar input[type="text"].form-input {
     width: 170px !important;
     height: 32px !important;
     min-height: 32px !important;
