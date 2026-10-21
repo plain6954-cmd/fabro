@@ -12,7 +12,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261021-review" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261021-upload-icon" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -2930,22 +2930,6 @@
                                             </div>
 
                                             <!-- Controls bar: Search, Sort, View toggles (Strict single horizontal row) -->
-                                            {% if is_designer %}
-                                            <input type="file"
-                                                   id="design3DUploadInput"
-                                                   multiple
-                                                   accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl,.3ds,.fbx,.obj,.blend,.stl,.max,.c4d,.dae"
-                                                   style="display:none;"
-                                                   onchange="window.handle3DDesignSelected(this.files)">
-                                            <button type="button"
-                                                    id="btnUpload3DDesigns"
-                                                    class="btn btn-secondary btn-compact-upload"
-                                                    onclick="document.getElementById('design3DUploadInput').click()"
-                                                    style="height:32px; padding:0 0.85rem; font-size:0.78rem; font-weight:600; border-radius:6px; white-space:nowrap;">
-                                                <i class="fas fa-plus"></i>
-                                                <span>{% translate "Upload Designs" %}</span>
-                                            </button>
-                                            {% endif %}
                                             <div class="design-files-controls-bar" style="display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; flex-shrink: 0; margin-left: auto;">
                                                 <div style="position: relative; flex-shrink: 0;">
                                                     <input type="text" id="design3DFilesSearch" class="form-input" placeholder="{% translate "Search files..." %}"
@@ -2968,6 +2952,22 @@
                                                         <i class="fas fa-list" style="font-size: 0.78rem;"></i>
                                                     </button>
                                                 </div>
+                                                {% if is_designer %}
+                                                <input type="file"
+                                                       id="design3DUploadInput"
+                                                       multiple
+                                                       accept="image/*,.pdf,.dwg,.dxf,.step,.stp,.iges,.igs,.cad,.nc,.cut,.plt,.hpgl,.3ds,.fbx,.obj,.blend,.stl,.max,.c4d,.dae"
+                                                       style="display:none;"
+                                                       onchange="window.handle3DDesignSelected(this.files)">
+                                                <button type="button"
+                                                        id="btnUpload3DDesigns"
+                                                        class="design-upload-icon"
+                                                        onclick="document.getElementById('design3DUploadInput').click()"
+                                                        aria-label="{% translate "Upload Designs" %}"
+                                                        title="{% translate "Upload Designs" %}">
+                                                    <i class="fas fa-plus" aria-hidden="true"></i>
+                                                </button>
+                                                {% endif %}
                                             </div>
                                         </div>
 

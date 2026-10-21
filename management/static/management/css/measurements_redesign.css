@@ -2330,6 +2330,43 @@ body.is-design-tab::before {
 }
 
 /* Single-row horizontal controls bar in Section 2 */
+#btnUpload3DDesigns {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--fabro-red);
+    border-radius: 6px;
+    background: var(--fabro-red);
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 175ms ease, transform 175ms ease, box-shadow 175ms ease;
+}
+
+#btnUpload3DDesigns:hover {
+    background: var(--fabro-red-hover);
+    box-shadow: 0 3px 10px var(--fabro-red-glow);
+    transform: translateY(-1px);
+}
+
+#btnUpload3DDesigns:active { transform: scale(0.96); }
+#btnUpload3DDesigns:focus-visible { outline: 2px solid var(--fabro-text-primary); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    #btnUpload3DDesigns { transition: none; }
+}
+
 #pattern3DDesignWorkspace .design-files-controls-bar {
     display: inline-flex !important;
     flex-direction: row !important;
