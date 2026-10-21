@@ -260,7 +260,16 @@ def _can_upload_3d_designs(user):
     profile = getattr(user, 'workflow_profile', None)
     return bool(
         profile
-        and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER
+        and (
+            profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER
+            or (
+                profile.role == WorkflowRoles.APPROVER
+                and profile.approval_role in (
+                    ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD,
+                    ApprovalRoles.OM, ApprovalRoles.PM,
+                )
+            )
+        )
     )
 
 
@@ -1042,6 +1051,7 @@ def car_details(request):
         'can_manage_design_assets': can_user_manage_design_assets(request.user),
         'can_delete_design_assets': _can_delete_design_assets(request.user),
         'can_upload_reference_images': _can_upload_reference_images(request.user),
+        'can_upload_3d_designs': _can_upload_3d_designs(request.user),
         'can_approve_designs': _can_approve_design_assets(request.user),
         'is_designer': is_designer_user,
         'user_approval_role': user_approval_role,
@@ -5042,7 +5052,8 @@ def quick_approval_decision_api(request, approval_id):
 
 @login_required
 def approval_review(request, approval_id):
-    if _can_upload_3d_designs(request.user):
+    profile = getattr(request.user, 'workflow_profile', None)
+    if profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
         raise PermissionDenied('Designers cannot access complaint approvals.')
     approval = get_object_or_404(
         ComplaintApproval.objects.select_related(
