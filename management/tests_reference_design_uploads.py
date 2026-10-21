@@ -260,7 +260,7 @@ class ReferenceDesignUploadTests(TestCase):
 
     @patch('management.services.push_notifications.send_push_to_user')
     def test_required_stages_complete_for_every_uploader_role(self, push):
-        from django.core.exceptions import PermissionDenied
+        from django.core.exceptions import PermissionDenied, ValidationError
         from management.services.design_approvals import record_design_review_decision, submit_design_for_approval
 
         for uploader in [self.designer, self.om, self.pm, self.admin] + self.reviewers:
@@ -271,12 +271,16 @@ class ReferenceDesignUploadTests(TestCase):
                 statuses = {role: getattr(approval, role + '_status') for role in ('cad', 'ed', 'md')}
                 required = [reviewer for reviewer in self.reviewers if statuses[reviewer.workflow_profile.approval_role.lower()] == 'pending']
                 self.assertEqual(len(required), 2 if uploader in self.reviewers else 3)
+                self.assertEqual(image.approval_status, 'pending')
+                self.assertEqual(approval.status, 'pending')
                 with self.assertRaises(PermissionDenied):
                     record_design_review_decision(image, uploader, 'approved', stage='ed', change_type='minor')
                 for index, reviewer in enumerate(required):
                     record_design_review_decision(image, reviewer, 'approved', 'Optional review text', change_type='major')
                     image.refresh_from_db()
                     self.assertEqual(image.approval_status, 'approved' if index == len(required) - 1 else 'pending')
+                    approval.refresh_from_db()
+                    self.assertEqual(approval.status, 'approved' if index == len(required) - 1 else 'partially_approved')
                 approval.refresh_from_db()
                 self.assertEqual(approval.status, 'approved')
                 self.assertEqual(sum(getattr(approval, role + '_status') == 'approved' for role in statuses), len(required))
@@ -294,9 +298,58 @@ class ReferenceDesignUploadTests(TestCase):
                         self.assertEqual(getattr(approval, role + '_comment'), '')
                 # Replaying submission does not re-route or reset the completed cycle.
                 before = list(Notification.objects.filter(design_image=image).values_list('pk', flat=True))
+                audit_count = ActivityLog.objects.count()
+                completed = PatternDesignApproval.objects.filter(pk=approval.pk).values().get()
+                with self.assertRaises(ValueError):
+                    record_design_review_decision(image, required[0], 'rejected', change_type='major')
+                with self.assertRaises(ValidationError):
+                    submit_design_for_approval(image, uploader, is_resubmission=True)
                 self.assertEqual(submit_design_for_approval(image, uploader).pk, approval.pk)
+                self.assertEqual(PatternDesignApproval.objects.filter(pk=approval.pk).values().get(), completed)
+                self.assertEqual(ActivityLog.objects.count(), audit_count)
+                image.refresh_from_db()
+                self.assertEqual(image.approval_status, 'approved')
                 self.assertEqual(list(Notification.objects.filter(design_image=image).values_list('pk', flat=True)), before)
                 self.assertEqual(image.approval_requests.count(), 1)
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_required_rejection_dominates_earlier_and_later_approvals(self, push):
+        from management.services.design_approvals import record_design_review_decision
+
+        for uploader in [self.admin] + self.reviewers:
+            required = [reviewer for reviewer in self.reviewers if reviewer != uploader]
+            for rejecter in required:
+                for rejection_first in (True, False):
+                    with self.subTest(uploader=uploader.username, rejecter=rejecter.username, rejection_first=rejection_first):
+                        self.assertEqual(self.upload(uploader, False).status_code, 200)
+                        image = PatternDesignImage.objects.latest('pk')
+                        approval = image.latest_approval
+                        others = [reviewer for reviewer in required if reviewer != rejecter]
+                        ordered = [rejecter] + others if rejection_first else others + [rejecter]
+                        rejected = False
+                        for reviewer in ordered:
+                            decision = 'rejected' if reviewer == rejecter else 'approved'
+                            record_design_review_decision(image, reviewer, decision, change_type='minor')
+                            rejected = rejected or decision == 'rejected'
+                            image.refresh_from_db()
+                            approval.refresh_from_db()
+                            self.assertEqual(image.approval_status, 'rejected' if rejected else 'pending')
+                            self.assertEqual(approval.status, 'rejected' if rejected else 'partially_approved')
+                        self.assertEqual(image.rejected_by, rejecter)
+                        self.assertEqual(image.rejection_reason, '')
+                        self.assertIsNone(image.approved_by)
+                        self.assertIsNone(image.approved_at)
+                        for reviewer in self.reviewers:
+                            role = reviewer.workflow_profile.approval_role.lower()
+                            expected = (PatternDesignApproval.SKIPPED_UPLOADER if reviewer == uploader
+                                        else 'rejected' if reviewer == rejecter else 'approved')
+                            self.assertEqual(getattr(approval, role + '_status'), expected)
+                        # Later approvals do not reopen, reset, or supersede this cycle.
+                        self.assertEqual(image.approval_requests.count(), 1)
+                        recorded = PatternDesignApproval.objects.filter(pk=approval.pk).values().get()
+                        with self.assertRaises(ValueError):
+                            record_design_review_decision(image, rejecter, 'approved', change_type='major')
+                        self.assertEqual(PatternDesignApproval.objects.filter(pk=approval.pk).values().get(), recorded)
 
     @patch('management.services.push_notifications.send_push_to_user')
     def test_skipped_role_is_not_notified_or_reviewable_by_another_account(self, push):
