@@ -150,7 +150,7 @@
                     {% translate "Design Review Matrix (CAD, ED, MD)" %}
                 </h3>
                 <p style="font-size: 0.8rem; color: var(--dark-text-secondary, #94a3b8); margin: 0;">
-                    {% translate "CAD and ED approval is required. MD may review independently and request changes before final approval." %}
+                    {% translate "Every required reviewer must approve. The uploader's approval stage is skipped." %}
                 </p>
             </div>
 
@@ -170,7 +170,9 @@
                         <strong style="font-size: 0.95rem; color: var(--dark-text, #f8fafc);">{% translate "CAD Review" %}</strong>
                     </div>
                     <div>
-                        {% if latest_approval.cad_status == 'approved' %}
+                        {% if latest_approval.cad_status == 'skipped_uploader' %}
+                            <span style="color: var(--dark-text-secondary); font-size: 0.82rem;">{% translate "Skipped — Uploader" %}</span>
+                        {% elif latest_approval.cad_status == 'approved' %}
                             <span style="color: #10b981; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                                 <i class="fas fa-check-circle"></i> {% translate "Approved" %}
                             </span>
@@ -186,7 +188,9 @@
                     </div>
                 </div>
 
-                {% if latest_approval.cad_status != 'pending' %}
+                {% if latest_approval.cad_status == 'skipped_uploader' %}
+                    <p style="color: var(--dark-text-secondary); font-size: 0.82rem;">{% translate "No review decision required for the uploader's stage." %}</p>
+                {% elif latest_approval.cad_status != 'pending' %}
                     <div style="font-size: 0.78rem; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.5rem;">
                         {% translate "Reviewed by" %} <strong style="color: var(--dark-text, #f8fafc);">{{ latest_approval.cad_reviewer.username|default:"CAD Reviewer" }}</strong>
                         {% if latest_approval.cad_decided_at %}• {{ latest_approval.cad_decided_at|date:"M d, Y H:i" }}{% endif %}
@@ -238,7 +242,9 @@
                         <strong style="font-size: 0.95rem; color: var(--dark-text, #f8fafc);">{% translate "ED Review" %}</strong>
                     </div>
                     <div>
-                        {% if latest_approval.ed_status == 'approved' %}
+                        {% if latest_approval.ed_status == 'skipped_uploader' %}
+                            <span style="color: var(--dark-text-secondary); font-size: 0.82rem;">{% translate "Skipped — Uploader" %}</span>
+                        {% elif latest_approval.ed_status == 'approved' %}
                             <span style="color: #10b981; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                                 <i class="fas fa-check-circle"></i> {% translate "Approved" %}
                             </span>
@@ -254,7 +260,9 @@
                     </div>
                 </div>
 
-                {% if latest_approval.ed_status != 'pending' %}
+                {% if latest_approval.ed_status == 'skipped_uploader' %}
+                    <p style="color: var(--dark-text-secondary); font-size: 0.82rem;">{% translate "No review decision required for the uploader's stage." %}</p>
+                {% elif latest_approval.ed_status != 'pending' %}
                     <div style="font-size: 0.78rem; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.5rem;">
                         {% translate "Reviewed by" %} <strong style="color: var(--dark-text, #f8fafc);">{{ latest_approval.ed_reviewer.username|default:"ED Reviewer" }}</strong>
                         {% if latest_approval.ed_decided_at %}• {{ latest_approval.ed_decided_at|date:"M d, Y H:i" }}{% endif %}
@@ -300,8 +308,10 @@
 
             <!-- MD review is independent and may request changes before final approval. -->
             <div id="review-md" style="background: var(--dark-surface, #1e293b); border: 1px solid rgba(255,255,255,0.08); border-radius:12px; padding:1.25rem;">
-                <h3 style="margin:0 0 0.75rem;color:var(--dark-text,#f8fafc);font-size:0.95rem;">{% translate "MD Review" %} — {% if latest_approval.md_status == 'not_required' %}Not required for this historical review{% else %}{{ latest_approval.md_status|title }}{% endif %}</h3>
-                {% if latest_approval.md_decided_at %}
+                <h3 style="margin:0 0 0.75rem;color:var(--dark-text,#f8fafc);font-size:0.95rem;">{% translate "MD Review" %} — {{ latest_approval.get_md_status_display }}</h3>
+                {% if latest_approval.md_status == 'skipped_uploader' %}
+                    <p style="color: var(--dark-text-secondary); font-size: 0.82rem;">{% translate "No review decision required for the uploader's stage." %}</p>
+                {% elif latest_approval.md_decided_at %}
                     <p style="font-size:0.78rem;color:var(--dark-text-secondary,#94a3b8);">{{ latest_approval.md_reviewer.username }} · {{ latest_approval.md_decided_at|date:"M d, Y H:i" }}{% if latest_approval.md_change_type %} · {{ latest_approval.md_change_type|title }} {% translate "Change" %}{% endif %}</p>
                     <p style="color:var(--dark-text,#f8fafc);overflow-wrap:anywhere;">{{ latest_approval.md_comment|default:"No comment provided." }}</p>
                 {% elif can_review_as_md %}
@@ -368,7 +378,7 @@
                         <div style="display: flex; gap: 1rem; color: #94a3b8;">
                             <span>CAD: <strong style="color: {% if cycle_item.cad_status == 'approved' %}#10b981{% elif cycle_item.cad_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ cycle_item.get_cad_status_display|default:cycle_item.cad_status }}</strong></span>
                             <span>ED: <strong style="color: {% if cycle_item.ed_status == 'approved' %}#10b981{% elif cycle_item.ed_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ cycle_item.get_ed_status_display|default:cycle_item.ed_status }}</strong></span>
-                            <span>MD: <strong style="color: {% if cycle_item.md_status == 'approved' %}#10b981{% elif cycle_item.md_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{% if cycle_item.md_status == 'not_required' %}Not required (historical){% else %}{{ cycle_item.md_status|title }}{% endif %}</strong></span>
+                            <span>MD: <strong style="color: {% if cycle_item.md_status == 'approved' %}#10b981{% elif cycle_item.md_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ cycle_item.get_md_status_display }}</strong></span>
                         </div>
                     </div>
                     {% endfor %}

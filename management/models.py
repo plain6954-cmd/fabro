@@ -1079,6 +1079,25 @@ class PatternDesignImage(models.Model):
 
 
 class PatternDesignApproval(models.Model):
+    SKIPPED_UPLOADER = 'skipped_uploader'
+
+    @staticmethod
+    def review_status_label(status):
+        if status == PatternDesignApproval.SKIPPED_UPLOADER:
+            return _('Skipped — Uploader')
+        if status == 'not_required':
+            return _('Not required (historical)')
+        return status.replace('_', ' ').title()
+
+    def get_cad_status_display(self):
+        return self.review_status_label(self.cad_status)
+
+    def get_ed_status_display(self):
+        return self.review_status_label(self.ed_status)
+
+    def get_md_status_display(self):
+        return self.review_status_label(self.md_status)
+
     design_image = models.ForeignKey(
         PatternDesignImage,
         on_delete=models.CASCADE,

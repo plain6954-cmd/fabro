@@ -597,11 +597,11 @@
                                         <div class="approver-box status-{{ item.current_cad_status|default:'pending' }}">
                                             <div class="approver-role-tag">CAD</div>
                                             <div class="reviewer-status-text">
-                                                <i class="fas {% if item.current_cad_status == 'approved' %}fa-check-circle{% elif item.current_cad_status == 'rejected' %}fa-times-circle{% else %}fa-clock{% endif %}"></i>
-                                                {{ item.current_cad_status|default:'pending'|title }}
+                                                <i class="fas {% if item.current_cad_status == 'approved' %}fa-check-circle{% elif item.current_cad_status == 'rejected' %}fa-times-circle{% elif item.current_cad_status == 'skipped_uploader' %}fa-minus-circle{% else %}fa-clock{% endif %}"></i>
+                                                {{ item.latest_approval.get_cad_status_display }}
                                             </div>
                                             <div class="reviewer-name-sub">
-                                                {{ item.cad_reviewer_name }}
+                                                {% if item.current_cad_status != 'skipped_uploader' %}{{ item.cad_reviewer_name }}{% endif %}
                                             </div>
                                             {% if item.cad_comment %}
                                             <div class="reviewer-comment" style="font-size: 0.72rem; color: rgba(255,255,255,0.7); margin-top: 0.25rem;">
@@ -614,11 +614,11 @@
                                         <div class="approver-box status-{{ item.current_ed_status|default:'pending' }}">
                                             <div class="approver-role-tag">ED</div>
                                             <div class="reviewer-status-text">
-                                                <i class="fas {% if item.current_ed_status == 'approved' %}fa-check-circle{% elif item.current_ed_status == 'rejected' %}fa-times-circle{% else %}fa-clock{% endif %}"></i>
-                                                {{ item.current_ed_status|default:'pending'|title }}
+                                                <i class="fas {% if item.current_ed_status == 'approved' %}fa-check-circle{% elif item.current_ed_status == 'rejected' %}fa-times-circle{% elif item.current_ed_status == 'skipped_uploader' %}fa-minus-circle{% else %}fa-clock{% endif %}"></i>
+                                                {{ item.latest_approval.get_ed_status_display }}
                                             </div>
                                             <div class="reviewer-name-sub">
-                                                {{ item.ed_reviewer_name }}
+                                                {% if item.current_ed_status != 'skipped_uploader' %}{{ item.ed_reviewer_name }}{% endif %}
                                             </div>
                                             {% if item.ed_comment %}
                                             <div class="reviewer-comment" style="font-size: 0.72rem; color: rgba(255,255,255,0.7); margin-top: 0.25rem;">
@@ -628,8 +628,8 @@
                                         </div>
                                         <div class="approver-box status-{{ item.current_md_status|default:'pending' }}">
                                             <div class="approver-role-tag">MD</div>
-                                            <div class="reviewer-status-text">{% if item.current_md_status == 'not_required' %}{% translate "Not required (historical)" %}{% else %}{{ item.current_md_status|default:'pending'|title }}{% endif %}</div>
-                                            <div class="reviewer-name-sub">{{ item.md_reviewer_name }}</div>
+                                            <div class="reviewer-status-text">{{ item.latest_approval.get_md_status_display }}</div>
+                                            <div class="reviewer-name-sub">{% if item.current_md_status != 'skipped_uploader' %}{{ item.md_reviewer_name }}{% endif %}</div>
                                             {% if item.md_comment %}<div class="reviewer-comment" style="font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:0.25rem;">"{{ item.md_comment }}"</div>{% endif %}
                                         </div>
                                     </div>
@@ -1314,7 +1314,7 @@
                 const status = card?.dataset[`${input.value.toLowerCase()}Status`] || 'unavailable';
                 input.disabled = status !== 'pending';
                 input.closest('label').querySelector('.design-role-status').textContent =
-                    `— ${window.FabroI18n.gettext(status === 'not_required' ? 'Not required' : status === 'unavailable' ? 'Unavailable' : status.charAt(0).toUpperCase() + status.slice(1))}`;
+                    `— ${window.FabroI18n.gettext(status === 'skipped_uploader' ? 'Skipped — Uploader' : status === 'not_required' ? 'Not required' : status === 'unavailable' ? 'Unavailable' : status.charAt(0).toUpperCase() + status.slice(1))}`;
             });
             const notice = document.getElementById('designDecisionNotice');
             notice.textContent = decision === 'rejected'

@@ -7,6 +7,12 @@
 (function () {
     'use strict';
 
+    function reviewStatusLabel(status) {
+        if (status === 'skipped_uploader') return 'Skipped — Uploader';
+        if (status === 'not_required') return 'Not required (historical)';
+        return status || '—';
+    }
+
     if (typeof window.__fabro3DDispose === 'function') window.__fabro3DDispose();
     const eventController = new AbortController();
     let referenceTrack = null;
@@ -483,9 +489,9 @@
                         <!-- Approver Reviewer Dots: MD, ED, CAD -->
                         <div class="approver-indicators-row">
                             <div class="approver-dots-group">
-                                <span class="approver-dot-badge is-${mdStatus}" title="MD: ${mdStatus.toUpperCase()}">MD</span>
-                                <span class="approver-dot-badge is-${edStatus}" title="ED: ${edStatus.toUpperCase()}">ED</span>
-                                <span class="approver-dot-badge is-${cadStatus}" title="CAD: ${cadStatus.toUpperCase()}">CAD</span>
+                                <span class="approver-dot-badge is-${mdStatus}" title="MD: ${reviewStatusLabel(mdStatus).toUpperCase()}">MD</span>
+                                <span class="approver-dot-badge is-${edStatus}" title="ED: ${reviewStatusLabel(edStatus).toUpperCase()}">ED</span>
+                                <span class="approver-dot-badge is-${cadStatus}" title="CAD: ${reviewStatusLabel(cadStatus).toUpperCase()}">CAD</span>
                             </div>
                             <button type="button" class="approval-workflow-tile-btn" onclick="window.openApprovalDrawer(${file.id})" title="Approval Workflow">
                                 <i class="fas fa-clipboard-check"></i>
@@ -726,7 +732,7 @@
                     button.dataset.stage = role;
                     button.className = 'workflow-btn';
                     button.style.cssText = 'flex:0 0 auto;scroll-snap-align:start;min-height:44px;';
-                    button.textContent = role.toUpperCase() + (stages.includes(role) ? '' : ' — completed');
+                    button.textContent = role.toUpperCase() + (stages.includes(role) ? '' : file[role]?.status === 'skipped_uploader' ? ' — Skipped — Uploader' : ' — completed');
                     button.disabled = !stages.includes(role);
                     button.addEventListener('click', () => selectStage(role));
                     selector.append(button);
@@ -751,10 +757,10 @@
         const status = data?.status || 'pending';
         if (statusBadge) {
             statusBadge.className = `stepper-badge ${status}`;
-            statusBadge.textContent = status.toUpperCase();
+            statusBadge.textContent = status === 'skipped_uploader' ? reviewStatusLabel(status) : status.toUpperCase();
         }
 
-        if (nameEl) nameEl.textContent = data?.reviewer || 'Awaiting Review';
+        if (nameEl) nameEl.textContent = status === 'skipped_uploader' ? '—' : data?.reviewer || 'Awaiting Review';
         if (timeEl) timeEl.textContent = data?.decided_at || '—';
 
         if (changeBadgeBox) {
@@ -799,9 +805,9 @@
                         <span style="font-size:0.7rem;color:var(--fabro-text-muted);">${item.submitted_at || ''}</span>
                     </div>
                     <div style="font-size:0.72rem;color:var(--fabro-text-secondary);display:flex;gap:0.5rem;">
-                        <span>CAD: <strong>${item.cad_status || '—'}</strong></span>
-                        <span>ED: <strong>${item.ed_status || '—'}</strong></span>
-                        <span>MD: <strong>${item.md_status === 'not_required' ? 'Not required (historical)' : (item.md_status || '—')}</strong></span>
+                        <span>CAD: <strong>${reviewStatusLabel(item.cad_status)}</strong></span>
+                        <span>ED: <strong>${reviewStatusLabel(item.ed_status)}</strong></span>
+                        <span>MD: <strong>${reviewStatusLabel(item.md_status)}</strong></span>
                     </div>
                 </div>
             `;

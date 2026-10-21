@@ -150,7 +150,9 @@
                         <!-- CAD Review -->
                         <div style="display: flex; flex-direction: column; gap: 0.15rem;">
                             <span style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700;">CAD</span>
-                            {% if item.current_cad_status == 'approved' %}
+                            {% if item.current_cad_status == 'skipped_uploader' %}
+                                <span style="font-size:0.75rem;color:#94a3b8;font-weight:600;">{% translate "Skipped — Uploader" %}</span>
+                            {% elif item.current_cad_status == 'approved' %}
                                 <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;"><i class="fas fa-check"></i> {% translate "Approved" %}</span>
                             {% elif item.current_cad_status == 'rejected' %}
                                 <span style="font-size: 0.75rem; color: #ef4444; font-weight: 600;"><i class="fas fa-times"></i> {% translate "Declined" %}</span>
@@ -164,7 +166,9 @@
                         <!-- ED Review -->
                         <div style="display: flex; flex-direction: column; gap: 0.15rem;">
                             <span style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700;">ED</span>
-                            {% if item.current_ed_status == 'approved' %}
+                            {% if item.current_ed_status == 'skipped_uploader' %}
+                                <span style="font-size:0.75rem;color:#94a3b8;font-weight:600;">{% translate "Skipped — Uploader" %}</span>
+                            {% elif item.current_ed_status == 'approved' %}
                                 <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;"><i class="fas fa-check"></i> {% translate "Approved" %}</span>
                             {% elif item.current_ed_status == 'rejected' %}
                                 <span style="font-size: 0.75rem; color: #ef4444; font-weight: 600;"><i class="fas fa-times"></i> {% translate "Declined" %}</span>
@@ -175,7 +179,9 @@
                         <div style="height: 24px; width: 1px; background: rgba(255,255,255,0.1);"></div>
                         <div style="display:flex;flex-direction:column;gap:0.15rem;">
                             <span style="font-size:0.68rem;text-transform:uppercase;color:#94a3b8;font-weight:700;">MD</span>
-                            {% if item.current_md_status == 'approved' %}
+                            {% if item.current_md_status == 'skipped_uploader' %}
+                                <span style="font-size:0.75rem;color:#94a3b8;font-weight:600;">{% translate "Skipped — Uploader" %}</span>
+                            {% elif item.current_md_status == 'approved' %}
                                 <span style="font-size:0.75rem;color:#10b981;font-weight:600;">{% translate "Approved" %}</span>
                             {% elif item.current_md_status == 'rejected' %}
                                 <span style="font-size:0.75rem;color:#ef4444;font-weight:600;">{% translate "Declined" %}</span>

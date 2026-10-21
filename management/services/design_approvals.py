@@ -77,7 +77,7 @@ def get_latest_approval_request(design_image):
 def submit_design_for_approval(design_image, designer, is_resubmission=False, comment=''):
     """
     Create or advance an explicit approval request for a PatternDesignImage.
-    CAD, ED, and MD reviewers receive in-app and Web Push notifications.
+    Required CAD, ED, and MD stages receive in-app and Web Push notifications.
     """
     with transaction.atomic():
         # Serialize review-cycle changes on the design row. The caller's copy
@@ -88,14 +88,20 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
             if not latest or latest.status != 'rejected' or design_image.approval_status != 'rejected':
                 raise ValidationError(_("Only a rejected current review can be resubmitted."))
             next_cycle = (latest.cycle + 1) if latest else 1
+            # Preserve the submitted matrix, including skips, across revisions.
+            # Never infer new skips for historical records from today's profile.
+            stage_statuses = {
+                f'{role}_status': (PatternDesignApproval.SKIPPED_UPLOADER
+                                  if getattr(latest, f'{role}_status') == PatternDesignApproval.SKIPPED_UPLOADER
+                                  else 'pending')
+                for role in ('cad', 'ed', 'md')
+            }
             approval = PatternDesignApproval.objects.create(
                 design_image=design_image,
                 designer=designer,
                 cycle=next_cycle,
                 status='pending',
-                cad_status='pending',
-                ed_status='pending',
-                md_status='pending',
+                **stage_statuses,
             )
             design_image.approval_status = 'pending'
             design_image.approved_by = None
@@ -109,15 +115,18 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
             ])
             action_label = 'resubmitted'
         else:
+            uploader_roles = design_review_roles(design_image.uploaded_by)
+            # Ordinary approvers hold one role; Admin's explicit multi-role
+            # authority must never cause several stages to be skipped.
+            skipped_role = uploader_roles[0].lower() if len(uploader_roles) == 1 else None
             approval, created = PatternDesignApproval.objects.get_or_create(
                 design_image=design_image,
                 cycle=1,
                 defaults={
                     'designer': designer,
                     'status': 'pending',
-                    'cad_status': 'pending',
-                    'ed_status': 'pending',
-                    'md_status': 'pending',
+                    **{f'{role}_status': (PatternDesignApproval.SKIPPED_UPLOADER if role == skipped_role else 'pending')
+                       for role in ('cad', 'ed', 'md')},
                 }
             )
             if not created:
@@ -126,12 +135,17 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
             design_image.save(update_fields=['approval_status'])
             action_label = 'submitted'
 
-        # Record activity
+        # Record the immutable routing choice without inventing a review decision.
+        skip_note = ''.join(
+            f' [{role.upper()}: Skipped — Uploader]'
+            for role in ('cad', 'ed', 'md')
+            if getattr(approval, f'{role}_status') == PatternDesignApproval.SKIPPED_UPLOADER
+        )
         ActivityLog.objects.create(
             user=designer,
             action=action_label,
             object_type='Design Image',
-            object_name=design_image.title or str(design_image.id),
+            object_name=(design_image.title or str(design_image.id))[:255 - len(skip_note)] + skip_note,
         )
 
         review_url = f"/design-approvals/{design_image.id}/"
@@ -148,8 +162,9 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
         recipients = {
             reviewer.pk: reviewer
             for role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD)
+            if getattr(approval, f'{role.lower()}_status') == 'pending'
             for reviewer in get_approvers_for_role(role)
-            if reviewer.pk != designer.pk
+            if reviewer.pk not in (designer.pk, design_image.uploaded_by_id)
         }
         for reviewer in recipients.values():
             Notification.objects.create(
@@ -179,7 +194,7 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     - Mandatory change classification ('minor' or 'major') required for all decisions.
     - Designer cannot approve their own design.
     - Remarks are optional for both approval and rejection and preserved as submitted.
-    - CAD, ED, and MD must each approve before final approval.
+    - Every required (non-skipped) stage must approve before final approval.
     - Any reviewer declining shifts overall status to changes required ('rejected').
     - Submitting designer is notified via in-app notification and Web Push.
     """
@@ -241,12 +256,12 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
             approval.md_decided_at = now
 
         # Compute overall status:
-        # CAD Approved + ED Approved + MD Approved = APPROVED
+        # Every required stage must approve; skips carry no decision or reviewer.
         # Any of CAD, ED, MD Rejected = REJECTED (Changes Required)
         # Otherwise = PENDING / PARTIALLY APPROVED
-        cad_ok = (approval.cad_status == 'approved')
-        ed_ok = (approval.ed_status == 'approved')
-        md_ok = (approval.md_status in ('approved', 'not_required'))
+        cad_ok = approval.cad_status in ('approved', PatternDesignApproval.SKIPPED_UPLOADER)
+        ed_ok = approval.ed_status in ('approved', PatternDesignApproval.SKIPPED_UPLOADER)
+        md_ok = approval.md_status in ('approved', 'not_required', PatternDesignApproval.SKIPPED_UPLOADER)
 
         rejecters = []
         if approval.cad_status == 'rejected':

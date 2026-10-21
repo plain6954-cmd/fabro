@@ -109,7 +109,10 @@ class ReferenceDesignUploadTests(TestCase):
                     self.assertEqual(image.approval_status, 'pending')
                     approval = image.latest_approval
                     self.assertEqual(approval.designer, user)
-                    self.assertEqual((approval.cad_status, approval.ed_status, approval.md_status), ('pending',) * 3)
+                    own_role = user.workflow_profile.approval_role if user != self.designer else ''
+                    for role in ('CAD', 'ED', 'MD'):
+                        expected_status = PatternDesignApproval.SKIPPED_UPLOADER if role == own_role else 'pending'
+                        self.assertEqual(getattr(approval, role.lower() + '_status'), expected_status)
                     expected = {reviewer.pk for reviewer in self.reviewers if reviewer != user}
                     notifications = Notification.objects.filter(design_image=image)
                     self.assertEqual(set(notifications.values_list('recipient_id', flat=True)), expected)
@@ -171,12 +174,12 @@ class ReferenceDesignUploadTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(push.call_count, 3)
 
-    def test_om_notification_destination_remains_restricted(self):
+    def test_om_notification_destination_and_pending_gallery_are_readable(self):
         self.upload(self.om, False)
         image = PatternDesignImage.objects.latest('pk')
-        self.assertEqual(self.client.get(reverse('design_approval_detail', args=[image.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse('design_approval_detail', args=[image.pk])).status_code, 200)
         gallery = self.client.get(reverse('get_design_folders_api'), {'vehicle_id': self.vehicle.pk}).json()
-        self.assertNotIn(image.pk, {entry['id'] for entry in gallery['design_files']})
+        self.assertIn(image.pk, {entry['id'] for entry in gallery['design_files']})
 
     def test_new_uploaders_still_require_valid_files_and_csrf(self):
         from django.test import Client
@@ -208,6 +211,163 @@ class ReferenceDesignUploadTests(TestCase):
                 push.assert_called_once()
                 self.assertEqual(push.call_args.args[0], uploader)
                 self.assertEqual(push.call_args.kwargs['url'], reverse('design_approval_detail', args=[image.pk]))
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_required_stages_complete_for_every_uploader_role(self, push):
+        from django.core.exceptions import PermissionDenied
+        from management.services.design_approvals import record_design_review_decision, submit_design_for_approval
+
+        for uploader in [self.designer, self.om, self.pm] + self.reviewers:
+            with self.subTest(uploader=uploader.username):
+                self.upload(uploader, False)
+                image = PatternDesignImage.objects.latest('pk')
+                approval = image.latest_approval
+                statuses = {role: getattr(approval, role + '_status') for role in ('cad', 'ed', 'md')}
+                required = [reviewer for reviewer in self.reviewers if statuses[reviewer.workflow_profile.approval_role.lower()] == 'pending']
+                self.assertEqual(len(required), 2 if uploader in self.reviewers else 3)
+                with self.assertRaises(PermissionDenied):
+                    record_design_review_decision(image, uploader, 'approved', stage='ed', change_type='minor')
+                for index, reviewer in enumerate(required):
+                    record_design_review_decision(image, reviewer, 'approved', 'Optional review text', change_type='major')
+                    image.refresh_from_db()
+                    self.assertEqual(image.approval_status, 'approved' if index == len(required) - 1 else 'pending')
+                approval.refresh_from_db()
+                self.assertEqual(approval.status, 'approved')
+                self.assertEqual(sum(getattr(approval, role + '_status') == 'approved' for role in statuses), len(required))
+                self.client.force_login(self.om)
+                detail = self.client.get(reverse('design_approval_detail', args=[image.pk]))
+                if len(required) == 2:
+                    self.assertContains(detail, 'Skipped — Uploader')
+                for role, status in statuses.items():
+                    if status == PatternDesignApproval.SKIPPED_UPLOADER:
+                        self.assertEqual(getattr(approval, f'get_{role}_status_display')(), 'Skipped — Uploader')
+                        self.assertEqual(getattr(approval, role + '_status'), status)
+                        self.assertIsNone(getattr(approval, role + '_reviewer'))
+                        self.assertIsNone(getattr(approval, role + '_decided_at'))
+                        self.assertEqual(getattr(approval, role + '_change_type'), '')
+                        self.assertEqual(getattr(approval, role + '_comment'), '')
+                # Replaying submission does not re-route or reset the completed cycle.
+                before = list(Notification.objects.filter(design_image=image).values_list('pk', flat=True))
+                self.assertEqual(submit_design_for_approval(image, uploader).pk, approval.pk)
+                self.assertEqual(list(Notification.objects.filter(design_image=image).values_list('pk', flat=True)), before)
+                self.assertEqual(image.approval_requests.count(), 1)
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_skipped_role_is_not_notified_or_reviewable_by_another_account(self, push):
+        from management.services.design_approvals import submit_design_for_approval
+        cad = self.reviewers[1]
+        alternate = get_user_model().objects.create_user(username='alternate_cad')
+        profile = alternate.workflow_profile
+        profile.role, profile.approval_role = WorkflowRoles.APPROVER, ApprovalRoles.CAD
+        profile.save()
+        self.client.force_login(cad)
+        def upload():
+            return self.client.post(self.url, {'title': 'x' * 255, 'images': SimpleUploadedFile('retry.obj', b'v 0 0 0')}, HTTP_X_UPLOAD_ID='skip-stage-retry')
+        with self.captureOnCommitCallbacks(execute=True):
+            first = upload()
+        with self.captureOnCommitCallbacks(execute=True):
+            second = upload()
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()['images'][0]['id'], second.json()['images'][0]['id'])
+        image = PatternDesignImage.objects.get(pk=first.json()['images'][0]['id'])
+        self.assertEqual(image.approval_requests.count(), 1)
+        expected = {self.reviewers[0].pk, self.reviewers[2].pk}
+        self.assertEqual(set(Notification.objects.filter(design_image=image).values_list('recipient_id', flat=True)), expected)
+        self.assertEqual(push.call_count, 2)
+        self.assertEqual({call.args[0].pk for call in push.call_args_list}, expected)
+        self.assertTrue(ActivityLog.objects.filter(action='submitted', object_name__contains='CAD: Skipped — Uploader').exists())
+        self.assertEqual(len(ActivityLog.objects.get(action='submitted', user=cad).object_name), 255)
+        self.client.force_login(alternate)
+        for endpoint in ('approve_design_image_api', 'reject_design_image_api'):
+            self.assertEqual(self.client.post(reverse(endpoint, args=[image.pk]), {'change_type': 'minor'}).status_code, 409)
+        page = self.client.get(reverse('design_approval_detail', args=[image.pk]))
+        self.assertContains(page, 'Skipped — Uploader')
+        self.assertNotContains(page, 'id="cadReviewForm"')
+        # Admin's multi-role capability never bypasses the uploader identity check.
+        profile = cad.workflow_profile
+        profile.role = WorkflowRoles.ADMIN
+        profile.save()
+        self.client.force_login(cad)
+        self.assertEqual(self.client.post(reverse('approve_design_image_api', args=[image.pk]), {'stage': 'ed', 'change_type': 'minor'}).status_code, 403)
+        approval = image.latest_approval
+        self.assertEqual(submit_design_for_approval(image, cad).pk, approval.pk)
+        self.assertEqual(image.latest_approval.cad_status, PatternDesignApproval.SKIPPED_UPLOADER)
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_rejection_and_resubmission_preserve_new_matrix_and_historical_records(self, push):
+        from management.services.design_approvals import record_design_review_decision, submit_design_for_approval
+        cad, ed, md = self.reviewers[1], self.reviewers[2], self.reviewers[0]
+        self.upload(cad, False)
+        image = PatternDesignImage.objects.latest('pk')
+        record_design_review_decision(image, ed, 'rejected', 'Revise seam', change_type='major')
+        first = image.latest_approval
+        self.assertEqual(first.status, 'rejected')
+        timestamp = first.ed_decided_at
+        # A profile change must not alter the matrix chosen when the upload arrived.
+        profile = cad.workflow_profile
+        profile.approval_role = ApprovalRoles.OM
+        profile.save()
+        push.reset_mock()
+        with self.captureOnCommitCallbacks(execute=True):
+            second = submit_design_for_approval(image, cad, is_resubmission=True)
+        self.assertEqual(second.cycle, 2)
+        self.assertEqual((second.cad_status, second.ed_status, second.md_status), ('skipped_uploader', 'pending', 'pending'))
+        self.assertEqual(push.call_count, 2)
+        self.assertEqual({call.args[0].pk for call in push.call_args_list}, {ed.pk, md.pk})
+        first.refresh_from_db()
+        self.assertEqual((first.ed_comment, first.ed_decided_at, first.ed_reviewer), ('Revise seam', timestamp, ed))
+        record_design_review_decision(image, md, 'approved', change_type='minor')
+        record_design_review_decision(image, ed, 'approved', change_type='minor')
+        image.refresh_from_db()
+        self.assertEqual(image.approval_status, 'approved')
+        legacy = PatternDesignImage.objects.create(vehicle=self.vehicle, image='pattern_designs/legacy.obj', uploaded_by=md)
+        historical = PatternDesignApproval.objects.create(design_image=legacy, designer=md)
+        submit_design_for_approval(legacy, md)
+        historical.refresh_from_db()
+        self.assertEqual((historical.cad_status, historical.ed_status, historical.md_status), ('pending',) * 3)
+
+    def test_om_pm_all_design_states_details_media_and_mutation_denials(self):
+        from django.utils import timezone
+        images = []
+        for uploader in [self.designer, self.om, self.pm] + self.reviewers:
+            for status in ('pending', 'approved', 'rejected'):
+                image = PatternDesignImage.objects.create(vehicle=self.vehicle, uploaded_by=uploader,
+                    image='pattern_designs/read-only.png', thumbnail='pattern_design_thumbnails/read-only.webp',
+                    title=f'{uploader.username} {status}.png', approval_status=status)
+                PatternDesignApproval.objects.create(design_image=image, designer=uploader, status=status,
+                    cad_status='approved', cad_reviewer=self.reviewers[1], cad_decided_at=timezone.now(),
+                    cad_comment='CAD dimensions verified', cad_change_type='major',
+                    ed_status='rejected' if status == 'rejected' else 'approved' if status == 'approved' else 'pending',
+                    md_status='approved' if status == 'approved' else 'pending')
+                images.append(image)
+        expected = {image.pk for image in images}
+        for viewer in (self.om, self.pm):
+            self.client.force_login(viewer)
+            gallery = self.client.get(reverse('get_design_folders_api'), {'vehicle_id': self.vehicle.pk}).json()
+            self.assertEqual({item['id'] for item in gallery['design_files']}, expected)
+            for image in images:
+                with self.subTest(viewer=viewer.username, image=image.pk):
+                    detail_url = reverse('design_approval_detail', args=[image.pk])
+                    page = self.client.get(detail_url)
+                    self.assertEqual(page.status_code, 200)
+                    self.assertContains(page, 'CAD dimensions verified')
+                    self.assertContains(page, 'Major Change')
+                    self.assertContains(page, self.vehicle.serial_number)
+                    self.assertContains(page, 'Reference Test Brand')
+                    self.assertContains(page, 'id="designImageViewer"')
+                    self.assertNotContains(page, 'name="decision"')
+                    self.assertFalse(page.context['can_resubmit'])
+                    self.assertEqual(self.client.get(reverse('pattern_design_image_download', args=[image.pk])).status_code, 302)
+                    before = image.latest_approval.cad_comment
+                    for endpoint in ('approve_design_image_api', 'reject_design_image_api', 'resubmit_design_image_api'):
+                        self.assertEqual(self.client.post(reverse(endpoint, args=[image.pk]), {'change_type': 'minor'}).status_code, 403)
+                    self.assertEqual(self.client.post(detail_url, {'action': 'review', 'decision': 'approved', 'change_type': 'minor'}).status_code, 403)
+                    self.assertEqual(image.approval_requests.count(), 1)
+                    self.assertEqual(image.latest_approval.cad_comment, before)
+            for status in ('pending', 'approved', 'rejected', 'all'):
+                page = self.client.get(reverse('design_approvals_list'), {'tab': status})
+                self.assertEqual(page.status_code, 200)
+                self.assertTrue(all(not item.can_review_by_user for item in page.context['items']))
 
     def test_reference_and_design_gallery_separation(self):
         self.assertEqual(self.upload(self.superuser, True).status_code, 200)

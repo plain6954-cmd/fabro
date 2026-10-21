@@ -313,6 +313,13 @@ def _can_approve_design_assets(user):
     )
 
 
+def _is_design_readonly_viewer(user):
+    profile = getattr(user, 'workflow_profile', None)
+    return bool(user and user.is_authenticated and user.is_active and profile
+                and profile.role == WorkflowRoles.APPROVER
+                and profile.approval_role in (ApprovalRoles.OM, ApprovalRoles.PM))
+
+
 def _can_user_access_designer_approvals(user):
     if is_active_superuser(user):
         return True
@@ -323,7 +330,7 @@ def _can_user_access_designer_approvals(user):
         return False
     if prof.role in (WorkflowRoles.ADMIN, WorkflowRoles.FREELANCE_3D_DESIGNER):
         return True
-    if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.PM, ApprovalRoles.ED, ApprovalRoles.MD):
+    if prof.role == WorkflowRoles.APPROVER and prof.approval_role in (ApprovalRoles.CAD, ApprovalRoles.PM, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.OM):
         return True
     return False
 
@@ -358,7 +365,7 @@ def _can_user_review_design_image(user, img):
 def _visible_design_images_qs(user, base_qs):
     if not user or not user.is_authenticated:
         return base_qs.none()
-    if _can_approve_design_assets(user):
+    if _can_approve_design_assets(user) or _is_design_readonly_viewer(user):
         return base_qs
     prof = getattr(user, 'workflow_profile', None)
     if prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
@@ -2835,6 +2842,8 @@ def _resubmit_design(img, user, replacement_file=None, title=''):
     """Advance exactly one rejected review cycle, even from stale tabs."""
     new_names = []
     try:
+        if _is_design_readonly_viewer(user):
+            raise PermissionDenied(_("Your design review access is read-only."))
         if img.uploaded_by_id != user.id and not is_active_superuser(user):
             raise PermissionDenied(_("Only the submitting designer can resubmit."))
         if img.approval_status != 'rejected':
@@ -2875,7 +2884,7 @@ def _resubmit_design(img, user, replacement_file=None, title=''):
 
         with transaction.atomic():
             actor = _locked_upload_actor(user)
-            if not actor.is_active or not _can_manage_design_assets(actor):
+            if not actor.is_active or not _can_manage_design_assets(actor) or _is_design_readonly_viewer(actor):
                 raise PermissionDenied(_("Only the submitting designer can resubmit."))
             img = PatternDesignImage.objects.select_for_update().get(pk=img.pk)
             if img.uploaded_by_id != actor.id and not is_active_superuser(actor):
@@ -2942,9 +2951,7 @@ def design_approvals_list(request):
     is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     approval_role = getattr(prof, 'approval_role', None) if prof else None
     is_su = is_active_superuser(user)
-    if not (is_designer or is_su or
-            (prof and prof.role == WorkflowRoles.ADMIN) or
-            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.PM))):
+    if not _can_user_access_designer_approvals(user):
         raise PermissionDenied(_("You cannot access design approvals."))
 
     latest_appr_cad = Subquery(
@@ -3046,14 +3053,16 @@ def design_approval_detail(request, image_id):
     is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     approval_role = getattr(prof, 'approval_role', None) if prof else None
     is_su = is_active_superuser(user)
-    if not (is_designer or is_su or
-            (prof and prof.role == WorkflowRoles.ADMIN) or
-            (prof and prof.role == WorkflowRoles.APPROVER and approval_role in (ApprovalRoles.CAD, ApprovalRoles.ED, ApprovalRoles.MD, ApprovalRoles.PM))):
+    if not _can_user_access_designer_approvals(user):
         raise PermissionDenied(_("You cannot access design approvals."))
 
     # Access control: Freelancers can only view their own designs
     if is_designer and design_image.uploaded_by_id != user.id:
         raise PermissionDenied(_("You can only view your own submitted designs."))
+
+    # OM/PM inspect the workflow without mutating decisions or revision history.
+    if request.method == 'POST' and _is_design_readonly_viewer(user):
+        raise PermissionDenied(_("Your design review access is read-only."))
 
     # Handle POST submission from form
     if request.method == 'POST':
@@ -3108,6 +3117,7 @@ def design_approval_detail(request, image_id):
     can_resubmit = bool(
         (design_image.uploaded_by_id == user.id or is_su)
         and design_image.approval_status == 'rejected'
+        and not _is_design_readonly_viewer(user)
     )
 
     vehicle = design_image.vehicle or (design_image.folder.vehicle if design_image.folder else None)

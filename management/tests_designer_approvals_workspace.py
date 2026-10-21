@@ -168,14 +168,15 @@ class DesignerApprovalsWorkspaceTests(TestCase):
         res_stage = self.client.get(reverse('approvals_list') + '?stage=designer&status=active')
         self.assertEqual(res_stage.status_code, 403)
 
-    def test_om_approver_cannot_see_tab_and_is_blocked_from_designer_stage(self):
+    def test_om_approver_can_view_designer_stage_read_only(self):
         self.client.force_login(self.om_user)
         res = self.client.get(reverse('approvals_list'))
         self.assertEqual(res.status_code, 200)
-        self.assertNotContains(res, 'Designer Uploads')
+        self.assertContains(res, 'Designer Uploads')
 
         res_stage = self.client.get(reverse('approvals_list') + '?stage=designer&status=active')
-        self.assertEqual(res_stage.status_code, 403)
+        self.assertEqual(res_stage.status_code, 200)
+        self.assertNotContains(res_stage, 'onclick="openQuickDesignReviewModal(')
 
     def test_partial_review_filter_and_action_modal_are_available(self):
         record_design_review_decision(self.design_img, self.cad_user, 'approved', 'Ready for ED', change_type='minor')
