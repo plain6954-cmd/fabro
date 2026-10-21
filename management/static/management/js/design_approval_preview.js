@@ -1,4 +1,4 @@
-/* Approval-details image inspection. Review decisions remain outside this dialog. */
+/* Shared design image inspection. Review decisions remain outside this dialog. */
 window.fabroOnPageLoad(() => {
     'use strict';
     const dialog = document.getElementById('designImageViewer');
@@ -6,7 +6,7 @@ window.fabroOnPageLoad(() => {
     dialog.__fabroPreviewInitialized = true;
     const scope = window.fabroCreatePageScope();
     scope.onCleanup(() => { delete dialog.__fabroPreviewInitialized; });
-    const items = JSON.parse(document.getElementById('design-preview-images').textContent);
+    let items = JSON.parse(document.getElementById('design-preview-images')?.textContent || '[]');
     const image = document.getElementById('designViewerImage');
     const stage = document.getElementById('designViewerStage');
     const loading = document.getElementById('designViewerLoading');
@@ -27,8 +27,10 @@ window.fabroOnPageLoad(() => {
     scope.onCleanup(() => observer.disconnect());
 
     function paint() {
-        const maxX = Math.max(0, (image.clientWidth * scale - stage.clientWidth) / 2);
-        const maxY = Math.max(0, (image.clientHeight * scale - stage.clientHeight) / 2);
+        const fit = image.naturalWidth && image.naturalHeight
+            ? Math.min(image.clientWidth / image.naturalWidth, image.clientHeight / image.naturalHeight) : 0;
+        const maxX = Math.max(0, (image.naturalWidth * fit * scale - stage.clientWidth) / 2);
+        const maxY = Math.max(0, (image.naturalHeight * fit * scale - stage.clientHeight) / 2);
         x = Math.max(-maxX, Math.min(maxX, x));
         y = Math.max(-maxY, Math.min(maxY, y));
         image.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
@@ -62,35 +64,49 @@ window.fabroOnPageLoad(() => {
     }
     function finishClose() {
         clearTimeout(closeTimer);
+        dialog.classList.remove('is-visible');
         if (dialog.open) dialog.close();
         if (restore) {
             Object.assign(document.body.style, restore.style);
             window.scrollTo({ left: restore.x, top: restore.y, behavior: 'instant' });
             restore = null;
         }
-        opener?.focus({ preventScroll: true });
+        if (opener?.isConnected) opener.focus({ preventScroll: true });
         pointers.clear(); closing = false;
     }
     function close() {
         if (!dialog.open || closing) return;
         closing = true;
         dialog.classList.remove('is-visible');
-        closeTimer = setTimeout(finishClose, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180);
+        closeTimer = setTimeout(finishClose, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 225);
     }
+    function openViewer(nextItems, selectedId, source) {
+        const selected = nextItems.findIndex(item => String(item.id) === String(selectedId));
+        if (selected < 0) return;
+        if (dialog.open || closing) finishClose();
+        items = nextItems;
+        opener = source;
+        restore = { x: scrollX, y: scrollY, style: {
+            position: document.body.style.position, top: document.body.style.top,
+            left: document.body.style.left, width: document.body.style.width,
+            overflow: document.body.style.overflow,
+        } };
+        Object.assign(document.body.style, { position: 'fixed', top: `-${scrollY}px`, left: '0', width: '100%', overflow: 'hidden' });
+        dialog.showModal();
+        show(selected);
+        requestAnimationFrame(() => { if (dialog.open && !closing) dialog.classList.add('is-visible'); });
+    }
+    function closeViewer(immediate = false) {
+        if (!dialog.open && !closing) return;
+        if (immediate) finishClose();
+        else close();
+    }
+    window.openDesignImageViewer = openViewer;
+    window.closeDesignImageViewer = closeViewer;
     document.querySelectorAll('[data-design-preview]').forEach(button => {
-        scope.listen(button, 'click', () => {
-            const selected = items.findIndex(item => String(item.id) === button.dataset.designPreview);
-            if (selected < 0) return;
-            opener = button;
-            restore = { x: scrollX, y: scrollY, style: {
-                position: document.body.style.position, top: document.body.style.top,
-                left: document.body.style.left, width: document.body.style.width,
-                overflow: document.body.style.overflow,
-            } };
-            Object.assign(document.body.style, { position: 'fixed', top: `-${scrollY}px`, left: '0', width: '100%', overflow: 'hidden' });
-            dialog.showModal();
-            show(selected);
-            requestAnimationFrame(() => { if (dialog.open && !closing) dialog.classList.add('is-visible'); });
+        scope.listen(button, 'click', event => {
+            event.stopPropagation();
+            openViewer(items, button.dataset.designPreview, button);
         });
     });
     scope.listen(image, 'load', () => { image.hidden = false; loading.hidden = true; error.hidden = true; paint(); });
@@ -150,5 +166,11 @@ window.fabroOnPageLoad(() => {
     scope.listen(stage, 'pointercancel', endPointer);
     scope.listen(stage, 'lostpointercapture', endPointer);
     scope.listen(window, 'resize', paint);
-    scope.onCleanup(finishClose);
+    scope.onCleanup(() => {
+        finishClose();
+        if (window.openDesignImageViewer === openViewer) {
+            delete window.openDesignImageViewer;
+            delete window.closeDesignImageViewer;
+        }
+    });
 });

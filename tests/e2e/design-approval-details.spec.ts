@@ -21,17 +21,124 @@ target = Path(settings.MEDIA_ROOT) / 'design-details-fixture'
 target.mkdir(parents=True, exist_ok=True)
 copyfile(source, target / 'existing.png')
 copyfile(source, target / 'thumbnail.png')
-designer = get_user_model().objects.create_user(username='details_browser_designer')
+designer, _ = get_user_model().objects.get_or_create(username='details_browser_designer')
 profile = designer.workflow_profile
 profile.role = WorkflowRoles.FREELANCE_3D_DESIGNER
 profile.save()
 vehicle = YearRange.objects.first()
-folder = PatternDesignFolder.objects.create(vehicle=vehicle, name='E2E approval details')
+folder, _ = PatternDesignFolder.objects.get_or_create(vehicle=vehicle, name='E2E approval details')
 for title in ('E2E details front.png', 'E2E details back.png'):
-    image = PatternDesignImage.objects.create(folder=folder, uploaded_by=designer,
-        image='design-details-fixture/existing.png', thumbnail='design-details-fixture/thumbnail.png', title=title)
+    image, _ = PatternDesignImage.objects.get_or_create(folder=folder, uploaded_by=designer, title=title,
+        defaults={'image': 'design-details-fixture/existing.png', 'thumbnail': 'design-details-fixture/thumbnail.png'})
     submit_design_for_approval(image, designer)
 `);
+});
+
+test('gallery image previews and approval buttons remain independent in grid and list views', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  const originals: string[] = [];
+  const mutations: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/login/');
+  await page.getByLabel('Username').fill(workflowUsers.cad.username);
+  await page.getByLabel('Password').fill(workflowUsers.cad.password);
+  await page.getByRole('button', { name: /sign in/i }).click();
+  await expect(page).not.toHaveURL(/\/login\//);
+  const listing = await page.request.get('/api/design-folders/?vehicle_id=1');
+  const files = (await listing.json()).design_files as Array<{ id: number; title: string }>;
+  const first = files.find(file => file.title === 'E2E details front.png')!;
+  const second = files.find(file => file.title === 'E2E details back.png')!;
+  page.on('request', request => {
+    if (/\/design-images\/\d+\/download\/$/.test(request.url())) originals.push(request.url());
+    if (request.method() !== 'GET') mutations.push(request.url());
+  });
+  await page.goto('/car-details/?vehicle_id=1#design-options');
+  await page.locator('#sidebarNav3DDesignBtn').click();
+  const tile = page.locator(`.fabro-design-tile[data-file-id="${first.id}"]`);
+  const preview = tile.locator('[data-design-image-id]');
+  const viewer = page.locator('#designImageViewer');
+  const image = page.locator('#designViewerImage');
+  const drawer = page.locator('#designApprovalDrawer');
+  await expect(preview).toBeVisible();
+  expect(originals).toEqual([]);
+  const layouts: unknown[] = [];
+  for (const width of [320, 375, 768, 1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const light of [false, true]) {
+      await page.evaluate(value => document.body.classList.toggle('light-mode', value), light);
+      for (const mode of ['grid', 'list']) {
+        await page.locator(mode === 'grid' ? '#design3DGridBtn' : '#design3DListBtn').click();
+        await preview.scrollIntoViewIfNeeded();
+        const before = await page.evaluate(() => ({ url: location.href, scroll: scrollY }));
+        await preview.focus();
+        await preview.press('Enter');
+        await expect(viewer).toBeVisible();
+        await expect(drawer).not.toHaveClass(/is-open/);
+        await expect(image).toHaveAttribute('src', `/design-images/${first.id}/download/`);
+        await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+        await expect(page.locator('#designViewerTitle')).toHaveText(first.title);
+        await expect.poll(async () => (await viewer.boundingBox())!.width).toBe(width);
+        const bounds = (await viewer.boundingBox())!;
+        expect(bounds.width).toBe(width);
+        expect(bounds.height).toBe(900);
+        for (const button of await viewer.getByRole('button').all()) {
+          const rect = (await button.boundingBox())!;
+          expect(rect.x).toBeGreaterThanOrEqual(0);
+          expect(rect.x + rect.width).toBeLessThanOrEqual(width + 1);
+          expect(rect.y + rect.height).toBeLessThanOrEqual(901);
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+        if ((width === 320 && !light && mode === 'grid') || (width === 1440 && light && mode === 'list')) {
+          await page.screenshot({ path: join(reportDir, `gallery-viewer-${width}-${light ? 'light' : 'dark'}.png`) });
+        }
+        if (mode === 'grid') await page.keyboard.press('Escape');
+        else await viewer.getByRole('button', { name: 'Close image viewer' }).click();
+        await expect(viewer).not.toBeVisible();
+        await expect(preview).toBeFocused();
+        expect(await page.evaluate(() => ({ url: location.href, scroll: scrollY }))).toEqual(before);
+        await tile.locator('.approval-workflow-tile-btn').click();
+        await expect(drawer).toHaveClass(/is-open/);
+        await expect(viewer).not.toBeVisible();
+        await expect(page.locator('#drawerFileSelector')).toHaveValue(String(first.id));
+        await expect(page.locator('#drawerFileName')).toHaveText(first.title);
+        await page.locator('#designApprovalDrawer .drawer-close-btn').click();
+        layouts.push({ width, light, mode, bounds });
+      }
+    }
+  }
+  // Reopening the selected image reuses the loaded full-size resource.
+  expect(originals.filter(url => url.endsWith(`/design-images/${first.id}/download/`))).toHaveLength(1);
+  await page.locator('#design3DFilesSearch').fill('front');
+  await preview.click();
+  await expect(viewer.getByRole('button', { name: 'Next image', exact: true })).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(viewer).not.toBeVisible();
+  await page.locator('#design3DFilesSearch').fill('');
+  await preview.click();
+  await viewer.getByRole('button', { name: 'Next image', exact: true }).click();
+  await expect(page.locator('#designViewerTitle')).toHaveText(second.title);
+  await expect(image).toHaveAttribute('src', `/design-images/${second.id}/download/`);
+  await viewer.getByRole('button', { name: 'Previous image', exact: true }).click();
+  await expect(page.locator('#designViewerTitle')).toHaveText(first.title);
+  // Even a programmatic workflow action closes the preview before opening the drawer.
+  await page.evaluate(id => (window as any).openApprovalDrawer(id), second.id);
+  await expect(viewer).not.toBeVisible();
+  await expect(page.locator('#drawerFileSelector')).toHaveValue(String(second.id));
+  await page.locator('#designApprovalDrawer .drawer-close-btn').click();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await preview.click();
+  expect(await viewer.evaluate(dialog => getComputedStyle(dialog).transitionDuration)).toBe('0.225s, 0.225s');
+  await viewer.getByRole('button', { name: 'Close image viewer' }).click();
+  await page.evaluate(id => (window as any).open3DDesignPreview(id, document.querySelector(`[data-design-image-id="${id}"]`)), second.id);
+  await expect(page.locator('dialog[open]')).toHaveCount(1);
+  await expect(page.locator('#designViewerTitle')).toHaveText(second.title);
+  await page.keyboard.press('Escape');
+  await expect(viewer).not.toBeVisible();
+  expect(await page.evaluate(() => document.body.style.position)).not.toBe('fixed');
+  expect(mutations).toEqual([]);
+  expect(errors).toEqual([]);
+  writeFileSync(join(reportDir, 'gallery-verification.json'), JSON.stringify({ layouts, errors, originals }, null, 2));
 });
 
 test('approval details identify the pattern and provide an accessible image-only viewer', async ({ page }) => {

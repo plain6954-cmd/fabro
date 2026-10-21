@@ -23,21 +23,25 @@
 .design-preview-gallery { display: flex; gap: 0.5rem; padding: 0.75rem; overflow-x: auto; }
 .design-preview-gallery button { flex: 0 0 72px; width: 72px; height: 72px; padding: 4px; border: 1px solid var(--glass-border); border-radius: 6px; background: var(--dark-card); cursor: zoom-in; color: var(--dark-text); overflow-wrap: anywhere; overflow: hidden; }
 .design-preview-gallery img { width: 100%; height: 100%; object-fit: contain; }
+.tile-media-container[data-design-image-id] { padding: 0; border: 0; border-radius: 0; color: inherit; font: inherit; cursor: zoom-in; }
+.tile-media-container[data-design-image-id]:focus-visible { outline: 2px solid var(--fabro-red); outline-offset: -3px; }
 .design-image-viewer {
     box-sizing: border-box;
-    width: min(1400px, calc(100vw - 24px));
-    height: calc(100dvh - 24px);
+    width: 100vw;
+    height: 100dvh;
+    margin: 0;
+    inset: 0;
     max-width: none;
     max-height: none;
     padding: 0;
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
+    border: 0;
+    border-radius: 0;
     background: var(--dark-surface);
     color: var(--dark-text);
     overflow: hidden;
     opacity: 0;
     transform: scale(0.985);
-    transition: opacity 180ms ease, transform 180ms ease;
+    transition: opacity 225ms ease, transform 225ms ease;
 }
 .design-image-viewer[open] { display: flex; flex-direction: column; }
 .design-image-viewer.is-visible { opacity: 1; transform: scale(1); }
@@ -49,7 +53,7 @@
 .design-image-viewer button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
 .design-image-viewer button:disabled { opacity: 0.45; cursor: default; }
 .design-viewer-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; user-select: none; background: rgba(0, 0, 0, 0.3); }
-.design-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; flex-shrink: 0; will-change: transform; cursor: grab; }
+.design-viewer-stage img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; flex-shrink: 0; will-change: transform; cursor: grab; }
 .design-viewer-stage img:active { cursor: grabbing; }
 .design-viewer-stage p { padding: 1rem; text-align: center; }
 .design-viewer-stage [hidden], .design-preview-open [hidden], .design-preview-gallery [hidden] { display: none; }
@@ -59,7 +63,6 @@ body.light-mode .design-image-viewer button { background: var(--light-card); col
 @media (max-width: 568px) {
     .design-identity { padding: 0.6rem; align-items: flex-start; }
     .design-identity strong { font-size: 0.8rem; }
-    .design-image-viewer { width: calc(100vw - 12px); height: calc(100dvh - 12px); }
     .design-viewer-controls { gap: 0.25rem; }
     .design-viewer-controls button { min-width: 32px; }
     #designViewerCounter { font-size: 0.75rem; }

@@ -13,6 +13,7 @@
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261021-upload-input-hidden" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/design_approval_preview.css' %}?v=20261021-gallery-viewer" data-fabro-page-asset>
     <style data-fabro-page-asset>
         /* Mobile Zero-Horizontal-Scroll & Layout Enforcement (<= 768px) */
         @media (max-width: 768px) {
@@ -3311,7 +3312,9 @@
 <script>
 window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}false{% endif %};
 </script>
-<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261021-routing" data-fabro-page-asset></script>
+{% include 'management/includes/design_image_viewer.html' %}
+<script src="{% static 'management/js/design_approval_preview.js' %}?v=20261021-gallery-viewer" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261021-gallery-viewer" data-fabro-page-asset></script>
         </div><!-- /page-container -->
 
     <!-- Add Folder Modal -->

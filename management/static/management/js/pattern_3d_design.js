@@ -24,6 +24,7 @@
         canDelete: false,
         referenceImages: [],
         designFiles: [],
+        previewImages: [],
         selectedFileId: null,
         viewMode: 'grid', // 'grid' | 'list'
         sortOption: 'newest',
@@ -366,6 +367,16 @@
     /**
      * SECTION 2: UPLOADED 3D DESIGN FILES
      */
+    function isDesignImage(file) {
+        return file.file_type === 'image';
+    }
+
+    function open3DDesignPreview(fileId, source) {
+        if (!state.previewImages.some(image => image.id === fileId)) return;
+        closeApprovalDrawer();
+        window.openDesignImageViewer?.(state.previewImages, fileId, source);
+    }
+
     function render3DDesignFiles() {
         const gallery = document.getElementById('design3DFilesGallery');
         if (!gallery) return;
@@ -389,6 +400,12 @@
             files.sort((a, b) => (a.approval_status || '').localeCompare(b.approval_status || ''));
         }
 
+        // Use only the visible, authorized image results in the current gallery order.
+        state.previewImages = files.filter(isDesignImage).map(file => ({
+            id: file.id, title: file.title,
+            url: file.original_url || `/design-images/${encodeURIComponent(file.id)}/download/`,
+        }));
+
         if (files.length === 0) {
             gallery.innerHTML = `
                 <div class="design-files-empty-state" style="padding: 2.5rem 1rem; text-align: center; color: var(--fabro-text-muted); font-size: 0.85rem; width: 100%;">
@@ -408,9 +425,7 @@
 
             const tileClass = `fabro-design-tile ${isRejected ? 'is-rejected' : ''} ${isApproved ? 'is-approved' : ''}`;
             const thumbSrc = file.url || file.preview_url;
-            const ext = (file.file_ext || '').toLowerCase();
-            const is3DModel = ['3ds', 'step', 'stp', 'fbx', 'obj', 'blend', 'iges', 'igs', 'stl', 'dxf', 'dwg', 'cad', 'nc', 'cut'].includes(ext) || file.file_type === 'cad';
-            const isImage = !is3DModel && (file.file_type === 'image' || /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.title || ''));
+            const isImage = isDesignImage(file);
 
             // Status Badge Overlay
             let statusPill = '';
@@ -456,14 +471,14 @@
                         ` : ''}
                     </div>
 
-                    <div class="tile-media-container" onclick="window.openApprovalDrawer(${file.id})">
+                    ${isImage ? `<button type="button" class="tile-media-container" data-design-image-id="${file.id}" aria-label="Enlarge ${escapeHtml(file.title)}" onclick="event.stopPropagation(); window.open3DDesignPreview(${file.id}, this)">` : '<div class="tile-media-container">'}
                         ${mediaHtml}
-                    </div>
+                    ${isImage ? '</button>' : '</div>'}
 
                     <div class="tile-body">
                         <div class="tile-header-row">
                             <h4 class="tile-title" title="${escapeHtml(file.title)}">${escapeHtml(file.title)}</h4>
-                            <button type="button" class="btn-open-tile-drawer" onclick="window.openApprovalDrawer(${file.id})" title="View Approval Workflow">
+                            <button type="button" class="btn-open-tile-drawer" onclick="event.stopPropagation(); window.openApprovalDrawer(${file.id})" title="View Approval Workflow" aria-label="View Approval Workflow">
                                 <i class="fas fa-clipboard-check"></i>
                             </button>
                         </div>
@@ -493,7 +508,7 @@
                                 <span class="approver-dot-badge is-${edStatus}" title="ED: ${reviewStatusLabel(edStatus).toUpperCase()}">ED</span>
                                 <span class="approver-dot-badge is-${cadStatus}" title="CAD: ${reviewStatusLabel(cadStatus).toUpperCase()}">CAD</span>
                             </div>
-                            <button type="button" class="approval-workflow-tile-btn" onclick="window.openApprovalDrawer(${file.id})" title="Approval Workflow">
+                            <button type="button" class="approval-workflow-tile-btn" onclick="event.stopPropagation(); window.openApprovalDrawer(${file.id})" title="Approval Workflow">
                                 <i class="fas fa-clipboard-check"></i>
                                 <span>Approval Workflow</span>
                             </button>
@@ -557,6 +572,7 @@
         const drawer = document.getElementById('designApprovalDrawer');
         const backdrop = document.getElementById('designApprovalDrawerBackdrop');
         if (!drawer || !backdrop) return;
+        window.closeDesignImageViewer?.(true);
 
         // Position dynamically directly under the top navbar and profile button
         const navbar = document.querySelector('.navbar');
@@ -959,6 +975,7 @@
     window.switch3DFilesView = switch3DFilesView;
     window.toggleApprovalDrawer = toggleApprovalDrawer;
     window.openApprovalDrawer = openApprovalDrawer;
+    window.open3DDesignPreview = open3DDesignPreview;
     window.closeApprovalDrawer = closeApprovalDrawer;
     window.selectDrawerFile = selectDrawerFile;
     window.submitDrawerDecision = submitDrawerDecision;
