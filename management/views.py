@@ -261,7 +261,7 @@ def _can_upload_3d_designs(user):
     return bool(
         profile
         and (
-            profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER
+            profile.role in (WorkflowRoles.FREELANCE_3D_DESIGNER, WorkflowRoles.ADMIN)
             or (
                 profile.role == WorkflowRoles.APPROVER
                 and profile.approval_role in (

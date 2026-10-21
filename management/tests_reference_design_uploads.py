@@ -33,6 +33,12 @@ class ReferenceDesignUploadTests(TestCase):
         self.designer.workflow_profile.role = WorkflowRoles.FREELANCE_3D_DESIGNER
         self.designer.workflow_profile.save()
 
+        self.admin = User.objects.create_user(username='ref_admin')
+        self.admin.workflow_profile.role = WorkflowRoles.ADMIN
+        # A retained approver value must not skip any stage for an Admin upload.
+        self.admin.workflow_profile.approval_role = ApprovalRoles.CAD
+        self.admin.workflow_profile.save()
+
         self.reviewers = []
         for role in (ApprovalRoles.MD, ApprovalRoles.CAD, ApprovalRoles.ED):
             user = User.objects.create_user(username='ref_' + role.lower())
@@ -81,12 +87,14 @@ class ReferenceDesignUploadTests(TestCase):
                 self.assertEqual(self.upload(user, True).status_code, 403)
 
     @patch('management.services.push_notifications.send_push_to_user')
-    def test_six_upload_roles_visibility_endpoints_and_existing_notifications(self, push):
+    def test_seven_upload_roles_visibility_endpoints_and_existing_notifications(self, push):
         from django.core.exceptions import PermissionDenied
         from management.services.design_approvals import record_design_review_decision
 
         folder = PatternDesignFolder.objects.create(vehicle=self.vehicle, name='Role upload tests')
-        for user in [self.designer, self.pm, self.om] + self.reviewers:
+        self.assertFalse(self.admin.is_superuser)
+        self.assertFalse(self.admin.is_staff)
+        for user in [self.designer, self.pm, self.om, self.admin] + self.reviewers:
             self.client.force_login(user)
             page = self.client.get(reverse('car_details'), {'vehicle_id': self.vehicle.pk})
             self.assertEqual(page.status_code, 200)
@@ -109,7 +117,8 @@ class ReferenceDesignUploadTests(TestCase):
                     self.assertEqual(image.approval_status, 'pending')
                     approval = image.latest_approval
                     self.assertEqual(approval.designer, user)
-                    own_role = user.workflow_profile.approval_role if user != self.designer else ''
+                    profile = user.workflow_profile
+                    own_role = profile.approval_role if profile.role == WorkflowRoles.APPROVER else ''
                     for role in ('CAD', 'ED', 'MD'):
                         expected_status = PatternDesignApproval.SKIPPED_UPLOADER if role == own_role else 'pending'
                         self.assertEqual(getattr(approval, role.lower() + '_status'), expected_status)
@@ -128,8 +137,11 @@ class ReferenceDesignUploadTests(TestCase):
 
     def test_other_roles_cannot_see_or_use_design_upload(self):
         User = get_user_model()
+        self.superuser.workflow_profile.role = WorkflowRoles.COUNTRY_EXECUTIVE
+        self.superuser.workflow_profile.approval_role = ApprovalRoles.CAD
+        self.superuser.workflow_profile.save()
         users = [self.superuser]
-        for role in (WorkflowRoles.ADMIN, WorkflowRoles.COUNTRY_EXECUTIVE, WorkflowRoles.FACTORY_VIEWER,
+        for role in (WorkflowRoles.COUNTRY_EXECUTIVE, WorkflowRoles.FACTORY_VIEWER,
                      WorkflowRoles.FACTORY_EXECUTIVE, WorkflowRoles.FACTORY_COMPLAINT_REGISTRAR, WorkflowRoles.APPROVER):
             user = User.objects.create_user(username='upload_denied_' + role)
             profile = user.workflow_profile
@@ -148,9 +160,10 @@ class ReferenceDesignUploadTests(TestCase):
                 self.assertEqual(self.upload(user, False).status_code, 403)
                 self.assertEqual(self.client.post(reverse('upload_design_images_api', args=[folder.pk]), {}).status_code, 403)
         from management.views import _can_upload_3d_designs
-        self.pm.is_active = False
-        self.pm.save(update_fields=['is_active'])
-        self.assertFalse(_can_upload_3d_designs(self.pm))
+        for user in (self.pm, self.admin):
+            user.is_active = False
+            user.save(update_fields=['is_active'])
+            self.assertFalse(_can_upload_3d_designs(user))
         self.client.logout()
         self.assertEqual(self.client.post(self.url, {}).status_code, 302)
 
@@ -169,10 +182,13 @@ class ReferenceDesignUploadTests(TestCase):
 
     @patch('management.services.push_notifications.send_push_to_user', side_effect=RuntimeError('offline'))
     def test_new_uploader_push_failure_does_not_break_upload(self, push):
-        with self.captureOnCommitCallbacks(execute=True):
-            response = self.upload(self.pm, False)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(push.call_count, 3)
+        for user in (self.pm, self.admin):
+            with self.subTest(user=user.username):
+                push.reset_mock()
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.upload(user, False)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(push.call_count, 3)
 
     def test_om_notification_destination_and_pending_gallery_are_readable(self):
         self.upload(self.om, False)
@@ -183,22 +199,24 @@ class ReferenceDesignUploadTests(TestCase):
 
     def test_new_uploaders_still_require_valid_files_and_csrf(self):
         from django.test import Client
-        self.client.force_login(self.pm)
-        for filename, content in [('unsafe.exe', b'content'), ('empty.obj', b'')]:
-            with self.subTest(filename=filename):
-                response = self.client.post(self.url, {'images': SimpleUploadedFile(filename, content)})
-                self.assertEqual(response.status_code, 400)
-        self.assertEqual(self.client.post(self.url, {}).status_code, 400)
-        files = [SimpleUploadedFile(f'file{i}.obj', b'v 0 0 0') for i in range(11)]
-        self.assertEqual(self.client.post(self.url, {'images': files}).status_code, 400)
-        csrf_client = Client(enforce_csrf_checks=True)
-        csrf_client.force_login(self.pm)
-        self.assertEqual(csrf_client.post(self.url, {'images': SimpleUploadedFile('safe.obj', b'v 0 0 0')}).status_code, 403)
+        for user in (self.pm, self.admin):
+            with self.subTest(user=user.username):
+                self.client.force_login(user)
+                for filename, content in [('unsafe.exe', b'content'), ('empty.obj', b'')]:
+                    with self.subTest(filename=filename):
+                        response = self.client.post(self.url, {'images': SimpleUploadedFile(filename, content)})
+                        self.assertEqual(response.status_code, 400)
+                self.assertEqual(self.client.post(self.url, {}).status_code, 400)
+                files = [SimpleUploadedFile(f'file{i}.obj', b'v 0 0 0') for i in range(11)]
+                self.assertEqual(self.client.post(self.url, {'images': files}).status_code, 400)
+                csrf_client = Client(enforce_csrf_checks=True)
+                csrf_client.force_login(user)
+                self.assertEqual(csrf_client.post(self.url, {'images': SimpleUploadedFile('safe.obj', b'v 0 0 0')}).status_code, 403)
         self.assertFalse(PatternDesignImage.objects.exists())
 
     @patch('management.services.push_notifications.send_push_to_user')
     def test_new_uploaders_receive_existing_review_result_notifications(self, push):
-        for uploader in (self.pm, self.om):
+        for uploader in (self.pm, self.om, self.admin):
             with self.subTest(uploader=uploader.username):
                 self.upload(uploader, False)
                 image = PatternDesignImage.objects.latest('pk')
@@ -213,11 +231,39 @@ class ReferenceDesignUploadTests(TestCase):
                 self.assertEqual(push.call_args.kwargs['url'], reverse('design_approval_detail', args=[image.pk]))
 
     @patch('management.services.push_notifications.send_push_to_user')
+    def test_admin_upload_requires_independent_reviews_through_existing_endpoints(self, push):
+        self.assertEqual(self.upload(self.admin, False).status_code, 200)
+        image = PatternDesignImage.objects.latest('pk')
+        approval = image.latest_approval
+        for stage in ('md', 'cad', 'ed'):
+            self.assertEqual(self.client.post(reverse('approve_design_image_api', args=[image.pk]), {
+                'stage': stage, 'change_type': 'minor',
+            }).status_code, 403)
+        for index, reviewer in enumerate(self.reviewers):
+            role = reviewer.workflow_profile.approval_role.lower()
+            comment = '  Keep these remarks exactly.\n' if index == 1 else ''
+            change_type = 'major' if index == 1 else 'minor'
+            self.client.force_login(reviewer)
+            response = self.client.post(reverse('approve_design_image_api', args=[image.pk]), {
+                'change_type': change_type, 'comment': comment,
+            })
+            self.assertEqual(response.status_code, 200)
+            approval.refresh_from_db()
+            image.refresh_from_db()
+            self.assertEqual(image.approval_status, 'approved' if index == 2 else 'pending')
+            self.assertEqual(getattr(approval, role + '_reviewer'), reviewer)
+            self.assertIsNotNone(getattr(approval, role + '_decided_at'))
+            self.assertEqual(getattr(approval, role + '_comment'), comment)
+            self.assertEqual(getattr(approval, role + '_change_type'), change_type)
+            for prior in self.reviewers[:index + 1]:
+                self.assertEqual(getattr(approval, prior.workflow_profile.approval_role.lower() + '_status'), 'approved')
+
+    @patch('management.services.push_notifications.send_push_to_user')
     def test_required_stages_complete_for_every_uploader_role(self, push):
         from django.core.exceptions import PermissionDenied
         from management.services.design_approvals import record_design_review_decision, submit_design_for_approval
 
-        for uploader in [self.designer, self.om, self.pm] + self.reviewers:
+        for uploader in [self.designer, self.om, self.pm, self.admin] + self.reviewers:
             with self.subTest(uploader=uploader.username):
                 self.upload(uploader, False)
                 image = PatternDesignImage.objects.latest('pk')
