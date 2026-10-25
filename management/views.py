@@ -109,6 +109,7 @@ from .services.workflow import (
     can_user_execute_action,
     can_user_manage_catalog,
     can_user_manage_design_assets,
+    can_user_manage_drive_links,
     can_user_review_factory_step,
     can_user_view_approvals,
     close_complaint_after_execution,
@@ -2653,7 +2654,7 @@ def vehicle_drive_links_api(request, vehicle_id):
             'links': _get_vehicle_drive_links_data(vehicle),
         })
     elif request.method == 'POST':
-        if not _can_manage_design_assets(request.user):
+        if not can_user_manage_drive_links(request.user):
             return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
         url = (request.POST.get('url') or '').strip()
         title = (request.POST.get('title') or '').strip()
@@ -2704,7 +2705,7 @@ def delete_vehicle_drive_link_api(request, link_id):
 @login_required
 @require_POST
 def update_vehicle_google_drive_api(request, vehicle_id):
-    if not _can_manage_design_assets(request.user):
+    if not can_user_manage_drive_links(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     vehicle = get_object_or_404(YearRange, id=vehicle_id)
     try:

@@ -2381,7 +2381,7 @@
                                     </div>
                                     <span class="badge" id="vehicleDriveLinksCountBadge" style="font-size: 0.68rem; padding: 0.1rem 0.45rem; background: rgba(255, 255, 255, 0.08); border-radius: 8px; color: var(--dark-text-secondary); display: none;">0</span>
                                 </div>
-                                {% if can_manage_design_assets %}
+                                {% if can_manage_drive_links %}
                                 <div id="googleDriveAddSection" style="padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
                                     <div style="display: flex; flex-direction: column; gap: 0.4rem;">
                                         <input type="text" id="vehicleDriveLinkTitleInput" class="form-input" placeholder="{% translate "Title / Label (optional)" %}" style="font-size: 0.78rem; padding: 0.35rem 0.55rem; height: 30px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #fff; width: 100%; box-sizing: border-box;">
@@ -3398,7 +3398,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                 </button>
                 <div style="display: flex; gap: 0.5rem; margin-left: auto;">
                     <button type="button" class="btn btn-secondary" onclick="closeGoogleDriveModal()">{% translate "Cancel" %}</button>
-                    {% if can_manage_design_assets %}
+                    {% if can_manage_drive_links %}
                     <button type="button" class="btn btn-primary" id="saveGoogleDriveBtn" onclick="submitSaveGoogleDrive()">
                         <i class="fas fa-save"></i>
                         {% translate "Save Link" %}

@@ -6,6 +6,7 @@ from .services.workflow import (
     can_user_create_complaint,
     can_user_manage_catalog,
     can_user_manage_design_assets,
+    can_user_manage_drive_links,
     can_user_view_approvals,
     get_user_profile,
     is_workflow_admin,
@@ -75,6 +76,7 @@ def workflow_access(request):
         'can_create_complaint': can_user_create_complaint(user),
         'can_manage_catalog': can_user_manage_catalog(user),
         'can_manage_design_assets': can_user_manage_design_assets(user),
+        'can_manage_drive_links': can_user_manage_drive_links(user),
         'is_designer_freelancer': bool(
             profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER
         ),

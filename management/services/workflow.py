@@ -185,6 +185,19 @@ def can_user_manage_design_assets(user):
     return bool(profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
 
 
+def can_user_manage_drive_links(user):
+    """Preserve design-asset access and allow CAD to add Drive links only."""
+    if can_user_manage_design_assets(user):
+        return True
+    if not user or not user.is_authenticated:
+        return False
+    profile = get_user_profile(user)
+    return bool(
+        profile and profile.role == WorkflowRoles.APPROVER
+        and profile.approval_role == ApprovalRoles.CAD
+    )
+
+
 
 def can_user_create_complaint(user):
     """Return whether the user has at least one registerable complaint type."""
