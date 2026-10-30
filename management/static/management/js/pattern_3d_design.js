@@ -430,11 +430,11 @@
             // Status Badge Overlay
             let statusPill = '';
             if (isApproved) {
-                statusPill = `<span class="stepper-badge approved" style="font-size: 0.68rem;"><i class="fas fa-check"></i> Approved</span>`;
+                statusPill = `<span id="design3DStatus${file.id}" class="stepper-badge tile-overall-status approved" onclick="event.stopPropagation()"><i class="fas fa-check-circle" aria-hidden="true"></i> Approved</span>`;
             } else if (isRejected) {
-                statusPill = `<span class="stepper-badge rejected" style="font-size: 0.68rem;"><i class="fas fa-times"></i> Rejected</span>`;
+                statusPill = `<span id="design3DStatus${file.id}" class="stepper-badge tile-overall-status rejected" onclick="event.stopPropagation()"><i class="fas fa-times-circle" aria-hidden="true"></i> Rejected</span>`;
             } else {
-                statusPill = `<span class="stepper-badge pending" style="font-size: 0.68rem;"><i class="far fa-clock"></i> Pending</span>`;
+                statusPill = `<span id="design3DStatus${file.id}" class="stepper-badge tile-overall-status pending" onclick="event.stopPropagation()"><i class="far fa-clock" aria-hidden="true"></i> Pending</span>`;
             }
 
             // Individual Approver Dots
@@ -463,7 +463,6 @@
                     </div>
 
                     <div class="tile-top-actions-overlay">
-                        ${statusPill}
                         ${canCurrentUserDelete(file) ? `
                             <button type="button" class="tile-delete-x-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file" aria-label="Delete this file">
                                 <i class="fas fa-times"></i>
@@ -471,8 +470,9 @@
                         ` : ''}
                     </div>
 
-                    ${isImage ? `<button type="button" class="tile-media-container" data-design-image-id="${file.id}" aria-label="Enlarge ${escapeHtml(file.title)}" onclick="event.stopPropagation(); window.open3DDesignPreview(${file.id}, this)">` : '<div class="tile-media-container">'}
+                    ${isImage ? `<button type="button" class="tile-media-container" data-design-image-id="${file.id}" aria-label="Enlarge ${escapeHtml(file.title)}" aria-describedby="design3DStatus${file.id}" onclick="event.stopPropagation(); window.open3DDesignPreview(${file.id}, this)">` : '<div class="tile-media-container">'}
                         ${mediaHtml}
+                        ${statusPill}
                     ${isImage ? '</button>' : '</div>'}
 
                     <div class="tile-body">
@@ -520,6 +520,15 @@
         });
 
         gallery.innerHTML = html;
+        position3DDesignStatusBadges(gallery);
+    }
+
+    function position3DDesignStatusBadges(gallery) {
+        // List thumbnails are 48px wide: keep the same readable pill beside them.
+        const target = state.viewMode === 'list' ? '.tile-top-actions-overlay' : '.tile-media-container';
+        gallery.querySelectorAll('.fabro-design-tile').forEach(tile => {
+            tile.querySelector(target).appendChild(tile.querySelector('.tile-overall-status'));
+        });
     }
 
     function filter3DDesignFiles() {
@@ -544,6 +553,7 @@
         if (gallery) {
             gallery.classList.toggle('view-grid', mode === 'grid');
             gallery.classList.toggle('view-list', mode === 'list');
+            position3DDesignStatusBadges(gallery);
         }
         if (gridBtn && listBtn) {
             gridBtn.classList.toggle('is-active', mode === 'grid');

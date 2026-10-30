@@ -1862,7 +1862,7 @@ body.is-design-tab::before {
     background: linear-gradient(180deg, rgba(237, 23, 36, 0.10), rgba(18, 21, 25, 0.96)) !important;
 }
 
-.fabro-design-tile.is-rejected .tile-media-container > * {
+.fabro-design-tile.is-rejected .tile-media-container > :not(.tile-overall-status) {
     opacity: 0.48;
     filter: blur(2px) saturate(0.65);
 }
@@ -1894,8 +1894,44 @@ body.is-design-tab::before {
 .tile-checkbox-wrapper {
     position: absolute;
     top: 8px;
+    right: 44px;
+    z-index: 5;
+}
+
+.stepper-badge.tile-overall-status {
+    position: absolute;
+    top: 8px;
     left: 8px;
     z-index: 5;
+    gap: 5px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    cursor: default;
+}
+
+.tile-overall-status.approved {
+    background: #16A34A;
+    color: #052e16;
+}
+
+.tile-overall-status.pending {
+    background: #F59E0B;
+    color: #422006;
+}
+
+.tile-overall-status.rejected {
+    background: #DC2626;
+    color: #fff;
+}
+
+.fabro-design-gallery.view-list .tile-overall-status {
+    position: static;
 }
 
 .tile-status-badge-overlay {

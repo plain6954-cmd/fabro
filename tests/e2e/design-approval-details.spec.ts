@@ -13,8 +13,9 @@ from pathlib import Path
 from shutil import copyfile
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from management.models import PatternDesignFolder, PatternDesignImage, WorkflowRoles, YearRange
-from management.services.design_approvals import submit_design_for_approval
+from unittest.mock import patch
+from management.models import ApprovalRoles, PatternDesignFolder, PatternDesignImage, WorkflowRoles, YearRange
+from management.services.design_approvals import record_design_review_decision, submit_design_for_approval
 source = settings.BASE_DIR / 'media/pattern_designs/2026/10/test_designer_fix.png'
 assert source.is_file(), 'Existing local design image unavailable; browser image verification cannot run.'
 target = Path(settings.MEDIA_ROOT) / 'design-details-fixture'
@@ -31,7 +32,119 @@ for title in ('E2E details front.png', 'E2E details back.png'):
     image, _ = PatternDesignImage.objects.get_or_create(folder=folder, uploaded_by=designer, title=title,
         defaults={'image': 'design-details-fixture/existing.png', 'thumbnail': 'design-details-fixture/thumbnail.png'})
     submit_design_for_approval(image, designer)
+
+# Real backend decisions, including the CAD uploader's skipped stage.
+cad = get_user_model().objects.get(username='fabro_e2e_cad')
+ed = get_user_model().objects.get(username='fabro_e2e_ed')
+md, _ = get_user_model().objects.get_or_create(username='status_browser_md')
+profile = md.workflow_profile
+profile.role, profile.approval_role = WorkflowRoles.APPROVER, ApprovalRoles.MD
+profile.save()
+with patch('management.services.push_notifications.send_push_to_user'):
+    for status in ('approved', 'pending', 'rejected'):
+        image, created = PatternDesignImage.objects.get_or_create(vehicle=vehicle, uploaded_by=cad,
+            title='E2E status ' + status + '.png', defaults={'image': 'design-details-fixture/existing.png',
+            'thumbnail': 'design-details-fixture/thumbnail.png'})
+        if not created:
+            continue
+        submit_design_for_approval(image, cad)
+        record_design_review_decision(image, ed, 'rejected' if status == 'rejected' else 'approved',
+            change_type='minor')
+        if status == 'approved':
+            record_design_review_decision(image, md, 'approved', change_type='minor')
 `);
+});
+
+test('overall status pills use backend status in both views and themes without intercepting actions', async ({ page }) => {
+  await page.goto('/login/');
+  await page.getByLabel('Username').fill(workflowUsers.cad.username);
+  await page.getByLabel('Password').fill(workflowUsers.cad.password);
+  await page.getByRole('button', { name: /sign in/i }).click();
+  await expect(page).not.toHaveURL(/\/login\//);
+  const response = await page.request.get('/api/design-folders/?vehicle_id=1');
+  const files = (await response.json()).design_files.filter((file: any) => file.title.startsWith('E2E status '));
+  expect(files).toHaveLength(3);
+  const colors: Record<string, string> = {
+    approved: 'rgb(22, 163, 74)', pending: 'rgb(245, 158, 11)', rejected: 'rgb(220, 38, 38)',
+  };
+  await page.goto('/car-details/?vehicle_id=1#design-options');
+  await page.locator('#sidebarNav3DDesignBtn').click();
+  await page.locator('#design3DFilesSearch').fill('E2E status ');
+  for (const width of [320, 768, 1366]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const light of [false, true]) {
+      await page.evaluate(value => document.body.classList.toggle('light-mode', value), light);
+      for (const mode of ['grid', 'list']) {
+        await page.locator(mode === 'grid' ? '#design3DGridBtn' : '#design3DListBtn').click();
+        for (const file of files) {
+          expect(file.cad.status).toBe('skipped_uploader');
+          const tile = page.locator(`.fabro-design-tile[data-file-id="${file.id}"]`);
+          const pill = tile.locator('.tile-overall-status');
+          const status = file.approval_status;
+          await expect(pill).toHaveCount(1);
+          await expect(pill).toHaveText(status.charAt(0).toUpperCase() + status.slice(1));
+          await expect(pill).toHaveCSS('background-color', colors[status]);
+          await expect(pill).toHaveCSS('opacity', '1');
+          await expect(pill).toHaveCSS('filter', 'none');
+          await expect(pill.locator('i')).toHaveAttribute('aria-hidden', 'true');
+          await expect(tile.locator('[data-design-image-id]')).toHaveAccessibleDescription(await pill.innerText());
+          expect(await pill.evaluate(el => (el as HTMLElement).tabIndex)).toBe(-1);
+          const metrics = await pill.evaluate(el => {
+            const bounds = el.getBoundingClientRect();
+            const thumb = el.closest('.fabro-design-tile')!.querySelector('.tile-media-container')!.getBoundingClientRect();
+            const css = getComputedStyle(el);
+            const luminance = (value: string) => {
+              const rgb = value.match(/\d+/g)!.slice(0, 3).map(Number).map(channel => {
+                const c = channel / 255;
+                return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+              });
+              return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+            };
+            const a = luminance(css.color), b = luminance(css.backgroundColor);
+            return { left: bounds.left - thumb.left, top: bounds.top - thumb.top,
+              fits: bounds.right <= thumb.right && bounds.bottom <= thumb.bottom,
+              contrast: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), thumbWidth: thumb.width,
+              overlapsControl: Array.from(el.closest('.fabro-design-tile')!.querySelectorAll('.file-tile-select, .tile-delete-x-btn')).some(control => {
+                const r = control.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && r.left < bounds.right && r.right > bounds.left && r.top < bounds.bottom && r.bottom > bounds.top;
+              }),
+            };
+          });
+          expect(metrics.contrast).toBeGreaterThanOrEqual(4.5);
+          expect(metrics.overlapsControl).toBe(false);
+          if (mode === 'grid') {
+            expect(metrics.left).toBeGreaterThanOrEqual(8);
+            expect(metrics.left).toBeLessThanOrEqual(10);
+            expect(metrics.top).toBeGreaterThanOrEqual(8);
+            expect(metrics.top).toBeLessThanOrEqual(10);
+            expect(metrics.fits).toBe(true);
+          } else {
+            expect(metrics.thumbWidth).toBe(48);
+            await expect(tile.locator('.tile-top-actions-overlay .tile-overall-status')).toHaveCount(1);
+          }
+          await pill.click();
+          await expect(page.locator('#designImageViewer')).not.toBeVisible();
+          await expect(page.locator('#designApprovalDrawer')).not.toHaveClass(/is-open/);
+        }
+      }
+    }
+  }
+  // Existing refresh picks up a real backend status change while in list view.
+  const pending = files.find((file: any) => file.approval_status === 'pending');
+  runDjangoCode(`
+from unittest.mock import patch
+from django.contrib.auth import get_user_model
+from management.models import PatternDesignImage
+from management.services.design_approvals import record_design_review_decision
+with patch('management.services.push_notifications.send_push_to_user'):
+    record_design_review_decision(PatternDesignImage.objects.get(pk=${pending.id}),
+        get_user_model().objects.get(username='status_browser_md'), 'approved', change_type='minor')
+`);
+  await page.evaluate(() => (window as any).load3DDesignWorkspace(1));
+  for (const file of files) {
+    await expect(page.locator(`.fabro-design-tile[data-file-id="${file.id}"] .tile-overall-status`))
+      .toHaveClass(new RegExp(file.id === pending.id ? 'approved' : file.approval_status));
+  }
 });
 
 test('gallery image previews and approval buttons remain independent in grid and list views', async ({ page }) => {
@@ -55,6 +168,7 @@ test('gallery image previews and approval buttons remain independent in grid and
   });
   await page.goto('/car-details/?vehicle_id=1#design-options');
   await page.locator('#sidebarNav3DDesignBtn').click();
+  await page.locator('#design3DFilesSearch').fill('E2E details ');
   const tile = page.locator(`.fabro-design-tile[data-file-id="${first.id}"]`);
   const preview = tile.locator('[data-design-image-id]');
   const viewer = page.locator('#designImageViewer');
@@ -114,7 +228,7 @@ test('gallery image previews and approval buttons remain independent in grid and
   await expect(viewer.getByRole('button', { name: 'Next image', exact: true })).toBeDisabled();
   await page.keyboard.press('Escape');
   await expect(viewer).not.toBeVisible();
-  await page.locator('#design3DFilesSearch').fill('');
+  await page.locator('#design3DFilesSearch').fill('E2E details ');
   await preview.click();
   await viewer.getByRole('button', { name: 'Next image', exact: true }).click();
   await expect(page.locator('#designViewerTitle')).toHaveText(second.title);
