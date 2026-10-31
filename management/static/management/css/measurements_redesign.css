@@ -1853,6 +1853,17 @@ body.is-design-tab::before {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+@keyframes gallery-file-added {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fabro-design-tile.is-gallery-added { animation: gallery-file-added 280ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fabro-design-tile.is-gallery-added { animation: none; }
+}
+
 .fabro-design-tile.is-approved {
     border-color: rgba(16, 185, 129, 0.35);
 }

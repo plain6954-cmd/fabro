@@ -27,7 +27,7 @@ from django.core.cache import cache
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Exists
-from django.http import FileResponse, HttpResponse, JsonResponse, QueryDict
+from django.http import FileResponse, HttpResponse, HttpResponseNotModified, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
@@ -38,6 +38,9 @@ from .timezones import get_all_timezones, is_valid_timezone
 from django.utils import translation
 from django.utils.translation import gettext as _, ngettext
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.crypto import salted_hmac
+from django.utils.http import parse_etags, quote_etag
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.gzip import gzip_page
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -2175,15 +2178,78 @@ def _serialize_design_image_details(img, user=None):
     }
 
 
+def _design_gallery_user_info(user):
+    prof = getattr(user, 'workflow_profile', None)
+    return {
+        'username': user.username,
+        'role': getattr(prof, 'role', ''),
+        'approval_role': getattr(prof, 'approval_role', ''),
+        'is_designer': bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER),
+        'is_superuser': is_active_superuser(user),
+        'can_approve': _can_approve_design_assets(user),
+        'can_delete': _can_delete_design_assets(user),
+    }
+
+
+def _design_gallery_snapshot(user, vehicle_id, user_info):
+    visible = _visible_design_images_qs(user, PatternDesignImage.objects.filter(
+        Q(vehicle_id=vehicle_id) | Q(folder__vehicle_id=vehicle_id), is_reference=False,
+    )).exclude(image='')
+    # One compact revision query; no storage access or full approval history serialization.
+    rows = visible.values('pk', 'title', 'file_size', 'image', 'thumbnail', 'approval_status',
+                          'uploaded_by_id', 'uploaded_by__username', 'approved_at', 'rejected_at',
+                          'completed_at').annotate(
+        review_updated=Max('approval_requests__updated_at'),
+        review_count=Count('approval_requests'),
+    ).order_by('pk')
+    prof = getattr(user, 'workflow_profile', None)
+    scope = [user.pk, vehicle_id, user_info, getattr(prof, 'preferred_language', ''), getattr(prof, 'timezone', '')]
+    scope = json.dumps(scope, default=str, sort_keys=True)
+    manifest = {str(row['pk']): salted_hmac('fabro.gallery.file', scope + json.dumps(
+        row, default=str, sort_keys=True), algorithm='sha256').hexdigest() for row in rows}
+    revision = salted_hmac('fabro.gallery.revision', scope + json.dumps(manifest, sort_keys=True), algorithm='sha256').hexdigest()
+    return visible, manifest, revision
+
+
+def _design_gallery_sync_response(request, vehicle_id):
+    vehicle = get_object_or_404(YearRange.objects.only('pk'), pk=vehicle_id)
+    user_info = _design_gallery_user_info(request.user)
+    visible, manifest, revision = _design_gallery_snapshot(request.user, vehicle.pk, user_info)
+    etag = quote_etag(revision)
+    requested = request.GET.get('files')
+    if requested is None and etag in parse_etags(request.headers.get('If-None-Match', '')):
+        response = HttpResponseNotModified()
+    else:
+        data = {'status': 'success', 'gallery_revision': revision, 'gallery_manifest': manifest,
+                'user_info': user_info}
+        if requested is not None:
+            ids = requested.split(',')
+            if len(ids) > 100 or any(not value.isdecimal() or len(value) > 19 or not 0 < int(value) <= 2 ** 63 - 1 for value in ids):
+                return JsonResponse({'status': 'error', 'message': 'Invalid design file IDs.'}, status=400)
+            images = visible.filter(pk__in=[int(value) for value in ids]).select_related('uploaded_by', 'folder').prefetch_related(
+                'approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer')
+            data['design_files'] = [_serialize_design_image_details(image, request.user) for image in images]
+        response = JsonResponse(data)
+    response['ETag'] = etag
+    return response
+
+
 @login_required
+@never_cache
 def get_design_folders_api(request):
     vehicle_id = request.GET.get('vehicle_id')
+    if request.GET.get('gallery_sync') == '1':
+        if not vehicle_id or not vehicle_id.isdecimal() or len(vehicle_id) > 19 or not 0 < int(vehicle_id) <= 2 ** 63 - 1:
+            return JsonResponse({'status': 'error', 'message': 'A valid vehicle is required.'}, status=400)
+        return _design_gallery_sync_response(request, int(vehicle_id))
     vehicle_info = None
+    gallery_manifest, gallery_revision = {}, None
     direct_images_data = []
     design_files_data = []
     if vehicle_id:
         try:
             yr = YearRange.objects.select_related('sub_model__model__brand').get(id=vehicle_id)
+            _, gallery_manifest, gallery_revision = _design_gallery_snapshot(request.user, yr.pk, _design_gallery_user_info(request.user))
             brand_name = yr.sub_model.model.brand.name if yr.sub_model and yr.sub_model.model and yr.sub_model.model.brand else ''
             model_name = yr.sub_model.model.name if yr.sub_model and yr.sub_model.model else ''
             sub_name = yr.sub_model.name if yr.sub_model and yr.sub_model.name != '-' else ''
@@ -2269,20 +2335,8 @@ def get_design_folders_api(request):
             'vehicle_id': f.vehicle_id,
         })
 
-    prof = getattr(request.user, 'workflow_profile', None) if request.user.is_authenticated else None
-    can_approve = _can_approve_design_assets(request.user)
-    is_su = is_active_superuser(request.user) if request.user.is_authenticated else False
-    can_delete = _can_delete_design_assets(request.user)
-
-    user_info = {
-        'username': request.user.username if request.user.is_authenticated else '',
-        'role': getattr(prof, 'role', '') if prof else '',
-        'approval_role': getattr(prof, 'approval_role', '') if prof else '',
-        'is_designer': bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER) if prof else False,
-        'is_superuser': is_su,
-        'can_approve': can_approve,
-        'can_delete': can_delete,
-    }
+    user_info = _design_gallery_user_info(request.user)
+    can_approve, can_delete = user_info['can_approve'], user_info['can_delete']
 
     return JsonResponse({
         'status': 'success',
@@ -2292,6 +2346,8 @@ def get_design_folders_api(request):
         'direct_images': direct_images_data,
         'reference_images': [item for item in direct_images_data if item.get('is_reference')],
         'design_files': design_files_data,
+        'gallery_manifest': gallery_manifest,
+        'gallery_revision': gallery_revision,
         'vehicle': vehicle_info,
         'user_info': user_info,
         'folder_pagination': {'page': folder_page.number, 'pages': folder_page.paginator.num_pages, 'total': folder_page.paginator.count},

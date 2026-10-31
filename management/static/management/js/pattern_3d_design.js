@@ -37,7 +37,11 @@
         uploadBusy: false,
         uploadSequence: 0,
         renderedTiles: new Map(),
+        galleryManifest: {},
+        galleryRevision: null,
+        galleryLoading: false,
     };
+    let gallerySync = null;
 
     function getCsrfToken() {
         const el = document.querySelector('#designOptionsGlobalCsrf [name=csrfmiddlewaretoken]')
@@ -127,6 +131,8 @@
         if (!vehicleId) return;
         const requestId = ++state.loadRequestId;
         state.vehicleId = vehicleId;
+        state.galleryLoading = true;
+        gallerySync?.wake();
 
         try {
             const resp = await fetch(`/api/design-folders/?vehicle_id=${vehicleId}`);
@@ -158,6 +164,8 @@
                 state.currentUser = data.user_info || {};
                 state.canApproveDesigns = data.can_approve_designs || false;
                 state.canDelete = data.user_info?.can_delete === true;
+                state.galleryManifest = data.gallery_manifest || {};
+                state.galleryRevision = data.gallery_revision || null;
 
                 // Update Badges
                 const refBadge = document.getElementById('refImagesCountBadge');
@@ -188,8 +196,76 @@
             }
         } catch (err) {
             console.error('[3D Design] Failed to load workspace data:', err);
+        } finally {
+            if (requestId === state.loadRequestId) {
+                state.galleryLoading = false;
+                initializeGallerySync();
+                gallerySync?.wake();
+            }
         }
         return false;
+    }
+
+    async function checkGalleryUpdates(signal) {
+        const vehicleId = state.vehicleId, requestId = state.loadRequestId;
+        const url = `/api/design-folders/?vehicle_id=${encodeURIComponent(vehicleId)}&gallery_sync=1`;
+        const headers = state.galleryRevision ? { 'If-None-Match': `"${state.galleryRevision}"` } : {};
+        const response = await fetch(url, { headers, signal, cache: 'no-store' });
+        if (response.redirected || [401, 403, 404].includes(response.status)) return false;
+        if (response.status === 304) return;
+        if (!response.ok) throw new Error('Gallery check unavailable');
+        const update = await response.json();
+        if (update.status !== 'success' || !update.gallery_manifest || !update.gallery_revision) throw new Error('Invalid gallery check');
+        const manifest = update.gallery_manifest;
+        const changed = Object.keys(manifest).filter(id => manifest[id] !== state.galleryManifest[id]);
+        const files = [];
+        for (let index = 0; index < changed.length; index += 100) {
+            if (requestId !== state.loadRequestId || signal.aborted) return;
+            const metadata = await fetch(`${url}&files=${encodeURIComponent(changed.slice(index, index + 100).join(','))}`, { signal, cache: 'no-store' });
+            if (metadata.redirected || [401, 403, 404].includes(metadata.status)) return false;
+            if (!metadata.ok) throw new Error('Gallery metadata unavailable');
+            const data = await metadata.json();
+            // A concurrent write needs a fresh check, rather than adopting mismatched revisions.
+            if (data.gallery_revision !== update.gallery_revision) return;
+            if (!Array.isArray(data.design_files)) throw new Error('Invalid gallery metadata');
+            files.push(...data.design_files);
+        }
+        if (requestId !== state.loadRequestId || signal.aborted) return;
+        const oldIds = new Set(state.designFiles.map(file => file.id));
+        const updatedIds = new Set(changed);
+        const next = state.designFiles.filter(file => Object.hasOwn(manifest, String(file.id)) && !updatedIds.has(String(file.id)));
+        state.designFiles = next.concat(files).sort((a, b) => b.id - a.id);
+        state.currentUser = update.user_info;
+        state.canDelete = update.user_info?.can_delete === true;
+        state.canApproveDesigns = update.user_info?.can_approve === true;
+        state.galleryManifest = manifest;
+        state.galleryRevision = update.gallery_revision;
+        state.uploads = state.uploads.filter(entry => {
+            if (entry.vehicleId !== vehicleId || !entry.serverFile) return true;
+            const current = state.designFiles.find(file => file.id === entry.serverFile.id);
+            if (current) entry.serverFile = current;
+            return !!current;
+        });
+        const gallery = document.getElementById('design3DFilesGallery');
+        if (!gallery) return;
+        const scroll = { x: scrollX, y: scrollY, left: gallery.scrollLeft, top: gallery.scrollTop };
+        render3DDesignFiles(new Set(files.filter(file => !oldIds.has(file.id)).map(file => file.id)));
+        gallery.scrollLeft = scroll.left;
+        gallery.scrollTop = scroll.top;
+        window.scrollTo({ left: scroll.x, top: scroll.y, behavior: 'instant' });
+        const badge = document.getElementById('design3DFilesCountBadge');
+        if (badge) badge.textContent = state.designFiles.length;
+        if (state.vehicleData) updateDesignerPanel();
+        if (!document.getElementById('designApprovalDrawer')?.classList.contains('is-open')) populateDrawerFileSelector();
+    }
+
+    function initializeGallerySync() {
+        const root = document.getElementById('pattern3DDesignWorkspace');
+        if (!gallerySync && root && window.fabroCreateGallerySync) {
+            gallerySync = window.fabroCreateGallerySync({ root, signal: eventController.signal,
+                canCheck: () => !!state.vehicleId && !state.galleryLoading,
+                check: checkGalleryUpdates });
+        }
     }
 
     /**
@@ -518,7 +594,7 @@
         window.openDesignImageViewer?.(state.previewImages, fileId, source);
     }
 
-    function render3DDesignFiles() {
+    function render3DDesignFiles(animateNew = new Set()) {
         const gallery = document.getElementById('design3DFilesGallery');
         if (!gallery) return;
 
@@ -689,6 +765,7 @@
             tiles.push({ key: upload?.id || String(file.id), html });
         });
 
+        const focused = document.activeElement;
         const nextTiles = new Map();
         const nodes = tiles.map(({ key, html }) => {
             const previous = state.renderedTiles.get(key);
@@ -698,14 +775,47 @@
                 template.innerHTML = html.trim();
                 node = template.content.firstElementChild;
                 if (previous?.node) {
-                    node.querySelector('.file-tile-select').checked = previous.node.querySelector('.file-tile-select').checked;
+                    const checkbox = previous.node.querySelector('.file-tile-select');
+                    const replacement = node.querySelector('.file-tile-select');
+                    checkbox.disabled = replacement.disabled;
+                    checkbox.dataset.id = replacement.dataset.id;
+                    replacement.replaceWith(checkbox);
+                    // Keep viewer opener buttons connected across approval-only changes.
+                    const selector = '[data-design-image-id], [data-design-pdf-id]';
+                    const media = previous.node.querySelector(selector), nextMedia = node.querySelector(selector);
+                    if (media && nextMedia && media.getAttribute('data-design-image-id') === nextMedia.getAttribute('data-design-image-id') && media.getAttribute('data-design-pdf-id') === nextMedia.getAttribute('data-design-pdf-id')) {
+                        const image = media.querySelector('img'), nextImage = nextMedia.querySelector('img');
+                        if (image && nextImage && image.getAttribute('src') === nextImage.getAttribute('src')) nextImage.replaceWith(image);
+                        media.replaceChildren(...nextMedia.childNodes);
+                        media.setAttribute('aria-label', nextMedia.getAttribute('aria-label'));
+                        nextMedia.replaceWith(media);
+                    }
+                    const previousTile = previous.node;
+                    const revealed = node.classList.contains('is-upload-revealing') && previousTile.classList.contains('is-upload-revealed');
+                    const appearing = previousTile.classList.contains('is-gallery-added');
+                    previousTile.className = node.className;
+                    previousTile.dataset.fileId = node.dataset.fileId;
+                    if (node.dataset.uploadId) previousTile.dataset.uploadId = node.dataset.uploadId;
+                    else delete previousTile.dataset.uploadId;
+                    previousTile.replaceChildren(...node.childNodes);
+                    if (revealed) previousTile.classList.add('is-upload-revealed');
+                    if (appearing) previousTile.classList.add('is-gallery-added');
+                    node = previousTile;
+                } else if (animateNew.has(Number(node.dataset.fileId)) && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    node.classList.add('is-gallery-added');
+                    node.addEventListener('animationend', () => node.classList.remove('is-gallery-added'), { once: true });
                 }
             }
             nextTiles.set(key, { html, node });
             return node;
         });
-        // Keep unchanged tiles (and their native checkbox state) during per-file updates.
-        gallery.replaceChildren(...nodes);
+        // Insert/move only changed positions; unchanged tiles stay mounted.
+        const desired = new Set(nodes);
+        for (const child of Array.from(gallery.children)) if (!desired.has(child)) child.remove();
+        nodes.forEach((node, index) => {
+            if (gallery.children[index] !== node) gallery.insertBefore(node, gallery.children[index] || null);
+        });
+        if (focused?.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
         state.renderedTiles = nextTiles;
         position3DDesignStatusBadges(gallery);
     }
@@ -714,7 +824,8 @@
         // List thumbnails are 48px wide: keep the same readable pill beside them.
         const target = state.viewMode === 'list' ? '.tile-top-actions-overlay' : '.tile-media-container';
         gallery.querySelectorAll('.fabro-design-tile').forEach(tile => {
-            tile.querySelector(target).appendChild(tile.querySelector('.tile-overall-status'));
+            const badge = tile.querySelector('.tile-overall-status');
+            if (badge.parentElement !== tile.querySelector(target)) tile.querySelector(target).appendChild(badge);
         });
     }
 
@@ -766,6 +877,7 @@
     }
 
     async function openApprovalDrawer(fileId) {
+        populateDrawerFileSelector();
         window.closeDesignPdfViewer?.();
         const drawer = document.getElementById('designApprovalDrawer');
         const backdrop = document.getElementById('designApprovalDrawerBackdrop');
@@ -1191,6 +1303,7 @@
     }, { signal: eventController.signal });
 
     function initialize3DWorkspace() {
+        initializeGallerySync();
         const track = document.getElementById('refImagesScrollTrack');
         if (track && track !== referenceTrack) {
             referenceTrack = track;
