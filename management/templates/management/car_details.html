@@ -13,6 +13,7 @@
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261031-no-selection" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/design_review_voice.css' %}?v=20261031" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_approval_preview.css' %}?v=20261021-gallery-viewer" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_pdf_viewer.css' %}?v=20261031" data-fabro-page-asset>
     <style data-fabro-page-asset>
@@ -3272,7 +3273,9 @@
                 <label for="designDrawerDecisionRemarks" style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
                     {% translate "Remarks / Feedback" %} ({% translate "Optional" %})
                 </label>
-                <textarea id="designDrawerDecisionRemarks" class="form-input" rows="3" placeholder="{% translate "Enter optional feedback..." %}" style="width: 100%; font-size: 0.78rem; background: #16181d; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0.45rem; resize: vertical; box-sizing: border-box;"></textarea>
+                <div class="review-remarks-input"><textarea id="designDrawerDecisionRemarks" class="form-input" rows="3" placeholder="{% translate "Enter optional feedback..." %}" style="width: 100%; font-size: 0.78rem; background: #16181d; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0.45rem; resize: vertical; box-sizing: border-box;"></textarea>
+                    {% include 'management/includes/design_review_voice_recorder.html' %}
+                </div>
             </div>
 
             <!-- Action buttons -->
@@ -3318,7 +3321,8 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
 <script src="{% static 'management/js/design_approval_preview.js' %}?v=20261021-gallery-viewer" data-fabro-page-asset></script>
 <script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261031" data-fabro-page-asset></script>
 <script src="{% static 'management/js/gallery_sync.js' %}?v=20261031" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261031-no-selection" data-fabro-page-asset></script>
+<script src="{% static 'management/js/design_review_voice.js' %}?v=20261031" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261031-voice" data-fabro-page-asset></script>
         </div><!-- /page-container -->
 
     <!-- Add Folder Modal -->

@@ -12,6 +12,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/workflow.css' %}" rel="stylesheet" data-fabro-page-asset>
+    <link href="{% static 'management/css/design_review_voice.css' %}?v=20261031" rel="stylesheet" data-fabro-page-asset>
     <link href="{% static 'management/css/design_approval_preview.css' %}?v=20261021-gallery-viewer" rel="stylesheet" data-fabro-page-asset>
 {% if is_htmx_request %}
 </template>
@@ -198,11 +199,12 @@
                     <div style="background: rgba(0, 0, 0, 0.2); border-left: 3px solid {% if latest_approval.cad_status == 'approved' %}#10b981{% else %}#ef4444{% endif %}; border-radius: 4px; padding: 0.65rem 0.85rem; font-size: 0.85rem; color: var(--dark-text, #f8fafc);">
                         {{ latest_approval.cad_comment|default:"No comment provided." }}
                     </div>
+                    <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="CAD"></div>
                     {% if latest_approval.cad_change_type %}<small>{{ latest_approval.cad_change_type|title }} {% translate "Change" %}</small>{% endif %}
                 {% else %}
                     <!-- CAD Review Action Form (Visible to CAD approver only) -->
                     {% if can_review_as_cad %}
-                    <form method="POST" id="cadReviewForm" style="margin-top: 0.75rem;">
+                    <form method="POST" enctype="multipart/form-data" id="cadReviewForm" style="margin-top: 0.75rem;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
                         <input type="hidden" name="stage" value="cad">
@@ -215,7 +217,9 @@
                             <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
                                 {% translate "CAD Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Optional" %})</span>
                             </label>
-                            <textarea name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
+                            <div class="review-remarks-input"><textarea name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
+                                {% include 'management/includes/design_review_voice_recorder.html' %}
+                            </div>
                         </div>
                         <div class="design-review-buttons-wrap" style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
@@ -270,11 +274,12 @@
                     <div style="background: rgba(0, 0, 0, 0.2); border-left: 3px solid {% if latest_approval.ed_status == 'approved' %}#10b981{% else %}#ef4444{% endif %}; border-radius: 4px; padding: 0.65rem 0.85rem; font-size: 0.85rem; color: var(--dark-text, #f8fafc);">
                         {{ latest_approval.ed_comment|default:"No comment provided." }}
                     </div>
+                    <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="ED"></div>
                     {% if latest_approval.ed_change_type %}<small>{{ latest_approval.ed_change_type|title }} {% translate "Change" %}</small>{% endif %}
                 {% else %}
                     <!-- ED Review Action Form (Visible to ED approver only) -->
                     {% if can_review_as_ed %}
-                    <form method="POST" id="edReviewForm" style="margin-top: 0.75rem;">
+                    <form method="POST" enctype="multipart/form-data" id="edReviewForm" style="margin-top: 0.75rem;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
                         <input type="hidden" name="stage" value="ed">
@@ -287,7 +292,9 @@
                             <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 0.35rem;">
                                 {% translate "ED Review Comment" %} <span style="font-size: 0.75rem; opacity: 0.75;">({% translate "Optional" %})</span>
                             </label>
-                            <textarea name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
+                            <div class="review-remarks-input"><textarea name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; padding: 0.6rem; font-size: 0.82rem; font-family: inherit; resize: vertical;"></textarea>
+                                {% include 'management/includes/design_review_voice_recorder.html' %}
+                            </div>
                         </div>
                         <div class="design-review-buttons-wrap" style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background: #10b981; color: #fff; font-size: 0.82rem; padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer;">
@@ -314,8 +321,9 @@
                 {% elif latest_approval.md_decided_at %}
                     <p style="font-size:0.78rem;color:var(--dark-text-secondary,#94a3b8);">{{ latest_approval.md_reviewer.username }} · {{ latest_approval.md_decided_at|date:"M d, Y H:i" }}{% if latest_approval.md_change_type %} · {{ latest_approval.md_change_type|title }} {% translate "Change" %}{% endif %}</p>
                     <p style="color:var(--dark-text,#f8fafc);overflow-wrap:anywhere;">{{ latest_approval.md_comment|default:"No comment provided." }}</p>
+                    <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="MD"></div>
                 {% elif can_review_as_md %}
-                    <form method="POST" style="display:grid;gap:0.65rem;">
+                    <form method="POST" enctype="multipart/form-data" id="mdReviewForm" style="display:grid;gap:0.65rem;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
                         <input type="hidden" name="stage" value="md">
@@ -325,7 +333,9 @@
                             <option value="major">{% translate "Major Change" %}</option>
                         </select>
                         <label for="mdCommentInput">{% translate "MD Review Comment" %} ({% translate "Optional" %})</label>
-                        <textarea name="comment" id="mdCommentInput" rows="3" style="width:100%;box-sizing:border-box;"></textarea>
+                        <div class="review-remarks-input"><textarea name="comment" id="mdCommentInput" rows="3" style="width:100%;box-sizing:border-box;"></textarea>
+                                {% include 'management/includes/design_review_voice_recorder.html' %}
+                            </div>
                         <div class="design-review-buttons-wrap" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
                             <button type="submit" name="decision" value="approved" class="workflow-btn" style="background:#10b981;color:#fff;">{% translate "Approve Design" %}</button>
                             <button type="submit" name="decision" value="rejected" class="workflow-btn" onclick="return confirmDecline();" style="background:#ef4444;color:#fff;">{% translate "Decline Design" %}</button>
@@ -380,6 +390,7 @@
                             <span>ED: <strong style="color: {% if cycle_item.ed_status == 'approved' %}#10b981{% elif cycle_item.ed_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ cycle_item.get_ed_status_display|default:cycle_item.ed_status }}</strong></span>
                             <span>MD: <strong style="color: {% if cycle_item.md_status == 'approved' %}#10b981{% elif cycle_item.md_status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">{{ cycle_item.get_md_status_display }}</strong></span>
                         </div>
+                        <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ cycle_item.cycle }}"></div>
                     </div>
                     {% endfor %}
                 </div>
@@ -389,6 +400,8 @@
     </div>
 </div>
 
+{{ review_voice_notes|json_script:"design-review-voice-notes" }}
+<script src="{% static 'management/js/design_review_voice.js' %}?v=20261031" data-fabro-page-asset></script>
 {{ preview_images|json_script:"design-preview-images" }}
 {% include 'management/includes/design_image_viewer.html' %}
 <script src="{% static 'management/js/design_approval_preview.js' %}?v=20261021-gallery-viewer" data-fabro-page-asset></script>

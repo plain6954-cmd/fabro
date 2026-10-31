@@ -99,6 +99,7 @@ urlpatterns = [
     path('design-approvals/', views.design_approvals_list, name='design_approvals_list'),
     path('design-approvals/<int:image_id>/', views.design_approval_detail, name='design_approval_detail'),
     path('design-images/<int:image_id>/download/', views.pattern_design_image_download, name='pattern_design_image_download'),
+    path('design-review-voice/<int:voice_id>/', views.design_review_voice_audio, name='design_review_voice_audio'),
     path('api/measurement-files/upload/', views.upload_measurement_files_api, name='upload_measurement_files_api'),
     path('api/measurement-files/', views.get_measurement_files_api, name='get_measurement_files_api'),
     path('api/measurement-files/<int:file_id>/delete/', views.delete_measurement_file_api, name='delete_measurement_file_api'),

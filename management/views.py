@@ -46,6 +46,7 @@ from django.views.decorators.gzip import gzip_page
 from django.views.decorators.csrf import ensure_csrf_cookie
 from PIL import Image, UnidentifiedImageError
 from .services.design_pdfs import design_file_storage, save_design_pdf, validate_design_pdf
+from .services.design_review_voice import record_design_review_with_voice, serialize_voice_note
 
 from .forms import (
     AssignUserToGroupForm,
@@ -86,6 +87,7 @@ from .models import (
     PatternDesignFolder,
     PatternDesignImage,
     PatternDesignApproval,
+    DesignReviewVoiceNote,
     PatternEditLog,
     PatternMeasurementFile,
     PatternColorSelection,
@@ -567,6 +569,56 @@ def pattern_design_image_download(request, image_id):
         response['Cache-Control'] = 'private, no-store'
         return response
     return redirect(design_image.image.url)
+
+
+@login_required
+@never_cache
+@require_GET
+def design_review_voice_audio(request, voice_id):
+    if not _can_user_access_designer_approvals(request.user):
+        raise PermissionDenied(_('You cannot access design reviews.'))
+    visible = _visible_design_images_qs(request.user, PatternDesignImage.objects.all())
+    profile = getattr(request.user, 'workflow_profile', None)
+    if profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER:
+        visible = visible.filter(uploaded_by=request.user)
+    note = get_object_or_404(DesignReviewVoiceNote.objects.filter(approval__design_image__in=visible), pk=voice_id)
+    try:
+        content = design_file_storage(note.file.name).open(note.file.name, 'rb')
+        content.seek(0, 2)
+        size = content.tell()
+        content.seek(0)
+    except FileNotFoundError:
+        return HttpResponse('Voice note is unavailable.', status=404)
+    except Exception:
+        logger.exception('Unable to read review voice note %s', note.pk)
+        return HttpResponse('Voice note is temporarily unavailable.', status=503)
+    requested = request.headers.get('Range')
+    if requested:
+        match = re.fullmatch(r'bytes=(\d*)-(\d*)', requested)
+        try:
+            if not match or not any(match.groups()):
+                raise ValueError
+            first, last = match.groups()
+            start = int(first) if first else max(0, size - int(last))
+            end = min(size - 1, int(last)) if first and last else size - 1
+            if start >= size or start > end or (not first and int(last) <= 0):
+                raise ValueError
+        except ValueError:
+            content.close()
+            return HttpResponse(status=416, headers={'Content-Range': f'bytes */{size}'})
+        content.seek(start)
+        try:
+            data = content.read(end - start + 1)
+        finally:
+            content.close()
+        response = HttpResponse(data, status=206, content_type='audio/wav')
+        response['Content-Range'] = f'bytes {start}-{end}/{size}'
+        response['Content-Length'] = end - start + 1
+    else:
+        response = FileResponse(content, content_type='audio/wav', filename='review-voice.wav')
+    response['Accept-Ranges'] = 'bytes'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 @login_required
 @gzip_page
@@ -2097,6 +2149,8 @@ def _serialize_design_image_details(img, user=None):
     is_su = is_active_superuser(user) if user and user.is_authenticated else False
 
     allowed_roles = design_review_roles(user)
+    can_see_voice = bool(user and _can_user_access_designer_approvals(user) and (
+        not (prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER) or img.uploaded_by_id == user.id))
     can_review_cad = (ApprovalRoles.CAD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.cad_status == 'pending'))
     can_review_ed = (ApprovalRoles.ED in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.ed_status == 'pending'))
     can_review_md = (ApprovalRoles.MD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.md_status == 'pending'))
@@ -2128,6 +2182,7 @@ def _serialize_design_image_details(img, user=None):
             'md_comment': req.md_comment,
             'md_change_type': req.md_change_type,
             'md_decided_at': timezone.localtime(req.md_decided_at).strftime('%b %d, %Y %I:%M %p') if req.md_decided_at else '',
+            'voice_notes': [serialize_voice_note(note, req) for note in req.voice_notes.all()] if can_see_voice else [],
         })
 
     return {
@@ -2227,7 +2282,7 @@ def _design_gallery_sync_response(request, vehicle_id):
             if len(ids) > 100 or any(not value.isdecimal() or len(value) > 19 or not 0 < int(value) <= 2 ** 63 - 1 for value in ids):
                 return JsonResponse({'status': 'error', 'message': 'Invalid design file IDs.'}, status=400)
             images = visible.filter(pk__in=[int(value) for value in ids]).select_related('uploaded_by', 'folder').prefetch_related(
-                'approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer')
+                'approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer', 'approval_requests__voice_notes')
             data['design_files'] = [_serialize_design_image_details(image, request.user) for image in images]
         response = JsonResponse(data)
     response['ETag'] = etag
@@ -2296,7 +2351,7 @@ def get_design_folders_api(request):
             # Fetch all 3D design files for this vehicle
             all_vehicle_design_images = _visible_design_images_qs(
                 request.user,
-                PatternDesignImage.objects.filter(Q(vehicle=yr) | Q(folder__vehicle=yr), is_reference=False).select_related('uploaded_by', 'folder').prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer').distinct().order_by('-uploaded_at')
+                PatternDesignImage.objects.filter(Q(vehicle=yr) | Q(folder__vehicle=yr), is_reference=False).select_related('uploaded_by', 'folder').prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer', 'approval_requests__voice_notes').distinct().order_by('-uploaded_at')
             )
             for d_img in all_vehicle_design_images:
                 serialized = _serialize_design_image_details(d_img, request.user)
@@ -2839,6 +2894,13 @@ def delete_design_image_api(request, image_id):
     })
 
 
+def _record_design_review_request(request, image, decision, comment, stage, change_type):
+    voice = request.FILES.get('voice_note')
+    if voice is not None:
+        return record_design_review_with_voice(image, request.user, decision, comment, stage=stage, change_type=change_type, voice_note=voice)
+    return record_design_review_decision(image, request.user, decision, comment, stage=stage, change_type=change_type)
+
+
 @login_required
 @require_POST
 def approve_design_image_api(request, image_id):
@@ -2859,13 +2921,16 @@ def approve_design_image_api(request, image_id):
             pass
 
     try:
-        approval, img = record_design_review_decision(img, request.user, 'approved', comment, stage=stage, change_type=change_type)
+        approval, img = _record_design_review_request(request, img, 'approved', comment, stage, change_type)
     except PermissionDenied as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
     except ValidationError as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
     except ValueError as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
+    except Exception:
+        logger.exception('Unable to save design review')
+        return JsonResponse({'status': 'error', 'message': _('Review could not be saved. Please retry.')}, status=503)
 
     return JsonResponse({
         'status': 'success',
@@ -2895,13 +2960,16 @@ def reject_design_image_api(request, image_id):
     change_type = data.get('change_type') or request.POST.get('change_type') or ''
 
     try:
-        approval, img = record_design_review_decision(img, request.user, 'rejected', reason, stage=stage, change_type=change_type)
+        approval, img = _record_design_review_request(request, img, 'rejected', reason, stage, change_type)
     except PermissionDenied as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=403)
     except ValidationError as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
     except ValueError as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
+    except Exception:
+        logger.exception('Unable to save design review')
+        return JsonResponse({'status': 'error', 'message': _('Review could not be saved. Please retry.')}, status=503)
 
     return JsonResponse({
         'status': 'success',
@@ -3129,7 +3197,7 @@ def design_approval_detail(request, image_id):
         PatternDesignImage.objects.select_related(
             'uploaded_by', 'vehicle__sub_model__model__brand',
             'folder__vehicle__sub_model__model__brand'
-        ).prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer'),
+        ).prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer', 'approval_requests__voice_notes'),
         id=image_id
     )
     user = request.user
@@ -3157,10 +3225,13 @@ def design_approval_detail(request, image_id):
             comment = request.POST.get('comment', '')
             change_type = request.POST.get('change_type', '')
             try:
-                record_design_review_decision(design_image, user, decision, comment, stage=stage, change_type=change_type)
+                _record_design_review_request(request, design_image, decision, comment, stage, change_type)
                 messages.success(request, _("Your review decision has been recorded."))
-            except Exception as exc:
+            except (PermissionDenied, ValidationError, ValueError) as exc:
                 messages.error(request, str(exc))
+            except Exception:
+                logger.exception('Unable to save design review')
+                messages.error(request, _("Review could not be saved. Please retry."))
             return redirect('design_approval_detail', image_id=design_image.id)
         elif action == 'resubmit':
             try:
@@ -3244,6 +3315,8 @@ def design_approval_detail(request, image_id):
         'design_file_type': _get_design_file_info(design_image.image.name or design_image.title)[0],
         'latest_approval': latest_approval,
         'history_cycles': history_cycles,
+        'review_voice_notes': [serialize_voice_note(note) for note in DesignReviewVoiceNote.objects.filter(
+            approval__design_image=design_image).select_related('approval')],
         'is_designer': is_designer,
         'can_review_as_cad': can_review_cad,
         'can_review_as_ed': can_review_ed,

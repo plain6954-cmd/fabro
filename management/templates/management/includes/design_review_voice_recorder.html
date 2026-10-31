@@ -1,0 +1,18 @@
+{% load i18n %}
+<div class="review-voice-recorder" data-review-voice>
+    <input type="file" name="voice_note" hidden aria-label="{% translate 'Recorded voice note' %}">
+    <button type="button" class="voice-record-toggle" data-voice-action="record" aria-label="{% translate 'Record voice note' %}" title="{% translate 'Record voice note (60 seconds, 5 MB maximum)' %}"><i class="fas fa-microphone" aria-hidden="true"></i></button>
+    <div class="voice-recording" data-voice-recording hidden>
+        <span class="voice-record-dot" aria-hidden="true"></span>
+        <span data-voice-timer aria-label="{% translate 'Recording duration' %}">0:00</span>
+        <canvas class="voice-live-wave" width="240" height="32" aria-label="{% translate 'Live recording waveform' %}"></canvas>
+        <button type="button" data-voice-action="stop">{% translate 'Stop' %}</button>
+        <button type="button" data-voice-action="cancel">{% translate 'Cancel' %}</button>
+    </div>
+    <div class="voice-preview" data-voice-preview hidden>
+        <div data-voice-preview-bubble></div>
+        <button type="button" data-voice-action="discard">{% translate 'Discard voice note' %}</button>
+    </div>
+    <small class="voice-recorder-hint">{% translate 'Optional voice note · up to 60 seconds / 5 MB' %}</small>
+    <p class="voice-recorder-error" data-voice-error role="alert" hidden></p>
+</div>

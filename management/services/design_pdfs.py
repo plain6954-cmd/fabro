@@ -13,8 +13,8 @@ PDF_PREFIX = 'private_design_pdfs/'
 
 
 def design_file_storage(name):
-    if name.startswith(PDF_PREFIX) and not settings.USE_S3_STORAGE:
-        # Keep local PDFs outside MEDIA_ROOT, which may be served publicly.
+    if name.startswith((PDF_PREFIX, 'private_design_voice_notes/')) and not settings.USE_S3_STORAGE:
+        # Keep private design attachments outside publicly served MEDIA_ROOT.
         media_root = Path(settings.MEDIA_ROOT)
         return FileSystemStorage(location=media_root.with_name(media_root.name + '-private-designs'))
     return default_storage

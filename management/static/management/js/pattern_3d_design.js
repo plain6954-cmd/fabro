@@ -913,7 +913,7 @@
     function closeApprovalDrawer() {
         const drawer = document.getElementById('designApprovalDrawer');
         const backdrop = document.getElementById('designApprovalDrawerBackdrop');
-        if (drawer) drawer.classList.remove('is-open');
+        if (drawer) { window.fabroReviewVoice?.resetWithin(drawer); drawer.classList.remove('is-open'); }
         if (backdrop) backdrop.classList.remove('is-open');
     }
 
@@ -955,6 +955,7 @@
 
     function selectDrawerFile(fileId) {
         const id = parseInt(fileId, 10);
+        window.fabroReviewVoice?.resetWithin(document.getElementById('designApprovalDrawer'));
         state.selectedFileId = id;
 
         const selector = document.getElementById('drawerFileSelector');
@@ -1027,6 +1028,7 @@
             selector.replaceChildren();
             const selectStage = role => {
                 if (state.isSubmittingDecision) return;
+                window.fabroReviewVoice?.resetWithin(decisionBox);
                 decisionBox.dataset.activeStage = role;
                 const label = document.getElementById('drawerActiveReviewStageLabel');
                 if (label) label.textContent = role ? role.toUpperCase() : 'Select reviewer above';
@@ -1107,6 +1109,7 @@
     function renderDrawerHistory(history) {
         const timeline = document.getElementById('drawerHistoryTimeline');
         if (!timeline) return;
+        window.fabroReviewVoice?.stopPlaybackWithin(timeline);
 
         if (!history || history.length === 0) {
             timeline.innerHTML = `<div style="font-size:0.75rem;color:var(--fabro-text-muted);text-align:center;padding:0.5rem;">No previous review cycles.</div>`;
@@ -1121,6 +1124,7 @@
                         <span style="font-weight:700;color:#cbd5e1;">Cycle #${item.cycle || 1}</span>
                         <span style="font-size:0.7rem;color:var(--fabro-text-muted);">${item.submitted_at || ''}</span>
                     </div>
+                    <div class="review-voice-history" data-drawer-voice-cycle="${Number(item.cycle) || 1}"></div>
                     <div style="font-size:0.72rem;color:var(--fabro-text-secondary);display:flex;gap:0.5rem;">
                         <span>CAD: <strong>${reviewStatusLabel(item.cad_status)}</strong></span>
                         <span>ED: <strong>${reviewStatusLabel(item.ed_status)}</strong></span>
@@ -1130,6 +1134,10 @@
             `;
         });
         timeline.innerHTML = html;
+        history.forEach(item => {
+            const host = timeline.querySelector(`[data-drawer-voice-cycle="${Number(item.cycle) || 1}"]`);
+            if (host) window.fabroReviewVoice?.appendBubbles(host, item.voice_notes || []);
+        });
     }
 
     function hideDrawerErrors() {
@@ -1145,6 +1153,9 @@
         hideDrawerErrors();
 
         const decisionBox = document.getElementById('drawerDecisionBox');
+        const recorderRoot = decisionBox?.querySelector('[data-review-voice]');
+        if (recorderRoot && !window.fabroReviewVoice?.ready(recorderRoot)) return;
+        const voiceFile = recorderRoot && window.fabroReviewVoice?.file(recorderRoot);
         const stage = decisionBox?.dataset.activeStage || '';
         if (!stage) { alert('Select CAD, ED, or MD before submitting a review.'); return; }
         const fileId = state.selectedFileId;
@@ -1181,14 +1192,17 @@
                 reason: remarks,
             };
 
-            const resp = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken(),
-                },
-                body: JSON.stringify(payload),
-            });
+            const headers = { 'X-CSRFToken': getCsrfToken() };
+            let body;
+            if (voiceFile) {
+                body = new FormData();
+                Object.entries(payload).forEach(([key, value]) => body.append(key, value));
+                body.append('voice_note', voiceFile);
+            } else {
+                headers['Content-Type'] = 'application/json';
+                body = JSON.stringify(payload);
+            }
+            const resp = await fetch(endpoint, { method: 'POST', headers, body });
 
             const data = await resp.json();
             if (data.status === 'success') {

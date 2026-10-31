@@ -1,0 +1,37 @@
+.review-remarks-input { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: start; gap: 0.5rem; }
+.review-voice-recorder { display: contents; }
+.review-voice-recorder [hidden], .review-voice-bubble [hidden] { display: none; }
+.review-voice-recorder button, .voice-play {
+    min-height: 40px; border: 1px solid var(--fabro-border, #41414a); border-radius: 8px;
+    background: var(--dark-card, #25252d); color: var(--dark-text, #f4f4f5); cursor: pointer; font: inherit;
+}
+.review-voice-recorder button:disabled { opacity: 0.5; cursor: default; }
+.voice-record-toggle { grid-column: 2; grid-row: 1; width: 42px; }
+.voice-recorder-hint, .voice-recorder-error, .voice-recording, .voice-preview { grid-column: 1 / -1; }
+.voice-recorder-hint { color: var(--dark-text-secondary, #a1a1aa); font-size: 0.72rem; }
+.voice-recorder-error { margin: 0; color: #f87171; font-size: 0.8rem; }
+.voice-recording { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.85rem; }
+.voice-record-dot { width: 9px; height: 9px; border-radius: 50%; background: #dc2626; flex-shrink: 0; }
+.voice-live-wave { flex: 1; min-width: 70px; width: 100px; height: 32px; }
+.voice-recording button, .voice-preview > button { padding: 0.25rem 0.6rem; font-size: 0.78rem; }
+.voice-preview > button { margin-top: 0.35rem; }
+.review-voice-history:empty { display: none; }
+.review-voice-bubble {
+    --voice-accent: #a78bfa; --voice-track: #52525b;
+    display: flex; align-items: center; gap: 0.6rem; min-width: 0; max-width: 100%;
+    padding: 0.6rem 0.7rem; margin-top: 0.45rem; border: 1px solid var(--fabro-border, #3f3f46);
+    border-radius: 12px; background: #1e2028; color: #f4f4f5;
+}
+.voice-play { flex: 0 0 38px; width: 38px; padding: 0; font-size: 0.8rem; }
+.voice-message-body { flex: 1; min-width: 0; }
+.voice-message-meta { display: flex; gap: 0.4rem; flex-wrap: wrap; font-size: 0.7rem; color: #c4b5fd; overflow-wrap: anywhere; }
+.voice-wave-seek { position: relative; height: 32px; }
+.voice-wave-seek canvas { display: block; width: 100%; height: 32px; }
+.voice-wave-seek input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.voice-wave-seek:focus-within { outline: 2px solid var(--voice-accent); border-radius: 4px; }
+.voice-time { display: block; font-size: 0.7rem; font-variant-numeric: tabular-nums; color: #a1a1aa; }
+.voice-play:focus-visible, .review-voice-recorder button:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
+body.light-mode .review-voice-bubble { --voice-accent: #7c3aed; --voice-track: #c4c4cd; background: #f5f4f7; color: #27272a; }
+body.light-mode .voice-message-meta { color: #6d28d9; }
+body.light-mode .voice-time { color: #52525b; }
+body.light-mode .review-voice-recorder button, body.light-mode .voice-play { background: #fff; color: #27272a; border-color: #d4d4d8; }

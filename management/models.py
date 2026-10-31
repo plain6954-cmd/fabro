@@ -1178,6 +1178,21 @@ class PatternDesignApproval(models.Model):
 
 
 
+class DesignReviewVoiceNote(models.Model):
+    approval = models.ForeignKey(PatternDesignApproval, on_delete=models.CASCADE, related_name='voice_notes')
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    reviewer_name = models.CharField(max_length=255)
+    stage = models.CharField(max_length=3, choices=[('CAD', 'CAD'), ('ED', 'ED'), ('MD', 'MD')])
+    file = models.FileField(upload_to='private_design_voice_notes/')
+    duration_ms = models.PositiveIntegerField()
+    waveform = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        constraints = [models.UniqueConstraint(fields=['approval', 'stage'], name='uniq_design_review_voice_stage')]
+
+
 class PushSubscription(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

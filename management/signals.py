@@ -11,13 +11,20 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 from .models import (
     Brand, ChatMessage, Complaint, ComplaintApproval, ComplaintMedia,
-    MasterSetting, Notification, SKU, UserProfile, YearRange,
+    DesignReviewVoiceNote, MasterSetting, Notification, SKU, UserProfile, YearRange,
 )
 from .services.cache_versions import bump_cache_version
 from .security import get_client_ip
 
 
 logger = logging.getLogger(__name__)
+
+
+@receiver(post_delete, sender=DesignReviewVoiceNote)
+def delete_design_review_voice_file(sender, instance, **kwargs):
+    if instance.file:
+        from .services.design_review_voice import delete_voice_file
+        transaction.on_commit(lambda name=instance.file.name: delete_voice_file(name))
 
 
 @receiver(post_save, sender=Complaint)
