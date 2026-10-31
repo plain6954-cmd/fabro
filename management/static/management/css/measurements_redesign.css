@@ -1887,6 +1887,124 @@ body.is-design-tab::before {
     transition: transform 0.25s ease;
 }
 
+.tile-upload-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    background: #111317;
+    color: #f8fafc;
+    text-align: center;
+    cursor: default;
+    transition: opacity 300ms ease;
+}
+
+.tile-upload-percent {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.tile-upload-progress {
+    width: 75%;
+    height: 4px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #475569;
+}
+
+.tile-upload-progress::before {
+    content: '';
+    display: block;
+    width: var(--upload-progress, 0%);
+    height: 100%;
+    background: #c084fc;
+}
+
+.tile-upload-message {
+    font-size: 0.75rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.tile-upload-retry {
+    padding: 3px 8px;
+    border: 1px solid #c084fc;
+    border-radius: 4px;
+    background: #1e1b29;
+    color: #f8fafc;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.tile-upload-date-placeholder {
+    display: inline-grid;
+}
+
+.tile-upload-date-placeholder > span {
+    grid-area: 1 / 1;
+}
+
+.tile-upload-date-placeholder > span[aria-hidden] {
+    visibility: hidden;
+}
+
+.is-upload-pending .tile-overall-status,
+.is-upload-pending .approver-dots-group {
+    visibility: hidden;
+}
+
+.is-upload-revealing .tile-media-container img {
+    opacity: 0;
+    transform: scale(0.98);
+    transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.is-upload-revealing.is-upload-revealed .tile-media-container img {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.is-upload-revealed .tile-upload-overlay {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fabro-design-gallery.view-list .tile-upload-overlay {
+    padding: 3px;
+    gap: 3px;
+}
+
+.fabro-design-gallery.view-list .tile-upload-overlay .tile-upload-percent {
+    font-size: 0.65rem !important;
+}
+
+.fabro-design-gallery.view-list .tile-upload-message {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.fabro-design-gallery.view-list .tile-upload-retry {
+    padding: 1px 2px;
+    font-size: 0.62rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .is-upload-revealing .tile-media-container img,
+    .tile-upload-overlay {
+        transition: none;
+    }
+}
+
 .fabro-design-tile:hover .tile-media-container img {
     transform: scale(1.02);
 }

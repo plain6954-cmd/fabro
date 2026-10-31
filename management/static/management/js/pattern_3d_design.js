@@ -33,6 +33,10 @@
         currentUser: null,
         loadRequestId: 0,
         isSubmittingDecision: false,
+        uploads: [],
+        uploadBusy: false,
+        uploadSequence: 0,
+        renderedTiles: new Map(),
     };
 
     function getCsrfToken() {
@@ -88,6 +92,7 @@
                 // Remove from state
                 state.referenceImages = state.referenceImages.filter(f => f.id !== fileId);
                 state.designFiles = state.designFiles.filter(f => f.id !== fileId);
+                state.uploads = state.uploads.filter(entry => entry.serverFile?.id !== fileId);
 
                 // Update count badges
                 const refBadge = document.getElementById('refImagesCountBadge');
@@ -144,6 +149,12 @@
                 // 3D Design files: strictly 3D model files (never reference images)
                 const d3dFiles = allFiles.filter(f => !f.is_reference && !refImageIds.has(f.id));
                 state.designFiles = d3dFiles;
+                state.uploads = state.uploads.filter(entry => {
+                    if (entry.vehicleId !== vehicleId || !entry.serverFile) return true;
+                    const current = d3dFiles.find(file => file.id === entry.serverFile.id);
+                    if (current) entry.serverFile = current;
+                    return !!current;
+                });
                 state.currentUser = data.user_info || {};
                 state.canApproveDesigns = data.can_approve_designs || false;
                 state.canDelete = data.user_info?.can_delete === true;
@@ -173,10 +184,12 @@
                         selectDrawerFile(state.designFiles[0].id);
                     }
                 }
+                return true;
             }
         } catch (err) {
             console.error('[3D Design] Failed to load workspace data:', err);
         }
+        return false;
     }
 
     /**
@@ -329,39 +342,160 @@
     }
 
     async function handle3DDesignSelected(fileList) {
-        const input = document.getElementById('design3DUploadInput');
-        if (!fileList || !fileList.length || !state.vehicleId) return;
-
-        const vehicleId = state.vehicleId;
-        const formData = new FormData();
-        formData.append('is_reference', '0');
-        Array.from(fileList).forEach(file => formData.append('images', file));
-
-        if (input) input.disabled = true;
-        try {
-            const resp = await fetch(`/api/vehicles/${vehicleId}/design-images/upload/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getCsrfToken() },
-                body: formData,
-            });
-            const data = await resp.json();
-
-            if (!resp.ok || data.status !== 'success') {
-                throw new Error(data.message || 'Design upload failed.');
-            }
-
-            if (state.vehicleId === vehicleId) {
-                await load3DDesignWorkspace(vehicleId);
-            }
-        } catch (error) {
-            console.error('[3D Design] Upload failed:', error);
-            alert(error.message || 'Unable to upload designs.');
-        } finally {
-            if (input) {
-                input.value = '';
-                input.disabled = false;
-            }
+        if (!fileList?.length || !state.vehicleId || state.uploadBusy || eventController.signal.aborted) return;
+        if (fileList.length > 10) {
+            alert('Upload at most 10 files at once.');
+            const input = document.getElementById('design3DUploadInput');
+            if (input) input.value = '';
+            return;
         }
+        const entries = Array.from(fileList, file => ({
+            id: crypto.randomUUID?.() || Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join(''),
+            temporaryId: --state.uploadSequence,
+            vehicleId: state.vehicleId, file, title: file.name, size: file.size,
+            phase: 'queued', percent: 0, serverFile: null, error: '',
+        }));
+        state.uploads.push(...entries);
+        render3DDesignFiles();
+        await runDesignUploads(entries);
+    }
+
+    function uploadMessage(entry) {
+        if (entry.phase === 'failed') return entry.error;
+        if (entry.phase === 'queued') return 'Queued';
+        if (entry.phase === 'processing') return 'Processing...';
+        if (entry.phase === 'loading') return 'Loading image...';
+        if (entry.phase === 'revealing' || entry.phase === 'done') return 'Uploaded';
+        return 'Uploading...';
+    }
+
+    function updateDesignUploadProgress(entry) {
+        const tile = document.querySelector(`[data-upload-id="${entry.id}"]`);
+        if (!tile) return;
+        tile.querySelector('.tile-upload-percent').textContent = `${entry.percent}%`;
+        const progress = tile.querySelector('[role="progressbar"]');
+        progress.setAttribute('aria-valuenow', entry.percent);
+        progress.style.setProperty('--upload-progress', `${entry.percent}%`);
+        tile.querySelector('.tile-upload-message').textContent = uploadMessage(entry);
+    }
+
+    function sendDesignUpload(entry) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const abort = () => xhr.abort();
+            xhr.open('POST', `/api/vehicles/${entry.vehicleId}/design-images/upload/`);
+            xhr.responseType = 'json';
+            xhr.timeout = 120000;
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+            // The existing backend reuses this file's saved record if a response was lost.
+            xhr.setRequestHeader('X-Upload-Id', entry.id);
+            xhr.upload.onprogress = event => {
+                if (event.lengthComputable && event.total > 0) {
+                    entry.percent = Math.min(100, Math.floor(event.loaded / event.total * 100));
+                    updateDesignUploadProgress(entry);
+                }
+            };
+            xhr.upload.onload = () => {
+                entry.percent = 100;
+                entry.phase = 'processing';
+                updateDesignUploadProgress(entry);
+            };
+            xhr.onload = () => {
+                const data = xhr.response;
+                if (xhr.status >= 200 && xhr.status < 300 && data?.status === 'success' && data.images?.length === 1) {
+                    resolve(data.images[0]);
+                } else {
+                    reject(new Error(data?.message || 'Upload could not be confirmed. Please retry.'));
+                }
+            };
+            xhr.onerror = xhr.ontimeout = () => reject(new Error('Connection interrupted. Please retry.'));
+            xhr.onabort = () => reject(new Error('Upload interrupted.'));
+            xhr.onloadend = () => eventController.signal.removeEventListener('abort', abort);
+            eventController.signal.addEventListener('abort', abort, { once: true });
+            const body = new FormData();
+            body.append('is_reference', '0');
+            body.append('images', entry.file);
+            xhr.send(body);
+        });
+    }
+
+    async function loadUploadedImage(url) {
+        const image = new Image();
+        await new Promise((resolve, reject) => {
+            const abort = () => { image.src = ''; reject(new Error('Image loading interrupted.')); };
+            const cleanup = () => eventController.signal.removeEventListener('abort', abort);
+            image.onload = () => { cleanup(); resolve(); };
+            image.onerror = () => { cleanup(); reject(new Error('File saved, but its image could not load. Please retry.')); };
+            eventController.signal.addEventListener('abort', abort, { once: true });
+            image.src = url;
+        });
+        if (image.decode) await image.decode();
+    }
+
+    async function runDesignUploads(entries) {
+        if (state.uploadBusy || eventController.signal.aborted) return;
+        state.uploadBusy = true;
+        const input = document.getElementById('design3DUploadInput');
+        const button = document.getElementById('btnUpload3DDesigns');
+        if (input) input.disabled = true;
+        if (button) button.disabled = true;
+        try {
+            // One file per request exposes genuine, independent byte progress without parallel uploads.
+            for (const entry of entries) {
+                if (eventController.signal.aborted) break;
+                try {
+                    entry.error = '';
+                    if (!entry.serverFile) {
+                        entry.phase = 'uploading';
+                        entry.percent = 0;
+                        render3DDesignFiles();
+                        entry.serverFile = await sendDesignUpload(entry);
+                    }
+                    if (eventController.signal.aborted) break;
+                    entry.phase = 'loading';
+                    if (state.vehicleId === entry.vehicleId) {
+                        if (!await load3DDesignWorkspace(entry.vehicleId)) {
+                            throw new Error('File saved, but the gallery could not refresh. Please retry.');
+                        }
+                        const current = state.designFiles.find(file => file.id === entry.serverFile.id);
+                        if (!current) throw new Error('The saved file is no longer available in this gallery.');
+                        entry.serverFile = current;
+                    }
+                    if (isDesignImage(entry.serverFile)) {
+                        await loadUploadedImage(entry.serverFile.url || entry.serverFile.original_url);
+                    }
+                    if (eventController.signal.aborted) break;
+                    entry.phase = 'revealing';
+                    entry.file = null;
+                    render3DDesignFiles();
+                    const tile = document.querySelector(`[data-upload-id="${entry.id}"]`);
+                    if (tile) {
+                        void tile.offsetWidth;
+                        requestAnimationFrame(() => tile.classList.add('is-upload-revealed'));
+                    }
+                    setTimeout(() => {
+                        entry.phase = 'done';
+                        tile?.querySelector('.tile-upload-overlay')?.remove();
+                        tile?.classList.remove('is-upload-revealing', 'is-upload-revealed');
+                    }, 350);
+                } catch (error) {
+                    if (eventController.signal.aborted) break;
+                    entry.phase = 'failed';
+                    entry.error = error.message || 'Unable to upload this file. Please retry.';
+                    render3DDesignFiles();
+                }
+            }
+        } finally {
+            state.uploadBusy = false;
+            if (input) { input.value = ''; input.disabled = false; }
+            if (button) button.disabled = false;
+            document.querySelectorAll('.tile-upload-retry').forEach(retry => { retry.disabled = false; });
+        }
+    }
+
+    function retry3DDesignUpload(id) {
+        const entry = state.uploads.find(upload => upload.id === id && upload.phase === 'failed');
+        if (entry) return runDesignUploads([entry]);
     }
 
     /**
@@ -382,6 +516,13 @@
         if (!gallery) return;
 
         let files = [...state.designFiles];
+        const uploads = state.uploads.filter(entry => entry.vehicleId === state.vehicleId);
+        const batchActive = uploads.some(entry => !['done', 'failed'].includes(entry.phase));
+        const pinnedUploads = uploads.filter(entry => batchActive || entry.phase === 'failed');
+        const uploadIds = new Set(pinnedUploads.map(entry => entry.serverFile?.id));
+        files = files.filter(file => !uploadIds.has(file.id)).map(file => ({
+            ...file, upload: uploads.find(entry => entry.serverFile?.id === file.id),
+        }));
 
         // Search Filter
         if (state.searchQuery) {
@@ -400,13 +541,22 @@
             files.sort((a, b) => (a.approval_status || '').localeCompare(b.approval_status || ''));
         }
 
+        // Reserve each selected file's slot; replace that same slot after confirmation.
+        files.unshift(...pinnedUploads.filter(entry => entry.phase !== 'done' || !state.searchQuery || entry.title.toLowerCase().includes(state.searchQuery.toLowerCase())).map(entry => ({
+            ...(entry.serverFile || { id: entry.temporaryId, title: entry.title, file_size: entry.size,
+                file_size_display: entry.size < 1024 * 1024 ? `${Math.round(entry.size / 1024 * 10) / 10} KB` : `${Math.round(entry.size / (1024 * 1024) * 100) / 100} MB`,
+                uploaded_by: state.currentUser?.username, file_ext: entry.title.split('.').pop() }),
+            upload: entry,
+        })));
+
         // Use only the visible, authorized image results in the current gallery order.
-        state.previewImages = files.filter(isDesignImage).map(file => ({
+        state.previewImages = files.filter(file => isDesignImage(file) && (!file.upload || ['revealing', 'done'].includes(file.upload.phase))).map(file => ({
             id: file.id, title: file.title,
             url: file.original_url || `/design-images/${encodeURIComponent(file.id)}/download/`,
         }));
 
         if (files.length === 0) {
+            state.renderedTiles.clear();
             gallery.innerHTML = `
                 <div class="design-files-empty-state" style="padding: 2.5rem 1rem; text-align: center; color: var(--fabro-text-muted); font-size: 0.85rem; width: 100%;">
                     <i class="fas fa-cube" style="font-size: 2rem; opacity: 0.35; margin-bottom: 0.65rem; display: block; color: #a855f7;"></i>
@@ -417,15 +567,17 @@
             return;
         }
 
-        let html = '';
+        const tiles = [];
         files.forEach(file => {
+            const upload = file.upload;
+            const uploadPending = upload && !['revealing', 'done'].includes(upload.phase);
             const isRejected = file.approval_status === 'rejected';
             const isApproved = file.approval_status === 'approved';
             const isPending = !isApproved && !isRejected;
 
-            const tileClass = `fabro-design-tile ${isRejected ? 'is-rejected' : ''} ${isApproved ? 'is-approved' : ''}`;
+            const tileClass = `fabro-design-tile ${isRejected ? 'is-rejected' : ''} ${isApproved ? 'is-approved' : ''} ${uploadPending ? 'is-upload-pending' : ''} ${upload?.phase === 'revealing' ? 'is-upload-revealing' : ''}`;
             const thumbSrc = file.url || file.preview_url;
-            const isImage = isDesignImage(file);
+            const isImage = isDesignImage(file) && !uploadPending;
 
             // Status Badge Overlay
             let statusPill = '';
@@ -456,14 +608,14 @@
 
             const fileSizeText = file.file_size_display || (Math.round((file.file_size || 0) / 1024) + ' KB');
 
-            html += `
-                <div class="${tileClass}" data-file-id="${file.id}">
+            const html = `
+                <div class="${tileClass}" data-file-id="${file.id}" ${upload ? `data-upload-id="${upload.id}"` : ''}>
                     <div class="tile-checkbox-wrapper">
-                        <input type="checkbox" class="file-tile-select" data-id="${file.id}" style="accent-color: var(--fabro-red); cursor: pointer;">
+                        <input type="checkbox" class="file-tile-select" data-id="${file.id}" ${uploadPending ? 'disabled' : ''} style="accent-color: var(--fabro-red); cursor: pointer;">
                     </div>
 
                     <div class="tile-top-actions-overlay">
-                        ${canCurrentUserDelete(file) ? `
+                        ${!uploadPending && canCurrentUserDelete(file) ? `
                             <button type="button" class="tile-delete-x-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file" aria-label="Delete this file">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -473,12 +625,20 @@
                     ${isImage ? `<button type="button" class="tile-media-container" data-design-image-id="${file.id}" aria-label="Enlarge ${escapeHtml(file.title)}" aria-describedby="design3DStatus${file.id}" onclick="event.stopPropagation(); window.open3DDesignPreview(${file.id}, this)">` : '<div class="tile-media-container">'}
                         ${mediaHtml}
                         ${statusPill}
+                        ${upload && upload.phase !== 'done' ? `
+                            <div class="tile-upload-overlay" onclick="event.stopPropagation()">
+                                <span class="tile-upload-percent">${upload.percent}%</span>
+                                <div class="tile-upload-progress" role="progressbar" aria-label="Uploading ${escapeHtml(file.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${upload.percent}" style="--upload-progress: ${upload.percent}%"></div>
+                                <span class="tile-upload-message" role="status" title="${escapeHtml(uploadMessage(upload))}">${escapeHtml(uploadMessage(upload))}</span>
+                                ${upload.phase === 'failed' ? `<button type="button" class="tile-upload-retry" ${state.uploadBusy ? 'disabled' : ''} title="${escapeHtml(upload.error)}" aria-label="Retry ${escapeHtml(file.title)}: ${escapeHtml(upload.error)}" onclick="event.stopPropagation(); window.retry3DDesignUpload('${upload.id}')">Retry</button>` : ''}
+                            </div>
+                        ` : ''}
                     ${isImage ? '</button>' : '</div>'}
 
                     <div class="tile-body">
                         <div class="tile-header-row">
                             <h4 class="tile-title" title="${escapeHtml(file.title)}">${escapeHtml(file.title)}</h4>
-                            <button type="button" class="btn-open-tile-drawer" onclick="event.stopPropagation(); window.openApprovalDrawer(${file.id})" title="View Approval Workflow" aria-label="View Approval Workflow">
+                            <button type="button" class="btn-open-tile-drawer" ${uploadPending ? 'disabled' : ''} onclick="event.stopPropagation(); window.openApprovalDrawer(${file.id})" title="View Approval Workflow" aria-label="View Approval Workflow">
                                 <i class="fas fa-clipboard-check"></i>
                             </button>
                         </div>
@@ -493,7 +653,7 @@
 
                         <div class="tile-meta-row">
                             <i class="far fa-clock"></i>
-                            <span>Completed: <strong>${escapeHtml(file.completed_at || file.uploaded_at || '—')}</strong></span>
+                            <span>Completed: ${upload && !upload.serverFile ? `<strong class="tile-upload-date-placeholder"><span>—</span><span aria-hidden="true">${escapeHtml(state.designFiles[0]?.completed_at || 'Sep 30, 2000 12:00 AM')}</span></strong>` : `<strong>${escapeHtml(file.completed_at || file.uploaded_at || '—')}</strong>`}</span>
                         </div>
 
                         <div class="tile-meta-row">
@@ -508,18 +668,36 @@
                                 <span class="approver-dot-badge is-${edStatus}" title="ED: ${reviewStatusLabel(edStatus).toUpperCase()}">ED</span>
                                 <span class="approver-dot-badge is-${cadStatus}" title="CAD: ${reviewStatusLabel(cadStatus).toUpperCase()}">CAD</span>
                             </div>
-                            <button type="button" class="approval-workflow-tile-btn" onclick="event.stopPropagation(); window.openApprovalDrawer(${file.id})" title="Approval Workflow">
+                            <button type="button" class="approval-workflow-tile-btn" ${uploadPending ? 'disabled' : ''} onclick="event.stopPropagation(); window.openApprovalDrawer(${file.id})" title="Approval Workflow">
                                 <i class="fas fa-clipboard-check"></i>
                                 <span>Approval Workflow</span>
                             </button>
-                            ${canCurrentUserDelete(file) ? `<button type="button" class="btn-tile-delete" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file"><i class="fas fa-times"></i></button>` : ''}
+                            ${!uploadPending && canCurrentUserDelete(file) ? `<button type="button" class="btn-tile-delete" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file"><i class="fas fa-times"></i></button>` : ''}
                         </div>
                     </div>
                 </div>
             `;
+            tiles.push({ key: upload?.id || String(file.id), html });
         });
 
-        gallery.innerHTML = html;
+        const nextTiles = new Map();
+        const nodes = tiles.map(({ key, html }) => {
+            const previous = state.renderedTiles.get(key);
+            let node = previous?.node;
+            if (!node || previous.html !== html) {
+                const template = document.createElement('template');
+                template.innerHTML = html.trim();
+                node = template.content.firstElementChild;
+                if (previous?.node) {
+                    node.querySelector('.file-tile-select').checked = previous.node.querySelector('.file-tile-select').checked;
+                }
+            }
+            nextTiles.set(key, { html, node });
+            return node;
+        });
+        // Keep unchanged tiles (and their native checkbox state) during per-file updates.
+        gallery.replaceChildren(...nodes);
+        state.renderedTiles = nextTiles;
         position3DDesignStatusBadges(gallery);
     }
 
@@ -980,6 +1158,7 @@
     window.scrollRefImages = scrollRefImages;
     window.handleRefImageSelected = handleRefImageSelected;
     window.handle3DDesignSelected = handle3DDesignSelected;
+    window.retry3DDesignUpload = retry3DDesignUpload;
     window.filter3DDesignFiles = filter3DDesignFiles;
     window.sort3DDesignFiles = sort3DDesignFiles;
     window.switch3DFilesView = switch3DFilesView;
@@ -1026,6 +1205,7 @@
     document.addEventListener('DOMContentLoaded', initialize3DWorkspace, { once: true, signal: eventController.signal });
     document.addEventListener('fabro:page-ready', initialize3DWorkspace, { signal: eventController.signal });
     document.addEventListener('fabro:before-page-swap', () => {
+        eventController.abort();
         state.loadRequestId++;
         referenceTrack = null;
         closeApprovalDrawer();
