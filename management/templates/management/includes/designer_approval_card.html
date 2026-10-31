@@ -1,0 +1,104 @@
+{% load i18n %}
+<article class="approval-card designer-approval-card {% if item.can_review_by_user %}needs-my-vote{% endif %}" id="card-design-{{ item.id }}" data-cad-status="{{ item.current_cad_status }}" data-ed-status="{{ item.current_ed_status }}" data-md-status="{{ item.current_md_status }}">
+    <header class="designer-card-header">
+        <div class="designer-card-identity">
+            <h2 class="designer-vehicle-heading">{% if item.vehicle %}{{ item.vehicle }}{% elif item.folder.vehicle %}{% with v=item.folder.vehicle %}{{ v.sub_model.model.brand.name }} {{ v.sub_model.model.name }}{% if v.sub_model.name != '-' %} {{ v.sub_model.name }}{% endif %}{% if v.year_start or v.year_end %} ({{ v.year_start|default_if_none:'' }}{% if v.year_start and v.year_end %}–{% endif %}{{ v.year_end|default_if_none:'' }}){% endif %}{% endwith %}{% else %}{% translate "Vehicle not specified" %}{% endif %}</h2>
+            <span class="designer-uploader-badge"><i class="fas fa-user-edit" aria-hidden="true"></i> {{ item.designer_name }}</span>
+            {% if item.can_review_by_user %}<span class="designer-action-badge" title="{% translate 'Your vote is pending' %}"><i class="fas fa-bell" aria-hidden="true"></i> {% translate "Action required" %}</span>{% endif %}
+        </div>
+        <div class="designer-card-date-status">
+            <time datetime="{{ item.uploaded_at|date:'c' }}">{{ item.uploaded_at|date:"d M Y, H:i" }}</time>
+            <span class="status-pill {{ item.review_status|default:item.approval_status }}">{% if item.approval_status == 'approved' %}{% translate "Approved" %}{% elif item.approval_status == 'rejected' %}{% translate "Changes Required" %}{% elif item.review_status == 'partially_approved' %}{% translate "Partially Approved" %}{% else %}{% translate "Pending Review" %}{% endif %}</span>
+        </div>
+    </header>
+    <div class="designer-card-content">
+        <section class="designer-file-zone" aria-label="{% translate 'Design file information' %}">
+            <div class="designer-file-row">
+                {% with suffix=item.image.name|lower|slice:'-4:' long_suffix=item.image.name|lower|slice:'-5:' %}
+                {% if suffix == '.pdf' %}
+                <div class="designer-thumbnail designer-pdf-thumbnail" role="img" aria-label="PDF · {{ item.title }}"><i class="fas fa-file-pdf" aria-hidden="true"></i><strong>PDF</strong><span>{{ item.title }}</span></div>
+                {% elif item.image and suffix == '.png' or item.image and suffix == '.jpg' or item.image and suffix == '.gif' or item.image and suffix == '.bmp' or item.image and long_suffix == '.jpeg' or item.image and long_suffix == '.webp' %}
+                <button type="button" class="designer-thumbnail" aria-label="{% translate 'Preview design' %} {{ item.title }}" onclick="openDesignPreviewModal('{% url 'pattern_design_image_download' item.id %}', '{{ item.title|escapejs }}')">
+                    <img src="{% if item.thumbnail %}{{ item.thumbnail.url }}{% else %}{% url 'pattern_design_image_download' item.id %}{% endif %}" alt="{{ item.title }}" loading="lazy" onerror="this.hidden=true; this.parentElement.classList.add('is-unavailable');">
+                    <span class="designer-thumbnail-fallback" aria-hidden="true"><i class="fas fa-file-image"></i><span>{{ item.title }}</span></span>
+                </button>
+                {% else %}
+                <div class="designer-thumbnail is-unavailable" role="img" aria-label="{{ item.title }}"><span class="designer-thumbnail-fallback"><i class="fas fa-drafting-compass" aria-hidden="true"></i><span>{{ item.title }}</span></span></div>
+                {% endif %}
+                {% endwith %}
+                <dl class="designer-file-metadata">
+                    <div><dt>{% translate "Filename" %}</dt><dd class="designer-filename">{{ item.title }}</dd></div>
+                    <div><dt>{% translate "Size" %}</dt><dd>{% if item.file_size %}{{ item.file_size|filesizeformat }}{% else %}—{% endif %}</dd></div>
+                    <div><dt>{% translate "Revision" %}</dt><dd>#{{ item.cycle }}</dd></div>
+                    <div><dt>{% translate "Uploaded by" %}</dt><dd>{{ item.designer_name }}</dd></div>
+                    {% if item.folder %}<div><dt>{% translate "Folder" %}</dt><dd>{{ item.folder.name }}</dd></div>{% endif %}
+                </dl>
+            </div>
+            {% if item.rejection_reason %}<p class="designer-rejection-reason"><strong>{% translate "Feedback / Rejection Reason:" %}</strong> {{ item.rejection_reason }}</p>{% endif %}
+        </section>
+        <section class="designer-reviewer-matrix" aria-label="{% translate 'Design reviewer matrix' %}">
+            <h3>{% translate "Live Design Reviewer Matrix" %}</h3>
+                                    <div class="approver-grid">
+                                        <!-- CAD BOX -->
+                                        <div class="approver-box status-{{ item.current_cad_status|default:'pending' }}">
+                                            <div class="approver-role-tag">CAD</div>
+                                            <div class="reviewer-status-text">
+                                                <i class="fas {% if item.current_cad_status == 'approved' %}fa-check-circle{% elif item.current_cad_status == 'rejected' %}fa-times-circle{% elif item.current_cad_status == 'skipped_uploader' %}fa-minus-circle{% else %}fa-clock{% endif %}"></i>
+                                                {{ item.latest_approval.get_cad_status_display }}
+                                            </div>
+                                            <div class="reviewer-name-sub">
+                                                {% if item.current_cad_status != 'skipped_uploader' %}{{ item.cad_reviewer_name }}{% endif %}
+                                            </div>
+                                            {% if item.cad_comment %}
+                                            <div class="reviewer-comment">
+                                                "{{ item.cad_comment }}"
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- ED BOX -->
+                                        <div class="approver-box status-{{ item.current_ed_status|default:'pending' }}">
+                                            <div class="approver-role-tag">ED</div>
+                                            <div class="reviewer-status-text">
+                                                <i class="fas {% if item.current_ed_status == 'approved' %}fa-check-circle{% elif item.current_ed_status == 'rejected' %}fa-times-circle{% elif item.current_ed_status == 'skipped_uploader' %}fa-minus-circle{% else %}fa-clock{% endif %}"></i>
+                                                {{ item.latest_approval.get_ed_status_display }}
+                                            </div>
+                                            <div class="reviewer-name-sub">
+                                                {% if item.current_ed_status != 'skipped_uploader' %}{{ item.ed_reviewer_name }}{% endif %}
+                                            </div>
+                                            {% if item.ed_comment %}
+                                            <div class="reviewer-comment">
+                                                "{{ item.ed_comment }}"
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="approver-box status-{{ item.current_md_status|default:'pending' }}">
+                                            <div class="approver-role-tag">MD</div>
+                                            <div class="reviewer-status-text">{{ item.latest_approval.get_md_status_display }}</div>
+                                            <div class="reviewer-name-sub">{% if item.current_md_status != 'skipped_uploader' %}{{ item.md_reviewer_name }}{% endif %}</div>
+                                            {% if item.md_comment %}<div class="reviewer-comment">"{{ item.md_comment }}"</div>{% endif %}
+                                        </div>
+                                    </div>
+
+        </section>
+                            <div class="designer-card-actions">
+                                {% if item.can_review_by_user %}
+                                <button type="button" class="btn-action-primary designer-approve" onclick="openQuickDesignReviewModal({{ item.id }}, '{{ item.title|escapejs }}', 'approved')">
+                                    <i class="fas fa-check" aria-hidden="true"></i> {% translate "Approve Design" %}
+                                </button>
+                                <button type="button" class="btn-action-primary designer-decline" onclick="openQuickDesignReviewModal({{ item.id }}, '{{ item.title|escapejs }}', 'rejected')">
+                                    <i class="fas fa-times" aria-hidden="true"></i> {% translate "Decline" %}
+                                </button>
+                                {% endif %}
+                                <a href="{% url 'design_approval_detail' item.id %}?{{ design_review_querystring }}" class="btn-action-secondary" title="{% translate "Inspect design history & revisions" %}">
+                                    <i class="fas fa-eye" aria-hidden="true"></i> {% translate "View Details" %}
+                                </a>
+                                {% if item.image %}
+                                <a href="{% url 'pattern_design_image_download' item.id %}" class="btn-action-secondary" title="{% translate "Download original asset" %}">
+                                    <i class="fas fa-download" aria-hidden="true"></i> {% translate "Download" %}
+                                </a>
+                                {% endif %}
+                            </div>
+
+    </div>
+</article>

@@ -188,3 +188,57 @@ class DesignerApprovalsWorkspaceTests(TestCase):
         self.client.force_login(self.cad_user)
         response = self.client.get(reverse('approvals_list') + '?stage=designer&status=my_pending')
         self.assertNotContains(response, 'card-design-' + str(self.design_img.id))
+
+    def test_compact_card_uses_actual_vehicle_heading_and_file_metadata(self):
+        import re
+        from html import unescape
+        self.client.force_login(self.cad_user)
+        response = self.client.get(reverse('approvals_list'), {'stage': 'designer', 'status': 'all'})
+        headings = re.findall(r'<h2 class="designer-vehicle-heading">(.*?)</h2>', response.content.decode(), re.S)
+        self.assertEqual([' '.join(unescape(text).split()) for text in headings], ['Audi Test Q7 Prestige (2023-2025)'])
+        self.assertNotIn(self.design_img.title, headings)
+        self.assertContains(response, '<dd class="designer-filename">q7_driver_cushion.gif</dd>', html=True)
+        self.assertContains(response, 'designer-card-actions')
+        self.assertContains(response, 'designer_approval_cards.css')
+        self.assertContains(response, 'data-cad-status="pending"')
+        self.assertContains(response, reverse('design_approval_detail', args=[self.design_img.pk]) + '?queue_status=all')
+
+    def test_pdf_card_shows_pdf_icon_without_exposing_private_storage_path(self):
+        self.design_img.image.name = 'private_design_pdfs/opaque.PDF'
+        self.design_img.title = 'Seat inspection.PDF'
+        self.design_img.save(update_fields=['image', 'title'])
+        self.client.force_login(self.cad_user)
+        response = self.client.get(reverse('approvals_list'), {'stage': 'designer', 'status': 'all'})
+        self.assertContains(response, 'designer-pdf-thumbnail')
+        self.assertContains(response, 'Seat inspection.PDF')
+        import re
+        card = re.search(r'<article[^>]*id="card-design-' + str(self.design_img.pk) + r'".*?</article>', response.content.decode(), re.S).group(0)
+        self.assertNotIn('<img ', card)
+        self.assertNotContains(response, 'private_design_pdfs')
+        self.assertNotContains(response, 'opaque.PDF')
+
+    def test_folder_vehicle_heading_and_missing_vehicle_label_are_truthful(self):
+        self.design_img.vehicle = None
+        self.design_img.save(update_fields=['vehicle'])
+        self.client.force_login(self.cad_user)
+        response = self.client.get(reverse('approvals_list'), {'stage': 'designer', 'status': 'all'})
+        self.assertContains(response, 'Audi Test Q7 Prestige (2023–2025)')
+        self.design_img.folder = None
+        self.design_img.save(update_fields=['folder'])
+        response = self.client.get(reverse('approvals_list'), {'stage': 'designer', 'status': 'all'})
+        self.assertContains(response, '<h2 class="designer-vehicle-heading">Vehicle not specified</h2>', html=True)
+
+    def test_compact_cards_preserve_skipped_stage_and_readonly_actions(self):
+        own = PatternDesignImage.objects.create(vehicle=self.vehicle, title='CAD upload.png',
+            image='existing.png', uploaded_by=self.cad_user)
+        submit_design_for_approval(own, self.cad_user)
+        self.client.force_login(self.cad_user)
+        response = self.client.get(reverse('approvals_list'), {'stage': 'designer', 'status': 'all'})
+        self.assertContains(response, 'data-cad-status="skipped_uploader"')
+        self.assertContains(response, 'Skipped — Uploader')
+        self.assertContains(response, 'designer-approve')
+        self.client.force_login(self.om_user)
+        response = self.client.get(reverse('approvals_list'), {'stage': 'designer', 'status': 'all'})
+        self.assertNotContains(response, 'onclick="openQuickDesignReviewModal(')
+        self.assertContains(response, 'View Details')
+        self.assertContains(response, 'Download original asset')
