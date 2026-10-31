@@ -2020,13 +2020,6 @@ body.is-design-tab::before {
     transform: scale(1.02);
 }
 
-.tile-checkbox-wrapper {
-    position: absolute;
-    top: 8px;
-    right: 44px;
-    z-index: 5;
-}
-
 .stepper-badge.tile-overall-status {
     position: absolute;
     top: 8px;
@@ -2232,20 +2225,10 @@ body.is-design-tab::before {
 .fabro-design-gallery.view-list .fabro-design-tile {
     flex-direction: row;
     align-items: center;
-    padding: 0.55rem 0.95rem;
+    /* Preserve the existing list content inset and wrapping. */
+    padding: 0.55rem 0.95rem 0.55rem calc(1.7rem + 13px);
     min-height: 58px;
     min-width: 900px;
-}
-
-.fabro-design-gallery.view-list .tile-checkbox-wrapper {
-    position: static;
-    top: auto;
-    left: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 0.75rem;
-    flex-shrink: 0;
 }
 
 .fabro-design-gallery.view-list .tile-media-container {

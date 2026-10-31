@@ -695,10 +695,6 @@
 
             const html = `
                 <div class="${tileClass}" data-file-id="${file.id}" ${upload ? `data-upload-id="${upload.id}"` : ''}>
-                    <div class="tile-checkbox-wrapper">
-                        <input type="checkbox" class="file-tile-select" data-id="${file.id}" ${uploadPending ? 'disabled' : ''} style="accent-color: var(--fabro-red); cursor: pointer;">
-                    </div>
-
                     <div class="tile-top-actions-overlay">
                         ${!uploadPending && canCurrentUserDelete(file) ? `
                             <button type="button" class="tile-delete-x-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file" aria-label="Delete this file">
@@ -775,11 +771,6 @@
                 template.innerHTML = html.trim();
                 node = template.content.firstElementChild;
                 if (previous?.node) {
-                    const checkbox = previous.node.querySelector('.file-tile-select');
-                    const replacement = node.querySelector('.file-tile-select');
-                    checkbox.disabled = replacement.disabled;
-                    checkbox.dataset.id = replacement.dataset.id;
-                    replacement.replaceWith(checkbox);
                     // Keep viewer opener buttons connected across approval-only changes.
                     const selector = '[data-design-image-id], [data-design-pdf-id]';
                     const media = previous.node.querySelector(selector), nextMedia = node.querySelector(selector);

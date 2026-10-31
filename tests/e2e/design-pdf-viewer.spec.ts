@@ -91,7 +91,7 @@ test('PDF uses real upload progress and the lazy authenticated responsive viewer
   expect((await open.boundingBox())!.height).toBe(mediaBefore!.height);
   await expect(tile.locator('.fa-file-pdf')).toBeVisible();
   await expect(tile.locator('.tile-overall-status')).toHaveText('Pending');
-  await tile.locator('.file-tile-select').check();
+  await expect(page.locator('#design3DFilesGallery input[type="checkbox"]')).toHaveCount(0);
   await tile.locator('.approval-workflow-tile-btn').click();
   await expect(page.locator('#designApprovalDrawer')).toHaveClass(/is-open/);
   await expect(page.locator('#designPdfViewer')).not.toBeVisible();
@@ -148,8 +148,8 @@ test('PDF uses real upload progress and the lazy authenticated responsive viewer
   await expect(viewer).not.toBeVisible();
   await expect(open).toBeFocused();
   await expect.poll(() => page.evaluate(() => (window as any).pdfWorkers === (window as any).pdfTerminations)).toBe(true);
-  await expect(tile.locator('.file-tile-select')).toBeChecked();
   await page.locator('#design3DListBtn').click();
+  await expect(page.locator('#design3DFilesGallery input[type="checkbox"]')).toHaveCount(0);
   expect((await open.boundingBox())!.width).toBe(48);
   await open.click();
   await expect(canvas).toBeVisible();

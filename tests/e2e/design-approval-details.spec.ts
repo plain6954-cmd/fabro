@@ -76,6 +76,7 @@ test('overall status pills use backend status in both views and themes without i
       await page.evaluate(value => document.body.classList.toggle('light-mode', value), light);
       for (const mode of ['grid', 'list']) {
         await page.locator(mode === 'grid' ? '#design3DGridBtn' : '#design3DListBtn').click();
+        await expect(page.locator('#design3DFilesGallery input[type="checkbox"]')).toHaveCount(0);
         for (const file of files) {
           expect(file.cad.status).toBe('skipped_uploader');
           const tile = page.locator(`.fabro-design-tile[data-file-id="${file.id}"]`);
@@ -104,7 +105,7 @@ test('overall status pills use backend status in both views and themes without i
             return { left: bounds.left - thumb.left, top: bounds.top - thumb.top,
               fits: bounds.right <= thumb.right && bounds.bottom <= thumb.bottom,
               contrast: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), thumbWidth: thumb.width,
-              overlapsControl: Array.from(el.closest('.fabro-design-tile')!.querySelectorAll('.file-tile-select, .tile-delete-x-btn')).some(control => {
+              overlapsControl: Array.from(el.closest('.fabro-design-tile')!.querySelectorAll('.tile-delete-x-btn')).some(control => {
                 const r = control.getBoundingClientRect();
                 return r.width > 0 && r.height > 0 && r.left < bounds.right && r.right > bounds.left && r.top < bounds.bottom && r.bottom > bounds.top;
               }),

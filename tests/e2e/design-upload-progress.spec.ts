@@ -74,8 +74,7 @@ test('independent byte progress, server confirmation, stable tiles and safe per-
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const existing = page.locator('.fabro-design-tile', { hasText: 'E2E progress existing.png' });
   await page.locator('#design3DFilesSearch').fill('E2E progress existing');
-  await existing.locator('.file-tile-select').check();
-  const checkboxBefore = await existing.locator('.file-tile-select').boundingBox();
+  await existing.evaluate(el => { (window as any).uploadExistingTile = el; });
   const uploads = page.locator('.fabro-design-tile[data-upload-id]');
   await page.locator('#design3DUploadInput').setInputFiles([
     { name: 'E2E progress response-lost.png', mimeType: 'image/png', buffer: image },
@@ -164,10 +163,8 @@ test('independent byte progress, server confirmation, stable tiles and safe per-
   expect(after!.width).toBe(before!.width);
   expect(after!.height).toBe(before!.height);
   expect(mediaAfter!.height).toBe(mediaBefore!.height);
-  await expect(existing.locator('.file-tile-select')).toBeChecked();
-  expect((await existing.locator('.file-tile-select').boundingBox())!.width).toBe(checkboxBefore!.width);
-  await first.locator('.file-tile-select').check();
-  await expect(first.locator('.file-tile-select')).toBeChecked();
+  expect(await existing.evaluate(el => el === (window as any).uploadExistingTile)).toBe(true);
+  await expect(page.locator('#design3DFilesGallery input[type="checkbox"]')).toHaveCount(0);
   await expect(first.locator('.tile-overall-status')).toHaveText('Pending');
   await expect(first.locator('.tile-delete-x-btn')).toHaveCount(0); // CAD upload does not grant delete permission.
   await page.locator('#design3DFilesSearch').fill('E2E progress ');
@@ -226,7 +223,6 @@ test('native XHR byte progress, reduced motion and server validation remain inta
   await tile.evaluate(el => el.classList.add('is-upload-revealing'));
   expect(await tile.locator('img').evaluate(el => parseFloat(getComputedStyle(el).transitionDuration))).toBeLessThanOrEqual(0.00001);
   await tile.evaluate(el => el.classList.remove('is-upload-revealing'));
-  await tile.locator('.file-tile-select').check();
   // A later backend status refresh must update a completed upload's normal indicator.
   runDjangoCode(`
 from management.models import PatternDesignImage
@@ -234,7 +230,7 @@ PatternDesignImage.objects.filter(title='E2E native progress.png').update(approv
 `);
   await page.evaluate(() => (window as any).load3DDesignWorkspace(1));
   await expect(tile.locator('.tile-overall-status')).toHaveText('Approved');
-  await expect(tile.locator('.file-tile-select')).toBeChecked();
+  await expect(tile.locator('input[type="checkbox"]')).toHaveCount(0);
   await page.locator('#design3DUploadInput').setInputFiles({ name: 'E2E invalid.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('invalid') });
   const invalid = page.locator('.fabro-design-tile[data-upload-id]', { hasText: 'E2E invalid.exe' });
   await expect(invalid.locator('.tile-upload-message')).toContainText('Unsupported or empty file');

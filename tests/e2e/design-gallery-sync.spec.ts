@@ -91,7 +91,6 @@ test('three users see image/PDF uploads and approval changes without refresh or 
     await observer.locator('#pattern3DDesignWorkspace .design-sort-select').selectOption('name');
     await observer.locator('#design3DListBtn').click();
     const existing = observer.locator('.fabro-design-tile', { hasText: 'E2E sync existing.png' });
-    await existing.locator('.file-tile-select').check();
     await existing.evaluate(el => { (window as any).syncExistingTile = el; });
     await observer.evaluate(() => {
       (window as any).syncAnimations = [];
@@ -110,11 +109,10 @@ test('three users see image/PDF uploads and approval changes without refresh or 
     await expect(imageTile).toHaveCount(1, { timeout: 20_000 });
     expect(await observer.evaluate(() => ({ x: scrollX, y: scrollY }))).toEqual(beforeScroll);
     expect(await existing.evaluate(el => el === (window as any).syncExistingTile)).toBe(true);
-    await expect(existing.locator('.file-tile-select')).toBeChecked();
+    await expect(observer.locator('#design3DFilesGallery input[type="checkbox"]')).toHaveCount(0);
     await expect(observer.locator('#design3DFilesGallery')).toHaveClass(/view-list/);
     await expect(observer.locator('#design3DFilesSearch')).toHaveValue('E2E sync ');
     await expect(observer.locator('#pattern3DDesignWorkspace .design-sort-select')).toHaveValue('name');
-    await imageTile.locator('.file-tile-select').check();
     const imageOpen = imageTile.locator('[data-design-image-id]');
     await imageOpen.evaluate(el => { (window as any).syncImageOpener = el; });
     await imageOpen.click();
@@ -128,7 +126,7 @@ test('three users see image/PDF uploads and approval changes without refresh or 
     await observer.keyboard.press('Escape');
     await expect(imageOpen).toBeFocused();
     expect(await imageOpen.evaluate(el => el === (window as any).syncImageOpener)).toBe(true);
-    await expect(imageTile.locator('.file-tile-select')).toBeChecked();
+    await expect(imageTile.locator('input[type="checkbox"]')).toHaveCount(0);
     await imageTile.locator('.approval-workflow-tile-btn').click();
     const draft = observer.locator('#designDrawerDecisionRemarks');
     await draft.fill('Unsaved sync draft');
