@@ -71,18 +71,19 @@ test('MD, ED, and CAD review one design independently and factory access is deni
     await form.locator('textarea[name="comment"]').fill(reviewer.comment);
     await form.locator('button[name="decision"][value="approved"]').click();
     await expect(form).toHaveCount(0);
-    await expect(page.getByText(reviewer.comment)).toBeVisible();
+    await expect(page.locator(`#review-${reviewer.stage}`).getByText(reviewer.comment, {exact:true})).toBeVisible();
   }
 
-  await expect(page.getByText('APPROVED', { exact: true })).toBeVisible();
+  await expect(page.locator('.review-preview-panel > .review-panel-heading .review-status')).toHaveText('Approved');
   const evidenceDir = join('output', 'codex-full-debug', 'screenshots');
   mkdirSync(evidenceDir, { recursive: true });
   await page.screenshot({ path: join(evidenceDir, 'approved-design-review.png') });
 
   await signIn(page, 'fabro_e2e_review_designer');
   await page.goto(detail);
-  for (const comment of ['MD review complete', 'ED review complete', 'CAD review complete']) {
-    await expect(page.getByText(comment)).toBeVisible();
+  for (const stage of ['md', 'ed', 'cad']) {
+    await page.locator(`#review-tab-${stage}`).click();
+    await expect(page.locator(`#review-${stage}`).getByText(`${stage.toUpperCase()} review complete`, {exact:true})).toBeVisible();
   }
   await signIn(page, workflowUsers.factory.username);
   const forbidden = await page.request.get(detail);

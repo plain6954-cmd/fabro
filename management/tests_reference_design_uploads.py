@@ -464,9 +464,9 @@ class ReferenceDesignUploadTests(TestCase):
                     self.assertEqual(image.approval_requests.count(), 1)
                     self.assertEqual(image.latest_approval.cad_comment, before)
             for status in ('pending', 'approved', 'rejected', 'all'):
-                page = self.client.get(reverse('design_approvals_list'), {'tab': status})
+                page = self.client.get(reverse('design_approvals_list'), {'tab': status}, follow=True)
                 self.assertEqual(page.status_code, 200)
-                self.assertTrue(all(not item.can_review_by_user for item in page.context['items']))
+                self.assertTrue(all(not item['can_review_by_user'] for item in page.context['designer_items']))
 
     def test_reference_and_design_gallery_separation(self):
         self.assertEqual(self.upload(self.superuser, True).status_code, 200)

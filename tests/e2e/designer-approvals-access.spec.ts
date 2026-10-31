@@ -75,9 +75,11 @@ test('designer Approvals navigation shows only own uploads and review feedback',
   const rejectedCard = page.locator('.approval-card').filter({ hasText: 'E2E own rejected design' });
   await rejectedCard.locator('a[href^="/design-approvals/"]').click();
   await expect(page.locator('#review-cad')).toContainText('CAD fit approved');
+  await page.locator('#review-tab-ed').click();
   await expect(page.locator('#review-ed')).toContainText('ED seam needs revision');
   await expect(page.locator('#review-ed')).toContainText('Major Change');
   await expect(page.locator('#review-ed')).toContainText(/[A-Z][a-z]{2} \d{1,2}, \d{4} \d{2}:\d{2}/);
+  await page.locator('#review-tab-md').click();
   await expect(page.locator('#review-md')).toContainText('MD opinion complete');
   await expect(page.getByRole('button', { name: 'Resubmit for Review' })).toBeVisible();
 

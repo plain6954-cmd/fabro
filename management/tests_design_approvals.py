@@ -688,10 +688,9 @@ class DesignApprovalWorkflowTests(TestCase):
         record_design_review_decision(img, self.cad_user, 'rejected', 'CAD rejected first', change_type='major')
 
         self.client.force_login(self.ed_user)
-        res = self.client.get(reverse('design_approvals_list') + '?status=pending')
+        res = self.client.get(reverse('approvals_list') + '?stage=designer&status=my_pending')
         self.assertEqual(res.status_code, 200)
-        items = list(res.context['items'])
-        self.assertIn(img, items)
+        self.assertIn(img.pk, [item['id'] for item in res.context['designer_items']])
 
     # Test 29: Resubmit with new photo replaces image and resets cycle
     def test_29_resubmit_with_new_photo(self):

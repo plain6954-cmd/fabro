@@ -103,6 +103,23 @@ window.fabroOnPageLoad(() => {
         controls();
     }
 
+    // Both the inline review preview and full-screen viewer use this private loader.
+    async function createPdfTask(file) {
+        const url = new URL(file.original_url || `/design-images/${encodeURIComponent(file.id)}/download/`, location.origin);
+        if (url.origin !== location.origin || !/^\/design-images\/\d+\/download\/$/.test(url.pathname)) throw new Error('Invalid PDF destination');
+        if (!library) library = import(dialog.dataset.pdfjsUrl).catch(failure => { library = null; throw failure; });
+        const pdfjs = await library;
+        if (scope.signal.aborted) throw new DOMException('Page closed', 'AbortError');
+        pdfjs.GlobalWorkerOptions.workerSrc = dialog.dataset.workerUrl;
+        const assetBase = dialog.dataset.assetBase;
+        return pdfjs.getDocument({
+            url: url.href, withCredentials: true,
+            cMapUrl: `${assetBase}cmaps/`, cMapPacked: true,
+            standardFontDataUrl: `${assetBase}standard_fonts/`, wasmUrl: `${assetBase}wasm/`,
+            useWasm: false,
+        });
+    }
+
     async function open(file, source) {
         close();
         window.closeDesignImageViewer?.(true);
@@ -128,17 +145,8 @@ window.fabroOnPageLoad(() => {
             // Always retrieve bytes through the existing same-origin permission check.
             const url = new URL(file.original_url || `/design-images/${encodeURIComponent(file.id)}/download/`, location.origin);
             if (url.origin !== location.origin || !/^\/design-images\/\d+\/download\/$/.test(url.pathname)) throw new Error('Invalid PDF destination');
-            if (!library) library = import(dialog.dataset.pdfjsUrl).catch(failure => { library = null; throw failure; });
-            const pdfjs = await library;
-            if (token !== session || !dialog.open) return;
-            pdfjs.GlobalWorkerOptions.workerSrc = dialog.dataset.workerUrl;
-            const assetBase = dialog.dataset.assetBase;
-            const task = pdfjs.getDocument({
-                url: url.href, withCredentials: true,
-                cMapUrl: `${assetBase}cmaps/`, cMapPacked: true,
-                standardFontDataUrl: `${assetBase}standard_fonts/`, wasmUrl: `${assetBase}wasm/`,
-                useWasm: false, // Keep the existing CSP; use PDF.js's local decoder fallbacks.
-            });
+            const task = await createPdfTask(file);
+            if (token !== session || !dialog.open) { task.destroy().catch(() => {}); return; }
             loadingTask = task;
             const pdf = await task.promise;
             if (token !== session || !dialog.open) return;
@@ -190,12 +198,14 @@ window.fabroOnPageLoad(() => {
         cancelAnimationFrame(resizeFrame);
         if (dialog.open && fit && documentPdf) resizeFrame = requestAnimationFrame(render);
     });
+    window.fabroCreateDesignPdfTask = createPdfTask;
     window.openDesignPdfViewer = open;
     window.closeDesignPdfViewer = close;
     scope.onCleanup(() => {
         close();
         delete dialog.__fabroPdfInitialized;
         if (window.openDesignPdfViewer === open) {
+            delete window.fabroCreateDesignPdfTask;
             delete window.openDesignPdfViewer;
             delete window.closeDesignPdfViewer;
         }

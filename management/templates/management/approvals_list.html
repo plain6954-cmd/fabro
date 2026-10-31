@@ -656,8 +656,8 @@
                                     <i class="fas fa-times"></i> {% translate "Decline" %}
                                 </button>
                                 {% endif %}
-                                <a href="{% url 'design_approval_detail' item.id %}" class="btn-action-secondary" title="{% translate "Inspect design history & revisions" %}">
-                                    <i class="fas fa-eye"></i> {% translate "View Details" %}
+                                <a href="{% url 'design_approval_detail' item.id %}?{{ design_review_querystring }}" class="btn-action-secondary" title="{% translate "Inspect design history & revisions" %}">
+                                    <i class="fas fa-eye" aria-hidden="true"></i> {% translate "View Details" %}
                                 </a>
                                 {% if item.image %}
                                 <a href="{% url 'pattern_design_image_download' item.id %}" class="btn-action-secondary" title="{% translate "Download original asset" %}">

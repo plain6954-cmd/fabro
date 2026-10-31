@@ -2614,11 +2614,7 @@
                 <i class="fas fa-car"></i>
                 <span>{% translate "Patterns" %}</span>
             </a>
-            <a href="{% url 'design_approvals_list' %}" class="nav-link {% if 'design_approval' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-drafting-compass"></i>
-                <span>{% translate "My Designs" %}</span>
-            </a>
-            <a href="{% url 'approvals_list' %}?stage=designer&status=all" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' %}active{% endif %}" data-shell-badge-host="approvals">
+            <a href="{% url 'approvals_list' %}?stage=designer&status=all" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals">
                 <i class="fas fa-clipboard-check"></i>
                 <span>{% translate "Approvals" %}</span>
             </a>
@@ -2657,18 +2653,12 @@
                 <span>{% translate "SKU" %}</span>
             </a>
             {% if can_view_approvals %}
-            <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' %}active{% endif %}" data-shell-badge-host="approvals">
+            <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals">
                 <i class="fas fa-clipboard-check"></i>
                 <span>{% translate "Approvals" %}</span>
                 {% if pending_approvals_count %}
                 <span class="nav-chat-badge" data-shell-badge="approvals" style="background: #f59e0b; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.45);">{{ pending_approvals_count }}</span>
                 {% endif %}
-            </a>
-            {% endif %}
-            {% if user.workflow_profile.approval_role == 'CAD' or user.workflow_profile.approval_role == 'ED' or is_workflow_admin %}
-            <a href="{% url 'design_approvals_list' %}" class="nav-link {% if 'design_approval' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-drafting-compass"></i>
-                <span>{% translate "3D Approvals" %}</span>
             </a>
             {% endif %}
             <a href="{% url 'chat_view' %}" class="nav-link {% if request.resolver_match.url_name == 'chat_view' %}active{% endif %}" data-shell-badge-host="chat">
@@ -2815,7 +2805,7 @@
             <span>{% translate "Patterns" %}</span>
         </a>
         {% if can_view_approvals %}
-        <a href="{% url 'approvals_list' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' %}active{% endif %}" data-shell-badge-host="approvals">
+        <a href="{% url 'approvals_list' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals">
             <i class="fas fa-clipboard-check"></i>
             <span>{% translate "Approvals" %}</span>
             {% if pending_approvals_count %}

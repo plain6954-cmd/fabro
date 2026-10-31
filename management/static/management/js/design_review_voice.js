@@ -252,6 +252,13 @@ window.fabroOnPageLoad(() => {
     }
     const api = {
         resetWithin, appendBubbles, stopPlaybackWithin,
+        suspendWithin(root) {
+            for (const state of recorders.values()) if (root.contains(state.root)) {
+                if (state.mode === 'recording') stop(state);
+                else if (state.mode === 'pending') reset(state);
+            }
+            root.querySelectorAll('audio[data-review-voice-audio]').forEach(audio => audio.pause());
+        },
         file(root) { return recorders.get(root)?.file || null; },
         ready(root) {
             const state = recorders.get(root);

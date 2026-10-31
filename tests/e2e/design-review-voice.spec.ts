@@ -102,6 +102,11 @@ test('native recording, live state, preview, voice-only submit, private history 
   await page.locator('#cadReviewForm [data-voice-action="stop"]').click();
   const preview=page.locator('#cadReviewForm .review-voice-bubble');
   await expect(preview).toBeVisible();
+  await page.locator('#review-tab-ed').click();
+  await expect(preview).toBeHidden();
+  await page.locator('#review-tab-cad').click();
+  await expect(preview).toBeVisible();
+  expect(await page.locator('#cadReviewForm input[name="voice_note"]').evaluate((el: HTMLInputElement) => el.files!.length)).toBe(1);
   expect(await page.evaluate(() => (window as any).__voice.stopped)).toBe(1);
   await preview.getByRole('button', {name:'Play voice note',exact:true}).click();
   await expect(preview.locator('audio')).toHaveJSProperty('paused',false);
@@ -112,7 +117,8 @@ test('native recording, live state, preview, voice-only submit, private history 
   await expect.poll(() => preview.locator('audio').evaluate(el => (el as HTMLAudioElement).currentTime)).toBeGreaterThan(1.8);
   await page.locator('#cadReviewForm button[value="approved"]').click();
   await expect(page.locator('#cadReviewForm')).toHaveCount(0);
-  const bubbles=page.locator('.review-voice-bubble');
+  await page.locator('.review-history summary').click();
+  const bubbles=page.locator('.review-history .review-voice-bubble');
   await expect(bubbles).toHaveCount(2);
   await expect(page.locator('#review-cad .voice-message-meta')).toContainText('fabro_e2e_cad');
   const first=bubbles.nth(0),second=bubbles.nth(1);

@@ -3096,99 +3096,42 @@ def resubmit_design_image_api(request, image_id):
     })
 
 
+DESIGN_QUEUE_STATUSES = {'active', 'my_pending', 'partially_approved', 'rejected', 'rework', 'reconsideration', 'approved', 'all'}
+
+
+def _design_queue_params(request, prefix='queue_'):
+    """Carry only known queue filters, never a caller-supplied return URL."""
+    profile = getattr(request.user, 'workflow_profile', None)
+    default = 'all' if profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER else 'active'
+    status = request.GET.get(prefix + 'status', default)
+    params = {'stage': 'designer', 'status': status if status in DESIGN_QUEUE_STATUSES else default}
+    search = request.GET.get(prefix + 'search', '').strip()
+    if search:
+        params['search'] = search
+    page = request.GET.get(prefix + 'page', '')
+    if page.isascii() and page.isdecimal() and 0 < len(page) <= 6 and int(page) > 0:
+        params['page'] = page
+    return params
+
+
+def _design_queue_url(request):
+    params = QueryDict(mutable=True)
+    params.update(_design_queue_params(request))
+    return reverse('approvals_list') + '?' + params.urlencode()
+
+
 @login_required
 def design_approvals_list(request):
-    user = request.user
-    prof = getattr(user, 'workflow_profile', None)
-    is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
-    approval_role = getattr(prof, 'approval_role', None) if prof else None
-    is_su = is_active_superuser(user)
-    if not _can_user_access_designer_approvals(user):
+    # Preserve bookmarks and old notification fallback links without a second list.
+    if not _can_user_access_designer_approvals(request.user):
         raise PermissionDenied(_("You cannot access design approvals."))
-
-    latest_appr_cad = Subquery(
-        PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('cad_status')[:1]
-    )
-    latest_appr_ed = Subquery(
-        PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('ed_status')[:1]
-    )
-    latest_appr_md = Subquery(
-        PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('md_status')[:1]
-    )
-
-    # Base queryset: only images with approval requests
-    qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).select_related(
-        'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
-    ).annotate(
-        latest_cad_status=latest_appr_cad,
-        latest_ed_status=latest_appr_ed,
-        latest_md_status=latest_appr_md,
-    ).prefetch_related('approval_requests').distinct().order_by('-uploaded_at')
-
-    if is_designer:
-        qs = qs.filter(uploaded_by=user)
-
-    active_tab = request.GET.get('tab') or request.GET.get('status') or 'pending'
-
-    if active_tab == 'approved':
-        qs = qs.filter(approval_status='approved')
-    elif active_tab == 'rejected':
-        qs = qs.filter(approval_status='rejected')
-    elif active_tab == 'pending':
-        if approval_role == ApprovalRoles.CAD:
-            qs = qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
-        elif approval_role == ApprovalRoles.ED:
-            qs = qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
-        elif approval_role == ApprovalRoles.MD:
-            qs = qs.filter(latest_md_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user)
-        elif is_su:
-            qs = qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending') | Q(latest_md_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user)
-        else:
-            qs = qs.filter(approval_status='pending')
-
-    base_count_qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).annotate(
-        latest_cad_status=latest_appr_cad,
-        latest_ed_status=latest_appr_ed,
-        latest_md_status=latest_appr_md,
-    )
-    if is_designer:
-        base_count_qs = base_count_qs.filter(uploaded_by=user)
-
-    if approval_role == ApprovalRoles.CAD:
-        pending_count = base_count_qs.filter(latest_cad_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
-    elif approval_role == ApprovalRoles.ED:
-        pending_count = base_count_qs.filter(latest_ed_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
-    elif approval_role == ApprovalRoles.MD:
-        pending_count = base_count_qs.filter(latest_md_status='pending').exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
-    elif is_su:
-        pending_count = base_count_qs.filter(Q(latest_cad_status='pending') | Q(latest_ed_status='pending') | Q(latest_md_status='pending')).exclude(approval_status='approved').exclude(uploaded_by=user).distinct().count()
-    else:
-        pending_count = base_count_qs.filter(approval_status='pending').distinct().count()
-
-    page = Paginator(qs, 24).get_page(request.GET.get('page'))
-    # Annotate only the visible page, avoiding a full-table render and review N+1.
-    for item in page.object_list:
-        item.can_review_by_user = bool(
-            item.uploaded_by_id != user.id and any(
-                getattr(item, 'latest_' + role.lower() + '_status', '') == 'pending'
-                for role in design_review_roles(user)
-            )
-        )
-
-    context = {
-        'designs': page.object_list,
-        'items': page.object_list,
-        'page_obj': page,
-        'active_tab': active_tab,
-        'pending_count': pending_count,
-        'is_designer': is_designer,
-        'can_review_as_cad': bool(ApprovalRoles.CAD in design_review_roles(user)),
-        'can_review_as_ed': bool(ApprovalRoles.ED in design_review_roles(user)),
-        'can_review_as_md': bool(ApprovalRoles.MD in design_review_roles(user)),
-        'can_admin_review': can_admin_review_designs(user),
-        'is_superuser': is_su,
-    }
-    return render(request, 'management/design_approvals_list.html', context)
+    params = _design_queue_params(request, prefix='')
+    tab = request.GET.get('tab') or request.GET.get('status')
+    if tab in ('pending', 'approved', 'rejected', 'all'):
+        params['status'] = {'pending': 'my_pending' if design_review_roles(request.user) else 'active'}.get(tab, tab)
+    query = QueryDict(mutable=True)
+    query.update(params)
+    return redirect(reverse('approvals_list') + '?' + query.urlencode())
 
 
 @login_required
@@ -3232,7 +3175,7 @@ def design_approval_detail(request, image_id):
             except Exception:
                 logger.exception('Unable to save design review')
                 messages.error(request, _("Review could not be saved. Please retry."))
-            return redirect('design_approval_detail', image_id=design_image.id)
+            return redirect(reverse('design_approval_detail', args=[design_image.id]) + ('?' + request.GET.urlencode() if request.GET else ''))
         elif action == 'resubmit':
             try:
                 _resubmit_design(
@@ -3246,7 +3189,7 @@ def design_approval_detail(request, image_id):
             except Exception:
                 logger.exception('Design resubmission failed')
                 messages.error(request, _("Resubmission could not be saved. Please try again."))
-            return redirect('design_approval_detail', image_id=design_image.id)
+            return redirect(reverse('design_approval_detail', args=[design_image.id]) + ('?' + request.GET.urlencode() if request.GET else ''))
 
     latest_approval = design_image.latest_approval
     history_cycles = list(design_image.approval_requests.all().order_by('-cycle'))
@@ -3307,12 +3250,29 @@ def design_approval_detail(request, image_id):
                 'thumbnail': image.thumbnail.url if image.thumbnail else reverse('pattern_design_image_download', args=[image.pk]),
             })
 
+    review_stages = []
+    for role, allowed in (('cad', can_review_cad), ('ed', can_review_ed), ('md', can_review_md)):
+        review_stages.append({
+            'role': role, 'status': getattr(latest_approval, role + '_status', 'not_submitted'),
+            'label': getattr(latest_approval, 'get_' + role + '_status_display', lambda: _('Not submitted'))(),
+            'can_review': allowed,
+        })
+    own_roles = design_review_roles(user)
+    initial_stage = '' if can_admin_review_designs(user) else (own_roles[0].lower() if own_roles else 'cad')
+    file_type, file_ext = _get_design_file_info(design_image.image.name or design_image.title)
     context = {
+        'design_queue_url': _design_queue_url(request),
+        'review_stages': review_stages,
+        'initial_review_stage': initial_stage,
+        'review_overall_status': latest_approval.status if latest_approval else design_image.approval_status,
+        'review_overall_label': latest_approval.get_status_display() if latest_approval else design_image.get_approval_status_display(),
+        'design_filename': design_image.title or os.path.basename(design_image.image.name),
+        'design_file_ext': file_ext.upper(),
         'design_image': design_image,
         'design_vehicle': vehicle,
         'design_vehicle_name': vehicle_name,
         'preview_images': preview_images,
-        'design_file_type': _get_design_file_info(design_image.image.name or design_image.title)[0],
+        'design_file_type': file_type,
         'latest_approval': latest_approval,
         'history_cycles': history_cycles,
         'review_voice_notes': [serialize_voice_note(note) for note in DesignReviewVoiceNote.objects.filter(
@@ -4802,6 +4762,10 @@ def approvals_list_view(request):
         pagination_params = request.GET.copy()
         pagination_params.pop('page', None)
 
+        review_query = QueryDict(mutable=True)
+        for key, value in _design_queue_params(request, prefix='').items():
+            if key != 'stage':
+                review_query['queue_' + key] = value
         designer_items = []
         for img in designer_page.object_list:
             appr = getattr(img, 'latest_approval', None)
@@ -4860,6 +4824,7 @@ def approvals_list_view(request):
             'can_access_designer_stage': can_access_designer_stage,
             'can_access_color_stage': can_access_color_stage,
             'designer_items': designer_items,
+            'design_review_querystring': review_query.urlencode(),
             'status_filter': status_filter,
             'search_query': search_query,
             'total_active_count': total_active_count,

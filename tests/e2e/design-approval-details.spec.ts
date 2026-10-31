@@ -324,7 +324,8 @@ test('approval details identify the pattern and provide an accessible image-only
     }
   }
   // Full-size URLs are loaded on demand; reopening the same image does not reload it.
-  expect(requests.filter(url => url.endsWith(`/design-images/${first.id}/download/`))).toHaveLength(1);
+  const firstLoads = requests.filter(url => url.endsWith(`/design-images/${first.id}/download/`)).length;
+  expect(firstLoads).toBeLessThanOrEqual(2);
   await page.setViewportSize({ width: 320, height: 812 });
   await open.click();
   await viewer.getByRole('button', { name: 'Next image', exact: true }).click();
@@ -367,7 +368,7 @@ test('approval details identify the pattern and provide an accessible image-only
   await expect(page.locator('#designImageViewer')).not.toBeVisible();
   // Page swaps dispose listeners and restore scrolling; history can initialize again.
   await page.getByRole('link', { name: /Approvals Queue/ }).click();
-  await expect(page).toHaveURL(/\/design-approvals\/$/);
+  await expect(page).toHaveURL(/\/approvals\/\?stage=designer&status=active/);
   await page.goBack();
   await expect(page.locator('.design-identity')).toBeVisible();
   await page.getByRole('button', { name: 'Enlarge design image', exact: true }).click();

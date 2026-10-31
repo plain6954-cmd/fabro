@@ -377,7 +377,7 @@ class SuperuserAuthorityTestCase(TestCase):
 
         # 1. Superuser accesses design approvals list and detail
         self.client.force_login(self.superuser)
-        list_res = self.client.get(reverse('design_approvals_list'))
+        list_res = self.client.get(reverse('design_approvals_list'), follow=True)
         self.assertEqual(list_res.status_code, 200)
         self.assertContains(list_res, 'Seat Cover 3D Model')
 
