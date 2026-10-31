@@ -1026,6 +1026,10 @@ class PatternDesignImage(models.Model):
         return f"Design Image {self.pk}"
 
     @property
+    def is_pdf(self):
+        return bool(self.image and self.image.name.lower().endswith('.pdf'))
+
+    @property
     def latest_approval(self):
         prefetched = getattr(self, '_prefetched_objects_cache', {}).get('approval_requests')
         if prefetched is not None:

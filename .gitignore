@@ -26,6 +26,8 @@ media/test_folder/
 output/
 .e2e.sqlite3
 .e2e-media/
+media-private-designs/
+.e2e-media-private-designs/
 "db.sqlite3" 
 
 db.sqlite3

@@ -1,0 +1,27 @@
+{% load i18n static %}
+<dialog id="designPdfViewer" class="design-image-viewer design-pdf-viewer" aria-labelledby="designPdfTitle" tabindex="-1"
+        data-pdfjs-url="{% static 'vendor/pdfjs/6.4.299/pdf.min.mjs' %}"
+        data-worker-url="{% static 'vendor/pdfjs/6.4.299/pdf.worker.min.mjs' %}"
+        data-asset-base="{% static 'vendor/pdfjs/6.4.299/' %}">
+    <div class="design-viewer-toolbar">
+        <strong id="designPdfTitle"></strong>
+        <button type="button" data-pdf-action="close" aria-label="{% translate 'Close PDF viewer' %}">✕</button>
+    </div>
+    <div class="design-viewer-controls">
+        <button type="button" data-pdf-action="previous" aria-label="{% translate 'Previous page' %}" disabled>‹</button>
+        <span id="designPdfCounter" aria-live="polite">0 / 0</span>
+        <button type="button" data-pdf-action="next" aria-label="{% translate 'Next page' %}" disabled>›</button>
+        <button type="button" data-pdf-action="out" aria-label="{% translate 'Zoom PDF out' %}" disabled>−</button>
+        <span id="designPdfZoom" title="{% translate 'Zoom relative to fit-to-width' %}">100%</span>
+        <button type="button" data-pdf-action="in" aria-label="{% translate 'Zoom PDF in' %}" disabled>+</button>
+        <button type="button" data-pdf-action="fit" disabled>{% translate 'Fit to width' %}</button>
+        <a id="designPdfDownload" hidden download>{% translate 'Download PDF' %}</a>
+    </div>
+    <div id="designPdfStage" class="design-pdf-stage">
+        <p id="designPdfLoading" role="status">{% translate 'Loading PDF…' %}</p>
+        <p id="designPdfError" role="alert" hidden>{% translate 'PDF unavailable. Check your access or try again.' %}
+            <button type="button" data-pdf-action="retry">{% translate 'Retry' %}</button>
+        </p>
+        <canvas id="designPdfCanvas" role="img" aria-label="{% translate 'PDF page' %}" hidden></canvas>
+    </div>
+</dialog>

@@ -506,6 +506,13 @@
     }
 
     function open3DDesignPreview(fileId, source) {
+        const file = state.designFiles.find(entry => entry.id === fileId);
+        if (file?.file_type === 'pdf') {
+            closeApprovalDrawer();
+            window.openDesignPdfViewer?.(file, source);
+            return;
+        }
+        window.closeDesignPdfViewer?.();
         if (!state.previewImages.some(image => image.id === fileId)) return;
         closeApprovalDrawer();
         window.openDesignImageViewer?.(state.previewImages, fileId, source);
@@ -578,6 +585,8 @@
             const tileClass = `fabro-design-tile ${isRejected ? 'is-rejected' : ''} ${isApproved ? 'is-approved' : ''} ${uploadPending ? 'is-upload-pending' : ''} ${upload?.phase === 'revealing' ? 'is-upload-revealing' : ''}`;
             const thumbSrc = file.url || file.preview_url;
             const isImage = isDesignImage(file) && !uploadPending;
+            const isPdf = file.file_type === 'pdf' && !uploadPending;
+            const canPreview = isImage || isPdf;
 
             // Status Badge Overlay
             let statusPill = '';
@@ -603,7 +612,7 @@
                     '<div class="tile-fallback-box" style="display:none;flex-direction:column;align-items:center;gap:0.4rem;color:#c084fc;"><i class="fas fa-cube" style="font-size:2.2rem;"></i><span style="font-size:0.72rem;font-weight:700;">' + fileExtBadge + '</span></div>';
             } else {
                 const fileExtBadge = escapeHtml(file.file_ext || 'CAD').toUpperCase();
-                mediaHtml = '<div style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;color:#c084fc;"><i class="fas fa-cube" style="font-size:2.2rem;"></i><span style="font-size:0.72rem;font-weight:700;">' + fileExtBadge + '</span></div>';
+                mediaHtml = '<div class="' + (isPdf ? 'tile-pdf-placeholder' : '') + '" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;color:#c084fc;"><i class="fas ' + (isPdf ? 'fa-file-pdf' : 'fa-cube') + '" aria-hidden="true" style="font-size:2.2rem;"></i><span style="font-size:0.72rem;font-weight:700;">' + fileExtBadge + '</span></div>';
             }
 
             const fileSizeText = file.file_size_display || (Math.round((file.file_size || 0) / 1024) + ' KB');
@@ -622,7 +631,7 @@
                         ` : ''}
                     </div>
 
-                    ${isImage ? `<button type="button" class="tile-media-container" data-design-image-id="${file.id}" aria-label="Enlarge ${escapeHtml(file.title)}" aria-describedby="design3DStatus${file.id}" onclick="event.stopPropagation(); window.open3DDesignPreview(${file.id}, this)">` : '<div class="tile-media-container">'}
+                    ${canPreview ? `<button type="button" class="tile-media-container" data-design-${isPdf ? 'pdf' : 'image'}-id="${file.id}" aria-label="${isPdf ? 'Open PDF' : 'Enlarge'} ${escapeHtml(file.title)}" aria-describedby="design3DStatus${file.id}" onclick="event.stopPropagation(); window.open3DDesignPreview(${file.id}, this)">` : '<div class="tile-media-container">'}
                         ${mediaHtml}
                         ${statusPill}
                         ${upload && upload.phase !== 'done' ? `
@@ -633,7 +642,7 @@
                                 ${upload.phase === 'failed' ? `<button type="button" class="tile-upload-retry" ${state.uploadBusy ? 'disabled' : ''} title="${escapeHtml(upload.error)}" aria-label="Retry ${escapeHtml(file.title)}: ${escapeHtml(upload.error)}" onclick="event.stopPropagation(); window.retry3DDesignUpload('${upload.id}')">Retry</button>` : ''}
                             </div>
                         ` : ''}
-                    ${isImage ? '</button>' : '</div>'}
+                    ${canPreview ? '</button>' : '</div>'}
 
                     <div class="tile-body">
                         <div class="tile-header-row">
@@ -757,6 +766,7 @@
     }
 
     async function openApprovalDrawer(fileId) {
+        window.closeDesignPdfViewer?.();
         const drawer = document.getElementById('designApprovalDrawer');
         const backdrop = document.getElementById('designApprovalDrawerBackdrop');
         if (!drawer || !backdrop) return;

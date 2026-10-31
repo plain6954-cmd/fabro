@@ -27,7 +27,7 @@ from django.core.cache import cache
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Exists
-from django.http import HttpResponse, JsonResponse, QueryDict
+from django.http import FileResponse, HttpResponse, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
@@ -42,6 +42,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.gzip import gzip_page
 from django.views.decorators.csrf import ensure_csrf_cookie
 from PIL import Image, UnidentifiedImageError
+from .services.design_pdfs import design_file_storage, save_design_pdf, validate_design_pdf
 
 from .forms import (
     AssignUserToGroupForm,
@@ -549,6 +550,19 @@ def pattern_design_image_download(request, image_id):
     )
     if not design_image.image:
         return HttpResponse('Image is unavailable.', status=404)
+    if design_image.image.name.lower().endswith('.pdf'):
+        try:
+            content = design_file_storage(design_image.image.name).open(design_image.image.name, 'rb')
+        except FileNotFoundError:
+            return HttpResponse('PDF is unavailable.', status=404)
+        except Exception:
+            logger.exception('Unable to open design PDF %s', design_image.pk)
+            return HttpResponse('PDF is temporarily unavailable.', status=503)
+        response = FileResponse(content, content_type='application/pdf',
+                                as_attachment=request.GET.get('download') == '1',
+                                filename=os.path.basename(design_image.title or design_image.image.name))
+        response['Cache-Control'] = 'private, no-store'
+        return response
     return redirect(design_image.image.url)
 
 @login_required
@@ -2060,7 +2074,7 @@ def _get_vehicle_drive_links_data(vehicle):
 def _serialize_design_image_details(img, user=None):
     if not img or not img.image:
         return None
-    f_type, f_ext = _get_design_file_info(img.title or img.image.name)
+    f_type, f_ext = _get_design_file_info(img.image.name if img.is_pdf else img.title or img.image.name)
     t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
     appr = getattr(img, 'latest_approval', None)
 
@@ -2115,8 +2129,8 @@ def _serialize_design_image_details(img, user=None):
 
     return {
         'id': img.id,
-        'url': t_url or img.image.url,
-        'preview_url': img.image.url,
+        'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or img.image.url,
+        'preview_url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else img.image.url,
         'original_url': reverse('pattern_design_image_download', args=[img.pk]),
         'title': img.title or os.path.basename(img.image.name),
         'file_size': img.file_size,
@@ -2195,11 +2209,11 @@ def get_design_folders_api(request):
             direct_imgs = direct_page.object_list
             for img in direct_imgs:
                 if img.image:
-                    f_type, f_ext = _get_design_file_info(img.title or img.image.name)
+                    f_type, f_ext = _get_design_file_info(img.image.name if img.is_pdf else img.title or img.image.name)
                     t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
                     direct_images_data.append({
                         'id': img.id,
-                        'url': t_url or img.image.url,
+                        'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or img.image.url,
                         'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                         'title': img.title or os.path.basename(img.image.name),
                         'file_size': img.file_size,
@@ -2338,11 +2352,11 @@ def get_design_folder_detail_api(request, folder_id):
     image_list = []
     for img in image_page.object_list:
         if img.image:
-            f_type, f_ext = _get_design_file_info(img.title or img.image.name)
+            f_type, f_ext = _get_design_file_info(img.image.name if img.is_pdf else img.title or img.image.name)
             t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
             image_list.append({
                 'id': img.id,
-                'url': t_url or img.image.url,
+                'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or img.image.url,
                 'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                 'title': img.title or os.path.basename(img.image.name),
                 'file_size': img.file_size,
@@ -2410,7 +2424,7 @@ def delete_design_folder_api(request, folder_id):
     for img in folder.images.all():
         if img.image:
             try:
-                default_storage.delete(img.image.name)
+                design_file_storage(img.image.name).delete(img.image.name)
             except Exception:
                 pass
         if img.thumbnail:
@@ -2460,7 +2474,7 @@ def _serialize_uploaded_design(image):
     file_type, file_ext = _get_design_file_info(image.image.name)
     return {
         'id': image.pk,
-        'url': image.thumbnail.url if image.thumbnail else image.image.url,
+        'url': reverse('pattern_design_image_download', args=[image.pk]) if file_type == 'pdf' else image.thumbnail.url if image.thumbnail else image.image.url,
         'original_url': reverse('pattern_design_image_download', args=[image.pk]),
         'title': image.title,
         'file_size': image.file_size,
@@ -2499,6 +2513,11 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
                 'status': 'error',
                 'message': _('Unsupported or empty file, or file exceeds the 50 MB limit.'),
             }, status=400)
+        if ext == '.pdf':
+            try:
+                validate_design_pdf(file_obj)
+            except ValidationError as exc:
+                return JsonResponse({'status': 'error', 'message': exc.messages[0]}, status=400)
 
     upload_id = request.headers.get('X-Upload-Id', '')
     if upload_id and not re.fullmatch(r'[A-Za-z0-9-]{1,72}', upload_id):
@@ -2567,7 +2586,10 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
             )
             created.append(image)
             file_obj.seek(0)
-            image.image.save(_unique_design_storage_name(file_obj.name), file_obj, save=False)
+            if file_type == 'pdf':
+                save_design_pdf(image.image, file_obj, _unique_design_storage_name(file_obj.name))
+            else:
+                image.image.save(_unique_design_storage_name(file_obj.name), file_obj, save=False)
             if thumbnail_file:
                 image.thumbnail.save(
                     _unique_design_storage_name(thumbnail_file.name), thumbnail_file, save=False
@@ -2623,7 +2645,7 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
         for field in (image.thumbnail, image.image):
             if field and getattr(field, '_committed', False) and field.name:
                 try:
-                    default_storage.delete(field.name)
+                    design_file_storage(field.name).delete(field.name)
                 except Exception:
                     logger.warning('Could not remove failed design upload %s', field.name)
     if retry is not None:
@@ -2739,7 +2761,7 @@ def delete_design_image_api(request, image_id):
     img_title = img.title or (img.image.name if img.image else f'Image {img.id}')
     if img.image:
         try:
-            default_storage.delete(img.image.name)
+            design_file_storage(img.image.name).delete(img.image.name)
         except Exception:
             pass
     if img.thumbnail:
@@ -2855,6 +2877,8 @@ def _resubmit_design(img, user, replacement_file=None, title=''):
             ext = os.path.splitext(replacement_file.name)[1].lower()
             if ext not in ALLOWED_DESIGN_EXTENSIONS or not 0 < replacement_file.size <= 50 * 1024 * 1024:
                 raise ValidationError(_("Unsupported or empty file, or file exceeds the 50 MB limit."))
+            if ext == '.pdf':
+                validate_design_pdf(replacement_file)
             thumbnail_file = None
             if ext in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'}:
                 try:
@@ -2871,9 +2895,12 @@ def _resubmit_design(img, user, replacement_file=None, title=''):
                 finally:
                     replacement_file.seek(0)
             replacement_file.seek(0)
-            img.image.save(
-                _unique_design_storage_name(replacement_file.name), replacement_file, save=False
-            )
+            if ext == '.pdf':
+                save_design_pdf(img.image, replacement_file, _unique_design_storage_name(replacement_file.name))
+            else:
+                img.image.save(
+                    _unique_design_storage_name(replacement_file.name), replacement_file, save=False
+                )
             replacement_name = img.image.name
             new_names.append(replacement_name)
             if thumbnail_file:
@@ -2915,7 +2942,7 @@ def _resubmit_design(img, user, replacement_file=None, title=''):
         if not committed_replacement:
             for name in new_names:
                 try:
-                    default_storage.delete(name)
+                    design_file_storage(name).delete(name)
                 except Exception:
                     logger.warning('Could not clean up failed resubmission media %s', name)
         raise

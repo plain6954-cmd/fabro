@@ -76,6 +76,8 @@
             <div style="height: 180px; background: rgba(0, 0, 0, 0.25); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                 {% if item.thumbnail %}
                     <img src="{{ item.thumbnail.url }}" alt="{{ item.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+                {% elif item.is_pdf %}
+                    <i class="fas fa-file-pdf" aria-label="PDF" style="font-size: 2.5rem; color: #f87171;"></i>
                 {% elif item.image %}
                     <img src="{{ item.image.url }}" alt="{{ item.title }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; gap: 0.5rem; color: #94a3b8;">
