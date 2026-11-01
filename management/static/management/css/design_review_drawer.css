@@ -1,0 +1,75 @@
+/* Only the Pattern Master design review form and its history; no shared workflow styles. */
+#designApprovalDrawer #drawerDecisionBox {
+    background: #1d1c22; border: 1px solid #49353f; border-radius: 12px; padding: 16px;
+    color: #f3eef1; font-size: 0.8rem; color-scheme: dark;
+}
+#designApprovalDrawer #drawerDecisionBox * { box-sizing: border-box; }
+#designApprovalDrawer #drawerReviewRoleSelector {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); grid-auto-rows: 1fr;
+    align-items: stretch; gap: 8px; padding: 0; margin: 0 0 16px; min-width: 0;
+}
+#designApprovalDrawer #drawerReviewRoleSelector:empty { display: none; }
+#designApprovalDrawer #drawerReviewRoleSelector button {
+    appearance: none; display: flex; align-items: center; justify-content: center; min-width: 0; width: 100%; min-height: 44px;
+    padding: 10px 8px; border: 1px solid #58434f; border-radius: 8px; margin: 0;
+    background: #29242c; color: #d5c7d0; font: inherit; font-size: 0.74rem; line-height: 1.45;
+    white-space: normal; overflow-wrap: anywhere; text-align: center; cursor: pointer; box-shadow: none;
+}
+#designApprovalDrawer #drawerReviewRoleSelector button:not(:disabled):hover { background: #3b2c35; border-color: #986373; }
+#designApprovalDrawer #drawerReviewRoleSelector button[aria-pressed='true'] {
+    background: #4a2733; border-color: var(--fabro-red, #ed1724); color: #fff0f3; box-shadow: inset 0 0 0 1px #c0647b33;
+}
+#designApprovalDrawer #drawerReviewRoleSelector button:disabled { opacity: 1; cursor: not-allowed; color: #a99fa8; background: #242126; border-color: #403840; }
+#designApprovalDrawer #drawerReviewRoleSelector button[data-review-status='approved']:disabled { color: #9eb7a7; border-color: #405649; }
+#designApprovalDrawer #drawerReviewRoleSelector button[data-review-status='rejected']:disabled { color: #c5a2ac; }
+#designApprovalDrawer #drawerReviewRoleSelector button[data-review-status='skipped_uploader']:disabled { border-style: dashed; color: #aaa1aa; }
+#designApprovalDrawer .drawer-decision-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-weight: 600; font-size: 0.86rem; }
+#designApprovalDrawer .drawer-decision-heading > div { display: flex; align-items: center; gap: 8px; }
+#designApprovalDrawer .drawer-decision-heading i, #designApprovalDrawer .drawer-required { color: #d98b9c; }
+#designApprovalDrawer .drawer-decision-field { margin-bottom: 16px; min-width: 0; }
+#designApprovalDrawer .drawer-field-label { display: block; margin-bottom: 8px; color: #d5c7d0; font-size: 0.77rem; font-weight: 500; }
+#designApprovalDrawer #drawerDecisionBox .change-type-selector { gap: 8px; }
+#designApprovalDrawer #drawerDecisionBox .change-type-selector::before { border-color: #a9697c; background: #9c4d650f; border-radius: 8px; }
+#designApprovalDrawer #drawerDecisionBox .change-type-option {
+    display: flex; align-items: center; justify-content: flex-start; min-height: 44px; gap: 8px;
+    margin: 0; padding: 10px; border: 1px solid #51404a; border-radius: 8px; background: transparent; color: #d5c7d0; font-size: 0.78rem; line-height: 1.4;
+}
+#designApprovalDrawer #drawerDecisionBox .change-type-option span { overflow-wrap: anywhere; }
+#designApprovalDrawer #drawerDecisionBox input[type='radio'] { appearance: auto; width: 14px; height: 14px; flex: 0 0 14px; padding: 0; margin: 0; accent-color: #c06980; }
+#designApprovalDrawer #drawerDecisionBox input[type='radio']:focus { outline: none; box-shadow: none; }
+#designApprovalDrawer #drawerDecisionBox .change-type-option:focus-within { outline: 2px solid #d7b0c0; outline-offset: 2px; }
+#designApprovalDrawer #drawerChangeTypeError { color: #f1a4b1; font-size: 0.75rem; line-height: 1.5; margin-top: 8px; }
+#designApprovalDrawer #drawerDecisionBox .review-remarks-input { grid-template-columns: minmax(0, 1fr) 42px; gap: 8px; align-items: start; }
+#designApprovalDrawer #designDrawerDecisionRemarks {
+    width: 100%; min-width: 0; min-height: 100px; padding: 10px; margin: 0; border: 1px solid #51404a; border-radius: 8px;
+    background: #17151a; color: #f3eef1; font: inherit; font-size: 0.8rem; line-height: 1.6; resize: vertical; outline: none; box-shadow: none;
+}
+#designApprovalDrawer #designDrawerDecisionRemarks:focus { border-color: #c19aaa; outline: none; box-shadow: 0 0 0 2px #c19aaa26; }
+#designApprovalDrawer #designDrawerDecisionRemarks[aria-invalid='true'] { border-color: #e77d91; box-shadow: 0 0 0 2px #d12c4c26; }
+#designApprovalDrawer #drawerDecisionBox .voice-record-toggle { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; min-height: 42px; padding: 0; margin: 0; border: 1px solid #6a4857; border-radius: 8px; background: #3c2934; color: #f4e4ed; }
+#designApprovalDrawer #drawerDecisionBox .review-voice-recorder button:disabled { opacity: 0.55; cursor: not-allowed; }
+#designApprovalDrawer #drawerDecisionBox .voice-recording { gap: 8px; }
+#designApprovalDrawer #drawerDecisionBox .voice-live-wave { min-width: 50px; }
+#designApprovalDrawer #drawerDecisionBox .review-voice-bubble { min-width: 0; max-width: 100%; }
+#designApprovalDrawer .drawer-decision-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+#designApprovalDrawer .drawer-decision-button {
+    appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-width: 0; min-height: 44px;
+    padding: 10px 12px; margin: 0; border: 1px solid #507b60; border-radius: 8px; font: inherit; font-size: 0.8rem; font-weight: 600;
+    line-height: 1.4; white-space: normal; color: #e5f6ec; background: #28533d; box-shadow: none; cursor: pointer;
+}
+#designApprovalDrawer #drawerBtnReject { background: #663440; border-color: #98576a; color: #fff0f3; }
+#designApprovalDrawer .drawer-decision-button:not(:disabled):hover { filter: brightness(1.12); }
+#designApprovalDrawer .drawer-decision-button:disabled { opacity: 0.6; cursor: progress; filter: none; }
+#designApprovalDrawer :is(.drawer-review-stage, .drawer-decision-button, .voice-record-toggle):focus-visible { outline: 2px solid #d7b0c0; outline-offset: 2px; }
+#designApprovalDrawer .drawer-history-box { margin-top: 8px; padding: 16px; border: 1px solid #40343d; border-radius: 12px; background: #1b191e; color: #eee7ed; }
+#designApprovalDrawer .drawer-history-heading { margin-bottom: 12px; font-size: 0.8rem; font-weight: 600; }
+#designApprovalDrawer #drawerHistoryTimeline { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+#designApprovalDrawer .drawer-history-cycle { padding: 12px; border: 1px solid #3d333d; border-radius: 8px; background: #211d24; font-size: 0.75rem; }
+#designApprovalDrawer .drawer-history-cycle-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 10px; }
+#designApprovalDrawer .drawer-history-cycle-heading > span { color: #b8aab5; font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+#designApprovalDrawer .drawer-history-statuses { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.7rem; }
+#designApprovalDrawer .drawer-history-statuses > span { padding: 5px 7px; border: 1px solid #5c503a; border-radius: 6px; color: #e4c583; line-height: 1.4; overflow-wrap: anywhere; }
+#designApprovalDrawer .drawer-history-statuses [data-review-status='approved'] { color: #a9d3b6; border-color: #435d4c; }
+#designApprovalDrawer .drawer-history-statuses [data-review-status='rejected'] { color: #e6a5b5; border-color: #714452; }
+#designApprovalDrawer .drawer-history-statuses [data-review-status='skipped_uploader'], #designApprovalDrawer .drawer-history-statuses [data-review-status='not_required'] { color: #bcb0ba; border-color: #514550; }
+@media (max-width: 360px) { #designApprovalDrawer .drawer-decision-actions { grid-template-columns: minmax(0, 1fr); } }

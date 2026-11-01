@@ -1022,7 +1022,7 @@
                 selector = document.createElement('div');
                 selector.id = 'drawerReviewRoleSelector';
                 selector.setAttribute('aria-label', 'Review as');
-                selector.style.cssText = 'display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px 0;';
+                selector.className = 'drawer-review-role-selector';
                 decisionBox.prepend(selector);
             }
             selector.replaceChildren();
@@ -1034,7 +1034,6 @@
                 if (label) label.textContent = role ? role.toUpperCase() : 'Select reviewer above';
                 selector.querySelectorAll('button').forEach(button => {
                     button.setAttribute('aria-pressed', String(button.dataset.stage === role));
-                    button.style.outline = button.dataset.stage === role ? '2px solid #a78bfa' : '';
                 });
                 ['radioChangeTypeMinor', 'radioChangeTypeMajor'].forEach(id => {
                     const input = document.getElementById(id);
@@ -1049,8 +1048,8 @@
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.dataset.stage = role;
-                    button.className = 'workflow-btn';
-                    button.style.cssText = 'flex:0 0 auto;scroll-snap-align:start;min-height:44px;';
+                    button.className = 'drawer-review-stage';
+                    button.dataset.reviewStatus = file[role]?.status || 'pending';
                     button.textContent = role.toUpperCase() + (stages.includes(role) ? '' : file[role]?.status === 'skipped_uploader' ? ' — Skipped — Uploader' : ' — completed');
                     button.disabled = !stages.includes(role);
                     button.addEventListener('click', () => selectStage(role));
@@ -1119,16 +1118,16 @@
         let html = '';
         history.forEach(item => {
             html += `
-                <div style="background:#14161a;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:0.6rem;font-size:0.75rem;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-                        <span style="font-weight:700;color:#cbd5e1;">Cycle #${item.cycle || 1}</span>
-                        <span style="font-size:0.7rem;color:var(--fabro-text-muted);">${item.submitted_at || ''}</span>
+                <div class="drawer-history-cycle">
+                    <div class="drawer-history-cycle-heading">
+                        <strong>Cycle #${item.cycle || 1}</strong>
+                        <span>${item.submitted_at || ''}</span>
                     </div>
                     <div class="review-voice-history" data-drawer-voice-cycle="${Number(item.cycle) || 1}"></div>
-                    <div style="font-size:0.72rem;color:var(--fabro-text-secondary);display:flex;gap:0.5rem;">
-                        <span>CAD: <strong>${reviewStatusLabel(item.cad_status)}</strong></span>
-                        <span>ED: <strong>${reviewStatusLabel(item.ed_status)}</strong></span>
-                        <span>MD: <strong>${reviewStatusLabel(item.md_status)}</strong></span>
+                    <div class="drawer-history-statuses">
+                        <span data-review-status="${item.cad_status}">CAD: <strong>${reviewStatusLabel(item.cad_status)}</strong></span>
+                        <span data-review-status="${item.ed_status}">ED: <strong>${reviewStatusLabel(item.ed_status)}</strong></span>
+                        <span data-review-status="${item.md_status}">MD: <strong>${reviewStatusLabel(item.md_status)}</strong></span>
                     </div>
                 </div>
             `;

@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261031-no-selection" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_review_voice.css' %}?v=20261031" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/design_review_drawer.css' %}?v=20261101" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_approval_preview.css' %}?v=20261021-gallery-viewer" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_pdf_viewer.css' %}?v=20261031" data-fabro-page-asset>
     <style data-fabro-page-asset>
@@ -3240,63 +3241,63 @@
         </div>
 
         <!-- Decision Submission Controls -->
-        <div class="drawer-decision-box" id="drawerDecisionBox" style="display: none; background: #1f232b; border: 1px solid rgba(237, 23, 36, 0.25); border-radius: 8px; padding: 1rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-                <div style="font-size: 0.82rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.45rem;">
-                    <i class="fas fa-edit" style="color: var(--fabro-red);"></i>
+        <div class="drawer-decision-box" id="drawerDecisionBox" style="display: none;">
+            <div class="drawer-decision-heading">
+                <div>
+                    <i class="fas fa-edit" aria-hidden="true"></i>
                     <span>{% translate "Submit Review Decision" %} (<span id="drawerActiveReviewStageLabel">CAD</span>)</span>
                 </div>
             </div>
 
             <!-- Mandatory Change Classification -->
-            <div style="margin-bottom: 0.85rem;">
-                <label id="drawerChangeTypeLabel" style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
-                    {% translate "Change Classification" %} <span style="color: var(--fabro-red);">*</span>
+            <div class="drawer-decision-field">
+                <label class="drawer-field-label" id="drawerChangeTypeLabel">
+                    {% translate "Change Classification" %} <span class="drawer-required">*</span>
                 </label>
                 <div class="change-type-selector" role="radiogroup" aria-labelledby="drawerChangeTypeLabel">
                     <label class="change-type-option" id="lblChangeTypeMinor">
-                        <input type="radio" name="drawerChangeType" value="minor" id="radioChangeTypeMinor" checked style="accent-color: var(--fabro-red);">
+                        <input type="radio" name="drawerChangeType" value="minor" id="radioChangeTypeMinor" checked>
                         <span>{% translate "Minor Change" %}</span>
                     </label>
                     <label class="change-type-option" id="lblChangeTypeMajor">
-                        <input type="radio" name="drawerChangeType" value="major" id="radioChangeTypeMajor" style="accent-color: var(--fabro-red);">
+                        <input type="radio" name="drawerChangeType" value="major" id="radioChangeTypeMajor">
                         <span>{% translate "Major Change" %}</span>
                     </label>
                 </div>
-                <div id="drawerChangeTypeError" style="color: #ef4444; font-size: 0.72rem; display: none; margin-top: 0.25rem;">
+                <div id="drawerChangeTypeError" role="alert" style="display: none;">
                     {% translate "Please select either Minor Change or Major Change." %}
                 </div>
             </div>
 
             <!-- Remarks -->
-            <div style="margin-bottom: 0.85rem;">
-                <label for="designDrawerDecisionRemarks" style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--fabro-text-primary); margin-bottom: 0.35rem;">
+            <div class="drawer-decision-field">
+                <label class="drawer-field-label" for="designDrawerDecisionRemarks">
                     {% translate "Remarks / Feedback" %} ({% translate "Optional" %})
                 </label>
-                <div class="review-remarks-input"><textarea id="designDrawerDecisionRemarks" class="form-input" rows="3" placeholder="{% translate "Enter optional feedback..." %}" style="width: 100%; font-size: 0.78rem; background: #16181d; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0.45rem; resize: vertical; box-sizing: border-box;"></textarea>
+                <div class="review-remarks-input"><textarea id="designDrawerDecisionRemarks" class="form-input" rows="3" placeholder="{% translate "Enter optional feedback..." %}"></textarea>
                     {% include 'management/includes/design_review_voice_recorder.html' %}
                 </div>
             </div>
 
             <!-- Action buttons -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
-                <button type="button" class="btn btn-success" id="drawerBtnApprove" onclick="window.submitDrawerDecision('approved')" style="height: 2.25rem; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; background: #059669; border: 1px solid #10b981; color: #fff; border-radius: 6px;">
-                    <i class="fas fa-check"></i>
+            <div class="drawer-decision-actions">
+                <button type="button" class="drawer-decision-button" id="drawerBtnApprove" onclick="window.submitDrawerDecision('approved')">
+                    <i class="fas fa-check" aria-hidden="true"></i>
                     <span>{% translate "Approve" %}</span>
                 </button>
-                <button type="button" class="btn btn-outline-danger" id="drawerBtnReject" onclick="window.submitDrawerDecision('rejected')" style="height: 2.25rem; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.5); color: #f87171; border-radius: 6px;">
-                    <i class="fas fa-times"></i>
+                <button type="button" class="drawer-decision-button" id="drawerBtnReject" onclick="window.submitDrawerDecision('rejected')">
+                    <i class="fas fa-times" aria-hidden="true"></i>
                     <span>{% translate "Reject" %}</span>
                 </button>
             </div>
         </div>
 
         <!-- Audit History Timeline -->
-        <div class="drawer-history-box" style="margin-top: 0.5rem;">
-            <div style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--fabro-text-muted); margin-bottom: 0.65rem;">
+        <div class="drawer-history-box">
+            <div class="drawer-history-heading">
                 {% translate "Approval History & Cycles" %}
             </div>
-            <div id="drawerHistoryTimeline" style="display: flex; flex-direction: column; gap: 0.65rem;">
+            <div id="drawerHistoryTimeline">
                 <!-- Populated by JS -->
             </div>
         </div>
@@ -3322,7 +3323,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
 <script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261031" data-fabro-page-asset></script>
 <script src="{% static 'management/js/gallery_sync.js' %}?v=20261031" data-fabro-page-asset></script>
 <script src="{% static 'management/js/design_review_voice.js' %}?v=20261031" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261031-voice" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261101-review-form" data-fabro-page-asset></script>
         </div><!-- /page-container -->
 
     <!-- Add Folder Modal -->
