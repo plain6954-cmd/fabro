@@ -185,8 +185,8 @@ test('independent byte progress, server confirmation, stable tiles and safe per-
   expect(saved).toHaveLength(2);
   for (const file of saved) expect(file.cad.status).toBe('skipped_uploader');
   await first.locator('[data-design-image-id]').click();
-  await expect(page.locator('#designImageViewer')).toBeVisible();
-  await expect(page.locator('#designViewerTitle')).toHaveText('E2E progress response-lost.png');
+  await expect(page.locator('#designComparisonViewer')).toBeVisible();
+  await expect(page.locator('#designComparisonViewer [data-comparison-panel="upload"] [data-panel-file]')).toHaveText('E2E progress response-lost.png');
   await page.keyboard.press('Escape');
   await first.locator('.approval-workflow-tile-btn').click();
   await expect(page.locator('#designApprovalDrawer')).toHaveClass(/is-open/);

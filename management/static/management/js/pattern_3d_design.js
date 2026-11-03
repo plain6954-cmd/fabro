@@ -583,15 +583,9 @@
 
     function open3DDesignPreview(fileId, source) {
         const file = state.designFiles.find(entry => entry.id === fileId);
-        if (file?.file_type === 'pdf') {
-            closeApprovalDrawer();
-            window.openDesignPdfViewer?.(file, source);
-            return;
-        }
-        window.closeDesignPdfViewer?.();
-        if (!state.previewImages.some(image => image.id === fileId)) return;
-        closeApprovalDrawer();
-        window.openDesignImageViewer?.(state.previewImages, fileId, source);
+        if (!file) return;
+        // Thumbnail clicks stop propagation, so invoke the shared comparison entry directly.
+        window.openDesignComparison(file.id, source);
     }
 
     function render3DDesignFiles(animateNew = new Set()) {

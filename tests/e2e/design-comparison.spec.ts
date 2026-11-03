@@ -59,6 +59,13 @@ with patch('management.services.push_notifications.send_push_to_user'):
      record_design_review_with_voice(record,cad,'approved','Current CAD seam feedback',stage='cad',change_type='minor',voice_note=SimpleUploadedFile('voice.wav',out.getvalue()))
   ids[key]=record.pk
  unrelated,_=PatternDesignImage.objects.get_or_create(vehicle=other_vehicle,title='Unrelated reference.png',is_reference=True,defaults={'image':'comparison-browser/reference.png','uploaded_by':cad,'approval_status':'approved'});ids['unrelated']=unrelated.pk
+empty_vehicle,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2022,year_end=2023,defaults={'layout_code':'COMPARISON-EMPTY'})
+ids['empty_vehicle']=empty_vehicle.pk
+with patch('management.services.push_notifications.send_push_to_user'):
+ for key,title,path in [('empty','Empty reference upload.png','comparison-browser/designer.png'),('emptypdf','Empty reference upload.pdf',PatternDesignImage.objects.get(pk=ids['uploadpdf']).image.name)]:
+  record,created=PatternDesignImage.objects.get_or_create(vehicle=empty_vehicle,title=title,is_reference=False,defaults={'image':path,'uploaded_by':owner,'approval_status':'pending'})
+  if created:submit_design_for_approval(record,owner)
+  ids[key]=record.pk
 (settings.BASE_DIR/'output/comparison-browser-ids.json').write_text(json.dumps(ids))
 `);
  ids=JSON.parse(readFileSync('output/comparison-browser-ids.json','utf8'));
@@ -180,4 +187,46 @@ test('rapid PDF switching, failures, repeated close cleanup and drawer entry pre
 });
 test('another designer cannot open pending context, or obtain hidden references/remarks by changing IDs',async({page})=>{
  await login(page,'comparison_browser_other');expect((await page.request.get(`/api/design-images/${ids.upload}/comparison/`)).status()).toBe(404);expect((await page.request.get(`/design-images/${ids.upload}/comparison-file/`)).status()).toBe(404);
+});
+
+
+test('actual Pattern Master designer thumbnails open comparison in grid and list, never a legacy modal',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await login(page);
+ await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.upload}"]`)).toBeAttached();
+ expect(await page.evaluate(()=>typeof (window as any).openDesignComparison)).toBe('function');
+ await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/comparison-entry/);
+ const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
+ await page.locator('#design3DFilesSearch').fill('Designer');
+ for(const mode of ['grid','list']){
+  await page.locator(mode==='grid'?'#design3DGridBtn':'#design3DListBtn').click();
+  const thumb=page.locator(`.fabro-design-tile[data-file-id="${ids.upload}"] [data-design-image-id]`);
+  const manifest=page.waitForResponse(response=>response.url().includes(`/api/design-images/${ids.upload}/comparison/`));
+  await thumb.click();expect((await manifest).status()).toBe(200);
+  await expect(dialog).toBeVisible();await expect(left).toBeVisible();await expect(right).toBeVisible();
+  await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');
+  await expect(left.locator('[data-panel-image]')).toBeVisible();await expect(right.locator('[data-panel-image]')).toBeVisible();
+  await expect(page.locator('#designImageViewer')).not.toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();await expect(page.locator('#designImagePreviewOverlay')).not.toBeVisible();
+  await expect(dialog.locator('.comparison-toolbar')).toBeVisible();await expect(dialog.locator('.comparison-information')).toContainText('Dynamic Model');
+  await expect(dialog.locator('[data-comparison-carousel="reference"]')).toBeVisible();await expect(dialog.locator('[data-comparison-carousel="upload"]')).toBeVisible();
+  await choose(page,'reference','Reference dimension.pdf');await expect(left.locator('canvas')).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');
+  await choose(page,'upload','Designer dimension.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(left.locator('canvas')).toBeVisible();
+  await right.getByRole('button',{name:'Next PDF page',exact:true}).click();await expect(right.locator('[data-pdf-counter]')).toHaveText('2 / 4');
+  await dialog.getByRole('button',{name:'Close comparison viewer',exact:true}).click();await expect(dialog).not.toBeVisible();await expect(thumb).toBeFocused();
+  await expect(page.locator('#design3DFilesSearch')).toHaveValue('Designer');await expect(page.locator('#design3DListBtn')).toHaveClass(mode==='list'?/active/:/^(?!.*active)/);
+  const pdfThumb=page.locator(`.fabro-design-tile[data-file-id="${ids.uploadpdf}"] [data-design-pdf-id]`);
+  await pdfThumb.click();await expect(dialog).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Designer dimension.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();
+  await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
+ }
+ expect(errors).toEqual([]);
+});
+test('actual gallery thumbnail with no reference files keeps comparison and image/PDF designer navigation functional',async({page})=>{
+ await login(page);await page.goto(`/car-details/?vehicle_id=${ids.empty_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
+ await page.locator(`.fabro-design-tile[data-file-id="${ids.empty}"] [data-design-image-id]`).click();
+ await expect(dialog).toBeVisible();await expect(dialog.locator('[data-comparison-carousel="reference"] [data-carousel-count]')).toHaveText('(0)');
+ await expect(left.locator('[data-panel-message]')).toHaveText('No authorized reference files in this context.');await expect(right.locator('[data-panel-image]')).toBeVisible();
+ await expect(page.locator('#designImageViewer')).not.toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();
+ await choose(page,'upload','Empty reference upload.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(right.locator('[data-pdf-counter]')).toHaveText('1 / 4');
+ await expect(left.locator('[data-panel-counter]')).toHaveText('0 / 0');await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
 });

@@ -115,7 +115,8 @@ test('three users see image/PDF uploads and approval changes without refresh or 
     await expect(observer.locator('#pattern3DDesignWorkspace .design-sort-select')).toHaveValue('name');
     const imageOpen = imageTile.locator('[data-design-image-id]');
     await imageOpen.evaluate(el => { (window as any).syncImageOpener = el; });
-    await imageOpen.click();
+    // Retained legacy widget regression; actual thumbnail comparison is covered separately.
+    await imageOpen.evaluate((el, file) => (window as any).openDesignImageViewer([{id:file.id,title:file.title,url:`/design-images/${file.id}/download/`}],file.id,el), image);
     const imageViewer = observer.locator('#designImageViewer');
     await expect(imageViewer).toBeVisible();
     await imageViewer.getByRole('button', { name: 'Zoom in', exact: true }).click();
@@ -145,7 +146,7 @@ test('three users see image/PDF uploads and approval changes without refresh or 
     const pdf = await upload(actor, 'E2E sync incoming.pdf', 'application/pdf', readFileSync('output/gallery-sync-fixture.pdf'), 'sync-browser-pdf');
     const pdfTile = observer.locator(`.fabro-design-tile[data-file-id="${pdf.id}"]`);
     await expect(pdfTile).toHaveCount(1, { timeout: 20_000 });
-    await pdfTile.locator('[data-design-pdf-id]').click();
+    await pdfTile.locator('[data-design-pdf-id]').evaluate((el, file) => (window as any).openDesignPdfViewer({id:file.id,title:file.title},el), pdf);
     await expect(observer.locator('#designPdfCanvas')).toBeVisible();
     await observer.locator('#designPdfViewer').getByRole('button', { name: 'Zoom PDF in' }).click();
     await expect(observer.locator('#designPdfZoom')).toHaveText('125%');

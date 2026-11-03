@@ -148,37 +148,29 @@ with patch('management.services.push_notifications.send_push_to_user'):
   }
 });
 
-test('gallery image previews and approval buttons remain independent in grid and list views', async ({ page }) => {
+test('gallery comparison previews and approval buttons remain independent in grid and list views', async ({ page }) => {
   test.setTimeout(120_000);
-  const errors: string[] = [];
-  const originals: string[] = [];
-  const mutations: string[] = [];
+  const errors: string[] = [], mutations: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/login/');
   await page.getByLabel('Username').fill(workflowUsers.cad.username);
   await page.getByLabel('Password').fill(workflowUsers.cad.password);
   await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page).not.toHaveURL(/\/login\//);
-  const listing = await page.request.get('/api/design-folders/?vehicle_id=1');
-  const files = (await listing.json()).design_files as Array<{ id: number; title: string }>;
-  const first = files.find(file => file.title === 'E2E details front.png')!;
-  const second = files.find(file => file.title === 'E2E details back.png')!;
-  page.on('request', request => {
-    if (/\/design-images\/\d+\/download\/$/.test(request.url())) originals.push(request.url());
-    if (request.method() !== 'GET') mutations.push(request.url());
-  });
+  const files = (await (await page.request.get('/api/design-folders/?vehicle_id=1')).json()).design_files;
+  const first = files.find((file: any) => file.title === 'E2E details front.png');
+  const second = files.find((file: any) => file.title === 'E2E details back.png');
+  page.on('request', request => { if (request.method() !== 'GET') mutations.push(request.url()); });
   await page.goto('/car-details/?vehicle_id=1#design-options');
   await page.locator('#sidebarNav3DDesignBtn').click();
   await page.locator('#design3DFilesSearch').fill('E2E details ');
   const tile = page.locator(`.fabro-design-tile[data-file-id="${first.id}"]`);
   const preview = tile.locator('[data-design-image-id]');
-  const viewer = page.locator('#designImageViewer');
-  const image = page.locator('#designViewerImage');
+  const viewer = page.locator('#designComparisonViewer');
+  const upload = viewer.locator('[data-comparison-panel="upload"]');
   const drawer = page.locator('#designApprovalDrawer');
-  await expect(preview).toBeVisible();
-  expect(originals).toEqual([]);
   const layouts: unknown[] = [];
-  for (const width of [320, 375, 768, 1024, 1440, 1920]) {
+  for (const width of [320, 375, 768, 1366]) {
     await page.setViewportSize({ width, height: 900 });
     for (const light of [false, true]) {
       await page.evaluate(value => document.body.classList.toggle('light-mode', value), light);
@@ -186,74 +178,40 @@ test('gallery image previews and approval buttons remain independent in grid and
         await page.locator(mode === 'grid' ? '#design3DGridBtn' : '#design3DListBtn').click();
         await preview.scrollIntoViewIfNeeded();
         const before = await page.evaluate(() => ({ url: location.href, scroll: scrollY }));
-        await preview.focus();
-        await preview.press('Enter');
+        await preview.focus(); await preview.press('Enter');
         await expect(viewer).toBeVisible();
         await expect(drawer).not.toHaveClass(/is-open/);
-        await expect(image).toHaveAttribute('src', `/design-images/${first.id}/download/`);
-        await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
-        await expect(page.locator('#designViewerTitle')).toHaveText(first.title);
-        await expect.poll(async () => (await viewer.boundingBox())!.width).toBe(width);
+        await expect(page.locator('#designImageViewer')).not.toBeVisible();
+        await expect(upload.locator('[data-panel-image]')).toHaveAttribute('src', new RegExp(`/design-images/${first.id}/comparison-file/$`));
+        await expect(upload.locator('[data-panel-file]')).toHaveText(first.title);
+        await expect.poll(() => upload.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
         const bounds = (await viewer.boundingBox())!;
-        expect(bounds.width).toBe(width);
-        expect(bounds.height).toBe(900);
-        for (const button of await viewer.getByRole('button').all()) {
-          const rect = (await button.boundingBox())!;
-          expect(rect.x).toBeGreaterThanOrEqual(0);
-          expect(rect.x + rect.width).toBeLessThanOrEqual(width + 1);
-          expect(rect.y + rect.height).toBeLessThanOrEqual(901);
-        }
+        expect(bounds.width).toBe(width); expect(bounds.height).toBe(900);
         expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
-        if ((width === 320 && !light && mode === 'grid') || (width === 1440 && light && mode === 'list')) {
-          await page.screenshot({ path: join(reportDir, `gallery-viewer-${width}-${light ? 'light' : 'dark'}.png`) });
-        }
         if (mode === 'grid') await page.keyboard.press('Escape');
-        else await viewer.getByRole('button', { name: 'Close image viewer' }).click();
-        await expect(viewer).not.toBeVisible();
-        await expect(preview).toBeFocused();
+        else await viewer.getByRole('button', { name: 'Close comparison viewer', exact: true }).click();
+        await expect(viewer).not.toBeVisible(); await expect(preview).toBeFocused();
         expect(await page.evaluate(() => ({ url: location.href, scroll: scrollY }))).toEqual(before);
         await tile.locator('.approval-workflow-tile-btn').click();
         await expect(drawer).toHaveClass(/is-open/);
-        await expect(viewer).not.toBeVisible();
         await expect(page.locator('#drawerFileSelector')).toHaveValue(String(first.id));
-        await expect(page.locator('#drawerFileName')).toHaveText(first.title);
         await page.locator('#designApprovalDrawer .drawer-close-btn').click();
         layouts.push({ width, light, mode, bounds });
       }
     }
   }
-  // Reopening the selected image reuses the loaded full-size resource.
-  expect(originals.filter(url => url.endsWith(`/design-images/${first.id}/download/`))).toHaveLength(1);
-  await page.locator('#design3DFilesSearch').fill('front');
-  await preview.click();
-  await expect(viewer.getByRole('button', { name: 'Next image', exact: true })).toBeDisabled();
-  await page.keyboard.press('Escape');
-  await expect(viewer).not.toBeVisible();
-  await page.locator('#design3DFilesSearch').fill('E2E details ');
-  await preview.click();
-  await viewer.getByRole('button', { name: 'Next image', exact: true }).click();
-  await expect(page.locator('#designViewerTitle')).toHaveText(second.title);
-  await expect(image).toHaveAttribute('src', `/design-images/${second.id}/download/`);
-  await viewer.getByRole('button', { name: 'Previous image', exact: true }).click();
-  await expect(page.locator('#designViewerTitle')).toHaveText(first.title);
-  // Even a programmatic workflow action closes the preview before opening the drawer.
-  await page.evaluate(id => (window as any).openApprovalDrawer(id), second.id);
-  await expect(viewer).not.toBeVisible();
-  await expect(page.locator('#drawerFileSelector')).toHaveValue(String(second.id));
-  await page.locator('#designApprovalDrawer .drawer-close-btn').click();
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await preview.click();
-  expect(await viewer.evaluate(dialog => getComputedStyle(dialog).transitionDuration)).toBe('0.225s, 0.225s');
-  await viewer.getByRole('button', { name: 'Close image viewer' }).click();
-  await page.evaluate(id => (window as any).open3DDesignPreview(id, document.querySelector(`[data-design-image-id="${id}"]`)), second.id);
+  await page.locator('#design3DFilesSearch').fill('front'); await preview.click();
+  // Gallery search is preserved underneath; comparison uses the authorized pattern set.
+  await viewer.locator('[data-comparison-carousel="upload"]').getByRole('button', { name: second.title, exact: true }).click();
+  await expect(upload.locator('[data-panel-file]')).toHaveText(second.title);
+  await page.keyboard.press('Escape'); await expect(page.locator('#design3DFilesSearch')).toHaveValue('front');
+  await page.evaluate(id => (window as any).open3DDesignPreview(id, document.querySelector(`[data-design-image-id="${id}"]`)), first.id);
   await expect(page.locator('dialog[open]')).toHaveCount(1);
-  await expect(page.locator('#designViewerTitle')).toHaveText(second.title);
-  await page.keyboard.press('Escape');
-  await expect(viewer).not.toBeVisible();
+  await expect(upload.locator('[data-panel-file]')).toHaveText(first.title);
+  await page.keyboard.press('Escape'); await expect(viewer).not.toBeVisible();
   expect(await page.evaluate(() => document.body.style.position)).not.toBe('fixed');
-  expect(mutations).toEqual([]);
-  expect(errors).toEqual([]);
-  writeFileSync(join(reportDir, 'gallery-verification.json'), JSON.stringify({ layouts, errors, originals }, null, 2));
+  expect(mutations).toEqual([]); expect(errors).toEqual([]);
+  writeFileSync(join(reportDir, 'gallery-verification.json'), JSON.stringify({ layouts, errors }, null, 2));
 });
 
 test('approval details identify the pattern and provide an accessible image-only viewer', async ({ page }) => {

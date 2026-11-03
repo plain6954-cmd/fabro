@@ -35,7 +35,7 @@ async function openWorkspace(page: Page) {
   await expect(page.locator('#design3DFilesGallery')).toBeVisible();
 }
 
-test('PDF uses real upload progress and the lazy authenticated responsive viewer', async ({ page }) => {
+test('legacy PDF widget retains upload progress, private delivery and responsive controls', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [], libraryRequests: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -100,7 +100,12 @@ test('PDF uses real upload progress and the lazy authenticated responsive viewer
 
   const viewer = page.locator('#designPdfViewer');
   const canvas = page.locator('#designPdfCanvas');
-  await open.click();
+  // Exercise the retained single-file widget directly; gallery thumbnails now open comparison.
+  const openLegacy = async () => {
+    const id = await open.getAttribute('data-design-pdf-id');
+    await page.evaluate(value => (window as any).openDesignPdfViewer({id: Number(value), title: 'E2E uploaded design.pdf'}, document.querySelector(`[data-design-pdf-id="${value}"]`)), id);
+  };
+  await openLegacy();
   await expect(viewer).toBeVisible();
   await expect(canvas).toBeVisible();
   await expect(page.locator('#designImageViewer')).not.toBeVisible();
@@ -151,13 +156,13 @@ test('PDF uses real upload progress and the lazy authenticated responsive viewer
   await page.locator('#design3DListBtn').click();
   await expect(page.locator('#design3DFilesGallery input[type="checkbox"]')).toHaveCount(0);
   expect((await open.boundingBox())!.width).toBe(48);
-  await open.click();
+  await openLegacy();
   await expect(canvas).toBeVisible();
   await viewer.getByRole('button', { name: 'Close PDF viewer' }).click();
   await expect(viewer).not.toBeVisible();
   const imageTile = page.locator('.fabro-design-tile', { hasText: 'E2E PDF sibling image.png' });
   await imageTile.locator('[data-design-image-id]').click();
-  await expect(page.locator('#designImageViewer')).toBeVisible();
+  await expect(page.locator('#designComparisonViewer')).toBeVisible();
   await expect(viewer).not.toBeVisible();
   await page.keyboard.press('Escape');
   const id = await open.getAttribute('data-design-pdf-id');
