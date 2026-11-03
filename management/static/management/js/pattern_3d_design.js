@@ -1240,14 +1240,14 @@
      * Preview Image Lightbox Modal
      */
 
-    function openReferenceFile(image) {
+    function openReferenceFile(image, source) {
         if (!image) return;
 
         const ext = String(image.file_ext || '').replace(/^\./, '').toLowerCase();
-        const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'].includes(ext);
+        const canCompare = ['image', 'pdf'].includes(image.file_type) || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'pdf'].includes(ext);
 
-        if (isImage) {
-            previewImageLightbox(image.url || image.preview_url, image.title);
+        if (canCompare) {
+            window.openDesignComparison(image.id, source);
             return;
         }
 
@@ -1313,15 +1313,16 @@
                 const card = event.target.closest('.ref-image-card');
                 if (!card) return;
                 const image = state.referenceImages[Number(card.dataset.refIndex)];
-                if (image) openReferenceFile(image);
+                if (image) openReferenceFile(image, card);
             }, { signal: eventController.signal });
             track.addEventListener('keydown', (event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') return;
                 const card = event.target.closest('.ref-image-card');
                 if (!card) return;
+                if (event.target.closest('button, a, input')) return;
                 event.preventDefault();
                 const image = state.referenceImages[Number(card.dataset.refIndex)];
-                if (image) openReferenceFile(image);
+                if (image) openReferenceFile(image, card);
             }, { signal: eventController.signal });
         }
     }

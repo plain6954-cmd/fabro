@@ -1,6 +1,17 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {ComparisonPanelState,clampPan}=require('../../management/static/management/js/design_comparison.js');
+const {ComparisonPanelState,clampPan,comparisonSelection}=require('../../management/static/management/js/design_comparison.js');
+test('reference entry selects the exact image/PDF and latest chronological upload',()=>{
+ const data={references:[{id:1,type:'image'},{id:2,type:'pdf'}],uploads:[{id:9},{id:3}]};
+ assert.deepEqual(comparisonSelection(data,'2'),{reference:1,upload:1,side:'reference'});
+ assert.deepEqual(comparisonSelection(data,1),{reference:0,upload:1,side:'reference'});
+ assert.deepEqual(comparisonSelection(data,9),{reference:0,upload:0,side:'upload'});
+});
+test('reference entry permits an empty designer set but rejects missing or invalid anchors',()=>{
+ assert.deepEqual(comparisonSelection({references:[{id:2}],uploads:[]},2),{reference:0,upload:-1,side:'reference'});
+ assert.throws(()=>comparisonSelection({references:[],uploads:[{id:1}]},2),/Invalid comparison/);
+ assert.throws(()=>comparisonSelection({references:null,uploads:[]},2),/Invalid comparison/);
+});
 test('reference and upload navigation remain independent, including wraparound',()=>{
  const left=new ComparisonPanelState([{id:1},{id:2}]),right=new ComparisonPanelState([{id:3},{id:4},{id:5}]);
  left.select(0);right.select(1);left.move(1);assert.equal(left.current().id,2);assert.equal(right.current().id,4);

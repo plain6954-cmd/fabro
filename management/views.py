@@ -582,7 +582,7 @@ def _comparison_visible_files(user):
 @require_GET
 def design_comparison_manifest(request, image_id):
     selected = get_object_or_404(_comparison_visible_files(request.user).select_related(
-        'vehicle__sub_model__model__brand', 'folder__vehicle__sub_model__model__brand'), pk=image_id, is_reference=False)
+        'vehicle__sub_model__model__brand', 'folder__vehicle__sub_model__model__brand'), pk=image_id)
     vehicle = selected.vehicle or (selected.folder.vehicle if selected.folder else None)
     if vehicle:
         context = Q(vehicle=vehicle) | Q(vehicle__isnull=True, folder__vehicle=vehicle)

@@ -50,6 +50,52 @@ class DesignComparisonTests(TestCase):
         self.assertNotIn(unrelated.pk,{f['id'] for f in data['references']})
         self.assertEqual(data['vehicle'],'Comparison Brand Actual Model Touring (2024–2026)')
         self.assertEqual(data['pattern'],self.vehicle.serial_number)
+    def test_reference_image_and_pdf_anchor_reuse_authorized_context_and_remarks(self):
+        submit_design_for_approval(self.image,self.owner)
+        record_design_review_decision(self.image,self.cad,'approved','CAD reference comparison feedback',change_type='minor')
+        pdf=self.file(vehicle=None,folder=self.folder,title='Reference.pdf',image='private_design_pdfs/reference.pdf',is_reference=True,approval_status='approved')
+        self.file(vehicle=self.unrelated,folder=self.folder)
+        self.file(vehicle=self.unrelated,is_reference=True)
+        for reference,kind in ((self.reference,'image'),(pdf,'pdf')):
+            with self.subTest(kind=kind):
+                data=self.manifest(reference).json()
+                self.assertEqual(data['selected_id'],reference.pk)
+                self.assertEqual({f['id'] for f in data['references']},{self.reference.pk,pdf.pk})
+                self.assertEqual(next(f['type'] for f in data['references'] if f['id']==reference.pk),kind)
+                self.assertEqual([f['id'] for f in data['uploads']],[self.image.pk])
+                self.assertEqual(data['uploads'][0]['history'][0]['stages'][0]['comment'],'CAD reference comparison feedback')
+    def test_reference_anchor_filters_private_uploads_and_rejects_hidden_reference(self):
+        private=self.file(is_reference=True,uploaded_by=self.cad)
+        for user in (self.other,self.factory):
+            data=self.manifest(self.reference,user=user).json()
+            self.assertEqual(data['uploads'],[])
+            self.assertNotIn(private.pk,{f['id'] for f in data['references']})
+            for image in (private,self.image):
+                self.assertEqual(self.manifest(image).status_code,404)
+                self.assertEqual(self.client.get(reverse('design_comparison_file',args=[image.pk])).status_code,404)
+    def test_reference_folder_and_unassigned_isolation_with_empty_upload_set(self):
+        folder=PatternDesignFolder.objects.create(name='Reference-only folder')
+        reference=self.file(vehicle=None,folder=folder,is_reference=True)
+        upload=self.file(vehicle=None,folder=folder)
+        self.file(vehicle=self.unrelated,folder=folder)
+        data=self.manifest(reference).json()
+        self.assertEqual([f['id'] for f in data['uploads']],[upload.pk])
+        self.assertEqual([f['id'] for f in data['references']],[reference.pk])
+        orphan=self.file(vehicle=None,folder=None,is_reference=True)
+        self.file(vehicle=None,folder=None)
+        data=self.manifest(orphan).json()
+        self.assertEqual([f['id'] for f in data['references']],[orphan.pk])
+        self.assertEqual(data['uploads'],[])
+        self.assertEqual(data['vehicle'],'')
+    def test_reference_direct_vehicle_takes_precedence_and_uploads_are_chronological(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        latest=self.file()
+        PatternDesignImage.objects.filter(pk=self.image.pk).update(uploaded_at=timezone.now()+timedelta(seconds=1))
+        self.reference.folder=PatternDesignFolder.objects.create(vehicle=self.unrelated,name='Conflicting reference folder')
+        self.reference.save(update_fields=['folder'])
+        data=self.manifest(self.reference).json()
+        self.assertEqual([f['id'] for f in data['uploads']],[latest.pk,self.image.pk])
     def test_direct_vehicle_wins_over_conflicting_folder_and_empty_context_is_isolated(self):
         PatternDesignImage.objects.filter(pk=self.image.pk).update(folder=PatternDesignFolder.objects.create(vehicle=self.unrelated,name='Other folder'))
         data=self.manifest().json()
@@ -144,12 +190,12 @@ class DesignComparisonTests(TestCase):
         response=self.client.get(reverse('design_comparison_file',args=[obj.pk]))
         self.assertEqual(response['Content-Type'],'application/octet-stream')
         self.assertIn('attachment',response['Content-Disposition']);response.close()
-        self.assertEqual(self.manifest(self.reference).status_code,404)
+        self.assertEqual(self.manifest(self.reference).status_code,200)
     def test_readonly_manifest_does_not_change_notifications_audit_or_decisions(self):
         submit_design_for_approval(self.image,self.owner)
         before=(Notification.objects.count(),ActivityLog.objects.count(),self.image.approval_requests.count())
-        response=self.manifest()
-        self.assertEqual(response.status_code,200)
+        for anchor in (self.image,self.reference):
+            self.assertEqual(self.manifest(anchor).status_code,200)
         self.assertEqual((Notification.objects.count(),ActivityLog.objects.count(),self.image.approval_requests.count()),before)
         self.assertEqual(self.image.latest_approval.cad_status,'pending')
         self.assertEqual(self.client.post(reverse('design_comparison_manifest',args=[self.image.pk])).status_code,405)

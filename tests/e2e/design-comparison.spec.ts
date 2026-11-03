@@ -15,6 +15,8 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
 from management.models import Brand,Model,SubModel,YearRange,PatternDesignImage,WorkflowRoles
 from management.services.design_approvals import submit_design_for_approval
 from management.services.design_review_voice import record_design_review_with_voice
@@ -58,6 +60,8 @@ with patch('management.services.push_notifications.send_push_to_user'):
      submit_design_for_approval(record,owner,is_resubmission=True)
      record_design_review_with_voice(record,cad,'approved','Current CAD seam feedback',stage='cad',change_type='minor',voice_note=SimpleUploadedFile('voice.wav',out.getvalue()))
   ids[key]=record.pk
+ # Latest by upload time, deliberately different from the highest file ID.
+ PatternDesignImage.objects.filter(pk=ids['upload']).update(uploaded_at=timezone.now()+timedelta(seconds=1))
  unrelated,_=PatternDesignImage.objects.get_or_create(vehicle=other_vehicle,title='Unrelated reference.png',is_reference=True,defaults={'image':'comparison-browser/reference.png','uploaded_by':cad,'approval_status':'approved'});ids['unrelated']=unrelated.pk
 empty_vehicle,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2022,year_end=2023,defaults={'layout_code':'COMPARISON-EMPTY'})
 ids['empty_vehicle']=empty_vehicle.pk
@@ -66,6 +70,14 @@ with patch('management.services.push_notifications.send_push_to_user'):
   record,created=PatternDesignImage.objects.get_or_create(vehicle=empty_vehicle,title=title,is_reference=False,defaults={'image':path,'uploaded_by':owner,'approval_status':'pending'})
   if created:submit_design_for_approval(record,owner)
   ids[key]=record.pk
+reference_only,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2018,year_end=2019,defaults={'layout_code':'COMPARISON-REFERENCE-ONLY'})
+ids['reference_only_vehicle']=reference_only.pk
+for key,original in [('onlyref','ref2'),('onlyrefpdf','refpdf')]:
+ source=PatternDesignImage.objects.get(pk=ids[original])
+ record,_=PatternDesignImage.objects.get_or_create(vehicle=reference_only,title=source.title,is_reference=True,defaults={'image':source.image.name,'thumbnail':source.thumbnail.name,'uploaded_by':cad,'approval_status':'approved'})
+ ids[key]=record.pk
+hidden,_=PatternDesignImage.objects.get_or_create(vehicle=other_vehicle,title='Private reference.png',is_reference=True,defaults={'image':'comparison-browser/reference.png','uploaded_by':cad,'approval_status':'pending'})
+ids['hidden_reference']=hidden.pk
 (settings.BASE_DIR/'output/comparison-browser-ids.json').write_text(json.dumps(ids))
 `);
  ids=JSON.parse(readFileSync('output/comparison-browser-ids.json','utf8'));
@@ -187,6 +199,47 @@ test('rapid PDF switching, failures, repeated close cleanup and drawer entry pre
 });
 test('another designer cannot open pending context, or obtain hidden references/remarks by changing IDs',async({page})=>{
  await login(page,'comparison_browser_other');expect((await page.request.get(`/api/design-images/${ids.upload}/comparison/`)).status()).toBe(404);expect((await page.request.get(`/design-images/${ids.upload}/comparison-file/`)).status()).toBe(404);
+ const response=await page.request.get(`/api/design-images/${ids.ref}/comparison/`);expect(response.status()).toBe(200);
+ const data=await response.json();expect(data.uploads).toEqual([]);expect(data.references.map((file:any)=>file.id)).not.toContain(ids.hidden_reference);
+ expect((await page.request.get(`/api/design-images/${ids.hidden_reference}/comparison/`)).status()).toBe(404);
+ expect((await page.request.get(`/design-images/${ids.hidden_reference}/comparison-file/`)).status()).toBe(404);
+});
+
+for(const [key,title,media] of [['ref2','Reference detail.png','img'],['refpdf','Reference dimension.pdf','canvas']]){
+ test(`reference thumbnail ${key} opens the exact file in comparison with latest upload and remarks`,async({page})=>{
+  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await login(page);
+  await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+  const thumb=page.locator('#refImagesScrollTrack').getByRole('button',{name:`Preview ${title}`,exact:true});
+  await thumb.click();const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
+  await expect(dialog).toBeVisible();await expect(left.locator('[data-panel-file]')).toHaveText(title);await expect(left.locator(media)).toBeVisible();
+  await expect(dialog.locator(`[data-comparison-carousel="reference"] button[aria-pressed="true"]`)).toHaveAttribute('aria-label',title);
+  await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');await expect(right.locator('img')).toBeVisible();
+  await expect(dialog.locator('[data-comparison-reviewers]')).toContainText('Current CAD seam feedback');
+  await expect(dialog.locator('[data-reviewer-stage="ED"]')).toBeAttached();await expect(dialog.locator('[data-reviewer-stage="MD"]')).toBeAttached();
+  for(const selector of ['#designImageViewer','#designPdfViewer','#designImagePreviewOverlay','#interiorMediaPreviewModal'])await expect(page.locator(selector)).not.toBeVisible();
+  await choose(page,'reference','Reference seat.png');await expect(left.locator('img')).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');
+  await choose(page,'upload','Designer dimension.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(left.locator('[data-panel-file]')).toHaveText('Reference seat.png');
+  await choose(page,'reference','Reference dimension.pdf');await expect(left.locator('canvas')).toBeVisible();
+  await left.getByRole('button',{name:'Next PDF page',exact:true}).click();await expect(left.locator('[data-pdf-counter]')).toHaveText('2 / 3');await expect(right.locator('[data-pdf-counter]')).toHaveText('1 / 4');
+  await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();await expect(thumb).toBeFocused();
+  // Keyboard activation uses the same entry and restores focus; mobile starts on the clicked reference.
+  await page.setViewportSize({width:375,height:900});await thumb.press('Enter');await expect(dialog).toBeVisible();await expect(left).toBeVisible();await expect(right).not.toBeVisible();await expect(left.locator('[data-panel-file]')).toHaveText(title);
+  await page.keyboard.press('Escape');expect(errors).toEqual([]);
+ });
+}
+
+test('reference image and PDF still open comparison when no designer upload exists',async({page})=>{
+ await login(page);await page.goto(`/car-details/?vehicle_id=${ids.reference_only_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ for(const [title,media] of [['Reference detail.png','img'],['Reference dimension.pdf','canvas']]){
+  await page.locator('#refImagesScrollTrack').getByRole('button',{name:`Preview ${title}`,exact:true}).click();
+  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
+  await expect(dialog).toBeVisible();await expect(left.locator('[data-panel-file]')).toHaveText(title);await expect(left.locator(media)).toBeVisible();
+  await expect(right.locator('[data-panel-message]')).toHaveText('No designer uploads available');await expect(right.locator('[data-panel-counter]')).toHaveText('0 / 0');
+  await expect(right.getByRole('button',{name:'Next file',exact:true})).toBeDisabled();
+  await expect(page.locator('#interiorMediaPreviewModal')).not.toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();
+  await left.getByRole('button',{name:'Next file',exact:true}).click();await expect(left.locator('[data-panel-file]')).not.toHaveText(title);await expect(right.locator('[data-panel-message]')).toHaveText('No designer uploads available');
+  await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
+ }
 });
 
 

@@ -14,7 +14,16 @@
         zoom(factor, pdf = false) { this.scale = Math.max(pdf ? 0.25 : 1, Math.min(pdf ? 4 : 8, this.scale * factor)); }
     }
     function clampPan(value, content, container) { const bound = Math.max(0, (content - container) / 2); return Math.max(-bound, Math.min(bound, value)); }
-    if (typeof module !== 'undefined' && module.exports) module.exports = { ComparisonPanelState, clampPan };
+    function comparisonSelection(data, id) {
+        if (!Array.isArray(data.references) || !Array.isArray(data.uploads)) throw new Error('Invalid comparison');
+        const reference = data.references.findIndex(file => file.id === Number(id));
+        const upload = data.uploads.findIndex(file => file.id === Number(id));
+        if (reference < 0 && upload < 0) throw new Error('Invalid comparison');
+        // The manifest orders files by upload time, then ID; the final upload is the latest revision.
+        return { reference: reference < 0 ? 0 : reference, upload: upload < 0 ? data.uploads.length - 1 : upload,
+            side: reference < 0 ? 'upload' : 'reference' };
+    }
+    if (typeof module !== 'undefined' && module.exports) module.exports = { ComparisonPanelState, clampPan, comparisonSelection };
     if (typeof window === 'undefined') return;
     window.fabroOnPageLoad(() => {
         const dialog = document.getElementById('designComparisonViewer');
@@ -113,7 +122,7 @@
             p.root.querySelector('[data-panel-file]').textContent = file?.title || '';
             p.stage.dataset.type = file?.type || 'empty';
             updateControls(p);
-            if (!file) { p.message.textContent = `No authorized ${p.side === 'reference' ? 'reference files' : 'designer uploads'} in this context.`; p.message.hidden = false; return; }
+            if (!file) { p.message.textContent = p.side === 'reference' ? 'No authorized reference files in this context.' : 'No designer uploads available'; p.message.hidden = false; return; }
             try {
                 if (file.type === 'image') {
                     p.message.textContent = 'Loading image…'; p.message.hidden = false;
@@ -226,12 +235,12 @@
                 if (response.redirected || !response.ok) throw new Error('Comparison unavailable');
                 const data = await response.json();
                 if (token !== openToken || !dialog.open) return;
-                if (!Array.isArray(data.references) || !Array.isArray(data.uploads) || !data.uploads.some(file => file.id === Number(id))) throw new Error('Invalid comparison');
+                const selection = comparisonSelection(data, id);
                 manifest = data; notice.hidden = true;
                 panels.reference.model = new ComparisonPanelState(data.references); panels.upload.model = new ComparisonPanelState(data.uploads);
                 carousel(panels.reference); carousel(panels.upload);
-                selectFile(panels.reference, 0); selectFile(panels.upload, data.uploads.findIndex(file => file.id === Number(id)));
-                active('upload');
+                selectFile(panels.reference, selection.reference); selectFile(panels.upload, selection.upload);
+                setMobile(selection.side);
             } catch (failure) {
                 if (token === openToken && dialog.open && failure.name !== 'AbortError') { notice.textContent = 'Comparison unavailable. The file may be missing or your access may have changed.'; notice.hidden = false; }
             }
