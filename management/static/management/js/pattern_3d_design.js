@@ -1023,8 +1023,17 @@
                 decisionBox.prepend(selector);
             }
             selector.replaceChildren();
+            const drafts = new Map();
+            let selectedStage = null;
+            const remarks = document.getElementById('designDrawerDecisionRemarks');
             const selectStage = role => {
-                if (state.isSubmittingDecision) return;
+                if (state.isSubmittingDecision || selectedStage === role) return;
+                if (selectedStage) drafts.set(selectedStage, {
+                    comment: remarks?.value || '',
+                    changeType: decisionBox.querySelector('input[name="drawerChangeType"]:checked')?.value || 'minor',
+                });
+                selectedStage = role;
+                const draft = drafts.get(role);
                 window.fabroReviewVoice?.resetWithin(decisionBox);
                 decisionBox.dataset.activeStage = role;
                 const label = document.getElementById('drawerActiveReviewStageLabel');
@@ -1034,10 +1043,9 @@
                 });
                 ['radioChangeTypeMinor', 'radioChangeTypeMajor'].forEach(id => {
                     const input = document.getElementById(id);
-                    if (input) input.checked = input.value === 'minor';
+                    if (input) input.checked = input.value === (draft?.changeType || 'minor');
                 });
-                const remarks = document.getElementById('designDrawerDecisionRemarks');
-                if (remarks) remarks.value = '';
+                if (remarks) remarks.value = draft?.comment || '';
                 hideDrawerErrors();
             };
             if (file.can_admin_review) {

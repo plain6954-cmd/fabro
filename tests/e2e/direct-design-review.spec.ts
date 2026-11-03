@@ -163,3 +163,31 @@ test('missing and denied preview show recoverable errors; read-only users cannot
   await page.getByRole('button',{name:'Retry preview',exact:true}).click();
   await expect(page.locator('[data-review-pdf-canvas]')).toBeVisible();
 });
+
+test('CAD ED MD review tabs have equal geometry and status colors independent of selection at every requested size',async({page})=>{
+ await login(page);await page.goto(`/design-approvals/${ids.image}/`);
+ const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url());});
+ const tabs=page.locator('.review-stage-tabs [role="tab"]');
+ const statusColors=await tabs.locator('.review-status').evaluateAll(nodes=>nodes.map(node=>getComputedStyle(node).color));
+ for(const [width,height] of [[1920,1080],[1440,900],[1366,768],[1024,768],[768,1024],[390,844]]){
+  await page.setViewportSize({width,height});
+  for(const light of [false,true]){
+   await page.evaluate(value=>document.body.classList.toggle('light-mode',value),light);
+   const boxes=await tabs.evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect(),s=getComputedStyle(node);return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bg:s.backgroundColor,radius:parseFloat(s.borderRadius),overflow:node.scrollWidth-node.clientWidth};}));
+   expect(Math.max(...boxes.map(b=>b.height))-Math.min(...boxes.map(b=>b.height))).toBeLessThan(2);
+   expect(Math.max(...boxes.map(b=>b.width))-Math.min(...boxes.map(b=>b.width))).toBeLessThan(2);
+   expect(Math.max(...boxes.map(b=>b.y))-Math.min(...boxes.map(b=>b.y))).toBeLessThan(2);
+   for(const box of boxes){expect(box.x).toBeGreaterThanOrEqual(0);expect(box.right).toBeLessThanOrEqual(width);expect(box.bg).not.toBe('rgb(255, 255, 255)');expect(box.radius).toBeGreaterThanOrEqual(6);expect(box.height).toBeGreaterThanOrEqual(44);expect(box.overflow).toBeLessThanOrEqual(1);}
+   for(const role of ['cad','ed','md']){
+    await page.locator(`#review-tab-${role}`).click();await expect(page.locator(`#review-tab-${role}`)).toHaveAttribute('aria-selected','true');
+    expect(await tabs.locator('.review-status').evaluateAll(nodes=>nodes.map(node=>getComputedStyle(node).color))).toEqual(statusColors);
+   }
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+  }
+ }
+ await page.locator('#review-tab-cad').focus();await page.keyboard.press('ArrowRight');await expect(page.locator('#review-tab-ed')).toBeFocused();await expect(page.locator('#review-tab-ed')).toHaveCSS('outline-style','solid');
+ await page.goto(`/design-approvals/${ids.skipped}/`);await page.locator('#review-tab-cad').click();
+ await expect(page.locator('#review-tab-cad .review-status')).toContainText('Skipped');await expect(page.locator('#cadReviewForm')).toHaveCount(0);
+ expect(await page.locator('#review-tab-cad .review-status').evaluate(el=>getComputedStyle(el).color)).not.toBe(await page.locator('#review-tab-ed .review-status').evaluate(el=>getComputedStyle(el).color));
+ expect(mutations).toEqual([]);
+});

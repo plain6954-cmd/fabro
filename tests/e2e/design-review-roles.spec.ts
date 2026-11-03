@@ -7,9 +7,10 @@ import { routes, workflowUsers } from '../helpers/testData';
 const password = 'FabroWorkflow!234';
 
 test.beforeAll(() => {
-  // Only database metadata is created in the disposable E2E database.
+  // Isolated review records and file bytes belong to the disposable E2E environment.
   runDjangoCode(`
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from management.models import ApprovalRoles, PatternDesignImage, UserProfile, WorkflowRoles, YearRange
 from management.services.design_approvals import submit_design_for_approval
 User = get_user_model()
@@ -28,7 +29,7 @@ profile.approval_role = ApprovalRoles.MD
 profile.save()
 image, _ = PatternDesignImage.objects.get_or_create(
     vehicle=YearRange.objects.first(), title='E2E reviewer matrix.obj',
-    defaults={'image': 'pattern_designs/e2e-reviewer-matrix.obj', 'uploaded_by': designer, 'approval_status': 'pending'},
+    defaults={'image': ContentFile(b'v 0 0 0', name='e2e-reviewer-matrix.obj'), 'uploaded_by': designer, 'approval_status': 'pending'},
 )
 submit_design_for_approval(image, designer)
 `);

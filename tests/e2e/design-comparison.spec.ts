@@ -153,7 +153,6 @@ test('image/PDF combinations and two PDFs have independent page, zoom, and file 
  await choose(page,'reference','Reference seat.png');await expect(left.locator('img')).toBeVisible();await expect(right.locator('canvas')).toBeVisible();await expect(right.locator('[data-pdf-counter]')).toHaveText('2 / 4');
  await choose(page,'upload','Designer variant.png');await expect(right.locator('img')).toBeVisible();await expect(left.locator('img')).toBeVisible();
  await choose(page,'reference','Reference dimension.pdf');await choose(page,'upload','Designer dimension.pdf');await expect(left.locator('canvas')).toBeVisible();await expect(right.locator('canvas')).toBeVisible();
- await page.setViewportSize({width:1600,height:1000});await page.screenshot({path:'output/design-comparison-desktop.png'});
  await dialog.getByRole('button',{name:'Close comparison viewer',exact:true}).click();expect(errors).toEqual([]);
 });
 test('keyboard, mobile switching, fullscreen fallback, touch pinch and independent remarks collapse',async({page})=>{
@@ -248,7 +247,7 @@ test('actual Pattern Master designer thumbnails open comparison in grid and list
  await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
  await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.upload}"]`)).toBeAttached();
  expect(await page.evaluate(()=>typeof (window as any).openDesignComparison)).toBe('function');
- await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/comparison-entry/);
+ await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/review-drafts/);
  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  await page.locator('#design3DFilesSearch').fill('Designer');
  for(const mode of ['grid','list']){
@@ -282,4 +281,120 @@ test('actual gallery thumbnail with no reference files keeps comparison and imag
  await expect(page.locator('#designImageViewer')).not.toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();
  await choose(page,'upload','Empty reference upload.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(right.locator('[data-pdf-counter]')).toHaveText('1 / 4');
  await expect(left.locator('[data-panel-counter]')).toHaveText('0 / 0');await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
+});
+
+test.beforeAll(()=>{
+ runDjangoCode(`
+import json
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from management.models import ApprovalRoles, PatternDesignImage, WorkflowRoles, YearRange
+from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
+ids=json.loads((settings.BASE_DIR/'output/comparison-browser-ids.json').read_text())
+User=get_user_model();owner=User.objects.get(username='comparison_browser_owner');cad=User.objects.get(username='fabro_e2e_cad');ed=User.objects.get(username='fabro_e2e_ed')
+md,_=User.objects.get_or_create(username='fabro_e2e_md');p=md.workflow_profile;p.role=WorkflowRoles.APPROVER;p.approval_role=ApprovalRoles.MD;p.save()
+sub=YearRange.objects.get(pk=ids['vehicle']).sub_model
+variants,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2014,year_end=2015,defaults={'layout_code':'COMPARE-FORMATS'})
+single,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2016,year_end=2017,defaults={'layout_code':'COMPARE-SINGLE'})
+ids['formats_vehicle']=variants.pk;ids['single_vehicle']=single.pk
+target=Path(settings.MEDIA_ROOT)/'comparison-browser'
+with patch('management.services.push_notifications.send_push_to_user'):
+ for reference in (True,False):
+  for ext in ('png','jpg','webp'):
+   name=('Reference' if reference else 'Designer')+' format.'+ext
+   Image.new('RGB',(600,400),'#b8a797').save(target/name)
+   file,created=PatternDesignImage.objects.get_or_create(vehicle=variants,title=name,is_reference=reference,defaults={'image':'comparison-browser/'+name,'uploaded_by':cad if reference else owner,'approval_status':'approved' if reference else 'pending'})
+   if created and not reference:
+    submit_design_for_approval(file,owner)
+    if ext=='webp':
+     for reviewer,status,classification in ((cad,'approved','minor'),(ed,'rejected','major'),(md,'approved','minor')):
+      record_design_review_decision(file,reviewer,status,reviewer.username+' format feedback',change_type=classification)
+   ids[('formatref_' if reference else 'formatupload_')+ext]=file.pk
+ for reference in (True,False):
+  file,created=PatternDesignImage.objects.get_or_create(vehicle=single,is_reference=reference,defaults={'title':'Single reference.png' if reference else 'Single upload.png','image':'comparison-browser/reference.png','uploaded_by':cad,'approval_status':'approved' if reference else 'pending'})
+  if created and not reference:submit_design_for_approval(file,cad)
+  ids['single_ref' if reference else 'single_upload']=file.pk
+(settings.BASE_DIR/'output/comparison-browser-ids.json').write_text(json.dumps(ids))
+`);
+ ids=JSON.parse(readFileSync('output/comparison-browser-ids.json','utf8'));
+});
+
+test('PNG JPEG and WebP reference/designer thumbnails reuse comparison in both gallery modes',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await login(page);
+ await page.goto(`/car-details/?vehicle_id=${ids.formats_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
+ for(const mode of ['grid','list']){
+  await page.locator(mode==='grid'?'#design3DGridBtn':'#design3DListBtn').click();
+  for(const ext of ['png','jpg','webp'])for(const reference of [true,false]){
+   const source=reference?page.locator('#refImagesScrollTrack').getByRole('button',{name:`Preview Reference format.${ext}`,exact:true}):page.locator(`.fabro-design-tile[data-file-id="${ids['formatupload_'+ext]}"] [data-design-image-id]`);
+   await source.click();await expect(dialog).toBeVisible();
+   await expect((reference?left:right).locator('[data-panel-file]')).toHaveText(`${reference?'Reference':'Designer'} format.${ext}`);
+   for(const p of [left,right]){
+    await expect(p.locator('[data-panel-image]')).toBeVisible();
+    expect(await p.locator('img').evaluate((img:HTMLImageElement)=>({ratio:img.naturalWidth/img.naturalHeight,fit:getComputedStyle(img).objectFit}))).toEqual({ratio:1.5,fit:'contain'});
+   }
+   await expect(dialog.locator('[data-comparison-information]')).toContainText('Dynamic Model');
+   for(const selector of ['#designImageViewer','#designPdfViewer','#interiorMediaPreviewModal','#designImagePreviewOverlay'])await expect(page.locator(selector)).not.toBeVisible();
+   await expect(page.locator('#designApprovalDrawer')).not.toHaveClass(/is-open/);
+   if(reference){
+    await expect(right.locator('[data-panel-file]')).toHaveText('Designer format.webp');
+    for(const [role,status,classification] of [['CAD','approved','Minor'],['ED','rejected','Major'],['MD','approved','Minor']]){
+     const card=dialog.locator(`[data-reviewer-stage="${role}"]`);
+     await expect(card.locator('.comparison-status')).toHaveClass(new RegExp(status));
+     await expect(card).toContainText(`fabro_e2e_${role.toLowerCase()} format feedback`);await expect(card).toContainText(`${classification} Change`);
+     await expect(card.locator('.comparison-review-meta')).toContainText(/\d{4} \d{2}:\d{2}/);
+    }
+    await choose(page,'upload','Designer format.png');await expect(dialog.locator('[data-comparison-reviewers]')).not.toContainText('format feedback');
+   }
+   await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
+   await expect(source).toBeFocused();
+  }
+ }
+ expect(errors).toEqual([]);
+});
+
+test('comparison controls and metadata fit all requested desktop tablet and mobile viewports',async({page})=>{
+ await login(page);await page.goto(`/car-details/?vehicle_id=${ids.formats_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ await page.locator('#refImagesScrollTrack').getByRole('button',{name:'Preview Reference format.webp',exact:true}).click();
+ const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
+ for(const [width,height] of [[1920,1080],[1440,900],[1366,768],[1024,768],[768,1024],[390,844]]){
+  await page.setViewportSize({width,height});
+  if(await dialog.getAttribute('data-remarks-collapsed')!=='true')await dialog.getByRole('button',{name:'Toggle approver remarks',exact:true}).click();
+  await expect(dialog).toHaveAttribute('data-remarks-collapsed','true');
+  const box=(await dialog.boundingBox())!;expect([box.x,box.y,box.width,box.height]).toEqual([0,0,width,height]);
+  expect(await dialog.evaluate(el=>el.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+  for(const selector of ['.comparison-toolbar','.comparison-information','.comparison-carousels']){
+   const bounds=(await dialog.locator(selector).boundingBox())!;expect(bounds.y).toBeGreaterThanOrEqual(0);expect(bounds.y+bounds.height).toBeLessThanOrEqual(height+1);
+  }
+  for(const side of ['reference','upload']){
+   if(width<650)await dialog.getByRole('button',{name:side==='reference'?'Reference':'Designer',exact:true}).click();
+   const p=side==='reference'?left:right;await expect(p).toBeVisible();
+   const stage=(await p.locator('[data-panel-stage]').boundingBox())!;expect(stage.height).toBeGreaterThan(100);expect(stage.width).toBeGreaterThan(100);
+   await p.getByRole('button',{name:'Zoom in',exact:true}).click();await expect(p.locator('[data-panel-zoom]')).toHaveText('125%');
+   await dialog.getByRole('button',{name:'Fit Both',exact:true}).click();await expect(p.locator('[data-panel-zoom]')).toHaveText('100%');
+   const carousel=dialog.locator(`[data-comparison-carousel="${side}"]`);await expect(carousel.locator('button[aria-pressed="true"]')).toHaveCount(1);
+   expect(await carousel.locator('[data-carousel-strip]').evaluate(el=>getComputedStyle(el).maskImage)).toContain('linear-gradient');
+  }
+  const close=dialog.getByRole('button',{name:'Close comparison viewer',exact:true});
+  expect(await close.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));})).toBe(true);
+  expect(await page.evaluate(()=>document.body.style.position)).toBe('fixed');
+  if(width===1920||width===390)await page.screenshot({path:`output/design-comparison-${width===1920?'desktop':'mobile'}.png`});
+ }
+ await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();expect(await page.evaluate(()=>document.body.style.position)).toBe('');
+});
+
+test('single-file controls stay disabled and gallery synchronization preserves an open comparison',async({page})=>{
+ test.setTimeout(45000);await login(page);await page.goto(`/car-details/?vehicle_id=${ids.single_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ await page.locator('#refImagesScrollTrack').getByRole('button',{name:'Preview Single reference.png',exact:true}).click();
+ const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
+ for(const p of [left,right]){await expect(p.locator('[data-panel-counter]')).toHaveText('1 / 1');for(const name of ['Previous file','Next file'])await expect(p.getByRole('button',{name,exact:true})).toBeDisabled();}
+ await expect(dialog.locator('[data-reviewer-stage="CAD"] .comparison-status')).toHaveClass(/skipped_uploader/);
+ await right.getByRole('button',{name:'Zoom in',exact:true}).click();
+ runDjangoCode(`from management.models import PatternDesignImage; PatternDesignImage.objects.filter(pk=${ids.single_upload}).update(title='Single upload updated.png')`);
+ await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.single_upload}"] .tile-title`)).toHaveText('Single upload updated.png',{timeout:20000});
+ await expect(dialog).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Single upload.png');await expect(right.locator('[data-panel-zoom]')).toHaveText('125%');
+ await expect(left.locator('[data-panel-file]')).toHaveText('Single reference.png');await page.keyboard.press('Escape');
 });

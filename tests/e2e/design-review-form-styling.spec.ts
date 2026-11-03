@@ -99,3 +99,20 @@ test('history cycles keep ordering and approval submits with existing stage, cla
   await page.locator('#drawerReviewRoleSelector [data-stage="cad"]').isDisabled().then(value=>expect(value).toBe(true));
   await expect(page.locator('#drawerReviewRoleSelector [data-stage="ed"]')).toBeEnabled();
 });
+
+test('drawer stage toggling keeps each reviewer text and classification draft without submitting',async({page})=>{
+ await open(page,ids.cycles);
+ const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url());});
+ const stage=(role:string)=>page.locator(`#drawerReviewRoleSelector [data-stage="${role}"]`);
+ const remarks=page.locator('#designDrawerDecisionRemarks');
+ // CAD may already be completed by the preceding isolated submission test; ED and MD remain pending.
+ await stage('ed').click();await remarks.fill('  Unsaved ED draft\nkeep exact spacing  ');await page.locator('#radioChangeTypeMajor').check();
+ await stage('ed').click();await expect(remarks).toHaveValue('  Unsaved ED draft\nkeep exact spacing  ');await expect(page.locator('#radioChangeTypeMajor')).toBeChecked();
+ await stage('md').click();await expect(remarks).toHaveValue('');await expect(page.locator('#radioChangeTypeMinor')).toBeChecked();await remarks.fill('Separate MD draft');
+ await stage('ed').click();await expect(remarks).toHaveValue('  Unsaved ED draft\nkeep exact spacing  ');await expect(page.locator('#radioChangeTypeMajor')).toBeChecked();
+ await stage('md').click();await expect(remarks).toHaveValue('Separate MD draft');await expect(page.locator('#radioChangeTypeMinor')).toBeChecked();
+ await page.getByRole('button',{name:'Compare files',exact:true}).click();await expect(page.locator('#designComparisonViewer')).toBeVisible();await page.keyboard.press('Escape');
+ await expect(remarks).toHaveValue('Separate MD draft');
+ await page.evaluate(id=>(window as any).selectDrawerFile(id),ids.skipped);await expect(remarks).toHaveValue('');await expect(page.locator('#radioChangeTypeMinor')).toBeChecked();
+ expect(mutations).toEqual([]);
+});
