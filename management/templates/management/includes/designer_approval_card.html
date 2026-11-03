@@ -16,14 +16,14 @@
             <div class="designer-file-row">
                 {% with suffix=item.image.name|lower|slice:'-4:' long_suffix=item.image.name|lower|slice:'-5:' %}
                 {% if suffix == '.pdf' %}
-                <div class="designer-thumbnail designer-pdf-thumbnail" role="img" aria-label="PDF · {{ item.title }}"><i class="fas fa-file-pdf" aria-hidden="true"></i><strong>PDF</strong><span>{{ item.title }}</span></div>
+                <button type="button" data-design-comparison="{{ item.id }}" class="designer-thumbnail designer-pdf-thumbnail" aria-label="PDF · {{ item.title }}"><i class="fas fa-file-pdf" aria-hidden="true"></i><strong>PDF</strong><span>{{ item.title }}</span></button>
                 {% elif item.image and suffix == '.png' or item.image and suffix == '.jpg' or item.image and suffix == '.gif' or item.image and suffix == '.bmp' or item.image and long_suffix == '.jpeg' or item.image and long_suffix == '.webp' %}
-                <button type="button" class="designer-thumbnail" aria-label="{% translate 'Preview design' %} {{ item.title }}" onclick="openDesignPreviewModal('{% url 'pattern_design_image_download' item.id %}', '{{ item.title|escapejs }}')">
+                <button type="button" class="designer-thumbnail" aria-label="{% translate 'Preview design' %} {{ item.title }}" data-design-comparison="{{ item.id }}">
                     <img src="{% if item.thumbnail %}{{ item.thumbnail.url }}{% else %}{% url 'pattern_design_image_download' item.id %}{% endif %}" alt="{{ item.title }}" loading="lazy" onerror="this.hidden=true; this.parentElement.classList.add('is-unavailable');">
                     <span class="designer-thumbnail-fallback" aria-hidden="true"><i class="fas fa-file-image"></i><span>{{ item.title }}</span></span>
                 </button>
                 {% else %}
-                <div class="designer-thumbnail is-unavailable" role="img" aria-label="{{ item.title }}"><span class="designer-thumbnail-fallback"><i class="fas fa-drafting-compass" aria-hidden="true"></i><span>{{ item.title }}</span></span></div>
+                <button type="button" data-design-comparison="{{ item.id }}" class="designer-thumbnail is-unavailable" aria-label="{{ item.title }}"><span class="designer-thumbnail-fallback"><i class="fas fa-drafting-compass" aria-hidden="true"></i><span>{{ item.title }}</span></span></button>
                 {% endif %}
                 {% endwith %}
                 <dl class="designer-file-metadata">

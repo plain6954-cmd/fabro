@@ -27,7 +27,7 @@ from django.core.cache import cache
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Exists
-from django.http import FileResponse, HttpResponse, HttpResponseNotModified, JsonResponse, QueryDict
+from django.http import FileResponse, StreamingHttpResponse, HttpResponse, HttpResponseNotModified, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
@@ -569,6 +569,129 @@ def pattern_design_image_download(request, image_id):
         response['Cache-Control'] = 'private, no-store'
         return response
     return redirect(design_image.image.url)
+
+
+def _comparison_visible_files(user):
+    if not user.is_authenticated or not user.is_active:
+        return PatternDesignImage.objects.none()
+    return _visible_design_images_qs(user, PatternDesignImage.objects.all())
+
+
+@login_required
+@never_cache
+@require_GET
+def design_comparison_manifest(request, image_id):
+    selected = get_object_or_404(_comparison_visible_files(request.user).select_related(
+        'vehicle__sub_model__model__brand', 'folder__vehicle__sub_model__model__brand'), pk=image_id, is_reference=False)
+    vehicle = selected.vehicle or (selected.folder.vehicle if selected.folder else None)
+    if vehicle:
+        context = Q(vehicle=vehicle) | Q(vehicle__isnull=True, folder__vehicle=vehicle)
+    elif selected.folder_id:
+        context = Q(vehicle__isnull=True, folder_id=selected.folder_id)
+    else:
+        context = Q(pk=selected.pk)
+    files = _comparison_visible_files(request.user).filter(context).exclude(image='').select_related('uploaded_by').prefetch_related(
+        'approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer', 'approval_requests__voice_notes').order_by('uploaded_at', 'pk')
+    profile = getattr(request.user, 'workflow_profile', None)
+    def serialize(image):
+        kind, extension = _get_design_file_info(image.image.name)
+        url = reverse('design_comparison_file', args=[image.pk])
+        can_read_remarks = bool(not image.is_reference and _can_user_access_designer_approvals(request.user) and (
+            not (profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER) or image.uploaded_by_id == request.user.pk))
+        approvals = sorted(image.approval_requests.all(), key=lambda item: item.cycle, reverse=True)
+        history = []
+        if can_read_remarks:
+            for approval in approvals:
+                stages = []
+                for role in ('cad', 'ed', 'md'):
+                    reviewer = getattr(approval, role + '_reviewer')
+                    decided = getattr(approval, role + '_decided_at')
+                    stages.append({'role': role.upper(), 'status': getattr(approval, role + '_status'),
+                        'label': getattr(approval, 'get_' + role + '_status_display')(),
+                        'reviewer': (reviewer.get_full_name() or reviewer.username) if reviewer else '',
+                        'timestamp': timezone.localtime(decided).strftime('%b %d, %Y %H:%M') if decided else '',
+                        'classification': getattr(approval, role + '_change_type'), 'comment': getattr(approval, role + '_comment'),
+                        'voice_notes': [serialize_voice_note(note, approval) for note in approval.voice_notes.all() if note.stage == role.upper()]})
+                history.append({'cycle': approval.cycle, 'stages': stages})
+        return {'id': image.pk, 'title': image.title or os.path.basename(image.image.name), 'type': kind, 'extension': extension,
+                'url': url, 'download': url + '?download=1',
+                'thumbnail': url + '?thumbnail=1' if kind == 'image' and image.thumbnail else None,
+                'size': image.file_size or None, 'uploader': image.uploaded_by.username if image.uploaded_by else '',
+                'date': timezone.localtime(image.uploaded_at).strftime('%b %d, %Y %H:%M'),
+                'cycle': approvals[0].cycle if approvals else None, 'remarks_allowed': can_read_remarks, 'history': history}
+    references, uploads = [], []
+    for image in files:
+        (references if image.is_reference else uploads).append(serialize(image))
+    name = ''
+    if vehicle:
+        sub = vehicle.sub_model
+        years = '–'.join(str(value) for value in (vehicle.year_start, vehicle.year_end) if value is not None)
+        name = ' '.join(value for value in (sub.model.brand.name, sub.model.name, sub.name if sub.name != '-' else '', '(' + years + ')' if years else '') if value)
+    return JsonResponse({'selected_id': selected.pk, 'vehicle': name, 'pattern': vehicle.serial_number if vehicle else '',
+                         'references': references, 'uploads': uploads})
+
+
+@login_required
+@never_cache
+@require_GET
+def design_comparison_file(request, image_id):
+    image = get_object_or_404(_comparison_visible_files(request.user), pk=image_id)
+    kind, _ = _get_design_file_info(image.image.name)
+    thumbnail = request.GET.get('thumbnail') == '1'
+    if thumbnail and (kind != 'image' or not image.thumbnail):
+        return HttpResponse(status=404)
+    field = image.thumbnail if thumbnail else image.image
+    if not field:
+        return HttpResponse(status=404)
+    try:
+        content = design_file_storage(field.name).open(field.name, 'rb')
+        content.seek(0, 2)
+        size = content.tell()
+        content.seek(0)
+    except FileNotFoundError:
+        return HttpResponse('File unavailable.', status=404)
+    except Exception:
+        logger.exception('Unable to open comparison file %s', image.pk)
+        return HttpResponse('File temporarily unavailable.', status=503)
+    import mimetypes
+    content_type = ('application/pdf' if kind == 'pdf' else mimetypes.guess_type(field.name)[0]) if kind in ('image', 'pdf') else 'application/octet-stream'
+    response = FileResponse(content, content_type=content_type or 'application/octet-stream',
+                            as_attachment=request.GET.get('download') == '1' or kind not in ('image', 'pdf'),
+                            filename=os.path.basename(image.title or field.name))
+    requested = request.headers.get('Range')
+    if requested:
+        match = re.fullmatch(r'bytes=(\d*)-(\d*)', requested)
+        try:
+            if not match or not any(match.groups()):
+                raise ValueError
+            first, last = match.groups()
+            start = int(first) if first else max(0, size - int(last))
+            end = min(size - 1, int(last)) if first and last else size - 1
+            if start >= size or start > end or (not first and int(last) <= 0):
+                raise ValueError
+        except ValueError:
+            response.close()
+            return HttpResponse(status=416, headers={'Content-Range': f'bytes */{size}'})
+        content.seek(start)
+        def chunks():
+            remaining = end - start + 1
+            try:
+                while remaining:
+                    data = content.read(min(65536, remaining))
+                    if not data:
+                        break
+                    remaining -= len(data)
+                    yield data
+            finally:
+                content.close()
+        headers = dict(response.items())
+        headers['Content-Range'] = f'bytes {start}-{end}/{size}'
+        headers['Content-Length'] = str(end - start + 1)
+        response = StreamingHttpResponse(chunks(), status=206, headers=headers)
+        response._resource_closers.append(content.close)
+    response['Accept-Ranges'] = 'bytes'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 @login_required

@@ -966,6 +966,9 @@
         const file = state.designFiles.find(f => f.id === id);
         if (!file) return;
 
+        const compare = document.getElementById('drawerCompareDesign');
+        if (compare) { compare.dataset.designComparison = String(file.id); compare.disabled = false; }
+
         // 1. Update Preview Card
         const nameEl = document.getElementById('drawerFileName');
         if (nameEl) nameEl.textContent = file.title || 'Untitled';

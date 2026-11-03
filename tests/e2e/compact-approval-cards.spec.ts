@@ -76,9 +76,9 @@ test('compact vehicle-first cards retain dynamic media, direct review and authen
   const pdfDownload=await pdf.getByRole('link',{name:'Download',exact:true}).getAttribute('href');
   expect((await page.request.get(pdfDownload!)).headers()['content-type']).toContain('application/pdf');
   await card.getByRole('button',{name:'Preview design Compact seat image.png',exact:true}).click();
-  await expect(page.locator('#designImagePreviewOverlay')).toHaveClass(/open/);
-  await expect.poll(()=>page.locator('#previewModalImg').evaluate((el:HTMLImageElement)=>el.naturalWidth)).toBe(600);
-  await page.evaluate(()=>(window as any).closeDesignPreviewModal());
+  await expect(page.locator('#designComparisonViewer')).toBeVisible();
+  await expect.poll(()=>page.locator('#designComparisonViewer [data-comparison-panel="upload"] [data-panel-image]').evaluate((el:HTMLImageElement)=>el.naturalWidth)).toBe(600);
+  await page.getByRole('button',{name:'Close comparison viewer',exact:true}).click();
   await card.getByRole('link',{name:'View Details',exact:true}).click();
   await expect(page).toHaveURL(new RegExp(`/design-approvals/${ids.image}/\\?queue_status=all&queue_search=Compact`));
   await expect(page.locator('.design-review-page')).toBeVisible();

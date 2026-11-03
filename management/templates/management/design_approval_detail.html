@@ -43,7 +43,7 @@
                     <p class="review-media-message"><i class="fas fa-file-alt" aria-hidden="true"></i> {% translate "Preview unavailable for this file type. Download the original file to inspect it." %}</p>
                     {% endif %}
                 </div>
-                {% if design_file_type == 'image' %}<div class="review-preview-toolbar"><span>{% translate "Click the image to zoom and inspect" %}</span><button class="review-button" type="button" data-design-preview="{{ design_image.pk }}" aria-label="{% translate 'Full-screen image preview' %}"><i class="fas fa-expand" aria-hidden="true"></i></button></div>{% elif design_file_type == 'pdf' %}<div class="review-preview-toolbar"><span>{% translate "First page · open viewer for all pages and zoom controls" %}</span><button class="review-button" type="button" data-review-pdf aria-label="{% translate 'Full-screen PDF preview' %}"><i class="fas fa-expand" aria-hidden="true"></i></button></div>{% endif %}
+                {% if design_file_type == 'image' %}<div class="review-preview-toolbar"><span>{% translate "Click the image to zoom and inspect" %}</span><button class="review-button" type="button" data-design-comparison="{{ design_image.pk }}">{% translate "Compare files" %}</button><button class="review-button" type="button" data-design-preview="{{ design_image.pk }}" aria-label="{% translate 'Full-screen image preview' %}"><i class="fas fa-expand" aria-hidden="true"></i></button></div>{% elif design_file_type == 'pdf' %}<div class="review-preview-toolbar"><span>{% translate "First page · open viewer for all pages and zoom controls" %}</span><button class="review-button" type="button" data-design-comparison="{{ design_image.pk }}">{% translate "Compare files" %}</button><button class="review-button" type="button" data-review-pdf aria-label="{% translate 'Full-screen PDF preview' %}"><i class="fas fa-expand" aria-hidden="true"></i></button></div>{% endif %}
                 {% if preview_images|length > 1 %}
                 <div class="design-preview-gallery" aria-label="{% translate 'Design images' %}">{% for image in preview_images %}<button type="button" data-design-preview="{{ image.id }}" aria-label="{% translate 'Enlarge' %} {{ image.title }}"><img src="{{ image.thumbnail }}" alt="{{ image.title }}" loading="lazy"></button>{% endfor %}</div>
                 {% endif %}
@@ -276,8 +276,9 @@
 {% include 'management/includes/design_pdf_viewer.html' %}
 {{ design_image.pk|json_script:"review-design-id" }}
 <script src="{% static 'management/js/design_approval_preview.js' %}?v=20261021-gallery-viewer" data-fabro-page-asset></script>
-<script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261031-review-inline" data-fabro-page-asset></script>
+<script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261103-comparison" data-fabro-page-asset></script>
 <script src="{% static 'management/js/design_review_voice.js' %}?v=20261031-review-tabs" data-fabro-page-asset></script>
 <script src="{% static 'management/js/design_review.js' %}?v=20261031-direct-review" data-fabro-page-asset></script>
+{% include 'management/includes/design_comparison_assets.html' %}
 </div>
 {% if not is_htmx_request %}</body></html>{% endif %}

@@ -106,7 +106,7 @@ window.fabroOnPageLoad(() => {
     // Both the inline review preview and full-screen viewer use this private loader.
     async function createPdfTask(file) {
         const url = new URL(file.original_url || `/design-images/${encodeURIComponent(file.id)}/download/`, location.origin);
-        if (url.origin !== location.origin || !/^\/design-images\/\d+\/download\/$/.test(url.pathname)) throw new Error('Invalid PDF destination');
+        if (url.origin !== location.origin || !/^\/design-images\/\d+\/(?:download|comparison-file)\/$/.test(url.pathname)) throw new Error('Invalid PDF destination');
         if (!library) library = import(dialog.dataset.pdfjsUrl).catch(failure => { library = null; throw failure; });
         const pdfjs = await library;
         if (scope.signal.aborted) throw new DOMException('Page closed', 'AbortError');
@@ -144,7 +144,7 @@ window.fabroOnPageLoad(() => {
         try {
             // Always retrieve bytes through the existing same-origin permission check.
             const url = new URL(file.original_url || `/design-images/${encodeURIComponent(file.id)}/download/`, location.origin);
-            if (url.origin !== location.origin || !/^\/design-images\/\d+\/download\/$/.test(url.pathname)) throw new Error('Invalid PDF destination');
+            if (url.origin !== location.origin || !/^\/design-images\/\d+\/(?:download|comparison-file)\/$/.test(url.pathname)) throw new Error('Invalid PDF destination');
             const task = await createPdfTask(file);
             if (token !== session || !dialog.open) { task.destroy().catch(() => {}); return; }
             loadingTask = task;

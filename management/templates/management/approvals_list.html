@@ -1456,6 +1456,7 @@
             window.location.reload();
         };
         </script>
+    {% if workspace_stage == 'designer' %}{% include 'management/includes/design_comparison_assets.html' with comparison_shared_assets=True %}{% endif %}
     </div>
 {% if not is_htmx_request %}
 </body>

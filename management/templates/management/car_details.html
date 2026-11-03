@@ -3150,6 +3150,7 @@
             <select id="drawerFileSelector" class="form-input" onchange="window.selectDrawerFile(this.value)" style="width: 100%; height: 2.3rem; font-size: 0.82rem; background: #191c21; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px; padding: 0 0.65rem;">
                 <!-- Populated by JS -->
             </select>
+            <button type="button" id="drawerCompareDesign" class="comparison-entry-button" data-design-comparison="" disabled>{% translate "Compare files" %}</button>
         </div>
 
         <!-- Selected File Preview Card -->
@@ -3320,10 +3321,11 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
 {% include 'management/includes/design_image_viewer.html' %}
 {% include 'management/includes/design_pdf_viewer.html' %}
 <script src="{% static 'management/js/design_approval_preview.js' %}?v=20261021-gallery-viewer" data-fabro-page-asset></script>
-<script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261031" data-fabro-page-asset></script>
+<script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261103-comparison" data-fabro-page-asset></script>
 <script src="{% static 'management/js/gallery_sync.js' %}?v=20261031" data-fabro-page-asset></script>
 <script src="{% static 'management/js/design_review_voice.js' %}?v=20261031" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261101-review-form" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261103-comparison" data-fabro-page-asset></script>
+{% include 'management/includes/design_comparison_assets.html' %}
         </div><!-- /page-container -->
 
     <!-- Add Folder Modal -->

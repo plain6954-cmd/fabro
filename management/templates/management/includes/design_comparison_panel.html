@@ -1,0 +1,12 @@
+{% load i18n %}
+<section class="comparison-panel" data-comparison-panel="{{ side }}" aria-label="{{ label }}" tabindex="0">
+    <header><div><strong data-panel-title>{{ label }}</strong><small data-panel-file></small></div><div class="comparison-file-nav"><button type="button" data-panel-action="previous" aria-label="{% translate 'Previous file' %}">‹</button><output data-panel-counter>0 / 0</output><button type="button" data-panel-action="next" aria-label="{% translate 'Next file' %}">›</button><button type="button" data-panel-action="focus" aria-label="{% translate 'Focus this panel' %}">⛶</button></div></header>
+    <div class="comparison-stage" data-panel-stage>
+        <img data-panel-image hidden alt="">
+        <canvas data-panel-canvas hidden role="img" aria-label="{% translate 'PDF page' %}"></canvas>
+        <div class="comparison-placeholder" data-panel-message role="status"></div>
+        <div class="comparison-fallback" data-panel-fallback hidden><span aria-hidden="true">▤</span><strong data-fallback-title></strong><p data-fallback-meta></p><a data-fallback-download download>{% translate 'Download file' %}</a></div>
+        <button type="button" class="comparison-retry" data-panel-action="retry" hidden>{% translate 'Retry' %}</button>
+    </div>
+    <footer><div><button type="button" data-panel-action="out" aria-label="{% translate 'Zoom out' %}">−</button><output data-panel-zoom>100%</output><button type="button" data-panel-action="in" aria-label="{% translate 'Zoom in' %}">+</button><button type="button" data-panel-action="fit">{% translate 'Fit / reset' %}</button></div><div data-pdf-controls hidden><button type="button" data-panel-action="pdf-previous" aria-label="{% translate 'Previous PDF page' %}">‹</button><output data-pdf-counter>0 / 0</output><button type="button" data-panel-action="pdf-next" aria-label="{% translate 'Next PDF page' %}">›</button></div></footer>
+</section>
