@@ -201,3 +201,33 @@ test('failed Admin save does not propagate unsaved choices or reload the designe
         page.once('dialog',dialog=>dialog.accept());await page.locator('#editUserModal .erp-modal-close').click();
     }finally{await context.close();}
 });
+
+test('protected submitted/reviewed references stay undeletable after live own/all grants and revocation',async({browser,page})=>{
+    await admin(page);
+    const context=await browser.newContext();
+    try {
+        const target=await designer(context);
+        await workspace(target);
+        await target.evaluate(()=>{(window as any).__referenceDocumentMarker='retained';});
+        const protectedButton=ref(target,'Live protected reference');
+        const ownButton=ref(target,'Live own reference');
+        const csrf=(await context.cookies()).find(c=>c.name==='csrftoken')!.value;
+        const protectedDelete=()=>context.request.post(`/api/design-images/${ids.protected}/delete/`,{headers:{'X-CSRFToken':csrf}});
+        for (const permissions of [
+            {'reference.delete_own':true,'reference.delete_all':false},
+            {'reference.delete_own':false,'reference.delete_all':true},
+            {'reference.delete_own':true,'reference.delete_all':true},
+            {'reference.delete_own':false,'reference.delete_all':false},
+        ]) {
+            await save(page,permissions);
+            const enabled=permissions['reference.delete_own']||permissions['reference.delete_all'];
+            if(enabled) await expect(ownButton).toBeVisible({timeout:8000});
+            else await expect(ownButton).toHaveCount(0,{timeout:8000});
+            await expect(protectedButton).toHaveCount(0,{timeout:8000});
+            expect((await protectedDelete()).status()).toBe(403);
+            expect(await target.evaluate(()=>(window as any).__referenceDocumentMarker)).toBe('retained');
+        }
+        // Confirm the protected reference remains available in the open gallery.
+        await expect(target.locator('.ref-image-card').filter({hasText:'Live protected reference'})).toBeVisible();
+    } finally {await context.close();}
+});
