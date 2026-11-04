@@ -532,3 +532,39 @@ class ActivityPermissionTests(TestCase):
         with CaptureQueriesContext(connection) as queries:
             access_snapshot(fresh)
         self.assertLessEqual(len(queries), 4)
+
+    def test_reference_delete_grants_never_override_submitted_or_reviewed_protection(self):
+        """Both own/all grants must respect reference review and deletion safeguards."""
+        self.designer.groups.add(self.group)
+        own = self.image(is_reference=True, title='Eligible own reference')
+        foreign = self.image(is_reference=True, uploaded_by=self.other, title='Foreign reference')
+        reviewed = self.image(is_reference=True, approved_at=timezone.now(), title='Reviewed reference')
+        submitted = self.image(is_reference=True, title='Submitted reference')
+        submit_design_for_approval(submitted, self.designer)
+        self.client.force_login(self.designer)
+        url = reverse('get_design_folders_api')
+
+        for overrides in (
+            {'reference.delete_own': 'deny', 'reference.delete_all': 'deny'},
+            {'reference.delete_own': 'allow', 'reference.delete_all': 'deny'},
+            {'reference.delete_own': 'deny', 'reference.delete_all': 'allow'},
+            {'reference.delete_own': 'allow', 'reference.delete_all': 'allow'},
+        ):
+            with self.subTest(overrides=overrides):
+                self.override(self.designer, overrides)
+                response = self.client.get(url, {'vehicle_id': self.vehicle.pk})
+                self.assertEqual(response.status_code, 200)
+                images = {entry['id']: entry for entry in response.json()['reference_images']}
+                for image in (reviewed, submitted):
+                    self.assertFalse(images[image.pk]['can_delete'])
+                    delete = self.client.post(reverse('delete_design_image_api', args=[image.pk]))
+                    self.assertEqual(delete.status_code, 403)
+                    self.assertTrue(PatternDesignImage.objects.filter(pk=image.pk).exists())
+                if overrides['reference.delete_own'] == 'deny' and overrides['reference.delete_all'] == 'deny':
+                    self.assertFalse(images[own.pk]['can_delete'])
+                    self.assertEqual(self.client.post(reverse('delete_design_image_api', args=[own.pk])).status_code, 403)
+                # An all-file grant does not override unrelated record-visibility restrictions.
+                self.assertFalse(images.get(foreign.pk, {}).get('can_delete', False))
+
+        self.assertTrue(PatternDesignImage.objects.filter(pk=reviewed.pk).exists())
+        self.assertTrue(PatternDesignImage.objects.filter(pk=submitted.pk).exists())
