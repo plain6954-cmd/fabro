@@ -2477,8 +2477,8 @@ body.is-design-tab::before {
     flex-shrink: 0 !important;
 }
 
-/* Single-row horizontal controls bar in Section 2 */
-#btnUpload3DDesigns {
+/* Shared compact upload action throughout the 3D Design workspace. */
+#pattern3DDesignWorkspace .design-upload-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2502,17 +2502,17 @@ body.is-design-tab::before {
     transition: background-color 175ms ease, transform 175ms ease, box-shadow 175ms ease;
 }
 
-#btnUpload3DDesigns:hover {
+#pattern3DDesignWorkspace .design-upload-icon:hover {
     background: var(--fabro-red-hover);
     box-shadow: 0 3px 10px var(--fabro-red-glow);
     transform: translateY(-1px);
 }
 
-#btnUpload3DDesigns:active { transform: scale(0.96); }
-#btnUpload3DDesigns:focus-visible { outline: 2px solid var(--fabro-text-primary); outline-offset: 3px; }
+#pattern3DDesignWorkspace .design-upload-icon:active { transform: scale(0.96); }
+#pattern3DDesignWorkspace .design-upload-icon:focus-visible { outline: 2px solid var(--fabro-text-primary); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
-    #btnUpload3DDesigns { transition: none; }
+    #pattern3DDesignWorkspace .design-upload-icon { transition: none; }
 }
 
 #pattern3DDesignWorkspace .design-files-controls-bar {
