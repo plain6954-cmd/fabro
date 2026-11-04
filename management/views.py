@@ -29,6 +29,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Case, When, Value, IntegerField, Max, OuterRef, Subquery, Exists
 from django.http import FileResponse, StreamingHttpResponse, HttpResponse, HttpResponseNotModified, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.utils.text import get_valid_filename
@@ -47,6 +48,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from PIL import Image, UnidentifiedImageError
 from .services.design_pdfs import design_file_storage, save_design_pdf, validate_design_pdf
 from .services.design_review_voice import record_design_review_with_voice, serialize_voice_note
+from .services.control_tower import control_tower_snapshot
 
 from .forms import (
     AssignUserToGroupForm,
@@ -6348,6 +6350,7 @@ def admin_panel_view(request):
     )
 
     return render(request, 'management/admin_panel.html', {
+        'control_tower': control_tower_snapshot(request.user) if section == 'dashboard' else None,
         'user_form': user_form,
         'group_form': group_form,
         'assign_form': assign_form,
@@ -6380,6 +6383,17 @@ def admin_panel_view(request):
         'section_page_obj': section_page_obj,
         'section_pagination_bubbles': section_pagination_bubbles,
     })
+
+
+@login_required
+@never_cache
+@require_GET
+def admin_control_tower(request):
+    data = control_tower_snapshot(request.user)
+    fragments = {name: render_to_string(f'management/includes/control_tower_{name}.html', {'control_tower': data})
+                 for name in ('metrics', 'pipeline', 'attention', 'activity')}
+    return JsonResponse({'counts': data['counts'], 'generated_at': data['generated_at'],
+                         'updated_label': data['updated_label'], 'fragments': fragments})
 
 
 @user_passes_test(is_workflow_admin)

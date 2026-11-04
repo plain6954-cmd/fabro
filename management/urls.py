@@ -128,6 +128,7 @@ urlpatterns = [
     path('edit-sku/<int:sku_id>/', views.edit_sku, name='edit_sku'),
     path('admin_panel/', views.admin_panel_view, name='admin_panel'),
     path('admin-panel/', views.admin_panel_view, name='admin_panel_alias'),
+    path('admin-panel/control-tower/', views.admin_control_tower, name='admin_control_tower'),
     path('admin-panel/brands/<int:brand_id>/', views.admin_brand_tree, name='admin_brand_tree'),
     path('admin-panel/edit-user/', views.edit_user, name='edit_user'),
     path('admin-panel/users/<int:user_id>/photo/', views.delete_user_photo, name='delete_user_photo'),

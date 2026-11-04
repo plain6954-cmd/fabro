@@ -1,0 +1,7 @@
+{% load i18n %}
+<header class="ct-panel-header"><h3><i class="fas fa-stream" aria-hidden="true"></i> {% translate 'Approval Pipeline' %}</h3><span>{% translate 'Pending stage decisions' %}</span></header>
+<div class="ct-pipeline">
+{% for stage in control_tower.pipeline %}<div class="ct-stage" data-ct-stage="{{ stage.role }}"><div><strong>{{ stage.role }}</strong><span>{{ stage.count }}</span></div><div class="ct-stage-track" aria-hidden="true"><span style="width:{{ stage.percent }}%"></span></div><small>{% if stage.oldest %}{% blocktranslate with age=stage.age.label %}Oldest pending cycle · {{ age }}{% endblocktranslate %}{% else %}{% translate 'No pending reviews' %}{% endif %}</small></div>{% empty %}<p class="ct-empty">{% translate 'Loading approval pipeline…' %}</p>{% endfor %}
+</div>
+<p class="ct-note">{% translate 'Each stage is counted once per current design cycle. Skipped and completed stages are excluded.' %}</p>
+<p class="ct-note">{% translate 'A rejected design can still have independent CAD/ED/MD decisions pending.' %}</p>

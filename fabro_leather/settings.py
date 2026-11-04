@@ -42,6 +42,7 @@ def env_list(name, default=''):
 
 
 E2E_TESTING = env_bool('E2E_TESTING', False)
+CONTROL_TOWER_REVIEW_DELAY_HOURS = max(1, int(os.getenv('CONTROL_TOWER_REVIEW_DELAY_HOURS', '48')))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 
-function harness(check, ready = () => true) {
+function harness(check, ready = () => true, options = {}) {
     const document = new EventTarget();
     document.hidden = false;
     const root = { isConnected: true, parentElement: null, displayed: true, getClientRects() { return this.displayed ? [{}] : []; } };
@@ -18,7 +18,7 @@ function harness(check, ready = () => true) {
         setTimeout(callback, delay) { const id = ++serial; timers.set(id, { callback, at: now + delay }); return id; },
         clearTimeout(id) { timers.delete(id); },
     });
-    const sync = window.fabroCreateGallerySync({ root, signal: parent.signal, canCheck: ready, check });
+    const sync = window.fabroCreateGallerySync({ root, signal: parent.signal, canCheck: ready, check, ...options });
     const flush = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
     async function advance(milliseconds) {
         const target = now + milliseconds;
@@ -94,4 +94,23 @@ test('unmount and page disposal cancel in-flight requests and all timers', async
     const other = harness(async () => {});
     other.root.isConnected = false; other.mutate();
     assert.equal(other.observer.disconnected, true); assert.equal(other.timers.size, 0);
+});
+
+test('control tower uses thirty seconds, coalesces focus refreshes and owns disposal', async () => {
+    let calls = 0, disposals = 0, finish;
+    const h = harness(() => { calls++; return new Promise(resolve => { finish = resolve; }); }, () => true,
+        { interval: 30000, onDispose: () => { disposals++; } });
+    await h.advance(0);
+    h.sync.refresh(); h.sync.refresh(); await h.advance(90000);
+    assert.equal(calls, 1);
+    finish(); await h.flush();
+    await h.advance(29999); assert.equal(calls, 1);
+    await h.advance(1); assert.equal(calls, 2);
+    finish(); await h.flush();
+    h.hidden(true); h.sync.refresh(); await h.advance(60000); assert.equal(calls, 2);
+    h.hidden(false); await h.advance(0); assert.equal(calls, 3);
+    finish(); await h.flush();
+    h.sync.refresh(); h.sync.refresh(); await h.advance(0); assert.equal(calls, 4);
+    h.root.isConnected = false; h.mutate(); h.sync.dispose();
+    assert.equal(disposals, 1); assert.equal(h.timers.size, 0);
 });

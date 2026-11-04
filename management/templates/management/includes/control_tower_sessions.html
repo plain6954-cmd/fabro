@@ -1,0 +1,49 @@
+{% load i18n %}
+<div class="erp-dash-card ct-panel ct-session-panel">
+                            <div class="erp-dash-card-header">
+                                <span class="erp-dash-card-title">
+                                    <i class="fas fa-wifi" style="color: #2ea043;"></i> {% blocktranslate with count=active_sessions_count %}Live Active Sessions ({{ count }}){% endblocktranslate %}
+                                </span>
+                                {% if active_sessions|length > 1 %}
+                                <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-danger" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;" onclick="return confirm(window.FabroI18n.gettext('Terminate all other user sessions?'));">
+                                        {% translate "Terminate Others" %}
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <div class="ct-session-table">
+                                <table class="erp-admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>{% translate "User" %}</th>
+                                            <th>{% translate "Login Time" %}</th>
+                                            <th>{% translate "IP" %}</th>
+                                            <th>{% translate "Action" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for session in active_sessions %}
+                                        <tr>
+                                            <td><strong>{{ session.user.username }}</strong></td>
+                                            <td><span style="font-size: 0.74rem; color: var(--erp-text-muted);">{{ session.login_time|date:"M d, H:i" }}</span></td>
+                                            <td><code>{{ session.ip }}</code></td>
+                                            <td>
+                                                {% if session.session_key == request.session.session_key %}
+                                                    <span style="color: #3fb950; font-weight: 700; font-size: 0.72rem;">{% translate "CURRENT" %}</span>
+                                                {% else %}
+                                                    <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-danger" style="font-size: 0.68rem; padding: 0.15rem 0.4rem;" onclick="return confirm(window.FabroI18n.gettext('Kick this session?'));">{% translate "Kick" %}</button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="4" style="text-align: center; color: var(--erp-text-dim); padding: 15px;">{% translate "No active sessions." %}</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>

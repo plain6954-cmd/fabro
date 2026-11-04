@@ -1,7 +1,7 @@
 /* One page-owned polling loop. No polling while the gallery or browser tab is hidden. */
 (function () {
     'use strict';
-    window.fabroCreateGallerySync = function ({ root, signal, canCheck, check }) {
+    window.fabroCreateGallerySync = function ({ root, signal, canCheck, check, interval = 10000, onDispose = () => {} }) {
         const controller = new AbortController();
         let timer = null, running = false, disposed = false, wasVisible = false, failures = 0;
         function visible() {
@@ -23,7 +23,7 @@
                 if (!disposed) failures = Math.min(3, failures + 1);
             } finally {
                 running = false;
-                schedule(Math.min(60000, 10000 * 2 ** failures));
+                schedule(Math.min(60000, interval * 2 ** failures));
             }
         }
         function wake() {
@@ -46,11 +46,12 @@
             observer.disconnect();
             document.removeEventListener('visibilitychange', wake);
             signal.removeEventListener('abort', dispose);
+            onDispose();
         }
         signal.addEventListener('abort', dispose, { once: true });
         document.addEventListener('visibilitychange', wake);
         if (signal.aborted) dispose();
         else wake();
-        return { wake, dispose };
+        return { wake, dispose, refresh() { if (!running) schedule(0); } };
     };
 })();
