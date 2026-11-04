@@ -33,8 +33,10 @@
         const home = document.createComment('comparison-viewer-home'); dialog.before(home);
         const notice = dialog.querySelector('[data-comparison-notice]');
         const information = dialog.querySelector('[data-comparison-information]');
-        const reviewHost = dialog.querySelector('[data-comparison-reviewers]');
-        const cycleSelect = dialog.querySelector('[data-comparison-cycle]');
+        const reviewHost = dialog.querySelector('[data-comparison-approval-files]');
+        const approvalPanel = dialog.querySelector('[data-comparison-approval]');
+        const approvalEntries = new Map();
+        let currentApproval = null;
         let manifest = null, request = null, openToken = 0, restore = null, opener = null, activeSide = 'upload';
         function node(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
         function privateUrl(file, key = 'url') {
@@ -156,35 +158,142 @@
                 const field = node('span', '', label + ': '); field.append(node('strong', '', String(value))); information.append(field);
             }
         }
-        function remarks() {
-            window.fabroReviewVoice?.stopPlaybackWithin(reviewHost); reviewHost.replaceChildren();
-            const file = panels.upload.model.current(), history = file?.history || [];
-            const cycle = history.find(item => String(item.cycle) === cycleSelect.value) || history[0];
-            dialog.querySelector('[data-comparison-history-note]').hidden = !cycle || cycle === history[0];
-            if (!cycle) { reviewHost.append(node('p', '', file?.remarks_allowed ? 'No review has been submitted for this upload.' : 'Review details are not available for this account.')); return; }
-            for (const stage of cycle.stages) {
-                const card = node('section', 'comparison-review-card'); card.dataset.reviewerStage = stage.role;
-                const header = node('header'); header.append(node('strong', '', stage.role), node('span', `comparison-status ${stage.status}`, stage.label)); card.append(header);
-                const meta = [stage.reviewer, stage.timestamp, stage.classification ? stage.classification[0].toUpperCase() + stage.classification.slice(1) + ' Change' : ''].filter(Boolean).join(' · ');
-                if (meta) card.append(node('div', 'comparison-review-meta', meta));
-                if (stage.comment) card.append(node('p', '', stage.comment));
-                if (stage.voice_notes?.length) window.fabroReviewVoice?.appendBubbles(card, stage.voice_notes);
-                reviewHost.append(card);
+        function workspaceScope() {
+            const controller = new AbortController(), cleanups = [];
+            return { signal: controller.signal,
+                listen(target, type, callback, options = {}) { target.addEventListener(type, callback, {...options, signal: controller.signal}); },
+                onCleanup(callback) { cleanups.push(callback); },
+                dispose() { controller.abort(); cleanups.splice(0).forEach(callback => callback()); },
+            };
+        }
+        function workspaceUrl(file) {
+            const url = new URL(file.workspace_url, location.origin);
+            if (url.origin !== location.origin || url.pathname !== `/design-approvals/${file.id}/` || url.search !== '?workspace=comparison') throw new Error('Invalid approval destination');
+            return url.href;
+        }
+        function dirty(entry) {
+            return entry?.root && (entry.voice?.hasDraft(entry.root) || Array.from(entry.root.querySelectorAll('.review-decision-form')).some(form =>
+                form.querySelector('textarea')?.value || form.querySelector('[name="change_type"]')?.value === 'major'));
+        }
+        function feedback(entry, message, kind = 'error') {
+            const host = entry.root.querySelector('[data-workspace-feedback]');
+            host.replaceChildren(node('p', `workspace-feedback ${kind}`, message));
+        }
+        function mountWorkspace(entry, html) {
+            entry.root.innerHTML = html;
+            const documentRoot = entry.root.querySelector('.comparison-approval-document');
+            if (!documentRoot || Number(documentRoot.dataset.designId) !== entry.id) throw new Error('Invalid approval record');
+            entry.voice = window.fabroInitReviewVoice(entry.root, entry.scope);
+            window.fabroInitDesignReview(documentRoot, entry.scope, entry.voice);
+            entry.scope.listen(entry.root, 'submit', event => saveReview(event, entry));
+        }
+        function populateVoice(entry, host, source) {
+            const notes = JSON.parse(source.querySelector('#design-review-voice-notes')?.textContent || '[]');
+            host.querySelectorAll('[data-review-voice-history]').forEach(target => entry.voice?.appendBubbles(target,
+                notes.filter(note => String(note.cycle) === target.dataset.approvalCycle && (!target.dataset.reviewStage || target.dataset.reviewStage === note.stage))));
+        }
+        async function saveReview(event, entry) {
+            const form = event.target;
+            if (event.defaultPrevented || !form.matches('.review-decision-form')) return;
+            event.preventDefault();
+            if (entry.submitting) return;
+            entry.submitting = true; dialog.dataset.reviewSaving = 'true';
+            const stage = form.querySelector('[name="stage"]').value, body = new FormData(form);
+            if (event.submitter?.name) body.set(event.submitter.name, event.submitter.value);
+            form.setAttribute('aria-busy', 'true');
+            const buttons = Array.from(form.querySelectorAll('button[type="submit"]'));
+            const labels = buttons.map(button => button.innerHTML);
+            buttons.forEach(button => { button.disabled = true; button.textContent = 'Saving…'; });
+            try {
+                const response = await fetch(entry.url, {method: 'POST', body, credentials: 'same-origin', cache: 'no-store', signal: entry.scope.signal});
+                if (!response.ok || new URL(response.url).pathname !== `/design-approvals/${entry.id}/`) throw new Error('Review unavailable. Check your access and try again.');
+                const html = await response.text(), fresh = new DOMParser().parseFromString(html, 'text/html');
+                const error = fresh.querySelector('[data-review-feedback*="error"]');
+                if (error) throw new Error(error.textContent);
+                const freshRoot = fresh.querySelector('.comparison-approval-document');
+                if (!freshRoot || Number(freshRoot.dataset.designId) !== entry.id) throw new Error('Invalid approval record');
+                const oldPanel = entry.root.querySelector(`[data-review-panel="${stage}"]`), newPanel = freshRoot.querySelector(`[data-review-panel="${stage}"]`);
+                if (!newPanel || newPanel.querySelector('.review-decision-form')) throw new Error('The review was not recorded. Please retry.');
+                // Keep other Admin stage drafts and voice previews intact after this stage is saved.
+                entry.voice?.resetWithin(oldPanel); oldPanel.replaceChildren(...Array.from(newPanel.childNodes));
+                oldPanel.dataset.stageStatus = newPanel.dataset.stageStatus;
+                populateVoice(entry, oldPanel, fresh);
+                entry.root.querySelector('.workspace-approval-heading').replaceWith(freshRoot.querySelector('.workspace-approval-heading'));
+                freshRoot.querySelectorAll('[data-review-stage]').forEach(next => {
+                    const tab = entry.root.querySelector(`[data-review-stage="${next.dataset.reviewStage}"]`);
+                    if (tab) { tab.disabled = next.disabled; tab.innerHTML = next.innerHTML; }
+                });
+                const openCycles = new Set(Array.from(entry.root.querySelectorAll('[data-history-cycle][open]'), item => item.dataset.historyCycle));
+                const history = freshRoot.querySelector('.workspace-history');
+                history.querySelectorAll('[data-history-cycle]').forEach(item => { if (openCycles.has(item.dataset.historyCycle)) item.open = true; });
+                entry.voice?.stopPlaybackWithin(entry.root.querySelector('.workspace-history'));
+                entry.root.querySelector('.workspace-history').replaceWith(history); populateVoice(entry, history, fresh);
+                entry.root.querySelector('#design-review-voice-notes').textContent = fresh.querySelector('#design-review-voice-notes').textContent;
+                feedback(entry, fresh.querySelector('[data-review-feedback*="success"]')?.textContent || 'Your review decision has been recorded.', 'success');
+                approvalPanel.scrollTop = 0;
+                // Refresh metadata through the same authorized manifest; retain both panels' view state.
+                try {
+                    const updated = await fetch(`/api/design-images/${manifest.selected_id}/comparison/`, {credentials: 'same-origin', cache: 'no-store', signal: entry.scope.signal});
+                    if (updated.ok && !updated.redirected) {
+                        const data = await updated.json(), selectedId = panels.upload.model.current()?.id;
+                        if (Array.isArray(data.uploads) && data.uploads.some(file => file.id === selectedId)) {
+                            manifest.uploads = data.uploads; panels.upload.model.files = data.uploads;
+                            panels.upload.model.index = data.uploads.findIndex(file => file.id === selectedId);
+                            carousel(panels.upload); updateControls(panels.upload); metadata();
+                        }
+                    }
+                } catch (_refreshFailure) { /* The saved review remains authoritative if metadata refresh fails. */ }
+            } catch (failure) {
+                if (!entry.scope.signal.aborted) feedback(entry, failure.message || 'Review could not be saved. Please retry.');
+            } finally {
+                entry.submitting = false; dialog.dataset.reviewSaving = 'false';
+                delete form.dataset.voiceSubmitting; form.removeAttribute('aria-busy');
+                buttons.forEach((button, index) => { button.disabled = false; button.innerHTML = labels[index]; });
             }
         }
-        function updateRemarks() {
-            cycleSelect.replaceChildren();
+        async function updateApproval() {
+            if (currentApproval) { currentApproval.scroll = approvalPanel.scrollTop; currentApproval.voice?.suspendWithin(currentApproval.root); }
+            currentApproval = null;
+            for (const entry of approvalEntries.values()) entry.host.hidden = true;
+            reviewHost.querySelector('[data-approval-placeholder]')?.remove();
             const file = panels.upload.model.current();
-            for (const cycle of file?.history || []) { const option = node('option', '', `Cycle ${cycle.cycle}${cycle.cycle === file.cycle ? ' · current' : ' · earlier remarks'}`); option.value = cycle.cycle; cycleSelect.append(option); }
-            cycleSelect.hidden = !file?.history?.length; remarks();
+            if (!file?.workspace_url) {
+                const empty = node('div', 'comparison-approval-empty'); empty.dataset.approvalPlaceholder = '';
+                empty.append(node('h2', '', manifest?.approval_heading || 'Approval Details'), node('p', '', !file ? 'No designer uploads available' : 'Review details are not available for this account.'));
+                if (file?.approval_label) empty.append(node('span', `comparison-status-badge ${file.approval_status}`, file.approval_label));
+                reviewHost.append(empty); approvalPanel.scrollTop = 0; return;
+            }
+            let entry = approvalEntries.get(file.id);
+            if (entry) { entry.host.hidden = false; currentApproval = entry; approvalPanel.scrollTop = entry.scroll || 0; return; }
+            const host = node('div'); host.dataset.approvalFile = file.id; reviewHost.append(host);
+            entry = {id: file.id, url: workspaceUrl(file), host, root: host.attachShadow({mode: 'open'}), scope: workspaceScope(), scroll: 0, submitting: false};
+            approvalEntries.set(file.id, entry); currentApproval = entry; approvalPanel.scrollTop = 0;
+            entry.root.append(node('p', 'comparison-approval-empty', 'Loading approval workspace…'));
+            try {
+                const response = await fetch(entry.url, {credentials: 'same-origin', cache: 'no-store', signal: entry.scope.signal});
+                if (!response.ok || new URL(response.url).pathname !== `/design-approvals/${entry.id}/`) throw new Error('Approval workspace unavailable. Your access may have changed.');
+                const html = await response.text();
+                if (entry.scope.signal.aborted) return;
+                mountWorkspace(entry, html);
+            } catch (failure) {
+                if (entry.scope.signal.aborted) return;
+                entry.root.replaceChildren(node('p', '', failure.message));
+                const retry = node('button', '', 'Retry approval workspace'); entry.root.append(retry);
+                entry.scope.listen(retry, 'click', () => { entry.scope.dispose(); entry.host.remove(); approvalEntries.delete(entry.id); currentApproval = null; updateApproval(); });
+            }
+        }
+        function clearApprovals() {
+            for (const entry of approvalEntries.values()) entry.scope.dispose();
+            approvalEntries.clear(); currentApproval = null; reviewHost.replaceChildren();
         }
         function selectFile(p, index) {
+            if (p.side === 'upload' && currentApproval?.submitting) return;
             p.model.select(index); loadPanel(p);
-            if (innerWidth <= 650) setMobile(p.side); else active(p.side);
+            if (innerWidth <= 900) setMobile(p.side); else active(p.side);
             metadata();
             const thumb = p.carousel.querySelector(`[data-file-index="${p.model.index}"]`);
             thumb?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' });
-            if (p.side === 'upload') updateRemarks();
+            if (p.side === 'upload') updateApproval();
         }
         function carousel(p) {
             const strip = p.carousel.querySelector('[data-carousel-strip]'); strip.replaceChildren();
@@ -211,24 +320,20 @@
             if (dialog.dataset.panelFocus && dialog.dataset.panelFocus !== side) dialog.dataset.panelFocus = '';
             dialog.dataset.mobileSide = side;
             dialog.querySelectorAll('[data-mobile-side]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mobileSide === side)));
-            active(side); resize();
-        }
-        function collapseRemarks(collapsed) {
-            dialog.dataset.remarksCollapsed = String(collapsed);
-            const button = dialog.querySelector('[data-comparison-action="remarks"]'); button.setAttribute('aria-expanded', String(!collapsed)); button.textContent = collapsed ? '☰' : '−'; resize();
+            if (panels[side]) active(side); resize();
         }
         async function open(id, source) {
             if (!/^\d+$/.test(String(id))) return;
-            if (dialog.open) close();
+            if (dialog.open && !close()) return;
             opener = source || document.activeElement;
             restore = { x: scrollX, y: scrollY, style: { position: document.body.style.position, top: document.body.style.top, left: document.body.style.left, width: document.body.style.width, overflow: document.body.style.overflow } };
             document.body.append(dialog); Object.assign(document.body.style, { position: 'fixed', top: `-${scrollY}px`, left: '0', width: '100%', overflow: 'hidden' });
             document.querySelectorAll('audio[data-review-voice-audio]').forEach(audio => audio.pause());
             dialog.showModal(); dialog.dataset.panelFocus = ''; manifest = null; information.replaceChildren();
             notice.textContent = 'Loading comparison…'; notice.hidden = false;
-            collapseRemarks(innerWidth < 1300); setMobile('upload');
+            setMobile('upload'); viewportHeight();
             for (const p of Object.values(panels)) { clearPanel(p); p.model = new ComparisonPanelState(); carousel(p); loadPanel(p); }
-            cycleSelect.replaceChildren(); updateRemarks(); dialog.querySelector('[data-comparison-action="close"]').focus();
+            clearApprovals(); updateApproval(); dialog.querySelector('[data-comparison-action="close"]').focus();
             const token = ++openToken; request = new AbortController();
             try {
                 const response = await fetch(`/api/design-images/${id}/comparison/`, { signal: request.signal, credentials: 'same-origin', cache: 'no-store', headers: {Accept: 'application/json'} });
@@ -245,26 +350,27 @@
                 if (token === openToken && dialog.open && failure.name !== 'AbortError') { notice.textContent = 'Comparison unavailable. The file may be missing or your access may have changed.'; notice.hidden = false; }
             }
         }
-        function close() {
+        function close(force = false) {
+            if (!force && Array.from(approvalEntries.values()).some(entry => entry.submitting)) { notice.textContent = 'Your review is being saved. Please wait.'; notice.hidden = false; return false; }
+            if (!force && Array.from(approvalEntries.values()).some(dirty) && !window.confirm('Discard unsaved comparison review drafts?')) return false;
             openToken++; request?.abort(); request = null;
-            window.fabroReviewVoice?.stopPlaybackWithin(reviewHost); reviewHost.replaceChildren();
+            clearApprovals();
             for (const p of Object.values(panels)) { clearPanel(p); p.model = new ComparisonPanelState(); p.carousel.querySelector('[data-carousel-strip]').replaceChildren(); }
             if (document.fullscreenElement === dialog) document.exitFullscreen().catch(() => {});
             if (dialog.open) dialog.close();
             if (restore) { Object.assign(document.body.style, restore.style); window.scrollTo({ left: restore.x, top: restore.y, behavior: 'instant' }); restore = null; }
             if (home.isConnected) home.after(dialog); else dialog.remove();
             if (opener?.isConnected) opener.focus({preventScroll: true}); manifest = null;
+            dialog.style.removeProperty('--comparison-height'); return true;
         }
         function escape() { if (document.fullscreenElement === dialog) document.exitFullscreen().catch(() => {}); else if (dialog.dataset.panelFocus) split(); else close(); }
         scope.listen(dialog, 'cancel', event => { event.preventDefault(); escape(); });
         scope.listen(document, 'click', event => { const source = event.target.closest('[data-design-comparison]'); if (source && !source.disabled) { event.preventDefault(); open(source.dataset.designComparison, source); } });
-        scope.listen(cycleSelect, 'change', remarks);
         scope.listen(dialog, 'click', event => {
             const action = event.target.closest('[data-comparison-action]')?.dataset.comparisonAction;
             if (action === 'close') close();
             if (action === 'fit') Object.values(panels).forEach(fit);
             if (action === 'split') split();
-            if (action === 'remarks') collapseRemarks(dialog.dataset.remarksCollapsed !== 'true');
             if (action === 'fullscreen') {
                 const token = openToken;
                 const operation = document.fullscreenElement === dialog ? document.exitFullscreen() : dialog.requestFullscreen?.();
@@ -342,7 +448,14 @@
         }
         if (!document.fullscreenEnabled || !dialog.requestFullscreen) dialog.querySelector('[data-comparison-action="fullscreen"]').disabled = true;
         window.openDesignComparison = open; window.closeDesignComparison = close;
-        scope.listen(window, 'pagehide', close);
-        scope.onCleanup(() => { close(); delete dialog.dataset.initialized; if (window.openDesignComparison === open) { delete window.openDesignComparison; delete window.closeDesignComparison; } });
+        function viewportHeight() {
+            if (dialog.open && innerWidth <= 900 && window.visualViewport) dialog.style.setProperty('--comparison-height', `${window.visualViewport.height}px`);
+            else dialog.style.removeProperty('--comparison-height');
+            resize();
+        }
+        if (window.visualViewport) scope.listen(window.visualViewport, 'resize', viewportHeight);
+        scope.listen(window, 'resize', viewportHeight);
+        scope.listen(window, 'pagehide', () => close(true));
+        scope.onCleanup(() => { close(true); delete dialog.dataset.initialized; if (window.openDesignComparison === open) { delete window.openDesignComparison; delete window.closeDesignComparison; } });
     });
 })();

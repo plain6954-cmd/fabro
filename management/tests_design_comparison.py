@@ -213,3 +213,73 @@ class DesignComparisonTests(TestCase):
             read.assert_called_once_with(self.image.image.name)
             self.assertIn('no-store',response['Cache-Control'])
             response.close();signed.assert_not_called()
+
+    def test_workspace_fragment_uses_existing_role_permissions_and_forms(self):
+        submit_design_for_approval(self.image,self.owner)
+        for name,role,approval,heading,form_role in [
+            ('ws_cad',WorkflowRoles.APPROVER,ApprovalRoles.CAD,'CAD Approval','cad'),
+            ('ws_ed',WorkflowRoles.APPROVER,ApprovalRoles.ED,'ED Approval','ed'),
+            ('ws_md',WorkflowRoles.APPROVER,ApprovalRoles.MD,'MD Approval','md'),
+            ('ws_admin',WorkflowRoles.ADMIN,'','Design Approval Management','all'),
+            ('ws_om',WorkflowRoles.APPROVER,ApprovalRoles.OM,'Approval Details',''),
+        ]:
+            with self.subTest(role=name):
+                user=User.objects.create_user(name)
+                profile=user.workflow_profile;profile.role=role;profile.approval_role=approval;profile.save()
+                self.client.force_login(user)
+                response=self.client.get(reverse('design_approval_detail',args=[self.image.pk])+'?workspace=comparison')
+                self.assertContains(response,heading)
+                self.assertNotContains(response,'id="app-content"')
+                self.assertNotContains(response,'data-review-media')
+                for stage in ('cad','ed','md'):
+                    (self.assertContains if form_role in (stage,'all') else self.assertNotContains)(response,f'id="{stage}ReviewForm"')
+                (self.assertContains if form_role=='all' else self.assertNotContains)(response,'role="tablist"')
+                self.assertIn('no-store',response['Cache-Control'])
+
+    def test_workspace_history_uses_only_persisted_cycles_of_the_selected_file(self):
+        first=submit_design_for_approval(self.image,self.owner)
+        record_design_review_decision(self.image,self.cad,'rejected','Recorded original rejection',change_type='major')
+        second=submit_design_for_approval(self.image,self.owner,is_resubmission=True)
+        record_design_review_decision(self.image,self.cad,'approved','Recorded revision approval',change_type='minor')
+        unrelated=self.file(title='Unrelated lineage.png');submit_design_for_approval(unrelated,self.owner)
+        record_design_review_decision(unrelated,self.cad,'approved','Must not leak into selected history',change_type='minor')
+        response=self.client.get(reverse('design_approval_detail',args=[self.image.pk])+'?workspace=comparison')
+        self.assertContains(response,'Original upload')
+        cycles=response.context['workspace_cycles']
+        self.assertEqual([item['record'].pk for item in cycles],[first.pk,second.pk])
+        self.assertEqual([item['events'][0]['comment'] for item in cycles],['Recorded original rejection','Recorded revision approval'])
+        self.assertContains(response,'data-history-cycle="2" open')
+        self.assertNotContains(response,'Must not leak into selected history')
+        first.cad_decided_at=None;first.save(update_fields=['cad_decided_at'])
+        response=self.client.get(reverse('design_approval_detail',args=[self.image.pk])+'?workspace=comparison')
+        self.assertEqual(response.context['workspace_cycles'][0]['events'],[])
+
+    @patch('management.services.push_notifications.send_push_to_user')
+    def test_workspace_submission_reuses_existing_notification_and_duplicate_guards(self,push):
+        submit_design_for_approval(self.image,self.owner)
+        Notification.objects.all().delete();push.reset_mock()
+        url=reverse('design_approval_detail',args=[self.image.pk])+'?workspace=comparison'
+        data=dict(action='review',stage='cad',decision='approved',change_type='minor',comment='Workspace review')
+        with self.captureOnCommitCallbacks(execute=True):
+            response=self.client.post(url,data,follow=True)
+        self.assertContains(response,'Your review decision has been recorded.')
+        self.assertEqual(Notification.objects.filter(recipient=self.owner,design_image=self.image).count(),1)
+        self.assertEqual(Notification.objects.exclude(recipient=self.owner).count(),0)
+        self.assertEqual(push.call_count,1)
+        self.assertEqual(push.call_args.kwargs['url'],reverse('design_approval_detail',args=[self.image.pk]))
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(url,data,follow=True)
+        self.assertEqual(Notification.objects.count(),1);self.assertEqual(push.call_count,1)
+        self.image.refresh_from_db();self.assertEqual(self.image.latest_approval.cad_comment,'Workspace review')
+
+    def test_workspace_fragment_and_posts_do_not_bypass_visibility_or_stage_authority(self):
+        submit_design_for_approval(self.image,self.owner)
+        url=reverse('design_approval_detail',args=[self.image.pk])+'?workspace=comparison'
+        self.client.force_login(self.other);self.assertEqual(self.client.get(url).status_code,403)
+        self.assertEqual(self.client.post(url,dict(action='review',stage='cad',decision='approved',change_type='minor')).status_code,403)
+        self.client.force_login(self.cad)
+        response=self.client.post(url,dict(action='review',stage='md',decision='approved',change_type='minor'),follow=True)
+        self.assertContains(response,'error')
+        self.assertEqual(self.image.latest_approval.md_status,'pending')
+        self.assertTrue(self.manifest().json()['uploads'][0]['workspace_url'].endswith('?workspace=comparison'))
+        self.assertIsNone(self.manifest(self.reference,user=self.factory).json()['references'][0]['workspace_url'])

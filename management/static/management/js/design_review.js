@@ -1,10 +1,8 @@
 /* Presentation only: existing Django forms own authorization and review decisions. */
-window.fabroOnPageLoad(() => {
+window.fabroInitDesignReview = function (root, scope, voice) {
     'use strict';
-    const root = document.querySelector('.design-review-page');
-    if (!root) return;
-    const scope = window.fabroCreatePageScope();
-    const tabs = Array.from(root.querySelectorAll('[data-review-stage]'));
+    voice = voice || window.fabroReviewVoice;
+    const tabs = Array.from(root.querySelectorAll('[data-review-stage]')).filter(tab => !tab.disabled);
     const panels = Array.from(root.querySelectorAll('[data-review-panel]'));
     function selectStage(role, focus = false) {
         tabs.forEach(tab => {
@@ -15,23 +13,22 @@ window.fabroOnPageLoad(() => {
         });
         panels.forEach(panel => {
             const hidden = panel.dataset.reviewPanel !== role;
-            if (hidden && !panel.hidden) window.fabroReviewVoice?.suspendWithin(panel);
+            if (hidden && !panel.hidden) voice?.suspendWithin(panel);
             panel.hidden = hidden;
         });
         root.querySelector('[data-review-select-prompt]').hidden = Boolean(role);
     }
     selectStage(root.dataset.initialStage);
-    const imageItems = JSON.parse(document.getElementById('design-preview-images')?.textContent || '[]');
-    if (imageItems.length < 2) document.querySelectorAll('#designImageViewer [data-viewer-action="previous"], #designImageViewer [data-viewer-action="next"]').forEach(button => { button.hidden = true; });
-    tabs.forEach((tab, index) => {
-        scope.listen(tab, 'click', () => selectStage(tab.dataset.reviewStage));
+    tabs.forEach(tab => {
+        scope.listen(tab, 'click', () => { if (!tab.disabled) selectStage(tab.dataset.reviewStage); });
         scope.listen(tab, 'keydown', event => {
             if (event.altKey || event.ctrlKey || event.metaKey) return;
-            const target = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
-                : event.key === 'ArrowRight' ? (index + 1) % tabs.length
-                : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : -1;
+            const enabled = tabs.filter(item => !item.disabled), current = enabled.indexOf(tab);
+            const target = event.key === 'Home' ? 0 : event.key === 'End' ? enabled.length - 1
+                : event.key === 'ArrowRight' ? (current + 1) % enabled.length
+                : event.key === 'ArrowLeft' ? (current + enabled.length - 1) % enabled.length : -1;
             if (target < 0) return;
-            event.preventDefault(); selectStage(tabs[target].dataset.reviewStage, true);
+            event.preventDefault(); if (enabled[target]) selectStage(enabled[target].dataset.reviewStage, true);
         });
     });
     scope.listen(root, 'click', event => {
@@ -39,6 +36,9 @@ window.fabroOnPageLoad(() => {
     });
 
     const media = root.querySelector('[data-review-media]');
+    if (!media) return;
+    const imageItems = JSON.parse(document.getElementById('design-preview-images')?.textContent || '[]');
+    if (imageItems.length < 2) document.querySelectorAll('#designImageViewer [data-viewer-action="previous"], #designImageViewer [data-viewer-action="next"]').forEach(button => { button.hidden = true; });
     const image = media.querySelector('[data-review-image]');
     const loading = media.querySelector('[data-review-loading]');
     const error = media.querySelector('[data-review-error]');
@@ -107,4 +107,8 @@ window.fabroOnPageLoad(() => {
         else { loading.hidden = false; error.hidden = true; image.hidden = false; image.src = image.src; }
     });
     scope.onCleanup(() => { generation++; renderNumber++; rendering?.cancel(); task?.destroy().catch(() => {}); cancelAnimationFrame(resizeFrame); });
+};
+window.fabroOnPageLoad(() => {
+    const root = document.querySelector('.design-review-page');
+    if (root) window.fabroInitDesignReview(root, window.fabroCreatePageScope());
 });

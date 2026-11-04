@@ -186,7 +186,15 @@
 
                 // If drawer is open, refresh selected file
                 if (document.getElementById('designApprovalDrawer')?.classList.contains('is-open')) {
-                    if (state.selectedFileId) {
+                    const drawer = document.getElementById('designApprovalDrawer');
+                    const hasDraft = document.getElementById('designDrawerDecisionRemarks')?.value
+                        || document.getElementById('radioChangeTypeMajor')?.checked
+                        || window.fabroReviewVoice?.hasDraft?.(drawer);
+                    // A delayed initial load or gallery refresh must not erase an open review draft.
+                    if (hasDraft && state.designFiles.some(file => file.id === state.selectedFileId)) {
+                        document.getElementById('drawerFileSelector').value = String(state.selectedFileId);
+                        return true;
+                    } else if (state.selectedFileId) {
                         selectDrawerFile(state.selectedFileId);
                     } else if (state.designFiles.length > 0) {
                         selectDrawerFile(state.designFiles[0].id);

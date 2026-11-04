@@ -577,6 +577,13 @@ def _comparison_visible_files(user):
     return _visible_design_images_qs(user, PatternDesignImage.objects.all())
 
 
+def _comparison_approval_heading(user):
+    if can_admin_review_designs(user):
+        return _('Design Approval Management')
+    roles = design_review_roles(user)
+    return _('%(role)s Approval') % {'role': roles[0].upper()} if len(roles) == 1 else _('Approval Details')
+
+
 @login_required
 @never_cache
 @require_GET
@@ -618,7 +625,9 @@ def design_comparison_manifest(request, image_id):
                 'thumbnail': url + '?thumbnail=1' if kind == 'image' and image.thumbnail else None,
                 'size': image.file_size or None, 'uploader': image.uploaded_by.username if image.uploaded_by else '',
                 'date': timezone.localtime(image.uploaded_at).strftime('%b %d, %Y %H:%M'),
-                'cycle': approvals[0].cycle if approvals else None, 'remarks_allowed': can_read_remarks, 'history': history}
+                'cycle': approvals[0].cycle if approvals else None, 'remarks_allowed': can_read_remarks, 'history': history,
+                'approval_status': image.approval_status, 'approval_label': image.get_approval_status_display(),
+                'workspace_url': reverse('design_approval_detail', args=[image.pk]) + '?workspace=comparison' if can_read_remarks else None}
     references, uploads = [], []
     for image in files:
         (references if image.is_reference else uploads).append(serialize(image))
@@ -628,7 +637,7 @@ def design_comparison_manifest(request, image_id):
         years = '–'.join(str(value) for value in (vehicle.year_start, vehicle.year_end) if value is not None)
         name = ' '.join(value for value in (sub.model.brand.name, sub.model.name, sub.name if sub.name != '-' else '', '(' + years + ')' if years else '') if value)
     return JsonResponse({'selected_id': selected.pk, 'vehicle': name, 'pattern': vehicle.serial_number if vehicle else '',
-                         'references': references, 'uploads': uploads})
+                         'references': references, 'uploads': uploads, 'approval_heading': _comparison_approval_heading(request.user)})
 
 
 @login_required
@@ -3263,7 +3272,7 @@ def design_approval_detail(request, image_id):
         PatternDesignImage.objects.select_related(
             'uploaded_by', 'vehicle__sub_model__model__brand',
             'folder__vehicle__sub_model__model__brand'
-        ).prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer', 'approval_requests__voice_notes'),
+        ).prefetch_related('approval_requests__designer', 'approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer', 'approval_requests__voice_notes'),
         id=image_id
     )
     user = request.user
@@ -3315,7 +3324,7 @@ def design_approval_detail(request, image_id):
             return redirect(reverse('design_approval_detail', args=[design_image.id]) + ('?' + request.GET.urlencode() if request.GET else ''))
 
     latest_approval = design_image.latest_approval
-    history_cycles = list(design_image.approval_requests.all().order_by('-cycle'))
+    history_cycles = sorted(design_image.approval_requests.all(), key=lambda item: item.cycle, reverse=True)
 
     can_review_cad = bool(
         (ApprovalRoles.CAD in design_review_roles(user))
@@ -3408,6 +3417,37 @@ def design_approval_detail(request, image_id):
         'can_admin_review': can_admin_review_designs(user),
         'is_superuser': is_su,
     }
+    if request.GET.get('workspace') == 'comparison':
+        # Same authorized detail route and POST handler; only the presentation changes.
+        admin = can_admin_review_designs(user)
+        role = own_roles[0].upper() if len(own_roles) == 1 else ''
+        context.update({
+            'comparison_workspace': True,
+            'workspace_heading': _comparison_approval_heading(user),
+            'workspace_readonly': not admin and not role,
+            'initial_review_stage': '' if admin or not role else role.lower(),
+            'workspace_cycles': [],
+        })
+        for approval in sorted(history_cycles, key=lambda item: item.cycle):
+            events, snapshots = [], []
+            for stage in ('cad', 'ed', 'md'):
+                decided = getattr(approval, stage + '_decided_at')
+                if not decided:
+                    if getattr(approval, stage + '_status') in ('approved', 'rejected'):
+                        snapshots.append({'role': stage.upper(), 'status': getattr(approval, stage + '_status'), 'label': getattr(approval, 'get_' + stage + '_status_display')()})
+                    continue  # A current status without a recorded decision is not an audit event.
+                reviewer = getattr(approval, stage + '_reviewer')
+                events.append({
+                    'role': stage.upper(), 'status': getattr(approval, stage + '_status'),
+                    'label': getattr(approval, 'get_' + stage + '_status_display')(),
+                    'reviewer': reviewer.username if reviewer else _('Reviewer no longer available'),
+                    'timestamp': decided, 'comment': getattr(approval, stage + '_comment'),
+                    'classification': getattr(approval, stage + '_change_type'),
+                })
+            context['workspace_cycles'].append({'record': approval, 'events': sorted(events, key=lambda item: item['timestamp']), 'snapshots': snapshots})
+        response = render(request, 'management/includes/design_comparison_approval.html', context)
+        response['Cache-Control'] = 'private, no-store'
+        return response
     return render(request, 'management/design_approval_detail.html', context)
 
 

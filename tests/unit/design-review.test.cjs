@@ -80,3 +80,13 @@ test('leaving the page disposes tab listeners so they cannot affect a later revi
     assert.equal(h.tabs[0].attributes['aria-selected'], 'true');
     assert.equal(h.panels[2].hidden, true);
 });
+
+test('a stage completed after initialization cannot be selected and keyboard navigation skips it', () => {
+    const h = harness('cad');
+    h.tabs[1].disabled = true;
+    h.click('ed');
+    assert.equal(h.tabs[0].attributes['aria-selected'], 'true');
+    h.key('cad', 'ArrowRight');
+    assert.equal(h.tabs[2].attributes['aria-selected'], 'true');
+    h.dispose();
+});

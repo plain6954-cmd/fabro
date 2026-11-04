@@ -1,0 +1,27 @@
+{% load i18n static %}
+<link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+<link rel="stylesheet" href="{% static 'management/css/design_review.css' %}?v=20261031-direct-review">
+<link rel="stylesheet" href="{% static 'management/css/design_review_voice.css' %}?v=20261031">
+<link rel="stylesheet" href="{% static 'management/css/design_comparison_approval.css' %}?v=20261104">
+<div class="design-review-page comparison-approval-document" data-initial-stage="{{ initial_review_stage }}" data-workspace-readonly="{{ workspace_readonly|yesno:'true,false' }}" data-review-cycle="{{ latest_approval.cycle|default:0 }}" data-design-id="{{ design_image.pk }}">
+    <header class="workspace-approval-heading"><span class="workspace-eyebrow">{% translate 'Design review' %}</span><h2>{{ workspace_heading }}</h2><p class="workspace-design-name">{{ design_filename }}</p><span class="review-status {{ review_overall_status }}">{{ review_overall_label }}</span></header>
+    <div data-workspace-feedback aria-live="polite">{% for message in messages %}<p role="status" class="workspace-feedback {{ message.tags }}" data-review-feedback="{{ message.tags }}">{{ message }}</p>{% endfor %}</div>
+    {% include 'management/includes/design_review_matrix.html' %}
+    <section class="workspace-history" aria-label="{% translate 'Complete Approval History' %}">
+        <h2>{% translate 'Complete Approval History' %}</h2>
+        <article class="workspace-upload-event"><span class="workspace-event-dot"></span><strong>{% translate 'Original upload' %}</strong><p>{{ design_image.uploaded_by.username|default:'—' }}</p><time>{{ design_image.uploaded_at|date:'M d, Y H:i' }}</time></article>
+        {% for cycle in workspace_cycles %}
+        <details class="workspace-cycle" data-history-cycle="{{ cycle.record.cycle }}" {% if cycle.record.cycle == latest_approval.cycle %}open{% endif %}>
+            <summary><strong>{% translate 'Cycle' %} {{ cycle.record.cycle }}</strong><span class="review-status {{ cycle.record.status }}">{{ cycle.record.get_status_display }}</span></summary>
+            <article class="workspace-event"><strong>{% if cycle.record.cycle == 1 %}{% translate 'Submitted for review' %}{% else %}{% translate 'Design resubmitted for review' %}{% endif %}</strong><p>{{ cycle.record.designer.username|default:'—' }}</p><time>{{ cycle.record.submitted_at|date:'M d, Y H:i' }}</time></article>
+            {% for event in cycle.events %}
+            <article class="workspace-event" data-reviewer-stage="{{ event.role }}"><header><strong>{{ event.role }}</strong><span class="review-status {{ event.status }}">{{ event.label }}</span></header><p class="workspace-event-meta">{{ event.reviewer }} · <time>{{ event.timestamp|date:'M d, Y H:i' }}</time></p>{% if event.classification %}<span class="workspace-classification">{{ event.classification|title }} {% translate 'Change' %}</span>{% endif %}{% if event.comment %}<p class="workspace-event-comment">{{ event.comment }}</p>{% endif %}<div data-review-voice-history data-approval-cycle="{{ cycle.record.cycle }}" data-review-stage="{{ event.role }}"></div></article>
+            {% endfor %}
+            {% for snapshot in cycle.snapshots %}<p class="workspace-history-note"><span class="review-status {{ snapshot.status }}">{{ snapshot.role }} · {{ snapshot.label }}</span> · {% translate 'Recorded status only; decision event and timestamp unavailable.' %}</p>{% endfor %}
+            <div class="workspace-cycle-statuses">{% if cycle.record.cad_status == 'pending' or cycle.record.cad_status == 'skipped_uploader' or cycle.record.cad_status == 'not_required' %}<span class="review-status {{ cycle.record.cad_status }}">CAD · {{ cycle.record.get_cad_status_display }}</span>{% endif %}{% if cycle.record.ed_status == 'pending' or cycle.record.ed_status == 'skipped_uploader' or cycle.record.ed_status == 'not_required' %}<span class="review-status {{ cycle.record.ed_status }}">ED · {{ cycle.record.get_ed_status_display }}</span>{% endif %}{% if cycle.record.md_status == 'pending' or cycle.record.md_status == 'skipped_uploader' or cycle.record.md_status == 'not_required' %}<span class="review-status {{ cycle.record.md_status }}">MD · {{ cycle.record.get_md_status_display }}</span>{% endif %}</div>
+        </details>
+        {% empty %}<p class="workspace-history-note">{% translate 'No review cycle has been recorded for this design.' %}</p>{% endfor %}
+        <p class="workspace-history-note">{% translate 'History shows recorded review cycles and decisions. Earlier file bytes and unrecorded events are unavailable.' %}</p>
+    </section>
+</div>
+{{ review_voice_notes|json_script:'design-review-voice-notes' }}

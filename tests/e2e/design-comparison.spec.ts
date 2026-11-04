@@ -2,6 +2,7 @@ import {expect,test,type Page} from '@playwright/test';
 import {readFileSync} from 'fs';
 import {runDjangoCode} from '../helpers/django';
 import {workflowUsers} from '../helpers/testData';
+import {mockReviewRecorder} from '../helpers/mockReviewRecorder';
 let ids:Record<string,number>;
 test.beforeAll(()=>{
  runDjangoCode(`
@@ -38,6 +39,7 @@ for name,color in [('reference','#b8a797'),('designer','#bbaaac')]:
 out=io.BytesIO()
 with wave.open(out,'wb') as audio:
  audio.setnchannels(1);audio.setsampwidth(2);audio.setframerate(16000);audio.writeframes(array('h',(int(8000*math.sin(n/14)) for n in range(48000))).tobytes())
+(settings.BASE_DIR/'output/comparison-workspace-voice.wav').write_bytes(out.getvalue())
 ids={'vehicle':vehicle.pk}
 with patch('management.services.push_notifications.send_push_to_user'):
  for key,title,ref,kind in [('ref','Reference seat.png',True,'image'),('ref2','Reference detail.png',True,'image'),('refpdf','Reference dimension.pdf',True,'pdf'),('refobj','Reference pattern.obj',True,'cad'),('upload','Designer seat.png',False,'image'),('upload2','Designer variant.png',False,'image'),('uploadpdf','Designer dimension.pdf',False,'pdf'),('uploadobj','Designer pattern.obj',False,'cad')]:
@@ -103,13 +105,13 @@ test('body-level full viewport overlay preserves queue, private sets, remarks, v
  await expect(dialog.locator('[data-comparison-carousel="reference"] [data-carousel-count]')).toHaveText('(4)');
  await expect(dialog.locator('[data-comparison-carousel="upload"] [data-carousel-count]')).toHaveText('(4)');
  await expect(dialog).not.toContainText('Unrelated reference');
- await expect(dialog.locator('[data-comparison-reviewers]')).toContainText('Current CAD seam feedback');
- await expect(dialog.locator('[data-comparison-reviewers]')).toContainText('Minor Change');
- await expect(dialog.locator('.review-voice-bubble')).toHaveCount(1);
- await dialog.locator('.voice-play').click();await expect(dialog.locator('audio')).toHaveJSProperty('paused',false);
- await dialog.locator('[data-comparison-cycle]').selectOption('1');
- await expect(dialog.locator('[data-comparison-reviewers]')).toContainText('Earlier CAD seam feedback');
- await expect(dialog.locator('[data-comparison-history-note]')).toBeVisible();
+ await expect(dialog.locator('.comparison-approval-document')).toContainText('Current CAD seam feedback');
+ await expect(dialog.locator('.comparison-approval-document')).toContainText('Minor Change');
+ const currentVoice=dialog.locator('[data-history-cycle="2"] .review-voice-bubble');await expect(currentVoice).toHaveCount(1);
+ await currentVoice.locator('.voice-play').click();await expect(currentVoice.locator('audio')).toHaveJSProperty('paused',false);
+ await dialog.locator('[data-history-cycle="1"] summary').click();
+ await expect(dialog.locator('.comparison-approval-document')).toContainText('Earlier CAD seam feedback');
+ await expect(dialog.locator('.workspace-history-note')).toBeVisible();
  await expect(dialog.locator('[data-comparison-information]')).toContainText('Revision: 2');
  await dialog.getByRole('button',{name:'Close comparison viewer',exact:true}).click();
  await expect(dialog).not.toBeVisible();await expect(page.locator('#approvals-search-input')).toHaveValue('Designer seat');
@@ -134,7 +136,9 @@ test('independent carousel, image zoom/pan, focused view, Fit Both, safe fallbac
  const box=(await left.locator('[data-panel-stage]').boundingBox())!;await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2+70,box.y+box.height/2,{steps:3});await page.mouse.up();
  expect(await left.locator('img').evaluate(el=>new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)).toBeGreaterThan(0);
  await right.getByRole('button',{name:'Zoom in',exact:true}).click();await dialog.getByRole('button',{name:'Fit Both',exact:true}).click();await expect(left.locator('[data-panel-zoom]')).toHaveText('100%');await expect(right.locator('[data-panel-zoom]')).toHaveText('100%');
- await left.getByRole('button',{name:'Focus this panel',exact:true}).click();await expect(right).not.toBeVisible();await page.keyboard.press('Escape');await expect(right).toBeVisible();await expect(dialog).toBeVisible();
+ await left.getByRole('button',{name:'Focus this panel',exact:true}).click();await expect(right).not.toBeVisible();
+ expect((await dialog.locator('[data-comparison-carousel="reference"]').boundingBox())!.width).toBeCloseTo((await left.boundingBox())!.width,0);
+ await expect(dialog.locator('[data-comparison-approval]')).toBeVisible();await page.keyboard.press('Escape');await expect(right).toBeVisible();await expect(dialog).toBeVisible();
  const strip=dialog.locator('[data-comparison-carousel="reference"] [data-carousel-strip]');expect(await strip.evaluate(el=>getComputedStyle(el).maskImage)).toContain('linear-gradient');
  await choose(page,'upload','Designer pattern.obj');await expect(right.locator('[data-panel-fallback]')).toBeVisible();await expect(right.locator('[data-fallback-title]')).toHaveText('Designer pattern.obj');
  const download=await right.locator('[data-fallback-download]').getAttribute('href');const response=await page.request.get(download!);expect(response.ok()).toBe(true);expect(response.headers()['content-disposition']).toContain('attachment');
@@ -155,7 +159,7 @@ test('image/PDF combinations and two PDFs have independent page, zoom, and file 
  await choose(page,'reference','Reference dimension.pdf');await choose(page,'upload','Designer dimension.pdf');await expect(left.locator('canvas')).toBeVisible();await expect(right.locator('canvas')).toBeVisible();
  await dialog.getByRole('button',{name:'Close comparison viewer',exact:true}).click();expect(errors).toEqual([]);
 });
-test('keyboard, mobile switching, fullscreen fallback, touch pinch and independent remarks collapse',async({page})=>{
+test('keyboard, mobile approval switching, fullscreen fallback and touch pinch',async({page})=>{
  await open(page);const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  const strip=dialog.locator('[data-comparison-carousel="reference"] [data-carousel-strip]');await strip.focus();await strip.press('ArrowRight');await expect(left.locator('[data-panel-file]')).toHaveText('Reference detail.png');await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');
  const before=await right.locator('[data-panel-file]').textContent();
@@ -164,8 +168,8 @@ test('keyboard, mobile switching, fullscreen fallback, touch pinch and independe
   expect(await dialog.evaluate(el=>el.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
   const bounds=await dialog.boundingBox();expect(bounds!.width).toBe(width);expect(bounds!.height).toBe(900);
   if(width<650){await dialog.getByRole('button',{name:'Reference',exact:true}).click();await expect(left).toBeVisible();await expect(right).not.toBeVisible();await dialog.getByRole('button',{name:'Designer',exact:true}).click();await expect(right).toBeVisible();}
-  if(await dialog.getAttribute('data-remarks-collapsed')!=='true')await dialog.getByRole('button',{name:'Toggle approver remarks',exact:true}).click();
-  await dialog.getByRole('button',{name:'Toggle approver remarks',exact:true}).click();await expect(dialog.locator('.comparison-remarks-content')).toBeVisible();await dialog.getByRole('button',{name:'Toggle approver remarks',exact:true}).click();
+  await dialog.getByRole('button',{name:'Approval',exact:true}).click();await expect(dialog.locator('[data-comparison-approval]')).toBeVisible();
+  await dialog.getByRole('button',{name:'Designer',exact:true}).click();
  }
  expect(await right.locator('[data-panel-file]').textContent()).toBe(before);
  await dialog.getByRole('button',{name:'Reference',exact:true}).click();
@@ -193,7 +197,7 @@ test('rapid PDF switching, failures, repeated close cleanup and drawer entry pre
  await page.keyboard.press('Escape');await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.upload2}"]`)).toBeAttached();await page.evaluate(id=>(window as any).openApprovalDrawer(id),ids.upload2);
  await page.locator('#designDrawerDecisionRemarks').fill('Preserve unsent drawer remarks');await page.getByRole('button',{name:'Compare files',exact:true}).scrollIntoViewIfNeeded();
  const scroll=await page.locator('#designApprovalDrawer .drawer-body').evaluate(el=>el.scrollTop);
- await page.getByRole('button',{name:'Compare files',exact:true}).click();await expect(dialog).toBeVisible();await expect(panel(page,'upload').locator('[data-panel-file]')).toHaveText('Designer variant.png');await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Compare files',exact:true}).click();await expect(dialog).toBeVisible();await expect(panel(page,'upload').locator('[data-panel-file]')).toHaveText('Designer variant.png');await page.evaluate(id=>(window as any).load3DDesignWorkspace(id),ids.vehicle);await page.keyboard.press('Escape');
  await expect(page.locator('#designApprovalDrawer')).toHaveClass(/is-open/);await expect(page.locator('#designDrawerDecisionRemarks')).toHaveValue('Preserve unsent drawer remarks');expect(await page.locator('#designApprovalDrawer .drawer-body').evaluate(el=>el.scrollTop)).toBe(scroll);expect(errors).toEqual([]);
 });
 test('another designer cannot open pending context, or obtain hidden references/remarks by changing IDs',async({page})=>{
@@ -213,8 +217,8 @@ for(const [key,title,media] of [['ref2','Reference detail.png','img'],['refpdf',
   await expect(dialog).toBeVisible();await expect(left.locator('[data-panel-file]')).toHaveText(title);await expect(left.locator(media)).toBeVisible();
   await expect(dialog.locator(`[data-comparison-carousel="reference"] button[aria-pressed="true"]`)).toHaveAttribute('aria-label',title);
   await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');await expect(right.locator('img')).toBeVisible();
-  await expect(dialog.locator('[data-comparison-reviewers]')).toContainText('Current CAD seam feedback');
-  await expect(dialog.locator('[data-reviewer-stage="ED"]')).toBeAttached();await expect(dialog.locator('[data-reviewer-stage="MD"]')).toBeAttached();
+  await expect(dialog.locator('.comparison-approval-document')).toContainText('Current CAD seam feedback');
+  await expect(dialog.locator('[data-history-cycle="2"] .workspace-cycle-statuses')).toContainText('ED');await expect(dialog.locator('[data-history-cycle="2"] .workspace-cycle-statuses')).toContainText('MD');
   for(const selector of ['#designImageViewer','#designPdfViewer','#designImagePreviewOverlay','#interiorMediaPreviewModal'])await expect(page.locator(selector)).not.toBeVisible();
   await choose(page,'reference','Reference seat.png');await expect(left.locator('img')).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');
   await choose(page,'upload','Designer dimension.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(left.locator('[data-panel-file]')).toHaveText('Reference seat.png');
@@ -247,7 +251,7 @@ test('actual Pattern Master designer thumbnails open comparison in grid and list
  await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
  await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.upload}"]`)).toBeAttached();
  expect(await page.evaluate(()=>typeof (window as any).openDesignComparison)).toBe('function');
- await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/review-drafts/);
+ await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/workspace-drafts/);
  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  await page.locator('#design3DFilesSearch').fill('Designer');
  for(const mode of ['grid','list']){
@@ -295,7 +299,7 @@ from management.models import ApprovalRoles, PatternDesignImage, WorkflowRoles, 
 from management.services.design_approvals import submit_design_for_approval, record_design_review_decision
 ids=json.loads((settings.BASE_DIR/'output/comparison-browser-ids.json').read_text())
 User=get_user_model();owner=User.objects.get(username='comparison_browser_owner');cad=User.objects.get(username='fabro_e2e_cad');ed=User.objects.get(username='fabro_e2e_ed')
-md,_=User.objects.get_or_create(username='fabro_e2e_md');p=md.workflow_profile;p.role=WorkflowRoles.APPROVER;p.approval_role=ApprovalRoles.MD;p.save()
+md,_=User.objects.get_or_create(username='fabro_e2e_md');md.set_password('FabroWorkflow!234');md.save();p=md.workflow_profile;p.role=WorkflowRoles.APPROVER;p.approval_role=ApprovalRoles.MD;p.save()
 sub=YearRange.objects.get(pk=ids['vehicle']).sub_model
 variants,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2014,year_end=2015,defaults={'layout_code':'COMPARE-FORMATS'})
 single,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2016,year_end=2017,defaults={'layout_code':'COMPARE-SINGLE'})
@@ -317,6 +321,20 @@ with patch('management.services.push_notifications.send_push_to_user'):
   file,created=PatternDesignImage.objects.get_or_create(vehicle=single,is_reference=reference,defaults={'title':'Single reference.png' if reference else 'Single upload.png','image':'comparison-browser/reference.png','uploaded_by':cad,'approval_status':'approved' if reference else 'pending'})
   if created and not reference:submit_design_for_approval(file,cad)
   ids['single_ref' if reference else 'single_upload']=file.pk
+admin,_=User.objects.get_or_create(username='comparison_browser_admin');admin.set_password('FabroWorkflow!234');admin.save()
+p=admin.workflow_profile;p.role=WorkflowRoles.ADMIN;p.save()
+review_vehicle,_=YearRange.objects.get_or_create(sub_model=sub,year_start=2010,year_end=2011,defaults={'layout_code':'COMPARE-REVIEWS'})
+ids['review_vehicle']=review_vehicle.pk
+with patch('management.services.push_notifications.send_push_to_user'):
+ for key,title,path in [('review_primary','Workspace primary.png','comparison-browser/designer.png'),('review_sibling','Workspace sibling.pdf',PatternDesignImage.objects.get(pk=ids['uploadpdf']).image.name)]:
+  file,created=PatternDesignImage.objects.get_or_create(vehicle=review_vehicle,title=title,defaults={'image':path,'uploaded_by':owner})
+  if created:
+   submit_design_for_approval(file,owner)
+   if key=='review_primary':
+    record_design_review_decision(file,cad,'rejected','Original cycle: correct the seam.'+chr(10)+(('Recorded fitment feedback.'+chr(10))*14),change_type='major')
+    submit_design_for_approval(file,owner,is_resubmission=True)
+  ids[key]=file.pk
+ PatternDesignImage.objects.get_or_create(vehicle=review_vehicle,is_reference=True,title='Workspace reference.png',defaults={'image':'comparison-browser/reference.png','uploaded_by':cad,'approval_status':'approved'})
 (settings.BASE_DIR/'output/comparison-browser-ids.json').write_text(json.dumps(ids))
 `);
  ids=JSON.parse(readFileSync('output/comparison-browser-ids.json','utf8'));
@@ -343,11 +361,11 @@ test('PNG JPEG and WebP reference/designer thumbnails reuse comparison in both g
     await expect(right.locator('[data-panel-file]')).toHaveText('Designer format.webp');
     for(const [role,status,classification] of [['CAD','approved','Minor'],['ED','rejected','Major'],['MD','approved','Minor']]){
      const card=dialog.locator(`[data-reviewer-stage="${role}"]`);
-     await expect(card.locator('.comparison-status')).toHaveClass(new RegExp(status));
+     await expect(card.locator('.review-status')).toHaveClass(new RegExp(status));
      await expect(card).toContainText(`fabro_e2e_${role.toLowerCase()} format feedback`);await expect(card).toContainText(`${classification} Change`);
-     await expect(card.locator('.comparison-review-meta')).toContainText(/\d{4} \d{2}:\d{2}/);
+     await expect(card.locator('.workspace-event-meta')).toContainText(/\d{4} \d{2}:\d{2}/);
     }
-    await choose(page,'upload','Designer format.png');await expect(dialog.locator('[data-comparison-reviewers]')).not.toContainText('format feedback');
+    await choose(page,'upload','Designer format.png');await expect(dialog.locator('.comparison-approval-document:visible')).not.toContainText('format feedback');
    }
    await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
    await expect(source).toBeFocused();
@@ -362,8 +380,6 @@ test('comparison controls and metadata fit all requested desktop tablet and mobi
  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  for(const [width,height] of [[1920,1080],[1440,900],[1366,768],[1024,768],[768,1024],[390,844]]){
   await page.setViewportSize({width,height});
-  if(await dialog.getAttribute('data-remarks-collapsed')!=='true')await dialog.getByRole('button',{name:'Toggle approver remarks',exact:true}).click();
-  await expect(dialog).toHaveAttribute('data-remarks-collapsed','true');
   const box=(await dialog.boundingBox())!;expect([box.x,box.y,box.width,box.height]).toEqual([0,0,width,height]);
   expect(await dialog.evaluate(el=>el.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
   for(const selector of ['.comparison-toolbar','.comparison-information','.comparison-carousels']){
@@ -391,10 +407,112 @@ test('single-file controls stay disabled and gallery synchronization preserves a
  await page.locator('#refImagesScrollTrack').getByRole('button',{name:'Preview Single reference.png',exact:true}).click();
  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  for(const p of [left,right]){await expect(p.locator('[data-panel-counter]')).toHaveText('1 / 1');for(const name of ['Previous file','Next file'])await expect(p.getByRole('button',{name,exact:true})).toBeDisabled();}
- await expect(dialog.locator('[data-reviewer-stage="CAD"] .comparison-status')).toHaveClass(/skipped_uploader/);
+ await expect(dialog.locator('.workspace-cycle-statuses .review-status.skipped_uploader')).toHaveClass(/skipped_uploader/);
  await right.getByRole('button',{name:'Zoom in',exact:true}).click();
  runDjangoCode(`from management.models import PatternDesignImage; PatternDesignImage.objects.filter(pk=${ids.single_upload}).update(title='Single upload updated.png')`);
  await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.single_upload}"] .tile-title`)).toHaveText('Single upload updated.png',{timeout:20000});
  await expect(dialog).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Single upload.png');await expect(right.locator('[data-panel-zoom]')).toHaveText('125%');
  await expect(left.locator('[data-panel-file]')).toHaveText('Single reference.png');await page.keyboard.press('Escape');
+});
+
+async function reviewWorkspace(page:Page,username=workflowUsers.cad.username){
+ await login(page,username);await page.goto(`/car-details/?vehicle_id=${ids.review_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ await page.locator(`.fabro-design-tile[data-file-id="${ids.review_primary}"] [data-design-image-id]`).click();
+ const root=viewer(page).locator(`.comparison-approval-document[data-design-id="${ids.review_primary}"]`);await expect(root).toBeAttached();return root;
+}
+
+test('integrated workspace aligns three columns and has exactly one continuous approval scroll area',async({page})=>{
+ const root=await reviewWorkspace(page),dialog=viewer(page),approval=dialog.locator('[data-comparison-approval]');
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ for(const [width,height] of [[1920,1080],[1366,768],[1024,768],[390,844]]){
+  await page.setViewportSize({width,height});
+  if(width<900)await dialog.getByRole('button',{name:'Approval',exact:true}).click();
+  await expect(approval).toBeVisible();await approval.evaluate(el=>{el.scrollTop=0;});
+  const fixed=['.comparison-toolbar','.comparison-carousels','.comparison-information'];
+  if(width>=900)fixed.push('[data-comparison-panel="reference"]','[data-comparison-panel="upload"]');
+  const before=await Promise.all(fixed.map(selector=>dialog.locator(selector).boundingBox()));
+  const headingBefore=(await root.locator('.workspace-approval-heading').boundingBox())!;
+  if(width>=900){
+   const left=(await panel(page,'reference').boundingBox())!,center=(await panel(page,'upload').boundingBox())!,right=(await approval.boundingBox())!;
+   for(const [side,box] of [['reference',left],['upload',center]] as const){const selector=(await dialog.locator(`[data-comparison-carousel="${side}"]`).boundingBox())!;expect(Math.abs(selector.x-box.x)).toBeLessThan(1);expect(Math.abs(selector.width-box.width)).toBeLessThan(1);}
+   expect(center.x+center.width).toBeLessThan(right.x);expect(Math.abs(right.y-left.y)).toBeLessThan(1);expect(Math.abs(right.height-left.height)).toBeLessThan(1);
+  }
+  await root.locator('[data-history-cycle="1"] summary').click();
+  if(!await root.locator('[data-history-cycle="1"]').getAttribute('open'))await root.locator('[data-history-cycle="1"]').evaluate(el=>{(el as HTMLDetailsElement).open=true;});
+  const box=(await approval.boundingBox())!;await page.mouse.move(box.x+box.width/2,box.y+box.height-30);await page.mouse.wheel(0,1600);
+  await expect.poll(()=>approval.evaluate(el=>el.scrollTop)).toBeGreaterThan(100);
+  expect((await root.locator('.workspace-approval-heading').boundingBox())!.y).toBeLessThan(headingBefore.y-100);
+  expect(await Promise.all(fixed.map(selector=>dialog.locator(selector).boundingBox()))).toEqual(before);
+  expect(await dialog.evaluate(el=>({vertical:el.scrollHeight-el.clientHeight,top:el.scrollTop,horizontal:el.scrollWidth-el.clientWidth}))).toEqual({vertical:0,top:0,horizontal:0});
+  expect(await root.locator('.workspace-history').evaluate(el=>getComputedStyle(el).overflowY)).toBe('visible');
+  expect(await root.locator('.review-matrix').evaluate(el=>getComputedStyle(el).position)).not.toBe('sticky');
+  await approval.evaluate(el=>{el.scrollTop=el.scrollHeight;});await expect(root.locator('.workspace-history-note').last()).toBeVisible();
+  await approval.evaluate(el=>{el.scrollTop=0;});
+  if(width===1920||width===390)await page.screenshot({path:`output/design-comparison-${width===1920?'desktop':'mobile'}.png`});
+ }
+ // Emulate the reduced visual viewport available above a mobile keyboard.
+ await page.setViewportSize({width:390,height:500});await root.locator('#cadCommentInput').focus();
+ await root.locator('#cadCommentInput').fill('Keyboard remains usable');await expect(root.locator('#cadCommentInput')).toBeInViewport();
+ expect(await dialog.evaluate(el=>el.scrollHeight-el.clientHeight)).toBe(0);
+ page.once('dialog',dialog=>dialog.accept());await page.keyboard.press('Escape');await expect(viewer(page)).not.toBeVisible();expect(errors).toEqual([]);
+});
+
+for(const [username,heading,stage] of [[workflowUsers.cad.username,'CAD Approval','cad'],[workflowUsers.ed.username,'ED Approval','ed'],['fabro_e2e_md','MD Approval','md'],['comparison_browser_owner','Approval Details',''],[workflowUsers.om.username,'Approval Details','']]){
+ test(`integrated workspace gives ${username} the authorized role-specific controls`,async({page})=>{
+  const root=await reviewWorkspace(page,username);
+  await expect(root.getByRole('heading',{name:heading,exact:true})).toBeVisible();await expect(root.locator('[role="tablist"]')).toHaveCount(0);
+  await expect(root.locator('.review-decision-form')).toHaveCount(stage?1:0);
+  if(stage){await expect(root.locator(`#${stage}ReviewForm`)).toBeVisible();await expect(root.locator('[name="change_type"]')).toHaveValue('minor');}
+  await expect(root.locator('[data-history-cycle="1"]')).not.toHaveAttribute('open');await expect(root.locator('[data-history-cycle="2"]')).toHaveAttribute('open');
+  await root.locator('[data-history-cycle="1"] summary').click();await expect(root.locator('.workspace-history')).toContainText('Original cycle: correct the seam.');
+  await choose(page,'upload','Workspace sibling.pdf');const next=viewer(page).locator('.comparison-approval-document:visible');
+  await expect(next.locator('.workspace-design-name')).toHaveText('Workspace sibling.pdf');await expect(next.locator('.workspace-history')).not.toContainText('Original cycle:');
+ });
+}
+
+test('integrated Admin preserves drafts by file and stage and uses the existing POST workflow once',async({page})=>{
+ const root=await reviewWorkspace(page,'comparison_browser_admin'),dialog=viewer(page);
+ await expect(root.getByRole('heading',{name:'Design Approval Management',exact:true})).toBeVisible();await expect(root.locator('[data-review-panel]:visible')).toHaveCount(0);
+ await root.locator('#review-tab-cad').click();await root.locator('#cadCommentInput').fill('Admin CAD draft');await root.locator('#cadChangeType').selectOption('major');
+ await root.locator('#review-tab-ed').click();await root.locator('#edCommentInput').fill('Admin ED draft');
+ await choose(page,'upload','Workspace sibling.pdf');const sibling=dialog.locator(`.comparison-approval-document[data-design-id="${ids.review_sibling}"]`);await sibling.locator('#review-tab-cad').click();await sibling.locator('#cadCommentInput').fill('Sibling draft stays separate');
+ await choose(page,'upload','Workspace primary.png');await expect(root.locator('#edCommentInput')).toHaveValue('Admin ED draft');await root.locator('#review-tab-cad').click();await expect(root.locator('#cadCommentInput')).toHaveValue('Admin CAD draft');await expect(root.locator('#cadChangeType')).toHaveValue('major');
+ page.once('dialog',dialog=>dialog.dismiss());await page.keyboard.press('Escape');await expect(dialog).toBeVisible();
+ let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
+ await page.route(`**/design-approvals/${ids.review_primary}/?workspace=comparison`,async route=>{if(route.request().method()==='POST')await gate;await route.continue();});
+ let submissions=0;page.on('request',request=>{if(request.method()==='POST'&&request.url().includes(`/design-approvals/${ids.review_primary}/`))submissions++;});
+ const response=page.waitForResponse(response=>response.request().method()==='POST'&&response.url().includes(`/design-approvals/${ids.review_primary}/`));
+ await root.locator('#cadReviewForm button[value="approved"]').click();await expect(root.locator('#cadReviewForm button[value="approved"]')).toBeDisabled();
+ await root.locator('#cadReviewForm').evaluate(form=>(form as HTMLFormElement).requestSubmit(form.querySelector('button[value="approved"]') as HTMLButtonElement));
+ release();expect((await response).status()).toBe(302);await expect(root.locator('[data-workspace-feedback]')).toContainText('recorded');
+ await expect(root.locator('#review-tab-cad')).toBeDisabled();await expect(root.locator('#review-cad')).toHaveAttribute('data-stage-status','approved');await root.locator('#review-tab-ed').click();await expect(root.locator('#edCommentInput')).toHaveValue('Admin ED draft');
+ await expect(root.locator('[data-history-cycle="2"] .workspace-event-comment')).toContainText('Admin CAD draft');
+ await expect(root.locator('[data-history-cycle="2"] .workspace-event-meta')).toContainText('comparison_browser_admin');expect(submissions).toBe(1);
+ // A cancelled decline preserves the draft; a confirmed decline uses the same form route.
+ page.once('dialog',dialog=>dialog.dismiss());await root.locator('#edReviewForm button[value="rejected"]').click();await expect(root.locator('#edReviewForm')).toBeVisible();expect(submissions).toBe(1);
+ page.once('dialog',dialog=>dialog.accept());await root.locator('#edReviewForm button[value="rejected"]').click();await expect(root.locator('#review-tab-ed')).toBeDisabled();
+ await expect(root.locator('.workspace-approval-heading .review-status')).toHaveText('Changes Required');expect(submissions).toBe(2);
+ await choose(page,'upload','Workspace sibling.pdf');await expect(sibling.locator('#cadCommentInput')).toHaveValue('Sibling draft stays separate');
+ page.once('dialog',dialog=>dialog.accept());await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
+ await page.goto(`/car-details/?vehicle_id=${ids.single_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
+ await page.locator(`.fabro-design-tile[data-file-id="${ids.single_upload}"] [data-design-image-id]`).click();
+ const skipped=dialog.locator(`.comparison-approval-document[data-design-id="${ids.single_upload}"]`);
+ await expect(skipped.locator('#review-tab-cad')).toBeDisabled();await expect(skipped.locator('#cadReviewForm')).toHaveCount(0);await expect(skipped.locator('#review-tab-ed')).toBeEnabled();
+ await skipped.locator('#review-tab-cad').evaluate(el=>(el as HTMLButtonElement).click());await expect(skipped.locator('[data-review-panel]:visible')).toHaveCount(0);
+});
+
+test('integrated voice draft survives file switching and submits through the existing review form',async({page})=>{
+ await mockReviewRecorder(page,Array.from(readFileSync('output/comparison-workspace-voice.wav')));
+ await reviewWorkspace(page);await choose(page,'upload','Workspace sibling.pdf');
+ const dialog=viewer(page),root=dialog.locator(`.comparison-approval-document[data-design-id="${ids.review_sibling}"]`),form=root.locator('#cadReviewForm');
+ await form.locator('[data-voice-action="record"]').click();await expect(form.locator('[data-voice-recording]')).toBeVisible();
+ await form.locator('[data-voice-action="stop"]').click();await expect(form.locator('[data-voice-preview]')).toBeVisible();
+ await choose(page,'upload','Workspace primary.png');await choose(page,'upload','Workspace sibling.pdf');await expect(form.locator('[data-voice-preview]')).toBeVisible();
+ expect(await form.locator('[name="voice_note"]').evaluate((input:HTMLInputElement)=>input.files!.length)).toBe(1);
+ page.once('dialog',dialog=>dialog.dismiss());await page.keyboard.press('Escape');await expect(dialog).toBeVisible();
+ await form.locator('button[value="approved"]').click();await expect(form).toHaveCount(0);await expect(root.locator('[data-workspace-feedback]')).toContainText('recorded');
+ const bubble=root.locator('.workspace-history .review-voice-bubble');await expect(bubble).toHaveCount(1);await bubble.getByRole('button',{name:'Play voice note',exact:true}).click();await expect(bubble.locator('audio')).toHaveJSProperty('paused',false);
+ await expect.poll(()=>bubble.locator('input[type="range"]').inputValue()).not.toBe('0');
+ await choose(page,'upload','Workspace primary.png');await expect(dialog.locator(`.comparison-approval-document[data-design-id="${ids.review_primary}"] .workspace-history .review-voice-bubble`)).toHaveCount(0);
+ expect(await page.evaluate(()=>(window as any).__voice.stopped)).toBe(1);await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
 });

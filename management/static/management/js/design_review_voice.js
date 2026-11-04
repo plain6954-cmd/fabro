@@ -1,7 +1,7 @@
-window.fabroOnPageLoad(() => {
+(function () {
+window.fabroInitReviewVoice = function (root, scope) {
     'use strict';
-    if (!document.querySelector('[data-review-voice], [data-review-voice-history]')) return;
-    const scope = window.fabroCreatePageScope();
+    if (!root.querySelector('[data-review-voice], [data-review-voice-history]')) return;
     const recorders = new Map();
     const fallbackWave = Array.from({ length: 32 }, (_, i) => [18, 35, 65, 45, 80, 52, 30, 60][i % 8]);
     let activeAudio = null;
@@ -195,7 +195,7 @@ window.fabroOnPageLoad(() => {
         }
     }
 
-    document.querySelectorAll('[data-review-voice]').forEach(root => {
+    root.querySelectorAll('[data-review-voice]').forEach(root => {
         const supported = Boolean(window.MediaRecorder && navigator.mediaDevices?.getUserMedia && window.DataTransfer && window.isSecureContext);
         const state = { root, supported, generation: 0, mode: 'idle', file: null, url: null };
         recorders.set(root, state);
@@ -215,7 +215,7 @@ window.fabroOnPageLoad(() => {
             setTimeout(() => form.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = true; }), 0);
         });
     });
-    scope.listen(document, 'click', event => {
+    scope.listen(root, 'click', event => {
         const play = event.target.closest('.voice-play');
         if (play) {
             const audio = play.closest('.review-voice-bubble').querySelector('audio');
@@ -230,7 +230,7 @@ window.fabroOnPageLoad(() => {
         if (action.dataset.voiceAction === 'stop') stop(state);
         if (['cancel', 'discard'].includes(action.dataset.voiceAction)) reset(state);
     });
-    scope.listen(document, 'input', event => {
+    scope.listen(root, 'input', event => {
         if (!event.target.matches('.voice-wave-seek input')) return;
         const seek = event.target, audio = seek.closest('.review-voice-bubble').querySelector('audio');
         const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : Number(audio.closest('.review-voice-bubble').dataset.duration) / 1000;
@@ -239,7 +239,7 @@ window.fabroOnPageLoad(() => {
         else { audio.addEventListener('loadedmetadata', () => { audio.currentTime = target; }, { once: true }); audio.load(); }
     });
     for (const event of ['play', 'pause', 'ended', 'timeupdate', 'loadedmetadata', 'durationchange']) {
-        scope.listen(document, event, event => {
+        scope.listen(root, event, event => {
             const audio = event.target;
             if (!audio.matches?.('audio[data-review-voice-audio]')) return;
             if (event.type === 'play') { if (activeAudio && activeAudio !== audio) activeAudio.pause(); activeAudio = audio; }
@@ -260,15 +260,16 @@ window.fabroOnPageLoad(() => {
             root.querySelectorAll('audio[data-review-voice-audio]').forEach(audio => audio.pause());
         },
         file(root) { return recorders.get(root)?.file || null; },
+        hasDraft(root) { return Array.from(recorders.values()).some(state => root.contains(state.root) && (state.file || ['pending', 'recording', 'finishing'].includes(state.mode))); },
         ready(root) {
             const state = recorders.get(root);
             if (state && ['pending', 'recording', 'finishing'].includes(state.mode)) { showError(state, 'Stop recording before submitting your review.'); return false; }
             return true;
         },
     };
-    window.fabroReviewVoice = api;
-    const notes = JSON.parse(document.getElementById('design-review-voice-notes')?.textContent || '[]');
-    document.querySelectorAll('[data-review-voice-history]').forEach(host => appendBubbles(host,
+    if (root === document) window.fabroReviewVoice = api;
+    const notes = JSON.parse(root.querySelector('#design-review-voice-notes')?.textContent || '[]');
+    root.querySelectorAll('[data-review-voice-history]').forEach(host => appendBubbles(host,
         notes.filter(note => String(note.cycle) === host.dataset.approvalCycle && (!host.dataset.reviewStage || note.stage === host.dataset.reviewStage))));
     scope.listen(document, 'visibilitychange', () => {
         if (document.hidden) for (const state of recorders.values()) {
@@ -276,10 +277,13 @@ window.fabroOnPageLoad(() => {
             else if (state.mode === 'pending') reset(state);
         }
     });
-    scope.listen(window, 'pagehide', () => { recorders.forEach(reset); stopPlaybackWithin(document); });
+    scope.listen(window, 'pagehide', () => { recorders.forEach(reset); stopPlaybackWithin(root); });
     scope.onCleanup(() => {
         recorders.forEach(reset);
-        stopPlaybackWithin(document);
+        stopPlaybackWithin(root);
         if (window.fabroReviewVoice === api) delete window.fabroReviewVoice;
     });
-});
+    return api;
+};
+window.fabroOnPageLoad(() => window.fabroInitReviewVoice(document, window.fabroCreatePageScope()));
+})();

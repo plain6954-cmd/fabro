@@ -1,0 +1,196 @@
+{% load i18n %}
+                <section class="review-matrix review-surface">
+                    {% if not comparison_workspace %}<div class="review-panel-heading"><h2>{% translate "Design Review Matrix (CAD, ED, MD)" %}</h2></div>{% endif %}
+                    <p class="review-matrix-note">{% translate "Every required reviewer must approve. The uploader's approval stage is skipped." %}</p>
+                    {% if not comparison_workspace or can_admin_review %}<nav class="review-stage-tabs" role="tablist" aria-label="{% translate 'Review stage' %}">
+                        {% for stage in review_stages %}<button type="button" id="review-tab-{{ stage.role }}" role="tab" aria-selected="false" aria-controls="review-{{ stage.role }}" data-review-stage="{{ stage.role }}" {% if comparison_workspace and not stage.can_review %}disabled{% endif %}><strong>{{ stage.role|upper }}</strong><span class="review-status {{ stage.status }}">{{ stage.label }}</span></button>{% endfor %}
+                    </nav>{% endif %}
+                    {% if can_admin_review %}<p class="review-admin-notice">{% translate "Admin: choose a reviewer. Your account is recorded as the actual submitter." %}</p>{% endif %}
+                    <p class="review-select-prompt" data-review-select-prompt hidden>{% translate "Select CAD, ED, or MD above to inspect or review this stage." %}</p>
+            {% if latest_approval %}
+            <!-- CAD Review Card -->
+            <section id="review-cad" class="review-stage-panel" {% if comparison_workspace and not can_admin_review %}role="region" aria-label="CAD Review"{% else %}role="tabpanel" aria-labelledby="review-tab-cad"{% endif %} tabindex="0" data-review-panel="cad" data-stage-status="{{ latest_approval.cad_status }}">
+                <div>
+                    <div>
+                        <span>CAD</span>
+                        <strong>{% translate "CAD Review" %}</strong>
+                    </div>
+                    <div>
+                        {% if latest_approval.cad_status == 'skipped_uploader' %}
+                            <span>{% translate "Skipped — Uploader" %}</span>
+                        {% elif latest_approval.cad_status == 'approved' %}
+                            <span>
+                                <i class="fas fa-check-circle"></i> {% translate "Approved" %}
+                            </span>
+                        {% elif latest_approval.cad_status == 'rejected' %}
+                            <span>
+                                <i class="fas fa-times-circle"></i> {% translate "Declined" %}
+                            </span>
+                        {% else %}
+                            <span>
+                                <i class="fas fa-clock"></i> {% translate "Pending" %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if latest_approval.cad_status == 'skipped_uploader' %}
+                    <p>{% translate "No review decision required for the uploader's stage." %}</p>
+                {% elif latest_approval.cad_status != 'pending' %}
+                    <div>
+                        {% translate "Reviewed by" %} <strong>{{ latest_approval.cad_reviewer.username|default:"CAD Reviewer" }}</strong>
+                        {% if latest_approval.cad_decided_at %}• {{ latest_approval.cad_decided_at|date:"M d, Y H:i" }}{% endif %}
+                    </div>
+                    <div>
+                        {{ latest_approval.cad_comment|default:"No comment provided." }}
+                    </div>
+                    <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="CAD"></div>
+                    {% if latest_approval.cad_change_type %}<small>{{ latest_approval.cad_change_type|title }} {% translate "Change" %}</small>{% endif %}
+                {% else %}
+                    <!-- CAD Review Action Form (Visible to CAD approver only) -->
+                    {% if can_review_as_cad %}
+                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="cadReviewForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="review">
+                        <input type="hidden" name="stage" value="cad">
+                        <label for="cadChangeType">{% translate "Change Classification" %}</label>
+                        <select id="cadChangeType" name="change_type" required>
+                            <option value="minor" selected>{% translate "Minor Change" %}</option>
+                            <option value="major">{% translate "Major Change" %}</option>
+                        </select>
+                        <div>
+                            <label for="cadCommentInput">
+                                {% translate "CAD Review Comment" %} <span>({% translate "Optional" %})</span>
+                            </label>
+                            <div class="review-remarks-input"><textarea name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}"></textarea>
+                                {% include 'management/includes/design_review_voice_recorder.html' %}
+                            </div>
+                        </div>
+                        <div class="design-review-buttons-wrap review-actions">
+                            <button type="submit" name="decision" value="approved" class="review-button review-approve">
+                                <i class="fas fa-check"></i> {% if comparison_workspace %}{% translate "Approve" %}{% else %}{% translate "Approve Design" %}{% endif %}
+                            </button>
+                            <button type="submit" name="decision" value="rejected" class="review-button review-decline" data-confirm-decline>
+                                <i class="fas fa-times"></i> {% if comparison_workspace %}{% translate "Reject" %}{% else %}{% translate "Decline Design" %}{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p>
+                        {% translate "Awaiting decision from authorized CAD approver." %}
+                    </p>
+                    {% endif %}
+                {% endif %}
+            </section>
+
+            <!-- ED Review Card -->
+            <section id="review-ed" class="review-stage-panel" {% if comparison_workspace and not can_admin_review %}role="region" aria-label="ED Review"{% else %}role="tabpanel" aria-labelledby="review-tab-ed"{% endif %} tabindex="0" data-review-panel="ed" data-stage-status="{{ latest_approval.ed_status }}">
+                <div>
+                    <div>
+                        <span>ED</span>
+                        <strong>{% translate "ED Review" %}</strong>
+                    </div>
+                    <div>
+                        {% if latest_approval.ed_status == 'skipped_uploader' %}
+                            <span>{% translate "Skipped — Uploader" %}</span>
+                        {% elif latest_approval.ed_status == 'approved' %}
+                            <span>
+                                <i class="fas fa-check-circle"></i> {% translate "Approved" %}
+                            </span>
+                        {% elif latest_approval.ed_status == 'rejected' %}
+                            <span>
+                                <i class="fas fa-times-circle"></i> {% translate "Declined" %}
+                            </span>
+                        {% else %}
+                            <span>
+                                <i class="fas fa-clock"></i> {% translate "Pending" %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if latest_approval.ed_status == 'skipped_uploader' %}
+                    <p>{% translate "No review decision required for the uploader's stage." %}</p>
+                {% elif latest_approval.ed_status != 'pending' %}
+                    <div>
+                        {% translate "Reviewed by" %} <strong>{{ latest_approval.ed_reviewer.username|default:"ED Reviewer" }}</strong>
+                        {% if latest_approval.ed_decided_at %}• {{ latest_approval.ed_decided_at|date:"M d, Y H:i" }}{% endif %}
+                    </div>
+                    <div>
+                        {{ latest_approval.ed_comment|default:"No comment provided." }}
+                    </div>
+                    <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="ED"></div>
+                    {% if latest_approval.ed_change_type %}<small>{{ latest_approval.ed_change_type|title }} {% translate "Change" %}</small>{% endif %}
+                {% else %}
+                    <!-- ED Review Action Form (Visible to ED approver only) -->
+                    {% if can_review_as_ed %}
+                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="edReviewForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="review">
+                        <input type="hidden" name="stage" value="ed">
+                        <label for="edChangeType">{% translate "Change Classification" %}</label>
+                        <select id="edChangeType" name="change_type" required>
+                            <option value="minor" selected>{% translate "Minor Change" %}</option>
+                            <option value="major">{% translate "Major Change" %}</option>
+                        </select>
+                        <div>
+                            <label for="edCommentInput">
+                                {% translate "ED Review Comment" %} <span>({% translate "Optional" %})</span>
+                            </label>
+                            <div class="review-remarks-input"><textarea name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}"></textarea>
+                                {% include 'management/includes/design_review_voice_recorder.html' %}
+                            </div>
+                        </div>
+                        <div class="design-review-buttons-wrap review-actions">
+                            <button type="submit" name="decision" value="approved" class="review-button review-approve">
+                                <i class="fas fa-check"></i> {% if comparison_workspace %}{% translate "Approve" %}{% else %}{% translate "Approve Design" %}{% endif %}
+                            </button>
+                            <button type="submit" name="decision" value="rejected" class="review-button review-decline" data-confirm-decline>
+                                <i class="fas fa-times"></i> {% if comparison_workspace %}{% translate "Reject" %}{% else %}{% translate "Decline Design" %}{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p>
+                        {% translate "Awaiting decision from authorized ED approver." %}
+                    </p>
+                    {% endif %}
+                {% endif %}
+            </section>
+
+            <!-- MD review is independent and may request changes before final approval. -->
+            <section id="review-md" class="review-stage-panel" {% if comparison_workspace and not can_admin_review %}role="region" aria-label="MD Review"{% else %}role="tabpanel" aria-labelledby="review-tab-md"{% endif %} tabindex="0" data-review-panel="md" data-stage-status="{{ latest_approval.md_status }}">
+                <h3>{% translate "MD Review" %} — {{ latest_approval.get_md_status_display }}</h3>
+                {% if latest_approval.md_status == 'skipped_uploader' %}
+                    <p>{% translate "No review decision required for the uploader's stage." %}</p>
+                {% elif latest_approval.md_decided_at %}
+                    <p>{{ latest_approval.md_reviewer.username }} · {{ latest_approval.md_decided_at|date:"M d, Y H:i" }}{% if latest_approval.md_change_type %} · {{ latest_approval.md_change_type|title }} {% translate "Change" %}{% endif %}</p>
+                    <p>{{ latest_approval.md_comment|default:"No comment provided." }}</p>
+                    <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="MD"></div>
+                {% elif can_review_as_md %}
+                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="mdReviewForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="review">
+                        <input type="hidden" name="stage" value="md">
+                        <label for="mdChangeType">{% translate "Change Classification" %}</label>
+                        <select id="mdChangeType" name="change_type" required>
+                            <option value="minor" selected>{% translate "Minor Change" %}</option>
+                            <option value="major">{% translate "Major Change" %}</option>
+                        </select>
+                        <label for="mdCommentInput">{% translate "MD Review Comment" %} ({% translate "Optional" %})</label>
+                        <div class="review-remarks-input"><textarea name="comment" id="mdCommentInput" rows="3"></textarea>
+                                {% include 'management/includes/design_review_voice_recorder.html' %}
+                            </div>
+                        <div class="design-review-buttons-wrap review-actions">
+                            <button type="submit" name="decision" value="approved" class="review-button review-approve">{% if comparison_workspace %}{% translate "Approve" %}{% else %}{% translate "Approve Design" %}{% endif %}</button>
+                            <button type="submit" name="decision" value="rejected" class="review-button review-decline" data-confirm-decline>{% if comparison_workspace %}{% translate "Reject" %}{% else %}{% translate "Decline Design" %}{% endif %}</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <p>{% translate "Awaiting decision from authorized MD approver." %}</p>
+                {% endif %}
+            </section>
+
+
+            {% else %}<p class="review-select-prompt">{% translate "No review has been submitted for this design." %}</p>{% endif %}
+                </section>
