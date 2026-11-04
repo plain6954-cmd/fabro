@@ -61,6 +61,17 @@ from .services.workflow import (
 from .services.cache_versions import cache_version
 
 
+class ActivityAccessMixin:
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        from management.services.activity_routes import enforce_request
+        from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+        try:
+            enforce_request(request)
+        except DjangoPermissionDenied as exc:
+            raise PermissionDenied(str(exc)) from exc
+
+
 class IsCatalogAdminOrReadOnly(BasePermission):
     """Allow authenticated reads, but restrict catalog writes to staff/admins."""
 
@@ -142,7 +153,7 @@ class UserProfileAPIView(APIView):
             return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class DashboardAPIView(APIView):
+class DashboardAPIView(ActivityAccessMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -168,7 +179,7 @@ class DashboardAPIView(APIView):
 
 from .serializers import SKUSerializer, YearRangeSerializer
 
-class ComplaintListCreateAPIView(ListCreateAPIView):
+class ComplaintListCreateAPIView(ActivityAccessMixin, ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ComplaintSerializer
 
@@ -221,7 +232,7 @@ class ComplaintListCreateAPIView(ListCreateAPIView):
         )
         initialize_created_complaint(complaint, self.request.user)
 
-class ComplaintRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+class ComplaintRetrieveUpdateDestroyAPIView(ActivityAccessMixin, RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ComplaintSerializer
     lookup_field = 'complaint_id'
@@ -268,7 +279,7 @@ class ComplaintRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
         instance.delete()
 
 
-class FactoryReviewAPIView(APIView):
+class FactoryReviewAPIView(ActivityAccessMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, complaint_id, *args, **kwargs):
@@ -299,7 +310,7 @@ class FactoryReviewAPIView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class ApprovalInboxAPIView(ListAPIView):
+class ApprovalInboxAPIView(ActivityAccessMixin, ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ComplaintApprovalSerializer
 
@@ -323,7 +334,7 @@ class ApprovalInboxAPIView(ListAPIView):
         ).select_related('complaint', 'approver_user').order_by('-created_at')
 
 
-class ApprovalDecisionAPIView(APIView):
+class ApprovalDecisionAPIView(ActivityAccessMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, approval_id, *args, **kwargs):
@@ -347,7 +358,7 @@ class ApprovalDecisionAPIView(APIView):
         })
 
 
-class ComplaintStartActionAPIView(APIView):
+class ComplaintStartActionAPIView(ActivityAccessMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, complaint_id, *args, **kwargs):
@@ -365,7 +376,7 @@ class ComplaintStartActionAPIView(APIView):
         return Response(ComplaintSerializer(complaint).data)
 
 
-class ComplaintFinalUpdateAPIView(APIView):
+class ComplaintFinalUpdateAPIView(ActivityAccessMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, complaint_id, *args, **kwargs):
@@ -390,7 +401,7 @@ class ComplaintFinalUpdateAPIView(APIView):
         return Response(ComplaintSerializer(complaint).data)
 
 
-class ComplaintSubmitExecutionVerificationAPIView(APIView):
+class ComplaintSubmitExecutionVerificationAPIView(ActivityAccessMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, complaint_id, *args, **kwargs):
@@ -412,7 +423,7 @@ class ComplaintSubmitExecutionVerificationAPIView(APIView):
         })
 
 
-class NotificationListAPIView(ListAPIView):
+class NotificationListAPIView(ActivityAccessMixin, ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = NotificationSerializer
 
@@ -420,7 +431,7 @@ class NotificationListAPIView(ListAPIView):
         return Notification.objects.filter(recipient=self.request.user).select_related('complaint')
 
 
-class NotificationReadAPIView(APIView):
+class NotificationReadAPIView(ActivityAccessMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, notification_id, *args, **kwargs):
@@ -432,22 +443,29 @@ class NotificationReadAPIView(APIView):
             notification.save(update_fields=['is_read'])
         return Response(NotificationSerializer(notification).data)
 
-class SKUListCreateAPIView(ListCreateAPIView):
+class SKUListCreateAPIView(ActivityAccessMixin, ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsCatalogAdminOrReadOnly]
     serializer_class = SKUSerializer
     queryset = SKU.objects.select_related('region').all().order_by('code')
 
-class SKURetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+class SKURetrieveUpdateDestroyAPIView(ActivityAccessMixin, RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsCatalogAdminOrReadOnly]
     serializer_class = SKUSerializer
     queryset = SKU.objects.all()
 
-class VehicleListCreateAPIView(ListCreateAPIView):
+class VehicleListCreateAPIView(ActivityAccessMixin, ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsCatalogAdminOrReadOnly]
     serializer_class = YearRangeSerializer
     queryset = YearRange.objects.select_related('sub_model__model__brand').all().order_by('-id')
 
-class VehicleRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+class VehicleRetrieveUpdateDestroyAPIView(ActivityAccessMixin, RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsCatalogAdminOrReadOnly]
     serializer_class = YearRangeSerializer
     queryset = YearRange.objects.all()
+
+
+    @transaction.atomic
+    def perform_destroy(self, instance):
+        from management.services.activity_permissions import protect_vehicle_files
+        protect_vehicle_files([instance.pk], self.request.user)
+        instance.delete()

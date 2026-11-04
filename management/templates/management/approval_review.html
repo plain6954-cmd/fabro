@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
@@ -23,7 +24,7 @@
                 <h1 class="workflow-title"><i class="fas fa-clipboard-check"></i> {{ approval.approver_role }} {% if approval.review_stage == 'reconsideration' %}{% translate "Reconsideration" %}{% elif approval.review_stage == 'execution_verification' %}{% translate "Execution Verification" %}{% else %}{% translate "Review" %}{% endif %}</h1>
                 <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }} | {% blocktranslate with round=approval.approval_round %}Approval round {{ round }}{% endblocktranslate %}</p>
             </div>
-            <a href="{% url 'approvals_list' %}?stage={% if approval.review_stage == 'execution_verification' %}verification{% else %}plan{% endif %}" class="workflow-btn secondary">
+            <a href="{% url 'approvals_list' %}?stage={% if approval.review_stage == 'execution_verification' %}verification{% else %}plan{% endif %}" class="workflow-btn secondary" {% activity_attrs 'workflow.view' %}>
                 <i class="fas fa-arrow-left"></i> {% translate "Approval Inbox" %}
             </a>
         </header>

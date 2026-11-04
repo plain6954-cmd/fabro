@@ -54,7 +54,7 @@
             activeSide = side;
             for (const p of Object.values(panels)) p.root.dataset.active = String(p.side === side);
             const file = panels[side].model.current(), link = dialog.querySelector('[data-comparison-download]');
-            link.hidden = !file; if (file) link.href = privateUrl(file, 'download'); else link.removeAttribute('href');
+            link.hidden = !file?.download; if (file?.download) link.href = privateUrl(file, 'download'); else link.removeAttribute('href');
         }
         function updateControls(p) {
             const file = p.model.current(), pdf = file?.type === 'pdf';
@@ -142,7 +142,7 @@
                 } else {
                     p.fallback.querySelector('[data-fallback-title]').textContent = file.title;
                     p.fallback.querySelector('[data-fallback-meta]').textContent = [file.extension, size(file.size), 'Preview is not available for this format.'].filter(Boolean).join(' · ');
-                    p.fallback.querySelector('[data-fallback-download]').href = privateUrl(file, 'download'); p.fallback.hidden = false;
+                    const download = p.fallback.querySelector('[data-fallback-download]'); download.hidden = !file.download; if (file.download) download.href = privateUrl(file, 'download'); p.fallback.hidden = false;
                 }
             } catch (_failure) { if (token === p.token && dialog.open) fail(p); }
         }

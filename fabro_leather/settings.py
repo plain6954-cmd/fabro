@@ -43,6 +43,8 @@ def env_list(name, default=''):
 
 E2E_TESTING = env_bool('E2E_TESTING', False)
 CONTROL_TOWER_REVIEW_DELAY_HOURS = max(1, int(os.getenv('CONTROL_TOWER_REVIEW_DELAY_HOURS', '48')))
+# Optional per-role defaults; existing business authorization remains mandatory.
+ACTIVITY_ROLE_DEFAULTS = {}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -214,6 +216,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'management.middleware.UserProfileLocaleMiddleware',
+    'management.middleware.ActivityPermissionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',

@@ -516,6 +516,8 @@ def notify_user(recipient, title, message='', complaint=None, notification_type=
                 url = f'/complaint/execute/{complaint.complaint_id}/'
             else:
                 url = '/complaints/'
+        elif notification_type == 'access_change':
+            url = '/profile/'
         elif notification_type == 'pattern_approval':
             url = '/notifications/'
 
@@ -910,6 +912,8 @@ def _resolve_completed_approval_round(complaint, approvals):
 
 @transaction.atomic
 def record_approval_decision(approval_id, user, decision, comment=''):
+    from management.services.activity_permissions import require
+    require(user, 'workflow.approve' if (decision or '').lower() in ('approved', 'approve') else 'workflow.reject')
     decision = (decision or '').strip().lower()
     comment = (comment or '').strip()
     if decision not in [DecisionStatuses.APPROVED, DecisionStatuses.REJECTED]:
@@ -996,6 +1000,8 @@ def can_user_execute_action(user, complaint):
 
 @transaction.atomic
 def start_action_execution(complaint, user):
+    from management.services.activity_permissions import require
+    require(user, 'workflow.start')
     complaint = Complaint.objects.select_for_update().get(pk=complaint.pk)
     if not can_user_execute_action(user, complaint):
         raise PermissionError('You are not allowed to execute this complaint action plan.')
@@ -1018,6 +1024,8 @@ def start_action_execution(complaint, user):
 
 @transaction.atomic
 def submit_execution_for_verification(complaint, user):
+    from management.services.activity_permissions import require
+    require(user, 'workflow.verify_submit')
     complaint = Complaint.objects.select_for_update().get(pk=complaint.pk)
     if not can_user_execute_action(user, complaint):
         raise PermissionError('You are not allowed to submit this execution for verification.')
@@ -1077,6 +1085,8 @@ def submit_execution_for_verification(complaint, user):
 
 @transaction.atomic
 def close_complaint_after_execution(complaint, user, cad_date, container_number=''):
+    from management.services.activity_permissions import require
+    require(user, 'workflow.close')
     complaint = Complaint.objects.select_for_update().get(pk=complaint.pk)
     if not can_user_execute_action(user, complaint):
         raise PermissionError('You are not allowed to close this complaint.')
@@ -1128,6 +1138,8 @@ def close_complaint_after_execution(complaint, user, cad_date, container_number=
 
 @transaction.atomic
 def submit_factory_review(complaint, user, reason, action_plan, priority):
+    from management.services.activity_permissions import require
+    require(user, 'workflow.factory_review')
     complaint = Complaint.objects.select_for_update().get(pk=complaint.pk)
     if not can_user_review_factory_step(user, complaint):
         raise PermissionError('You are not allowed to review this complaint.')

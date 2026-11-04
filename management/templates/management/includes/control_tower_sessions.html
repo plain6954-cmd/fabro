@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load i18n %}
 <div class="erp-dash-card ct-panel ct-session-panel">
                             <div class="erp-dash-card-header">
@@ -5,7 +6,7 @@
                                     <i class="fas fa-wifi" style="color: #2ea043;"></i> {% blocktranslate with count=active_sessions_count %}Live Active Sessions ({{ count }}){% endblocktranslate %}
                                 </span>
                                 {% if active_sessions|length > 1 %}
-                                <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
+                                <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;" {% activity_attrs 'erp.sessions_terminate' %}>
                                     {% csrf_token %}
                                     <button type="submit" class="btn-danger" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;" onclick="return confirm(window.FabroI18n.gettext('Terminate all other user sessions?'));">
                                         {% translate "Terminate Others" %}
@@ -33,7 +34,7 @@
                                                 {% if session.session_key == request.session.session_key %}
                                                     <span style="color: #3fb950; font-weight: 700; font-size: 0.72rem;">{% translate "CURRENT" %}</span>
                                                 {% else %}
-                                                    <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;">
+                                                    <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;" {% activity_attrs 'erp.sessions_terminate' %}>
                                                         {% csrf_token %}
                                                         <button type="submit" class="btn-danger" style="font-size: 0.68rem; padding: 0.15rem 0.4rem;" onclick="return confirm(window.FabroI18n.gettext('Kick this session?'));">{% translate "Kick" %}</button>
                                                     </form>

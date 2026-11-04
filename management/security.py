@@ -21,6 +21,13 @@ class RateLimitedLoginView(LoginView):
 
     form_class = EmailOrUsernameAuthenticationForm
 
+    def get_success_url(self):
+        destination = super().get_success_url()
+        from management.services.activity_permissions import granted
+        if destination == '/' and self.request.user.is_authenticated and not granted(self.request.user, 'dashboard.view'):
+            return '/profile/'
+        return destination
+
     def _cache_keys(self):
         username = (self.request.POST.get('username') or '').strip().casefold()[:254]
         identity = f'{get_client_ip(self.request)}|{username}'.encode('utf-8')

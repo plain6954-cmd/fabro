@@ -21,6 +21,11 @@ def workflow_access(request):
     if not user or not user.is_authenticated:
         return {'is_htmx_request': is_htmx_request}
 
+    from .services.activity_permissions import granted, REGISTRY
+    activity_map = {}
+    for key in REGISTRY:
+        category, action = key.split('.', 1)
+        activity_map.setdefault(category, {})[action] = granted(user, key)
     profile = getattr(request, '_user_profile', None)
     if profile is None:
         profile = get_user_profile(user)
@@ -70,21 +75,23 @@ def workflow_access(request):
         cache.set(badge_key, badges, settings.BADGE_CACHE_TTL)
 
     return {
+        'activities': activity_map,
+        'activity_data': {key: granted(user, key) for key in REGISTRY},
         'is_htmx_request': is_htmx_request,
         'workflow_profile': profile,
         'workflow_role_label': role_label,
-        'can_create_complaint': can_user_create_complaint(user),
-        'can_manage_catalog': can_user_manage_catalog(user),
+        'can_create_complaint': can_user_create_complaint(user) and granted(user, 'complaint.create'),
+        'can_manage_catalog': can_user_manage_catalog(user) and (granted(user, 'vehicle.create') or granted(user, 'vehicle.edit')),
         'can_manage_design_assets': can_user_manage_design_assets(user),
         'can_manage_drive_links': can_user_manage_drive_links(user),
         'is_designer_freelancer': bool(
             profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER
         ),
-        'can_manage_workflow': is_workflow_admin(user),
+        'can_manage_workflow': is_workflow_admin(user) and granted(user, 'erp.view'),
         'is_workflow_approver': bool(
             profile and profile.role == WorkflowRoles.APPROVER
         ),
-        'can_view_approvals': can_view_approvals_flag,
+        'can_view_approvals': can_view_approvals_flag and (granted(user, 'workflow.view') or granted(user, 'design_approval.view') or granted(user, 'color.history')),
         'pending_approvals_count': pending_approvals_count,
         'unread_chat_count': unread_chat_count,
         'current_language': get_language() or 'en',

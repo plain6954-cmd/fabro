@@ -1,0 +1,104 @@
+{% load i18n %}
+<div id="editUserModal" class="erp-modal user-control-panel" style="display:none" role="dialog" aria-modal="true" aria-labelledby="ucpTitle" data-reset-url="{% url 'edit_user' %}" data-config-url="{% url 'user_control_data' %}">
+    <div class="erp-modal-box">
+        <header class="erp-modal-header"><span class="erp-modal-title" id="ucpTitle"><i class="fas fa-user-cog" aria-hidden="true"></i> {% translate 'User Control Panel' %}</span><button type="button" class="erp-modal-close" onclick="closeEditUserModal()" title="{% translate 'Close User Control Panel' %}" aria-label="{% translate 'Close User Control Panel' %}">×</button></header>
+        <form id="editUserForm" method="post" enctype="multipart/form-data" action="{% url 'user_control_save' %}">
+            {% csrf_token %}<input type="hidden" name="user_id" id="editUserId"><input type="hidden" name="control_panel" value="1"><input type="hidden" name="activity_permissions" id="ucpOverrides">
+            <nav class="ucp-tabs" role="tablist" aria-label="{% translate 'User Control Panel sections' %}"><button id="ucpDetailsTab" type="button" role="tab" aria-controls="ucpDetails" aria-selected="true" class="btn-secondary">{% translate 'User Information' %}</button><button id="ucpPermissionsTab" type="button" role="tab" aria-controls="ucpPermissions" aria-selected="false" class="btn-secondary">{% translate 'Activity Permissions' %}</button></nav>
+            <div class="ucp-columns" data-active="details">
+                <div class="erp-modal-body ucp-details" id="ucpDetails" role="tabpanel" aria-labelledby="ucpDetailsTab">
+                    <div class="erp-form-grid-2">
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editUsername">{% translate "Username *" %}</label>
+                            <input type="text" name="username" autocomplete="username" id="editUsername" class="erp-form-input" required>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editEmail">{% translate "Email Address *" %}</label>
+                            <input type="email" name="email" id="editEmail" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editFirstName">{% translate "First Name" %}</label>
+                            <input type="text" name="first_name" id="editFirstName" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editLastName">{% translate "Last Name" %}</label>
+                            <input type="text" name="last_name" id="editLastName" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editPhone">{% translate "Phone Number" %}</label>
+                            <input type="text" name="phone_number" id="editPhone" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editUserPassword">{% translate "Password" %}</label>
+                            <div style="position: relative; display: flex; align-items: center;">
+                                <input type="password" name="new_password" id="editUserPassword" class="erp-form-input" placeholder="{% translate "Enter a new password" %}" autocomplete="new-password" style="width: 100%; padding-right: 2.2rem;">
+                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('editUserPassword', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.6rem; background: none; border: none; color: var(--erp-text-muted); cursor: pointer; padding: 0.2rem; font-size: 0.82rem;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <input type="password" name="confirm_password" id="editUserPasswordConfirm" aria-label="{% translate 'Confirm new password' %}" class="erp-form-input" placeholder="{% translate "Confirm new password" %}" autocomplete="new-password" style="margin-top:0.4rem;">
+                            <button type="button" id="resetUserPasswordButton" onclick="resetUserPassword()" class="btn-secondary" style="margin-top: 0.4rem; align-self: flex-start;">
+                                <i class="fas fa-key"></i> {% translate "Reset Password" %}
+                            </button>
+                        </div>
+                        <div class="erp-form-group full-width">
+                            <label class="erp-form-label" for="editRole">{% translate "Role *" %}</label>
+                            <select name="role" id="editRole" class="erp-form-select">
+                                <option value="country_executive">{% translate "Country Executive" %}</option>
+                                <option value="factory_viewer">{% translate "Factory Viewer" %}</option>
+                                <option value="factory_executive">{% translate "Factory Executive" %}</option>
+                                <option value="factory_complaint_registrar">{% translate "Factory Complaint Registrar" %}</option>
+                                <option value="freelance_3d_designer">{% translate "3D Designer Freelancer" %}</option>
+                                <option value="PM">{% translate "PM" %}</option>
+                                <option value="OM">{% translate "OM" %}</option>
+                                <option value="CAD">{% translate "CAD" %}</option>
+                                <option value="ED">{% translate "ED" %}</option>
+                                <option value="MD">{% translate "MD" %}</option>
+                                <option value="admin">{% translate "Admin" %}</option>
+                            </select>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editCountry">{% translate "Assigned Country" %}</label>
+                            <select name="country" id="editCountry" class="erp-form-select">
+                                <option value="">{% translate "None (Global)" %}</option>
+                                {% for country in workflow_countries %}
+                                <option value="{{ country.id }}">{{ country.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="erp-form-group">
+                            <label class="erp-form-label" for="editDepartment">{% translate "Department" %}</label>
+                            <input type="text" name="department" id="editDepartment" class="erp-form-input">
+                        </div>
+                        <div class="erp-form-group full-width">
+                            <label class="erp-form-label" for="ucpPhoto">{% translate "Update Profile Photo" %}</label>
+                            <input type="file" name="photo" id="ucpPhoto" class="erp-form-input" accept="image/*">
+                            <button type="button" id="removeUserPhotoButton" data-url-template="{% url 'delete_user_photo' 0 %}" class="btn-danger" style="margin-top:.4rem; align-self:flex-start;" onclick="removeUserPhoto()">{% translate "Remove current photo" %}</button>
+                        </div>
+                        <div class="erp-form-group full-width erp-checkbox-group" style="display: flex; flex-direction: row; gap: 1rem; align-items: center;">
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="can_receive_factory_assignments" id="editCanFactory" style="accent-color: #e63946;"> {% translate "Can receive factory assignments" %}
+                            </label>
+                            {% if request.user.is_superuser %}
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="is_staff" id="editIsStaff" style="accent-color: #e63946;"> {% translate "Staff" %}
+                            </label>
+                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                                <input type="checkbox" name="is_superuser" id="editIsSuperuser" style="accent-color: #e63946;"> {% translate "Superuser" %}
+                            </label>
+                            {% endif %}
+                        </div>
+                        <div class="erp-form-group full-width"><label for="ucpGroups" class="erp-form-label">{% translate 'Groups' %}</label><select id="ucpGroups" name="groups" multiple class="erp-form-select"></select></div>
+                        <label class="erp-form-label"><input id="ucpActive" type="checkbox" name="is_active" checked> {% translate 'Account active' %}</label>
+                    </div>
+                </div>
+
+                <section class="ucp-permissions" id="ucpPermissions" role="tabpanel" aria-labelledby="ucpPermissionsTab">
+                    <div class="ucp-permission-tools"><div><h2>{% translate 'Activity Permissions' %}</h2><p>{% translate 'Role defaults apply unless customized. Existing record and workflow restrictions always apply.' %}</p></div><span data-ucp-total role="status"></span><label class="erp-form-label" for="ucpSearch">{% translate 'Search permissions' %}</label><input id="ucpSearch" type="search" class="erp-form-input" placeholder="{% translate 'Search activities or categories' %}"><div class="ucp-tools"><button type="button" class="btn-secondary" data-ucp-expand>{% translate 'Expand all' %}</button><button type="button" class="btn-secondary" data-ucp-collapse>{% translate 'Collapse all' %}</button><button type="button" class="btn-secondary" data-ucp-reset>{% translate 'Reset to Role Defaults' %}</button></div><p data-ucp-readonly hidden>{% translate 'Only Admin can change activity permissions or reviewer assignments.' %}</p></div>
+                    <div data-ucp-categories></div><p data-ucp-empty hidden>{% translate 'No matching activities.' %}</p>
+                </section>
+            </div>
+            <footer class="erp-modal-footer"><div id="editUserFeedback" role="status" aria-live="polite">{% for message in messages %}{% if 'edit-user-feedback' in message.tags %}<span class="save-status-pill edit-user-feedback {% if 'error' in message.tags %}error{% else %}success{% endif %}">{{ message }}</span>{% endif %}{% endfor %}</div><div class="ucp-footer-actions"><button type="button" class="btn-danger icon-only-action" data-ucp-delete onclick="triggerDeleteFromEdit()" title="{% translate 'Delete User' %}" aria-label="{% translate 'Delete User' %}"><i class="fas fa-trash-alt" aria-hidden="true"></i></button><button type="button" class="btn-secondary" onclick="closeEditUserModal()">{% translate 'Cancel' %}</button><button type="submit" id="saveEditUserButton" class="btn-erp-new"><i class="fas fa-save" aria-hidden="true"></i> {% translate 'Save Changes' %}</button></div></footer>
+        </form>
+    </div>
+</div>

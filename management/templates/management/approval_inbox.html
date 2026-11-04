@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
@@ -24,10 +25,10 @@
                 <p class="workflow-subtitle">{% blocktranslate with role=profile.get_approval_role_display %}{{ role }} reviews assigned to your account.{% endblocktranslate %}</p>
             </div>
             <div class="workflow-header-actions">
-                <a href="{% url 'notification_list' %}" class="workflow-btn secondary">
+                <a href="{% url 'notification_list' %}" class="workflow-btn secondary" {% activity_attrs 'notification.view' %}>
                     <i class="fas fa-bell"></i> {% translate "Notifications" %}
                 </a>
-                <a href="{% url 'complaint_list' %}" class="workflow-btn secondary">
+                <a href="{% url 'complaint_list' %}" class="workflow-btn secondary" {% activity_attrs 'complaint.view' %}>
                     <i class="fas fa-list"></i> {% translate "All Complaints" %}
                 </a>
             </div>
@@ -75,7 +76,7 @@
                             </div>
 
                             <div class="workflow-actions">
-                                <a href="{% url 'approval_review' approval.id %}" class="workflow-btn">
+                                <a href="{% url 'approval_review' approval.id %}" class="workflow-btn" {% activity_attrs 'workflow.view' %}>
                                     <i class="fas fa-clipboard-check"></i>
                                     {% if approval.review_stage == 'reconsideration' %}
                                         Reconsider Complaint

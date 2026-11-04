@@ -373,12 +373,12 @@
                         </div>
                     </div>
                     <div class="measurement-file-actions">
-                        <a href="/measurement-files/${f.id}/download/" class="btn btn-secondary btn-sm" title="Download" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
+                        ${f.download_url ? `<a href="${f.download_url || '#'}" ${f.download_url ? '' : 'hidden'} class="btn btn-secondary btn-sm" title="Download" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
                             <i class="fas fa-download"></i>
-                        </a>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="window.deleteMeasurementFile(${f.id})" title="Delete" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
+                        </a>` : ''}
+                        ${f.can_delete ? `<button type="button" class="btn btn-danger btn-sm" onclick="window.deleteMeasurementFile(${f.id})" title="Delete" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
                             <i class="fas fa-trash"></i>
-                        </button>
+                        </button>` : ''}
                     </div>
                 </div>
             `;
@@ -411,9 +411,9 @@
                 <div class="interior-media-card" id="meas-file-${f.id}" onclick="window.openInteriorMediaPreview('${f.url}', ${isVideo})">
                     <img src="${f.thumbnail_url || f.url}" alt="${escapeHtml(f.filename)}" class="interior-media-thumb">
                     <span class="interior-media-overlay-badge">${badgeIcon}</span>
-                    <button type="button" class="interior-media-delete-btn" onclick="event.stopPropagation(); window.deleteMeasurementFile(${f.id});" title="Delete">
+                    ${f.can_delete ? `<button type="button" class="interior-media-delete-btn" onclick="event.stopPropagation(); window.deleteMeasurementFile(${f.id});" title="Delete">
                         <i class="fas fa-times"></i>
-                    </button>
+                    </button>` : ''}
                 </div>
             `;
         }).join('');

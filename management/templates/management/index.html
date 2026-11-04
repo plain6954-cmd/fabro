@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
@@ -40,11 +41,11 @@
                                 {% translate "Existing Complaints" %}
                             </span>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <a href="{% url 'complaint_list' %}" class="btn-subtle" title="{% translate "View all complaints" %}">
+                                <a href="{% url 'complaint_list' %}" class="btn-subtle" title="{% translate "View all complaints" %}" {% activity_attrs 'complaint.view' %}>
                                     {% translate "View All" %} <i class="fas fa-arrow-right" style="font-size: 0.7rem;"></i>
                                 </a>
                                 {% if can_create_complaint %}
-                                <a href="{% url 'add_complaint' %}" class="btn btn-primary btn-compact" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 6px; text-decoration: none; color: white;">
+                                <a href="{% url 'add_complaint' %}" class="btn btn-primary btn-compact" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 6px; text-decoration: none; color: white;" {% activity_attrs 'complaint.create' %}>
                                     <i class="fas fa-plus"></i> {% translate "Add" %}
                                 </a>
                                 {% endif %}
@@ -118,7 +119,7 @@
                                                             {% endif %}
                                                         </div>
                                                         <div class="complaint-details-workflow-btn-wrap" style="margin-top: 0.4rem;">
-                                                            <a href="{% url 'complaint_list' %}?search={{ complaint.complaint_id }}" class="btn btn-primary" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none; border-radius: 4px; background: var(--primary-color); color: white; border: none; cursor: pointer; white-space: nowrap;">
+                                                            <a href="{% url 'complaint_list' %}?search={{ complaint.complaint_id }}" class="btn btn-primary" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none; border-radius: 4px; background: var(--primary-color); color: white; border: none; cursor: pointer; white-space: nowrap;" {% activity_attrs 'complaint.view' %}>
                                                                 <i class="fas fa-external-link-alt"></i> {% translate "Go to workflow page" %}
                                                             </a>
                                                         </div>
@@ -149,7 +150,7 @@
                                 <span class="header-badge-count">{{ pending_approvals_total }}</span>
                                 {% endif %}
                             </span>
-                            <a href="{% url 'approvals_list' %}" class="btn-subtle" title="{% translate "Open Approvals Workspace" %}">
+                            <a href="{% url 'approvals_list' %}" class="btn-subtle" title="{% translate "Open Approvals Workspace" %}" {% activity_attrs 'workflow.view' %}>
                                 {% translate "Workspace" %} <i class="fas fa-arrow-right" style="font-size: 0.7rem;"></i>
                             </a>
                         </div>
@@ -175,7 +176,7 @@
                                         <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center; font-weight: bold; color: #3b82f6;">{{ forloop.counter }}</td>
                                         <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; white-space: nowrap; color: var(--dark-text);">{{ approval.created_at|date:"Y-m-d" }}</td>
                                         <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; font-weight: bold;">
-                                            <a href="{% url 'complaint_list' %}?search={{ approval.complaint.complaint_id }}" style="color: var(--dark-text); text-decoration: none;">
+                                            <a href="{% url 'complaint_list' %}?search={{ approval.complaint.complaint_id }}" style="color: var(--dark-text); text-decoration: none;" {% activity_attrs 'complaint.view' %}>
                                                 {{ approval.complaint.complaint_id }}
                                             </a>
                                         </td>
@@ -200,7 +201,7 @@
                                             </span>
                                         </td>
                                         <td style="padding: 0.5rem 0.75rem; font-size: 0.78rem; text-align: center;">
-                                            <a href="{% url 'approval_review' approval.id %}" class="btn-view dashboard-view-button" title="{% translate "Review Decision" %}" aria-label="{% translate "Review" %}">
+                                            <a href="{% url 'approval_review' approval.id %}" class="btn-view dashboard-view-button" title="{% translate "Review Decision" %}" aria-label="{% translate "Review" %}" {% activity_attrs 'workflow.view' %}>
                                                 <i class="fas fa-check-circle"></i>
                                             </a>
                                         </td>
@@ -225,7 +226,7 @@
                             {% translate "Existing Complaints" %}
                         </span>
                         {% if can_create_complaint %}
-                        <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; text-decoration: none; color: white;">
+                        <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; text-decoration: none; color: white;" {% activity_attrs 'complaint.create' %}>
                             <i class="fas fa-plus"></i> {% translate "Add Complaint" %}
                         </a>
                         {% endif %}
@@ -302,7 +303,7 @@
                                                         {% endif %}
                                                     </div>
                                                     <div class="complaint-details-workflow-btn-wrap" style="margin-top: 0.6rem;">
-                                                        <a href="{% url 'complaint_list' %}?search={{ complaint.complaint_id }}" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.35rem 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem; text-decoration: none; border-radius: 4px; background: var(--primary-color); color: white; border: none; cursor: pointer; white-space: nowrap;">
+                                                        <a href="{% url 'complaint_list' %}?search={{ complaint.complaint_id }}" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.35rem 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem; text-decoration: none; border-radius: 4px; background: var(--primary-color); color: white; border: none; cursor: pointer; white-space: nowrap;" {% activity_attrs 'complaint.view' %}>
                                                             <i class="fas fa-external-link-alt"></i> {% translate "Go to workflow page" %}
                                                         </a>
                                                     </div>
@@ -336,7 +337,7 @@
                         <span>{% translate "System Statistics" %}</span>
                     </div>
                     <div class="stats-sidebar-list">
-                        <a href="{% url 'complaint_list' %}" class="stat-card-compact complaint-summary">
+                        <a href="{% url 'complaint_list' %}" class="stat-card-compact complaint-summary" {% activity_attrs 'complaint.view' %}>
                             <div class="stat-header-row">
                                 <div class="stat-icon-compact complaints"><i class="fas fa-exclamation-triangle"></i></div>
                                 <div class="stat-title-compact">{% translate "Total Complaints:" %} <strong style="color: var(--dark-text);">{{ total_complaints|default:"0" }}</strong></div>
@@ -363,19 +364,19 @@
                                 <div class="stat-title-compact">{% translate "Complaint Types" %}</div>
                             </div>
                             <div class="complaint-type-grid">
-                                <a href="{% url 'complaint_list' %}?complaint_type=line" class="complaint-type-box line">
+                                <a href="{% url 'complaint_list' %}?complaint_type=line" class="complaint-type-box line" {% activity_attrs 'complaint.view' %}>
                                     <span class="complaint-type-value">{{ line_complaints|default:"0" }}</span>
                                     <span class="complaint-type-label">{% translate "Factory" %}</span>
                                 </a>
-                                <a href="{% url 'complaint_list' %}?complaint_type=pattern" class="complaint-type-box pattern">
+                                <a href="{% url 'complaint_list' %}?complaint_type=pattern" class="complaint-type-box pattern" {% activity_attrs 'complaint.view' %}>
                                     <span class="complaint-type-value">{{ pattern_complaints|default:"0" }}</span>
                                     <span class="complaint-type-label">{% translate "Pattern" %}</span>
                                 </a>
-                                <a href="{% url 'complaint_list' %}?complaint_type=production" class="complaint-type-box production">
+                                <a href="{% url 'complaint_list' %}?complaint_type=production" class="complaint-type-box production" {% activity_attrs 'complaint.view' %}>
                                     <span class="complaint-type-value">{{ production_complaints|default:"0" }}</span>
                                     <span class="complaint-type-label">{% translate "Production" %}</span>
                                 </a>
-                                <a href="{% url 'complaint_list' %}?complaint_type=quality" class="complaint-type-box quality">
+                                <a href="{% url 'complaint_list' %}?complaint_type=quality" class="complaint-type-box quality" {% activity_attrs 'complaint.view' %}>
                                     <span class="complaint-type-value">{{ quality_complaints|default:"0" }}</span>
                                     <span class="complaint-type-label">{% translate "Quality" %}</span>
                                 </a>
@@ -384,7 +385,7 @@
 
                         <div class="stat-card-compact complaint-type-summary-card monthly-complaint-summary-card">
                             <div class="stat-header-row">
-                                <a href="{% url 'complaint_list' %}?from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="stat-header-link" style="display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; width: 100%;">
+                                <a href="{% url 'complaint_list' %}?from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="stat-header-link" style="display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; width: 100%;" {% activity_attrs 'complaint.view' %}>
                                     <div class="stat-icon-compact monthly-types"><i class="fas fa-calendar-alt" aria-hidden="true"></i></div>
                                     <div class="stat-title-compact">
                                         <span>{% translate "Complaints This Month" %}:</span>
@@ -393,22 +394,22 @@
                                 </a>
                             </div>
                             <div class="complaint-month-grid" style="display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 0.5rem !important; width: 100% !important;">
-                                <a href="{% url 'complaint_list' %}?complaint_type=pattern&from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="complaint-type-box pattern">
+                                <a href="{% url 'complaint_list' %}?complaint_type=pattern&from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="complaint-type-box pattern" {% activity_attrs 'complaint.view' %}>
                                     <span class="complaint-type-value">{{ pattern_this_month|default:"0" }}</span>
                                     <span class="complaint-type-label">{% translate "Pattern" %}</span>
                                 </a>
-                                <a href="{% url 'complaint_list' %}?complaint_type=production&from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="complaint-type-box production">
+                                <a href="{% url 'complaint_list' %}?complaint_type=production&from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="complaint-type-box production" {% activity_attrs 'complaint.view' %}>
                                     <span class="complaint-type-value">{{ production_this_month|default:"0" }}</span>
                                     <span class="complaint-type-label">{% translate "Production" %}</span>
                                 </a>
-                                <a href="{% url 'complaint_list' %}?complaint_type=quality&from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="complaint-type-box quality">
+                                <a href="{% url 'complaint_list' %}?complaint_type=quality&from_date={{ month_from_date }}&to_date={{ month_to_date }}" class="complaint-type-box quality" {% activity_attrs 'complaint.view' %}>
                                     <span class="complaint-type-value">{{ quality_this_month|default:"0" }}</span>
                                     <span class="complaint-type-label">{% translate "Quality" %}</span>
                                 </a>
                             </div>
                         </div>
 
-                        <a href="{% url 'car_details' %}" class="stat-card-compact">
+                        <a href="{% url 'car_details' %}" class="stat-card-compact" {% activity_attrs 'pattern.view' %}>
                             <div class="stat-icon-compact vehicles"><i class="fas fa-car"></i></div>
                             <div class="stat-info-compact">
                                 <div class="stat-value-compact">{{ total_vehicles|default:"0" }}</div>
@@ -416,7 +417,7 @@
                             </div>
                         </a>
 
-                        <a href="{% url 'add_sku' %}" class="stat-card-compact">
+                        <a href="{% url 'add_sku' %}" class="stat-card-compact" {% activity_attrs 'sku.view' %}>
                             <div class="stat-icon-compact skus"><i class="fas fa-barcode"></i></div>
                             <div class="stat-info-compact">
                                 <div class="stat-value-compact">{{ total_skus|default:"0" }}</div>

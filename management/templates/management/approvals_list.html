@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
@@ -492,7 +493,7 @@
                     {% endif %}
 
                     {% if search_query or selected_priority or selected_type or selected_country %}
-                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary desktop-clear-filters-btn" title="{% translate "Clear Filters" %}" style="padding: 0.35rem 0.6rem;">
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-secondary desktop-clear-filters-btn" title="{% translate "Clear Filters" %}" style="padding: 0.35rem 0.6rem;" {% activity_attrs 'workflow.view' %}>
                         <i class="fas fa-times"></i>
                     </a>
                     {% endif %}
@@ -521,7 +522,7 @@
                             {% endif %}
                         </p>
                         {% if search_query %}
-                        <a href="{% url 'approvals_list' %}?stage=designer&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
+                        <a href="{% url 'approvals_list' %}?stage=designer&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;" {% activity_attrs 'design_approval.view' %}>
                             <i class="fas fa-redo"></i> {% translate "Reset Search" %}
                         </a>
                         {% endif %}
@@ -669,7 +670,7 @@
                             {% endif %}
                         </p>
                         {% if search_query %}
-                        <a href="{% url 'approvals_list' %}?stage=colors&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
+                        <a href="{% url 'approvals_list' %}?stage=colors&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;" {% activity_attrs 'color.history' %}>
                             <i class="fas fa-redo"></i> {% translate "Reset Search" %}
                         </a>
                         {% endif %}
@@ -682,7 +683,7 @@
                     <!-- CARD HEADER -->
                     <div class="card-header-row">
                         <div class="card-id-block">
-                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="complaint-id-badge" title="{% translate "Inspect complaint in full complaint list" %}">
+                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="complaint-id-badge" title="{% translate "Inspect complaint in full complaint list" %}" {% activity_attrs 'complaint.view' %}>
                                 <i class="fas fa-file-alt"></i> {{ item.complaint.complaint_id }}
                             </a>
                             
@@ -831,11 +832,11 @@
                                     {% translate "Review & Submit Decision" %}
                                 {% endif %}
                             </button>
-                            <a href="{% url 'approval_review' item.my_approval.id %}" class="btn-action-secondary" title="{% translate "Open full dedicated review screen" %}">
+                            <a href="{% url 'approval_review' item.my_approval.id %}" class="btn-action-secondary" title="{% translate "Open full dedicated review screen" %}" {% activity_attrs 'workflow.view' %}>
                                 <i class="fas fa-external-link-alt"></i> {% translate "Full Review Page" %}
                             </a>
                             {% else %}
-                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="btn-action-secondary">
+                            <a href="{% url 'complaint_list' %}?search={{ item.complaint.complaint_id }}" class="btn-action-secondary" {% activity_attrs 'complaint.view' %}>
                                 <i class="fas fa-eye"></i> {% translate "View Complaint Details" %}
                             </a>
                             {% endif %}
@@ -857,7 +858,7 @@
                         {% endif %}
                     </p>
                     {% if search_query or selected_priority or selected_type or selected_country %}
-                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;">
+                    <a href="{% url 'approvals_list' %}?stage={{ workspace_stage }}&status={{ status_filter }}" class="btn-action-primary" style="margin-top: 0.5rem;" {% activity_attrs 'workflow.view' %}>
                         <i class="fas fa-redo"></i> {% translate "Reset Filters" %}
                     </a>
                     {% endif %}

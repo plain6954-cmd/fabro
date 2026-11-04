@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
@@ -331,7 +332,7 @@
                     <input type="file" name="csv_file" id="csvFile" class="file-input" accept=".csv" required>
                 </div>
 
-                <a href="{% url 'car_details' %}" class="btn btn-secondary">
+                <a href="{% url 'car_details' %}" class="btn btn-secondary" {% activity_attrs 'pattern.view' %}>
                     <i class="fas fa-arrow-left"></i>
                     {% translate "Back to Vehicle Management" %}
                 </a>

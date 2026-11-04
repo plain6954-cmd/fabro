@@ -1,5 +1,6 @@
+{% load activity_access %}
 {% load i18n %}
-<div class="review-voice-recorder" data-review-voice>
+<div {% activity_attrs 'design_approval.voice' %} class="review-voice-recorder" data-review-voice>
     <input type="file" name="voice_note" hidden aria-label="{% translate 'Recorded voice note' %}">
     <button type="button" class="voice-record-toggle" data-voice-action="record" aria-label="{% translate 'Record voice note' %}" title="{% translate 'Record voice note (60 seconds, 5 MB maximum)' %}"><i class="fas fa-microphone" aria-hidden="true"></i></button>
     <div class="voice-recording" data-voice-recording hidden>

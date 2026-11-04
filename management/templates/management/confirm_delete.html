@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
@@ -107,7 +108,7 @@
     <form method="POST">
         {% csrf_token %}
         <button type="submit">{% translate "Yes, delete" %}</button>
-        <a href="{% url 'complaint_list' %}">{% translate "Cancel" %}</a>
+        <a href="{% url 'complaint_list' %}" {% activity_attrs 'complaint.view' %}>{% translate "Cancel" %}</a>
     </form>
 </body>
 </html>

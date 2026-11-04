@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
@@ -284,7 +285,7 @@
                             </div>
                         </div>
                         <div class="chat-header-actions">
-                            <a href="{% url 'complaint_list' %}" class="chat-header-action-btn workflow-btn secondary" title="{% translate "Complaints List" %}" aria-label="{% translate "Complaints List" %}">
+                            <a href="{% url 'complaint_list' %}" class="chat-header-action-btn workflow-btn secondary" title="{% translate "Complaints List" %}" aria-label="{% translate "Complaints List" %}" {% activity_attrs 'complaint.view' %}>
                                 <i class="fas fa-list-alt"></i>
                                 <span class="chat-header-action-text">{% translate "Complaints List" %}</span>
                             </a>
@@ -309,7 +310,7 @@
                             <div class="msg-group {% if msg.sender.id == request.user.id %}self{% else %}other{% endif %}" data-message-id="{{ msg.id }}">
                                 <div class="msg-bubble">
                                     {% if msg.complaint %}
-                                        <a href="{% url 'complaint_list' %}?search={{ msg.complaint.complaint_id }}" class="msg-complaint-card">
+                                        <a href="{% url 'complaint_list' %}?search={{ msg.complaint.complaint_id }}" class="msg-complaint-card" {% activity_attrs 'complaint.view' %}>
                                             <i class="fas fa-link"></i> {{ msg.complaint.complaint_id }}
                                         </a>
                                         <br>

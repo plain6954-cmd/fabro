@@ -91,6 +91,8 @@ def record_design_review_with_voice(image, user, decision, comment='', stage=Non
     from management.services.design_approvals import (
         get_latest_approval_request, record_design_review_decision, resolve_design_review_role,
     )
+    from management.services.activity_permissions import require
+    require(user, 'design_approval.voice')
     role = resolve_design_review_role(user, stage)
     if image.uploaded_by_id == user.id:
         raise PermissionDenied(_('Designer cannot approve their own design.'))

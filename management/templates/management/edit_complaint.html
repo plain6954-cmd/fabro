@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
@@ -518,7 +519,7 @@
         <form method="POST" enctype="multipart/form-data" class="form-container" id="complaint-form"
               data-direct-media-uploads="{{ direct_media_uploads|yesno:'true,false' }}"
               data-sign-upload-url="{% url 'complaint_media_signed_upload' %}"
-              data-discard-upload-url="{% url 'complaint_media_discard_uploads' %}">
+              data-discard-upload-url="{% url 'complaint_media_discard_uploads' %}" {% activity_attrs 'complaint.media_upload' %}>
             {% csrf_token %}
             {% if media_upload_batch %}
                 <input type="hidden" name="media_upload_batch" value="{{ media_upload_batch.id }}">
@@ -589,7 +590,7 @@
             </div>
 
             <div class="btn-group">
-                <a href="{% url 'complaint_list' %}" class="btn btn-secondary">
+                <a href="{% url 'complaint_list' %}" class="btn btn-secondary" {% activity_attrs 'complaint.view' %}>
                     <i class="fas fa-times"></i>
                     {% translate "Cancel" %}
                 </a>

@@ -209,6 +209,8 @@ def _notify_approvers_new_color_proposal(selection, vehicle, submitter):
 
 
 def submit_color_decision(user, decision_id, decision_choice, remarks):
+    from management.services.activity_permissions import require
+    require(user, 'color.approve' if (decision_choice or '').lower() == 'approved' else 'color.reject')
     decision_choice = (decision_choice or '').strip().lower()
     if decision_choice not in ('approved', 'rejected'):
         raise ValidationError(_("Decision must be either 'approved' or 'rejected'."))
@@ -350,6 +352,8 @@ def _integrate_approved_colors_into_color_master(selection):
 
 
 def serialize_color_selection(selection, current_user=None):
+    from management.services.activity_permissions import granted
+    can_history = bool(current_user and granted(current_user, 'color.history'))
     decisions = list(selection.decisions.select_related('approver').all())
     decisions_map = {d.department: d for d in decisions}
 
@@ -368,7 +372,7 @@ def serialize_color_selection(selection, current_user=None):
                 'can_decide': False,
             }
         can_decide = bool(
-            current_user
+            current_user and (granted(current_user, 'color.approve') or granted(current_user, 'color.reject'))
             and profile and profile.role == WorkflowRoles.APPROVER
             and user_approval_role == dept
             and d.decision == PatternColorApprovalDecision.STATUS_PENDING
@@ -377,7 +381,7 @@ def serialize_color_selection(selection, current_user=None):
         return {
             'id': d.id,
             'status': d.decision,
-            'remarks': d.remarks or '',
+            'remarks': (d.remarks or '') if can_history else '',
             'approver': d.approver.username if d.approver else '',
             'decided_at': timezone.localtime(d.decided_at).strftime('%b %d, %Y %H:%M') if d.decided_at else '',
             'can_decide': can_decide,
@@ -401,7 +405,7 @@ def serialize_color_selection(selection, current_user=None):
         'is_new_color': selection.is_new_color,
         'status': selection.status,
         'status_display': selection.get_status_display(),
-        'swatch_url': selection.swatch_image.url if selection.swatch_image else '',
+        'swatch_url': reverse('color_selection_file', args=[selection.pk]) if selection.swatch_image else '',
         'submitted_by': selection.submitted_by.username if selection.submitted_by else '',
         'submitted_at': timezone.localtime(selection.created_at).strftime('%b %d, %Y %H:%M'),
         'inner_color': {

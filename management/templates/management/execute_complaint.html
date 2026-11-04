@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
@@ -23,7 +24,7 @@
                 <h1 class="workflow-title"><i class="fas fa-flag-checkered"></i> {% translate "Approved Action Plan" %}</h1>
                 <p class="workflow-subtitle">{{ complaint.complaint_id }} | {{ complaint.get_complaint_type_display }}</p>
             </div>
-            <a href="{% url 'complaint_list' %}" class="workflow-btn secondary">
+            <a href="{% url 'complaint_list' %}" class="workflow-btn secondary" {% activity_attrs 'complaint.view' %}>
                 <i class="fas fa-arrow-left"></i> {% translate "All Complaints" %}
             </a>
         </header>

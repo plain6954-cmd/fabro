@@ -2414,7 +2414,7 @@ class FabroBackendTests(TestCase):
         normal_panel_response = self.client.get(reverse('admin_panel'))
 
         self.assertNotContains(normal_profile_response, 'data-testid="open-admin-panel"')
-        self.assertEqual(normal_panel_response.status_code, 302)
+        self.assertEqual(normal_panel_response.status_code, 403)
 
     def test_profile_settings_save_and_pill_rendering(self):
         self.login()
@@ -2753,9 +2753,9 @@ class FabroBackendTests(TestCase):
         # 3. Cannot add complaints (forbidden)
         self.assertEqual(self.client.get(reverse('add_complaint')).status_code, 403)
 
-        # 4. Cannot access admin panel or master settings (redirected)
-        self.assertEqual(self.client.get(reverse('admin_panel')).status_code, 302)
-        self.assertEqual(self.client.get(reverse('master_settings')).status_code, 302)
+        # 4. Feature denials return explicit 403 responses.
+        self.assertEqual(self.client.get(reverse('admin_panel')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('master_settings')).status_code, 403)
 
         # 5. Visible complaints scoped to Pattern complaints only
         pattern_complaint = Complaint.objects.create(

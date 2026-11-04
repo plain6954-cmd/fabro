@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
@@ -650,7 +651,7 @@
                 <p class="profile-subtitle">{% translate "Configure your personal information and adjust account security credentials" %}</p>
             </div>
             {% if can_manage_workflow %}
-            <a href="{% url 'admin_panel' %}" class="btn btn-secondary compact-admin-btn" data-testid="open-admin-panel">
+            <a href="{% url 'admin_panel' %}" class="btn btn-secondary compact-admin-btn" data-testid="open-admin-panel" {% activity_attrs 'erp.view' %}>
                 <i class="fas fa-user-shield"></i> {% translate "Admin Panel" %}
             </a>
             {% endif %}

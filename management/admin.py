@@ -13,6 +13,7 @@ from .models import (
     SKU,
     SubModel,
     UserProfile,
+    UserAccessAudit,
     YearRange,
 )
 from django.contrib.sessions.models import Session
@@ -21,10 +22,23 @@ from django.contrib.sessions.models import Session
 admin.site.register(Session)
 admin.site.register(MasterSetting)
 admin.site.register(SKU)
-admin.site.register(Brand)
-admin.site.register(Model)
-admin.site.register(SubModel)
-admin.site.register(YearRange)
+class CatalogAssetAdmin(admin.ModelAdmin):
+    def _protect(self, request, queryset):
+        from management.services.activity_permissions import protect_vehicle_files
+        paths = {Brand: 'sub_model__model__brand', Model: 'sub_model__model', SubModel: 'sub_model', YearRange: 'pk'}
+        vehicles = YearRange.objects.filter(**{paths[self.model] + '__in': queryset.values('pk')})
+        protect_vehicle_files(list(vehicles.values_list('pk', flat=True)), request.user)
+
+    def delete_model(self, request, obj):
+        self._protect(request, self.model.objects.filter(pk=obj.pk))
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        self._protect(request, queryset)
+        super().delete_queryset(request, queryset)
+
+for catalog_model in (Brand, Model, SubModel, YearRange):
+    admin.site.register(catalog_model, CatalogAssetAdmin)
 
 
 @admin.register(UserProfile)
@@ -32,6 +46,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'role', 'country', 'department', 'approval_role', 'can_receive_factory_assignments')
     list_filter = ('role', 'approval_role', 'country', 'can_receive_factory_assignments')
     search_fields = ('user__username', 'user__email', 'department')
+    readonly_fields = ('activity_permissions',)
 
 
 @admin.register(Complaint)
@@ -110,3 +125,9 @@ class ActivityLogAdmin(WorkflowAuditAdmin):
     list_display = ('timestamp', 'user', 'action', 'object_type', 'object_name')
     list_filter = ('action', 'object_type')
     search_fields = ('user__username', 'object_name')
+
+
+@admin.register(UserAccessAudit)
+class UserAccessAuditAdmin(WorkflowAuditAdmin):
+    list_display = ('timestamp', 'actor', 'target_username')
+    search_fields = ('target_username', 'actor__username')

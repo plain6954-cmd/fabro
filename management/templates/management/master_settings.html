@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
@@ -1418,7 +1419,7 @@
                                                             {% endfor %}
                                                         ]
                                                     </script>
-                                                    <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;" onclick="event.stopPropagation();">
+                                                    <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;" onclick="event.stopPropagation();" {% activity_attrs 'master.delete' %}>
                                                         {% csrf_token %}
                                                         <button type="submit" class="action-btn delete"
                                                                 title="Delete {{ setting.name }}"
@@ -1463,7 +1464,7 @@
                                                         title="Edit {{ setting.name }}">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;">
+                                                <form method="post" action="{% url 'delete_master_setting' setting.id %}" style="display:inline;" {% activity_attrs 'master.delete' %}>
                                                     {% csrf_token %}
                                                     <button type="submit" class="action-btn delete"
                                                             title="Delete {{ setting.name }}"
@@ -1539,7 +1540,7 @@
                     <button type="button" class="material-btn-cancel-icon" onclick="closeMaterialEditModal()" title="{% translate 'Discard changes' %}" aria-label="{% translate 'Close' %}">
                         <i class="fas fa-times"></i>
                     </button>
-                    <button type="button" class="material-btn-save-icon" id="materialModalSaveBtn" onclick="submitMaterialEditForm()" title="{% translate 'Save changes' %}" aria-label="{% translate 'Save' %}">
+                    <button type="button" class="material-btn-save-icon" id="materialModalSaveBtn" onclick="submitMaterialEditForm()" title="{% translate 'Save changes' %}" aria-label="{% translate 'Save' %}" {% activity_attrs 'master.edit' %}>
                         <i class="fas fa-save"></i>
                     </button>
                 </div>
@@ -1570,7 +1571,7 @@
                         <label class="material-form-label" for="materialVariantNewInput">{% translate "Material Variant" %}</label>
                         <div class="material-variant-input-wrap">
                             <input type="text" id="materialVariantNewInput" class="material-variant-input" placeholder="{% translate 'Type variant name...' %}" autocomplete="off">
-                            <button type="button" class="material-btn-add-variant" id="materialVariantAddBtn" onclick="addMaterialVariant()" title="{% translate 'Add variant' %}" aria-label="{% translate 'Add variant' %}">
+                            <button type="button" class="material-btn-add-variant" id="materialVariantAddBtn" onclick="addMaterialVariant()" title="{% translate 'Add variant' %}" aria-label="{% translate 'Add variant' %}" {% activity_attrs 'master.edit' %}>
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>

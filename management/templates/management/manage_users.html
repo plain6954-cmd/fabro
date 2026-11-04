@@ -1,6 +1,7 @@
+{% load activity_access %}
 {% load i18n %}
 <h1>{% translate "Manage Users" %}</h1>
-<p><a href="{% url 'admin_panel' %}">{% translate "Open Admin Panel" %}</a></p>
+<p><a href="{% url 'admin_panel' %}" {% activity_attrs 'erp.view' %}>{% translate "Open Admin Panel" %}</a></p>
 <table>
     <thead><tr><th>{% translate "Username" %}</th><th>{% translate "Group" %}</th><th>{% translate "Role" %}</th></tr></thead>
     <tbody>

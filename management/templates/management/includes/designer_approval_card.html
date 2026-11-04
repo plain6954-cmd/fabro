@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load i18n %}
 <article class="approval-card designer-approval-card {% if item.can_review_by_user %}needs-my-vote{% endif %}" id="card-design-{{ item.id }}" data-cad-status="{{ item.current_cad_status }}" data-ed-status="{{ item.current_ed_status }}" data-md-status="{{ item.current_md_status }}">
     <header class="designer-card-header">
@@ -19,7 +20,7 @@
                 <button type="button" data-design-comparison="{{ item.id }}" class="designer-thumbnail designer-pdf-thumbnail" aria-label="PDF · {{ item.title }}"><i class="fas fa-file-pdf" aria-hidden="true"></i><strong>PDF</strong><span>{{ item.title }}</span></button>
                 {% elif item.image and suffix == '.png' or item.image and suffix == '.jpg' or item.image and suffix == '.gif' or item.image and suffix == '.bmp' or item.image and long_suffix == '.jpeg' or item.image and long_suffix == '.webp' %}
                 <button type="button" class="designer-thumbnail" aria-label="{% translate 'Preview design' %} {{ item.title }}" data-design-comparison="{{ item.id }}">
-                    <img src="{% if item.thumbnail %}{{ item.thumbnail.url }}{% else %}{% url 'pattern_design_image_download' item.id %}{% endif %}" alt="{{ item.title }}" loading="lazy" onerror="this.hidden=true; this.parentElement.classList.add('is-unavailable');">
+                    <img src="{% url 'design_comparison_file' item.id %}{% if item.thumbnail %}?thumbnail=1{% endif %}" alt="{{ item.title }}" loading="lazy" onerror="this.hidden=true; this.parentElement.classList.add('is-unavailable');">
                     <span class="designer-thumbnail-fallback" aria-hidden="true"><i class="fas fa-file-image"></i><span>{{ item.title }}</span></span>
                 </button>
                 {% else %}
@@ -34,7 +35,7 @@
                     {% if item.folder %}<div><dt>{% translate "Folder" %}</dt><dd>{{ item.folder.name }}</dd></div>{% endif %}
                 </dl>
             </div>
-            {% if item.rejection_reason %}<p class="designer-rejection-reason"><strong>{% translate "Feedback / Rejection Reason:" %}</strong> {{ item.rejection_reason }}</p>{% endif %}
+            {% if item.rejection_reason and activities.design.history and activities.design_approval.history %}<p class="designer-rejection-reason"><strong>{% translate "Feedback / Rejection Reason:" %}</strong> {{ item.rejection_reason }}</p>{% endif %}
         </section>
         <section class="designer-reviewer-matrix" aria-label="{% translate 'Design reviewer matrix' %}">
             <h3>{% translate "Live Design Reviewer Matrix" %}</h3>
@@ -49,7 +50,7 @@
                                             <div class="reviewer-name-sub">
                                                 {% if item.current_cad_status != 'skipped_uploader' %}{{ item.cad_reviewer_name }}{% endif %}
                                             </div>
-                                            {% if item.cad_comment %}
+                                            {% if item.cad_comment and activities.design.history and activities.design_approval.history %}
                                             <div class="reviewer-comment">
                                                 "{{ item.cad_comment }}"
                                             </div>
@@ -66,7 +67,7 @@
                                             <div class="reviewer-name-sub">
                                                 {% if item.current_ed_status != 'skipped_uploader' %}{{ item.ed_reviewer_name }}{% endif %}
                                             </div>
-                                            {% if item.ed_comment %}
+                                            {% if item.ed_comment and activities.design.history and activities.design_approval.history %}
                                             <div class="reviewer-comment">
                                                 "{{ item.ed_comment }}"
                                             </div>
@@ -76,7 +77,7 @@
                                             <div class="approver-role-tag">MD</div>
                                             <div class="reviewer-status-text">{{ item.latest_approval.get_md_status_display }}</div>
                                             <div class="reviewer-name-sub">{% if item.current_md_status != 'skipped_uploader' %}{{ item.md_reviewer_name }}{% endif %}</div>
-                                            {% if item.md_comment %}<div class="reviewer-comment">"{{ item.md_comment }}"</div>{% endif %}
+                                            {% if item.md_comment and activities.design.history and activities.design_approval.history %}<div class="reviewer-comment">"{{ item.md_comment }}"</div>{% endif %}
                                         </div>
                                     </div>
 
@@ -90,7 +91,7 @@
                                     <i class="fas fa-times" aria-hidden="true"></i> {% translate "Decline" %}
                                 </button>
                                 {% endif %}
-                                <a href="{% url 'design_approval_detail' item.id %}?{{ design_review_querystring }}" class="btn-action-secondary" title="{% translate "Inspect design history & revisions" %}">
+                                <a href="{% url 'design_approval_detail' item.id %}?{{ design_review_querystring }}" class="btn-action-secondary" title="{% translate "Inspect design history & revisions" %}" {% activity_attrs 'design_approval.view' %}>
                                     <i class="fas fa-eye" aria-hidden="true"></i> {% translate "View Details" %}
                                 </a>
                                 {% if item.image %}

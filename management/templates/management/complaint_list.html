@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
@@ -31,10 +32,10 @@
             </h1>
             <div class="header-actions">
                 {% if can_create_complaint %}
-                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="{% translate "Add Complaint" %}" aria-label="{% translate "Add Complaint" %}">
+                <a href="{% url 'add_complaint' %}" class="btn btn-primary icon-btn" title="{% translate "Add Complaint" %}" aria-label="{% translate "Add Complaint" %}" {% activity_attrs 'complaint.create' %}>
                     <i class="fas fa-plus"></i>
                 </a>
-                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="{% translate "Export CSV" %}" aria-label="{% translate "Export CSV" %}">
+                <a href="{% url 'export_complaints' %}?format=csv{% if request.GET %}&amp;{{ request.GET.urlencode }}{% endif %}" class="btn btn-success icon-btn" title="{% translate "Export CSV" %}" aria-label="{% translate "Export CSV" %}" {% activity_attrs 'complaint.export' %}>
                     <i class="fas fa-download"></i>
                 </a>
                 {% endif %}
@@ -187,7 +188,7 @@
                         <i class="fas fa-search"></i>
                         {% translate "Apply Filters" %}
                     </button>
-                    <a href="{% url 'complaint_list' %}" class="btn btn-danger">
+                    <a href="{% url 'complaint_list' %}" class="btn btn-danger" {% activity_attrs 'complaint.view' %}>
                         <i class="fas fa-times"></i>
                         {% translate "Clear" %}
                     </a>
@@ -329,27 +330,27 @@
                                         <i class="fas fa-comment-dots"></i>
                                     </button>
                                     {% if complaint.can_edit %}
-                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="{% translate "Edit" %}" aria-label="Edit complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="{% translate "Edit" %}" aria-label="Edit complaint {{ complaint.complaint_id }}" {% activity_attrs 'complaint.view' %}>
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_factory_review %}
-                                    <a href="{% url 'factory_review_complaint' complaint.complaint_id %}" class="action-btn review" title="{% translate "Factory Review" %}" aria-label="Factory review complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'factory_review_complaint' complaint.complaint_id %}" class="action-btn review" title="{% translate "Factory Review" %}" aria-label="Factory review complaint {{ complaint.complaint_id }}" {% activity_attrs 'workflow.factory_review' %}>
                                         <i class="fas fa-industry"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_approve %}
-                                    <a href="{% url 'approval_review' complaint.current_approval.id %}" class="action-btn approve" title="{% translate "Submit Approval" %}" aria-label="Approve complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'approval_review' complaint.current_approval.id %}" class="action-btn approve" title="{% translate "Submit Approval" %}" aria-label="Approve complaint {{ complaint.complaint_id }}" {% activity_attrs 'workflow.view' %}>
                                         <i class="fas fa-clipboard-check"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_execute %}
-                                    <a href="{% url 'execute_complaint' complaint.complaint_id %}" class="action-btn execute" title="{% translate "Execute Approved Action" %}" aria-label="Execute complaint {{ complaint.complaint_id }}">
+                                    <a href="{% url 'execute_complaint' complaint.complaint_id %}" class="action-btn execute" title="{% translate "Execute Approved Action" %}" aria-label="Execute complaint {{ complaint.complaint_id }}" {% activity_attrs 'complaint.view' %}>
                                         <i class="fas fa-circle-check"></i>
                                     </a>
                                     {% endif %}
                                     {% if complaint.can_delete %}
-                                    <form method="post" action="{% url 'delete_complaint' complaint.complaint_id %}" class="delete-complaint-form">
+                                    <form method="post" action="{% url 'delete_complaint' complaint.complaint_id %}" class="delete-complaint-form" {% activity_attrs 'complaint.delete' %}>
                                         {% csrf_token %}
                                         <button type="submit" class="action-btn delete" title="{% translate "Delete" %}" aria-label="Delete complaint {{ complaint.complaint_id }}"
                                                 onclick="return confirm(window.FabroI18n.gettext('Are you sure you want to delete this complaint?'));">
@@ -618,7 +619,7 @@
                     </div>
                     <h3>{% translate "No complaints found" %}</h3>
                     <p>{% translate "Try adjusting your filters or add a new complaint to get started." %}</p>
-                    <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="margin-top: 1rem;">
+                    <a href="{% url 'add_complaint' %}" class="btn btn-primary" style="margin-top: 1rem;" {% activity_attrs 'complaint.create' %}>
                         <i class="fas fa-plus"></i>
                         {% translate "Add First Complaint" %}
                     </a>
@@ -657,7 +658,7 @@
             </button>
         </div>
 
-        <form method="GET" id="mobile-filter-form" action="{% url 'complaint_list' %}" style="display:flex; flex-direction:column; min-height:0; flex:1; overflow:hidden;">
+        <form method="GET" id="mobile-filter-form" action="{% url 'complaint_list' %}" style="display:flex; flex-direction:column; min-height:0; flex:1; overflow:hidden;" {% activity_attrs 'complaint.view' %}>
             <input type="hidden" name="search" id="mfcSearchHidden" value="{{ search_query }}">
             <input type="hidden" name="search_by" id="mfcSearchByHidden" value="{{ search_by|default:'complaint_id' }}">
             {% for param, value in active_column_filter_pairs %}

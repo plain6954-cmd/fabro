@@ -4,5 +4,5 @@
     <p class="ct-refresh-error" data-ct-error role="status" hidden></p>
     <div class="ct-metrics" data-ct-fragment="metrics">{% include 'management/includes/control_tower_metrics.html' %}</div>
     <div class="ct-main-grid"><section class="ct-panel" data-ct-fragment="pipeline" aria-label="{% translate 'Approval Pipeline' %}">{% include 'management/includes/control_tower_pipeline.html' %}</section><section class="ct-panel" data-ct-fragment="attention" aria-label="{% translate 'Attention Required' %}">{% include 'management/includes/control_tower_attention.html' %}</section></div>
-    <div class="ct-secondary-grid"><section class="ct-panel" data-ct-fragment="activity" aria-label="{% translate 'Live Operational Activity' %}">{% include 'management/includes/control_tower_activity.html' %}</section>{% include 'management/includes/control_tower_sessions.html' %}</div>
+    <div class="ct-secondary-grid"><section class="ct-panel" data-ct-fragment="activity" aria-label="{% translate 'Live Operational Activity' %}">{% include 'management/includes/control_tower_activity.html' %}</section>{% if activities.erp.sessions_view %}{% include 'management/includes/control_tower_sessions.html' %}{% endif %}</div>
 </section>

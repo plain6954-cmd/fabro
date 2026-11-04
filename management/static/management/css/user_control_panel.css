@@ -1,0 +1,47 @@
+/* The existing ERP palette, fields and buttons expanded to a viewport workspace. */
+.user-control-panel { inset: 0; padding: 0; height: 100dvh; overflow: hidden; z-index: 2147483646; }
+.user-control-panel [hidden] { display: none !important; }
+/* FABRO global mobile modal limits use !important; scope their viewport exception here. */
+.user-control-panel .erp-modal-box { width: 100% !important; max-width: none; height: 100%; max-height: none !important; margin: 0; border-radius: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--erp-card); color: var(--erp-text-main); }
+.user-control-panel .erp-modal-header, .user-control-panel .erp-modal-footer { flex-shrink: 0; background: var(--erp-card); }
+.user-control-panel form { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.user-control-panel .ucp-columns { flex: 1; min-height: 0; min-width: 0; overflow: hidden; display: grid; grid-template-columns: minmax(250px, 1fr) minmax(0, 3fr); }
+.user-control-panel .ucp-details, .user-control-panel .ucp-permissions { min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 1.25rem; }
+.user-control-panel .ucp-details { max-height: none; border-right: 1px solid var(--erp-card-border); }
+.user-control-panel .erp-form-grid-2 { grid-template-columns: minmax(0, 1fr); }
+.user-control-panel .erp-checkbox-group { flex-wrap: wrap; }
+.ucp-permission-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .65rem; margin-bottom: 1rem; }
+.ucp-permission-tools h2 { font-size: .95rem; }
+.ucp-permission-tools p { color: var(--erp-text-muted); font-size: .76rem; line-height: 1.6; margin-top: .35rem; }
+.ucp-permission-tools :is(input, .ucp-tools, p, label) { grid-column: 1 / -1; }
+.ucp-tools, .ucp-footer-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ucp-permission-tools [data-ucp-total] { font-size: .75rem; color: var(--erp-text-muted); }
+.ucp-category { border: 1px solid var(--erp-card-border); border-radius: 10px; background: var(--erp-input-bg); margin-bottom: .65rem; }
+.ucp-category summary { padding: .9rem 1rem; cursor: pointer; font-weight: 600; font-size: .8rem; }
+.ucp-category summary span { float: right; color: var(--erp-text-muted); font-size: .72rem; font-weight: 400; }
+.ucp-checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: 0 1rem 1rem; }
+.ucp-activity { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: start; gap: .6rem; padding: .65rem; border: 1px solid var(--erp-card-border); border-radius: 6px; font-size: .78rem; line-height: 1.5; }
+.ucp-activity input { margin-top: .2rem; accent-color: var(--erp-accent); width: 16px; height: 16px; }
+.ucp-activity small { display: block; color: var(--erp-text-muted); font-size: .68rem; margin-top: .2rem; }
+.ucp-activity[data-override="true"] { border-color: var(--erp-accent); background: var(--erp-accent-subtle); }
+.ucp-activity:has(input:disabled) { color: var(--erp-text-muted); }
+.ucp-category :is(input, summary):focus-visible { outline: 2px solid var(--erp-accent); outline-offset: 3px; }
+.user-control-panel .erp-modal-footer { justify-content: space-between; gap: .75rem; padding-bottom: max(.85rem, env(safe-area-inset-bottom)); }
+.user-control-panel #editUserFeedback { font-size: .78rem; color: var(--erp-text-muted); max-width: 65%; }
+.user-control-panel #editUserFeedback.error { color: var(--erp-accent); }
+.user-control-panel .ucp-tabs { display: none; }
+@media (max-width: 1024px) { .ucp-checklist { grid-template-columns: minmax(0, 1fr); } .user-control-panel .ucp-details, .user-control-panel .ucp-permissions { padding: 1rem; } }
+@media (max-width: 700px) {
+    .user-control-panel .ucp-tabs { display: flex; gap: .5rem; padding: .65rem 1rem; border-bottom: 1px solid var(--erp-card-border); }
+    .user-control-panel .ucp-tabs [aria-selected="true"] { border-color: var(--erp-accent); background: var(--erp-accent-subtle); color: var(--erp-text-main); }
+    .user-control-panel .ucp-columns { display: block; }
+    .user-control-panel .ucp-details, .user-control-panel .ucp-permissions { height: 100%; border: 0; }
+    .user-control-panel [data-active="details"] .ucp-permissions, .user-control-panel [data-active="permissions"] .ucp-details { display: none; }
+    .ucp-permission-tools { grid-template-columns: minmax(0, 1fr); }
+    .user-control-panel .erp-modal-footer { flex-wrap: wrap; }
+    .user-control-panel #editUserFeedback { max-width: 100%; width: 100%; }
+    .user-control-panel .ucp-footer-actions { margin-left: auto; }
+    .user-control-panel :is(.btn-secondary, .btn-erp-new) { min-height: 40px; }
+}
+
+.user-control-panel .ucp-details input[type="checkbox"] { min-height: 0; }

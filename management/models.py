@@ -414,6 +414,8 @@ class UserProfile(models.Model):
     phone_number = models.CharField(max_length=30, blank=True)
     approval_role = models.CharField(max_length=10, choices=ApprovalRoles.CHOICES, blank=True)
     can_receive_factory_assignments = models.BooleanField(default=False)
+    # Missing entries inherit role defaults; no existing roles/groups are rewritten.
+    activity_permissions = models.JSONField(default=dict, blank=True)
     photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
     preferred_language = models.CharField(
         max_length=5,
@@ -1440,3 +1442,16 @@ class PatternColorApprovalDecision(models.Model):
 
     def __str__(self):
         return f"{self.department} decision on #{self.selection_id}: {self.decision}"
+
+
+class UserAccessAudit(models.Model):
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='access_changes_made')
+    target = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='access_changes_received')
+    target_username = models.CharField(max_length=150)
+    old_role = models.JSONField(default=dict)
+    new_role = models.JSONField(default=dict)
+    changes = models.JSONField(default=dict)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp', '-pk']

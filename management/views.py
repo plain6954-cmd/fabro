@@ -48,6 +48,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from PIL import Image, UnidentifiedImageError
 from .services.design_pdfs import design_file_storage, save_design_pdf, validate_design_pdf
 from .services.design_review_voice import record_design_review_with_voice, serialize_voice_note
+from .services.activity_permissions import granted as activity_granted, scoped as activity_scoped, visible_files as activity_visible_files, deletable as activity_deletable, protected_files as activity_protected_files
+from .services.user_control import save_control_user, control_data, public_user
 from .services.control_tower import control_tower_snapshot
 
 from .forms import (
@@ -172,12 +174,12 @@ logger = logging.getLogger(__name__)
 def _ensure_pattern_thumbnail(design_image):
     """Create a bounded WebP preview while preserving the original asset."""
     if design_image.thumbnail:
-        return design_image.thumbnail.url
+        return reverse('design_comparison_file', args=[design_image.pk]) + '?thumbnail=1'
     if not design_image.image:
         return ''
     storage_cls = getattr(getattr(design_image.image, 'storage', None), '__class__', None)
     if storage_cls and 'S3' in storage_cls.__name__:
-        return design_image.image.url
+        return reverse('design_comparison_file', args=[design_image.pk])
     try:
         design_image.image.open('rb')
         with Image.open(design_image.image) as source:
@@ -193,10 +195,10 @@ def _ensure_pattern_thumbnail(design_image):
         design_image.thumbnail.save(
             f'{stem}-{design_image.pk}.webp', ContentFile(output.getvalue()), save=True,
         )
-        return design_image.thumbnail.url
+        return reverse('design_comparison_file', args=[design_image.pk]) + '?thumbnail=1'
     except Exception as exc:
         logger.warning('Unable to generate pattern thumbnail for image %s: %s', design_image.pk, exc, exc_info=True)
-        return design_image.image.url if design_image.image else ''
+        return reverse('design_comparison_file', args=[design_image.pk]) if design_image.image else ''
     finally:
         design_image.image.close()
 
@@ -251,6 +253,8 @@ def _can_manage_design_assets(user):
 
 
 def _can_upload_reference_images(user):
+    if not activity_granted(user, 'reference.upload'):
+        return False
     if not user or not user.is_authenticated or not user.is_active:
         return False
     if is_active_superuser(user):
@@ -264,6 +268,8 @@ def _can_upload_reference_images(user):
 
 
 def _can_upload_3d_designs(user):
+    if not activity_granted(user, 'design.upload'):
+        return False
     if not user or not user.is_authenticated or not user.is_active:
         return False
     profile = getattr(user, 'workflow_profile', None)
@@ -297,13 +303,16 @@ def _can_delete_design_assets(user):
 def _can_delete_design_image(user, img):
     if not user or not user.is_authenticated or not user.is_active:
         return False
+    resource = 'reference' if img.is_reference else 'design'
+    if not activity_scoped(user, resource, 'delete', img.uploaded_by_id) or not activity_deletable(img):
+        return False
     if is_active_superuser(user) or user.has_perm('management.delete_patterndesignimage'):
         return True
     prof = getattr(user, 'workflow_profile', None)
     is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     # Freelance 3D Designers can delete their own uploaded 3D design files
     if is_designer and not getattr(img, 'is_reference', False):
-        if img.uploaded_by_id == user.id or img.uploaded_by is None:
+        if img.uploaded_by_id == user.id:
             return True
     return False
 
@@ -362,6 +371,8 @@ def _can_user_access_color_approvals(user):
 
 
 def _can_user_review_design_image(user, img):
+    if not (activity_granted(user, 'design_approval.approve') or activity_granted(user, 'design_approval.reject')):
+        return False
     if not user or not user.is_authenticated or img.uploaded_by_id == user.id:
         return False
     approval = getattr(img, 'latest_approval', None)
@@ -374,6 +385,7 @@ def _can_user_review_design_image(user, img):
 def _visible_design_images_qs(user, base_qs):
     if not user or not user.is_authenticated:
         return base_qs.none()
+    base_qs = activity_visible_files(user, base_qs)
     if _can_approve_design_assets(user) or _is_design_readonly_viewer(user):
         return base_qs
     prof = getattr(user, 'workflow_profile', None)
@@ -570,13 +582,29 @@ def pattern_design_image_download(request, image_id):
                                 filename=os.path.basename(design_image.title or design_image.image.name))
         response['Cache-Control'] = 'private, no-store'
         return response
-    return redirect(design_image.image.url)
+    return design_comparison_file(request, image_id)
 
 
 def _comparison_visible_files(user):
     if not user.is_authenticated or not user.is_active:
         return PatternDesignImage.objects.none()
     return _visible_design_images_qs(user, PatternDesignImage.objects.all())
+
+
+def _limit_design_history(context, user):
+    if not (activity_granted(user, 'design.history') and activity_granted(user, 'design_approval.history')):
+        context['history_cycles'] = []
+        context['workspace_cycles'] = []
+        context['review_voice_notes'] = []
+        if context.get('latest_approval'):
+            import copy
+            redacted = copy.copy(context['latest_approval'])
+            for review_role in ('cad', 'ed', 'md'):
+                setattr(redacted, review_role + '_comment', '')
+                setattr(redacted, review_role + '_change_type', '')
+                setattr(redacted, review_role + '_reviewer', None)
+                setattr(redacted, review_role + '_decided_at', None)
+            context['latest_approval'] = redacted
 
 
 def _comparison_approval_heading(user):
@@ -605,7 +633,7 @@ def design_comparison_manifest(request, image_id):
     def serialize(image):
         kind, extension = _get_design_file_info(image.image.name)
         url = reverse('design_comparison_file', args=[image.pk])
-        can_read_remarks = bool(not image.is_reference and _can_user_access_designer_approvals(request.user) and (
+        can_read_remarks = bool(activity_granted(request.user, 'design.history') and activity_granted(request.user, 'design_approval.history') and not image.is_reference and _can_user_access_designer_approvals(request.user) and (
             not (profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER) or image.uploaded_by_id == request.user.pk))
         approvals = sorted(image.approval_requests.all(), key=lambda item: item.cycle, reverse=True)
         history = []
@@ -623,13 +651,13 @@ def design_comparison_manifest(request, image_id):
                         'voice_notes': [serialize_voice_note(note, approval) for note in approval.voice_notes.all() if note.stage == role.upper()]})
                 history.append({'cycle': approval.cycle, 'stages': stages})
         return {'id': image.pk, 'title': image.title or os.path.basename(image.image.name), 'type': kind, 'extension': extension,
-                'url': url, 'download': url + '?download=1',
+                'url': url, 'download': url + '?download=1' if activity_scoped(request.user, 'reference' if image.is_reference else 'design', 'download', image.uploaded_by_id) else None,
                 'thumbnail': url + '?thumbnail=1' if kind == 'image' and image.thumbnail else None,
                 'size': image.file_size or None, 'uploader': image.uploaded_by.username if image.uploaded_by else '',
                 'date': timezone.localtime(image.uploaded_at).strftime('%b %d, %Y %H:%M'),
                 'cycle': approvals[0].cycle if approvals else None, 'remarks_allowed': can_read_remarks, 'history': history,
                 'approval_status': image.approval_status, 'approval_label': image.get_approval_status_display(),
-                'workspace_url': reverse('design_approval_detail', args=[image.pk]) + '?workspace=comparison' if can_read_remarks else None}
+                'workspace_url': reverse('design_approval_detail', args=[image.pk]) + '?workspace=comparison' if activity_granted(request.user, 'design_approval.view') and _can_user_access_designer_approvals(request.user) and not (profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER and image.uploaded_by_id != request.user.pk) else None}
     references, uploads = [], []
     for image in files:
         (references if image.is_reference else uploads).append(serialize(image))
@@ -647,7 +675,9 @@ def design_comparison_manifest(request, image_id):
 @require_GET
 def design_comparison_file(request, image_id):
     image = get_object_or_404(_comparison_visible_files(request.user), pk=image_id)
-    kind, _ = _get_design_file_info(image.image.name)
+    kind, extension = _get_design_file_info(image.image.name)
+    if (kind not in ('image', 'pdf') or request.GET.get('download') == '1') and not activity_scoped(request.user, 'reference' if image.is_reference else 'design', 'download', image.uploaded_by_id):
+        raise PermissionDenied(_('File download is disabled.'))
     thumbnail = request.GET.get('thumbnail') == '1'
     if thumbnail and (kind != 'image' or not image.thumbnail):
         return HttpResponse(status=404)
@@ -669,40 +699,8 @@ def design_comparison_file(request, image_id):
     response = FileResponse(content, content_type=content_type or 'application/octet-stream',
                             as_attachment=request.GET.get('download') == '1' or kind not in ('image', 'pdf'),
                             filename=os.path.basename(image.title or field.name))
-    requested = request.headers.get('Range')
-    if requested:
-        match = re.fullmatch(r'bytes=(\d*)-(\d*)', requested)
-        try:
-            if not match or not any(match.groups()):
-                raise ValueError
-            first, last = match.groups()
-            start = int(first) if first else max(0, size - int(last))
-            end = min(size - 1, int(last)) if first and last else size - 1
-            if start >= size or start > end or (not first and int(last) <= 0):
-                raise ValueError
-        except ValueError:
-            response.close()
-            return HttpResponse(status=416, headers={'Content-Range': f'bytes */{size}'})
-        content.seek(start)
-        def chunks():
-            remaining = end - start + 1
-            try:
-                while remaining:
-                    data = content.read(min(65536, remaining))
-                    if not data:
-                        break
-                    remaining -= len(data)
-                    yield data
-            finally:
-                content.close()
-        headers = dict(response.items())
-        headers['Content-Range'] = f'bytes {start}-{end}/{size}'
-        headers['Content-Length'] = str(end - start + 1)
-        response = StreamingHttpResponse(chunks(), status=206, headers=headers)
-        response._resource_closers.append(content.close)
-    response['Accept-Ranges'] = 'bytes'
-    response['X-Content-Type-Options'] = 'nosniff'
-    return response
+    from .services.private_media import apply_private_range
+    return apply_private_range(request, response, content, size)
 
 
 @login_required
@@ -1073,17 +1071,17 @@ def car_details(request):
     if can_see_pending_designs and vehicle_page.object_list:
         page_car_ids = [yr.id for yr in vehicle_page.object_list]
         pending_car_ids = set(
-            PatternDesignImage.objects.filter(
+            _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(
                 approval_status='pending',
-            ).filter(
+            )).filter(
                 Q(vehicle_id__in=page_car_ids) | Q(folder__vehicle_id__in=page_car_ids)
             ).values_list('vehicle_id', flat=True)
         )
         pending_car_ids.update(
-            PatternDesignImage.objects.filter(
+            _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(
                 approval_status='pending',
                 folder__vehicle_id__in=page_car_ids,
-            ).values_list('folder__vehicle_id', flat=True)
+            )).values_list('folder__vehicle_id', flat=True)
         )
     car_data = []
     for yr in vehicle_page.object_list:
@@ -1597,6 +1595,7 @@ def pattern_vehicle_count_api(request):
 
 @login_required
 @require_POST
+@transaction.atomic
 def delete_car_detail(request, year_range_id):
     if not _can_manage_catalog(request.user):
         raise PermissionDenied('Only staff users can delete vehicles.')
@@ -1607,6 +1606,8 @@ def delete_car_detail(request, year_range_id):
     year_start = year_range.year_start
     year_end = year_range.year_end
 
+    from .services.activity_permissions import protect_vehicle_files
+    protect_vehicle_files([year_range.pk], request.user)
     year_range.delete()
     messages.success(request, _('Vehicle deleted successfully.'))
     ActivityLog.objects.create(
@@ -1967,6 +1968,7 @@ def bulk_delete_patterns_api(request):
 
 @login_required
 @require_POST
+@transaction.atomic
 def decide_pattern_alteration_api(request, alteration_id):
     profile = getattr(request.user, 'workflow_profile', None)
     is_approver = request.user.is_superuser or (
@@ -1992,6 +1994,9 @@ def decide_pattern_alteration_api(request, alteration_id):
         return JsonResponse({'success': False, 'error': _('Invalid decision choice.')}, status=400)
 
     if decision == 'approve':
+        if alteration.action_type in ('delete', 'bulk_delete'):
+            from .services.activity_permissions import protect_vehicle_files
+            protect_vehicle_files(alteration.pattern_ids, request.user)
         alteration.status = 'approved'
         alteration.reviewed_by = request.user
         alteration.reviewed_at = now()
@@ -2283,11 +2288,11 @@ def _serialize_design_image_details(img, user=None):
     is_su = is_active_superuser(user) if user and user.is_authenticated else False
 
     allowed_roles = design_review_roles(user)
-    can_see_voice = bool(user and _can_user_access_designer_approvals(user) and (
+    can_see_voice = bool(user and activity_granted(user, 'design.history') and activity_granted(user, 'design_approval.history') and _can_user_access_designer_approvals(user) and (
         not (prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER) or img.uploaded_by_id == user.id))
-    can_review_cad = (ApprovalRoles.CAD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.cad_status == 'pending'))
-    can_review_ed = (ApprovalRoles.ED in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.ed_status == 'pending'))
-    can_review_md = (ApprovalRoles.MD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.md_status == 'pending'))
+    can_review_cad = (activity_granted(user, 'design_approval.approve') or activity_granted(user, 'design_approval.reject')) and (ApprovalRoles.CAD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.cad_status == 'pending'))
+    can_review_ed = (activity_granted(user, 'design_approval.approve') or activity_granted(user, 'design_approval.reject')) and (ApprovalRoles.ED in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.ed_status == 'pending'))
+    can_review_md = (activity_granted(user, 'design_approval.approve') or activity_granted(user, 'design_approval.reject')) and (ApprovalRoles.MD in allowed_roles and img.uploaded_by_id != getattr(user, 'id', None) and bool(appr and appr.md_status == 'pending'))
 
     history = []
     prefetched_approvals = getattr(img, '_prefetched_objects_cache', {}).get('approval_requests')
@@ -2321,9 +2326,10 @@ def _serialize_design_image_details(img, user=None):
 
     return {
         'id': img.id,
-        'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or img.image.url,
-        'preview_url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else img.image.url,
+        'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or reverse('design_comparison_file', args=[img.pk]),
+        'preview_url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else reverse('design_comparison_file', args=[img.pk]),
         'original_url': reverse('pattern_design_image_download', args=[img.pk]),
+        'download_url': reverse('design_comparison_file', args=[img.pk]) + '?download=1' if user and activity_scoped(user, 'reference' if img.is_reference else 'design', 'download', img.uploaded_by_id) else None,
         'title': img.title or os.path.basename(img.image.name),
         'file_size': img.file_size,
         'file_size_display': f"{round(img.file_size / 1024, 1)} KB" if img.file_size < 1024 * 1024 else f"{round(img.file_size / (1024 * 1024), 2)} MB",
@@ -2333,37 +2339,37 @@ def _serialize_design_image_details(img, user=None):
         'completed_at': completed_display,
         'approved_at': approved_display,
         'approval_status': getattr(img, 'approval_status', 'pending'),
-        'rejection_reason': getattr(img, 'rejection_reason', '') or '',
+        'rejection_reason': (getattr(img, 'rejection_reason', '') or '') if can_see_voice else '',
         'designer_remarks': getattr(img, 'designer_remarks', '') or '',
         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
         'can_delete': _can_delete_design_image(user, img),
         'is_reference': getattr(img, 'is_reference', False),
         'cad': {
             'status': appr.cad_status if appr else 'pending',
-            'reviewer': (appr.cad_reviewer.get_full_name() or appr.cad_reviewer.username) if (appr and appr.cad_reviewer) else '',
-            'comment': appr.cad_comment if appr else '',
-            'change_type': appr.cad_change_type if appr else '',
-            'decided_at': timezone.localtime(appr.cad_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.cad_decided_at) else '',
+            'reviewer': (appr.cad_reviewer.get_full_name() or appr.cad_reviewer.username) if (appr and appr.cad_reviewer and can_see_voice) else '',
+            'comment': appr.cad_comment if appr and can_see_voice else '',
+            'change_type': appr.cad_change_type if appr and can_see_voice else '',
+            'decided_at': timezone.localtime(appr.cad_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.cad_decided_at and can_see_voice) else '',
         },
         'ed': {
             'status': appr.ed_status if appr else 'pending',
-            'reviewer': (appr.ed_reviewer.get_full_name() or appr.ed_reviewer.username) if (appr and appr.ed_reviewer) else '',
-            'comment': appr.ed_comment if appr else '',
-            'change_type': appr.ed_change_type if appr else '',
-            'decided_at': timezone.localtime(appr.ed_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.ed_decided_at) else '',
+            'reviewer': (appr.ed_reviewer.get_full_name() or appr.ed_reviewer.username) if (appr and appr.ed_reviewer and can_see_voice) else '',
+            'comment': appr.ed_comment if appr and can_see_voice else '',
+            'change_type': appr.ed_change_type if appr and can_see_voice else '',
+            'decided_at': timezone.localtime(appr.ed_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.ed_decided_at and can_see_voice) else '',
         },
         'md': {
             'status': appr.md_status if appr else 'pending',
-            'reviewer': (appr.md_reviewer.get_full_name() or appr.md_reviewer.username) if (appr and appr.md_reviewer) else '',
-            'comment': appr.md_comment if appr else '',
-            'change_type': appr.md_change_type if appr else '',
-            'decided_at': timezone.localtime(appr.md_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.md_decided_at) else '',
+            'reviewer': (appr.md_reviewer.get_full_name() or appr.md_reviewer.username) if (appr and appr.md_reviewer and can_see_voice) else '',
+            'comment': appr.md_comment if appr and can_see_voice else '',
+            'change_type': appr.md_change_type if appr and can_see_voice else '',
+            'decided_at': timezone.localtime(appr.md_decided_at).strftime('%b %d, %Y %I:%M %p') if (appr and appr.md_decided_at and can_see_voice) else '',
         },
         'can_admin_review': can_admin_review_designs(user),
         'can_review_cad': can_review_cad,
         'can_review_ed': can_review_ed,
         'can_review_md': can_review_md,
-        'history': history,
+        'history': history if can_see_voice else [],
     }
 
 
@@ -2456,9 +2462,9 @@ def get_design_folders_api(request):
                 'google_drive_url': yr.google_drive_url or '',
                 'drive_links': _get_vehicle_drive_links_data(yr),
             }
-            folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(image_total=Count('images')).order_by('-created_at', '-pk')
+            folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(protected_assets=Exists(activity_protected_files(PatternDesignImage.objects.filter(folder_id=OuterRef('pk')))), image_total=Count('images', filter=Q(images__pk__in=_visible_design_images_qs(request.user, PatternDesignImage.objects.all()).values('pk')))).order_by('-created_at', '-pk')
             direct_page = Paginator(
-                _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).order_by('-uploaded_at')),
+                _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).prefetch_related('approval_requests').order_by('-uploaded_at')),
                 100,
             ).get_page(request.GET.get('image_page'))
             direct_imgs = direct_page.object_list
@@ -2468,7 +2474,7 @@ def get_design_folders_api(request):
                     t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
                     direct_images_data.append({
                         'id': img.id,
-                        'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or img.image.url,
+                        'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or reverse('design_comparison_file', args=[img.pk]),
                         'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                         'title': img.title or os.path.basename(img.image.name),
                         'file_size': img.file_size,
@@ -2476,8 +2482,9 @@ def get_design_folders_api(request):
                         'file_ext': f_ext,
                         'uploaded_at': timezone.localtime(img.uploaded_at).strftime('%b %d, %Y %H:%M'),
                         'approval_status': getattr(img, 'approval_status', 'approved'),
-                        'rejection_reason': getattr(img, 'rejection_reason', '') or '',
+                        'rejection_reason': (getattr(img, 'rejection_reason', '') or '') if activity_granted(request.user, 'design.history') and activity_granted(request.user, 'design_approval.history') else '',
                         'can_approve': _can_user_review_design_image(request.user, img),
+                        'can_delete': _can_delete_design_image(request.user, img),
                         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
                         'is_reference': getattr(img, 'is_reference', False),
                     })
@@ -2498,7 +2505,7 @@ def get_design_folders_api(request):
         # Keep the legacy unscoped API response for integrations that do not yet
         # send a vehicle. The Pattern Master itself always supplies vehicle_id
         # and never calls this endpoint during its initial render.
-        folders = PatternDesignFolder.objects.annotate(image_total=Count('images')).order_by('-created_at', '-pk')
+        folders = PatternDesignFolder.objects.annotate(protected_assets=Exists(activity_protected_files(PatternDesignImage.objects.filter(folder_id=OuterRef('pk')))), image_total=Count('images', filter=Q(images__pk__in=_visible_design_images_qs(request.user, PatternDesignImage.objects.all()).values('pk')))).order_by('-created_at', '-pk')
         direct_page = Paginator(PatternDesignImage.objects.none(), 4).get_page(1)
 
     folder_page = Paginator(folders, 20).get_page(request.GET.get('folder_page'))
@@ -2518,6 +2525,7 @@ def get_design_folders_api(request):
             'id': f.id,
             'name': f.name,
             'description': f.description,
+            'can_delete': not f.protected_assets and _can_delete_design_assets(request.user) and activity_scoped(request.user, 'folder', 'delete', f.created_by_id),
             'image_count': f.image_total,
             'created_at': timezone.localtime(f.created_at).strftime('%b %d, %Y'),
             'preview_images': previews_by_folder.get(f.pk, []),
@@ -2591,7 +2599,7 @@ def create_design_folder_api(request):
 @login_required
 def get_design_folder_detail_api(request, folder_id):
     folder = get_object_or_404(PatternDesignFolder.objects.select_related('vehicle__sub_model__model__brand'), id=folder_id)
-    visible_images = _visible_design_images_qs(request.user, folder.images.select_related('uploaded_by').all())
+    visible_images = _visible_design_images_qs(request.user, folder.images.select_related('uploaded_by').prefetch_related('approval_requests').all())
     image_page = Paginator(visible_images, 4).get_page(request.GET.get('page'))
     can_approve = _can_approve_design_assets(request.user)
     image_list = []
@@ -2601,7 +2609,7 @@ def get_design_folder_detail_api(request, folder_id):
             t_url = _ensure_pattern_thumbnail(img) if f_type == 'image' else ''
             image_list.append({
                 'id': img.id,
-                'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or img.image.url,
+                'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or reverse('design_comparison_file', args=[img.pk]),
                 'original_url': reverse('pattern_design_image_download', args=[img.pk]),
                 'title': img.title or os.path.basename(img.image.name),
                 'file_size': img.file_size,
@@ -2609,8 +2617,9 @@ def get_design_folder_detail_api(request, folder_id):
                 'file_ext': f_ext,
                 'uploaded_at': timezone.localtime(img.uploaded_at).strftime('%b %d, %Y %H:%M'),
                 'approval_status': getattr(img, 'approval_status', 'approved'),
-                'rejection_reason': getattr(img, 'rejection_reason', '') or '',
+                'rejection_reason': (getattr(img, 'rejection_reason', '') or '') if activity_granted(request.user, 'design.history') and activity_granted(request.user, 'design_approval.history') else '',
                 'can_approve': _can_user_review_design_image(request.user, img),
+                        'can_delete': _can_delete_design_image(request.user, img),
                 'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
             })
 
@@ -2662,11 +2671,13 @@ def rename_design_folder_api(request, folder_id):
 
 @login_required
 @require_POST
+@transaction.atomic
 def delete_design_folder_api(request, folder_id):
     if not _can_delete_design_assets(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
-    folder = get_object_or_404(PatternDesignFolder, id=folder_id)
-    for img in folder.images.all():
+    folder = get_object_or_404(PatternDesignFolder.objects.select_for_update(), id=folder_id)
+    from .services.activity_permissions import lock_eligible_files
+    for img in lock_eligible_files(folder.images.all(), request.user):
         if img.image:
             try:
                 design_file_storage(img.image.name).delete(img.image.name)
@@ -2719,7 +2730,7 @@ def _serialize_uploaded_design(image):
     file_type, file_ext = _get_design_file_info(image.image.name)
     return {
         'id': image.pk,
-        'url': reverse('pattern_design_image_download', args=[image.pk]) if file_type == 'pdf' else image.thumbnail.url if image.thumbnail else image.image.url,
+        'url': reverse('design_comparison_file', args=[image.pk]) + ('?thumbnail=1' if image.thumbnail and file_type == 'image' else ''),
         'original_url': reverse('pattern_design_image_download', args=[image.pk]),
         'title': image.title,
         'file_size': image.file_size,
@@ -2729,6 +2740,7 @@ def _serialize_uploaded_design(image):
         'approval_status': image.approval_status,
         'rejection_reason': image.rejection_reason,
         'can_approve': False,
+        'can_delete': _can_delete_design_image(image.uploaded_by, image),
         'uploaded_by': image.uploaded_by.username if image.uploaded_by else '',
     }
 
@@ -2997,8 +3009,9 @@ def update_vehicle_google_drive_api(request, vehicle_id):
 
 @login_required
 @require_POST
+@transaction.atomic
 def delete_design_image_api(request, image_id):
-    img = get_object_or_404(PatternDesignImage, id=image_id)
+    img = get_object_or_404(_visible_design_images_qs(request.user, PatternDesignImage.objects.select_for_update()), id=image_id)
     if not _can_delete_design_image(request.user, img):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
     folder_id = img.folder_id
@@ -3121,6 +3134,8 @@ def reject_design_image_api(request, image_id):
 
 def _resubmit_design(img, user, replacement_file=None, title=''):
     """Advance exactly one rejected review cycle, even from stale tabs."""
+    from .services.activity_permissions import require
+    require(user, 'design.resubmit_own' if img.uploaded_by_id == user.pk else 'design.resubmit_all')
     new_names = []
     try:
         if _is_design_readonly_viewer(user):
@@ -3381,9 +3396,14 @@ def design_approval_detail(request, image_id):
                 'id': image.pk,
                 'title': image.title or os.path.basename(image.image.name),
                 'url': reverse('pattern_design_image_download', args=[image.pk]),
-                'thumbnail': image.thumbnail.url if image.thumbnail else reverse('pattern_design_image_download', args=[image.pk]),
+                'thumbnail': reverse('design_comparison_file', args=[image.pk]) + ('?thumbnail=1' if image.thumbnail else ''),
             })
 
+    permitted_decision = activity_granted(user, 'design_approval.approve') or activity_granted(user, 'design_approval.reject')
+    can_review_cad = can_review_cad and permitted_decision
+    can_review_ed = can_review_ed and permitted_decision
+    can_review_md = can_review_md and permitted_decision
+    can_resubmit = can_resubmit and activity_granted(user, 'design.resubmit_own' if design_image.uploaded_by_id == user.pk else 'design.resubmit_all')
     review_stages = []
     for role, allowed in (('cad', can_review_cad), ('ed', can_review_ed), ('md', can_review_md)):
         review_stages.append({
@@ -3447,9 +3467,11 @@ def design_approval_detail(request, image_id):
                     'classification': getattr(approval, stage + '_change_type'),
                 })
             context['workspace_cycles'].append({'record': approval, 'events': sorted(events, key=lambda item: item['timestamp']), 'snapshots': snapshots})
+        _limit_design_history(context, user)
         response = render(request, 'management/includes/design_comparison_approval.html', context)
         response['Cache-Control'] = 'private, no-store'
         return response
+    _limit_design_history(context, user)
     return render(request, 'management/design_approval_detail.html', context)
 
 
@@ -4418,14 +4440,16 @@ def complaint_list(request):
     clear_all_column_filters_querystring = clear_all_query.urlencode()
 
     for complaint in page_obj.object_list:
-        complaint.can_edit = can_user_edit_report_step(request.user, complaint)
-        complaint.can_delete = is_workflow_admin(request.user)
+        if not activity_granted(request.user, 'complaint.media_view'):
+            complaint._prefetched_objects_cache['media_files'] = ComplaintMedia.objects.none()
+        complaint.can_edit = can_user_edit_report_step(request.user, complaint) and activity_granted(request.user, 'complaint.edit')
+        complaint.can_delete = is_workflow_admin(request.user) and activity_granted(request.user, 'complaint.delete')
         complaint.can_factory_review = (
             can_user_review_factory_step(request.user, complaint)
             and can_start_factory_review(complaint)
         )
         complaint.current_approval = get_user_current_approval(request.user, complaint)
-        complaint.can_approve = can_user_decide_approval(request.user, complaint.current_approval)
+        complaint.can_approve = can_user_decide_approval(request.user, complaint.current_approval) and (activity_granted(request.user, 'workflow.approve') or activity_granted(request.user, 'workflow.reject'))
         complaint.can_execute = can_user_execute_action(request.user, complaint)
         complaint.approval_summary = approval_progress(complaint)
         complaint.journey_steps = complaint_journey_steps(complaint)
@@ -4559,7 +4583,7 @@ def edit_complaint(request, complaint_id):
             return render(request, 'management/edit_complaint.html', {
                 'form': form,
                 'complaint': complaint,
-                'media_files': complaint.media_files.all(),
+                'media_files': complaint.media_files.all() if activity_granted(request.user, 'complaint.media_view') else [],
                 **_media_upload_template_context(request.user, complaint),
             })
         if form.is_valid():
@@ -4676,7 +4700,7 @@ def edit_complaint(request, complaint_id):
     return render(request, 'management/edit_complaint.html', {
         'form': form,
         'complaint': complaint,
-        'media_files': media_files,
+        'media_files': media_files if activity_granted(request.user, 'complaint.media_view') else [],
         **_media_upload_template_context(request.user, complaint),
     })
 @login_required
@@ -4726,7 +4750,7 @@ def factory_review_complaint(request, complaint_id):
     return render(request, 'management/factory_review_complaint.html', {
         'form': form,
         'complaint': complaint,
-        'media_files': complaint.media_files.all(),
+        'media_files': complaint.media_files.all() if activity_granted(request.user, 'complaint.media_view') else [],
         'approval_summary': approval_progress(complaint),
     })
 
@@ -4847,7 +4871,7 @@ def approvals_list_view(request):
             PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('status')[:1]
         )
 
-        base_count_qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).annotate(
+        base_count_qs = activity_visible_files(request.user, PatternDesignImage.objects.filter(approval_requests__isnull=False)).annotate(
             latest_cad_status=latest_appr_cad,
             latest_ed_status=latest_appr_ed,
             latest_md_status=latest_appr_md,
@@ -5424,7 +5448,7 @@ def approval_review(request, approval_id):
         'form': form,
         'can_decide': can_user_decide_approval(request.user, approval),
         'approval_summary': approval_progress(complaint, [approval.review_stage]),
-        'media_files': complaint.media_files.all(),
+        'media_files': complaint.media_files.all() if activity_granted(request.user, 'complaint.media_view') else [],
     })
 
 
@@ -5535,6 +5559,8 @@ def open_notification(request, notification_id):
 
     complaint = notification.complaint
     if not complaint:
+        if notification.notification_type == 'access_change':
+            return redirect('profile_settings')
         if notification.notification_type == 'color_approval':
             if notification.color_selection_id:
                 sel = notification.color_selection
@@ -6241,24 +6267,13 @@ def admin_panel_view(request):
             if not request.user.is_superuser:
                 user_form.fields.pop('is_staff', None)
                 user_form.fields.pop('is_superuser', None)
-            if user_form.is_valid():
-                user = user_form.save(commit=False)
-                if not request.user.is_superuser:
-                    user.is_staff = False
-                    user.is_superuser = False
-                user.set_password(user_form.cleaned_data['password'])
-                user.save()
-                user_form.save_profile(user)
-                ActivityLog.objects.create(
-                    user=request.user,
-                    action="created",
-                    object_type="User",
-                    object_name=user.username
-                )
-                messages.success(request, _('User %(username)s was created successfully.') % {'username': user.username})
-            for errors in user_form.errors.values():
-                for error in errors:
+            try:
+                user = save_control_user(request, creating=True)
+            except (ValidationError, IntegrityError) as exc:
+                for error in getattr(exc, 'messages', [_('Unable to save this user. Check the submitted fields.')]):
                     messages.error(request, error)
+            else:
+                messages.success(request, _('User %(username)s was created successfully.') % {'username': user.username})
 
         elif 'add_group' in request.POST:
             group_form = GroupCreationForm(request.POST)
@@ -6275,9 +6290,21 @@ def admin_panel_view(request):
         elif 'assign_group' in request.POST:
             assign_form = AssignUserToGroupForm(request.POST)
             if assign_form.is_valid():
-                user = assign_form.cleaned_data['user']
+                from .services.user_control import record_access_audit
+                from .services.activity_permissions import identity
                 group = assign_form.cleaned_data['group']
-                user.groups.add(group)
+                with transaction.atomic():
+                    user = User.objects.select_for_update().get(pk=assign_form.cleaned_data['user'].pk)
+                    if user.is_superuser and not request.user.is_superuser:
+                        raise PermissionDenied(_('Only a Django superuser can change another superuser account.'))
+                    old_role = identity(user)
+                    old_groups = list(user.groups.values_list('pk', flat=True))
+                    overrides = dict(user.workflow_profile.activity_permissions)
+                    user.groups.add(group)
+                    for attribute in ('_activity_grants', '_perm_cache', '_user_perm_cache', '_group_perm_cache'):
+                        user.__dict__.pop(attribute, None)
+                    new_groups = list(user.groups.values_list('pk', flat=True))
+                    record_access_audit(request.user, user, old_role, overrides, old_groups, new_groups, overrides)
                 ActivityLog.objects.create(
                     user=request.user,
                     action="assigned",
@@ -6290,7 +6317,7 @@ def admin_panel_view(request):
     if section not in {'dashboard', 'users', 'skus', 'brands', 'master', 'sessions', 'logs'}:
         section = 'dashboard'
 
-    needs_session_details = section in {'dashboard', 'users', 'sessions'}
+    needs_session_details = section in {'dashboard', 'users', 'sessions'} and activity_granted(request.user, 'erp.sessions_view')
     active_users = get_active_users() if needs_session_details else []
     active_sessions_count = (
         len(active_users)
@@ -6396,6 +6423,49 @@ def admin_control_tower(request):
                          'updated_label': data['updated_label'], 'fragments': fragments})
 
 
+@login_required
+@never_cache
+@require_GET
+def user_activity_state(request):
+    from .services.activity_permissions import REGISTRY
+    return JsonResponse({'permissions': {key: activity_granted(request.user, key) for key in REGISTRY}})
+
+
+@user_passes_test(is_workflow_admin)
+@never_cache
+@require_GET
+def user_control_data(request):
+    from .services.activity_permissions import protected_admin, administrative_account
+    if request.GET.get('user_id') and not request.GET['user_id'].isdecimal():
+        return JsonResponse({'message': _('Invalid user identifier.')}, status=400)
+    target = get_object_or_404(User.objects.select_related('workflow_profile__country'), pk=request.GET['user_id']) if request.GET.get('user_id') else None
+    if target and (target.is_superuser and not request.user.is_superuser or administrative_account(target) and not protected_admin(request.user)):
+        raise PermissionDenied(_('Only a Django superuser can edit another superuser account.'))
+    prospective = {}
+    if request.user.is_superuser:
+        for flag in ('is_staff', 'is_superuser'):
+            if flag in request.GET:
+                prospective[flag] = request.GET.get(flag) == '1'
+    if protected_admin(request.user) and 'groups' in request.GET:
+        ids = [int(value) for value in request.GET.get('groups', '').split(',') if value.isdecimal()]
+        prospective['file_delete'] = bool(Group.objects.filter(pk__in=ids, permissions__codename='delete_patterndesignimage', permissions__content_type__app_label='management').exists() or target and target.user_permissions.filter(codename='delete_patterndesignimage', content_type__app_label='management').exists())
+    return JsonResponse(control_data(request.user, target, prospective))
+
+
+@user_passes_test(is_workflow_admin)
+@require_POST
+def user_control_save(request):
+    try:
+        user = save_control_user(request, creating=not bool(request.POST.get('user_id')))
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'messages': [_('User not found.')]}, status=404)
+    except PermissionDenied as exc:
+        return JsonResponse({'success': False, 'messages': [str(exc)]}, status=403)
+    except (ValidationError, IntegrityError) as exc:
+        return JsonResponse({'success': False, 'messages': getattr(exc, 'messages', [_('Unable to save this user. Check the submitted fields.')])}, status=400)
+    return JsonResponse({'success': True, 'messages': [_('User saved successfully.')], 'user': public_user(user)})
+
+
 @user_passes_test(is_workflow_admin)
 def admin_brand_tree(request, brand_id):
     brand = get_object_or_404(
@@ -6488,6 +6558,9 @@ def edit_user(request):
 
             try:
                 user = User.objects.get(id=user_id)
+                from .services.activity_permissions import administrative_account, protected_admin
+                if administrative_account(user) and not protected_admin(request.user):
+                    raise PermissionDenied(_('Only Admin may reset an administrative account password.'))
                 if user.is_superuser and not request_is_superuser:
                     return edit_response(
                         False,
@@ -6538,143 +6611,17 @@ def edit_user(request):
                     status=404,
                 )
 
-        username = (request.POST.get('username') or '').strip()
-        email = (request.POST.get('email') or '').strip()
-        first_name = (request.POST.get('first_name') or '').strip()
-        last_name = (request.POST.get('last_name') or '').strip()
-        new_password = (request.POST.get('new_password') or '').strip()
-        confirm_password = (request.POST.get('confirm_password') or '').strip()
-
         try:
-            if not username:
-                return edit_response(False, [_('Username is required.')], status=400)
-            if User.objects.filter(username=username).exclude(id=user_id).exists():
-                return edit_response(False, [_('That username is already in use.')], status=400)
-            if len(username) > 150:
-                return edit_response(False, [_('Username must be 150 characters or fewer.')], status=400)
-            if len(first_name) > 150 or len(last_name) > 150:
-                return edit_response(False, [_('Names must be 150 characters or fewer.')], status=400)
-            if email:
-                try:
-                    validate_email(email)
-                except ValidationError:
-                    return edit_response(False, [_('Enter a valid email address.')], status=400)
-
-            user = User.objects.select_related('workflow_profile').get(id=user_id)
-            if user.is_superuser and not request_is_superuser:
-                return edit_response(
-                    False,
-                    [_('Only a Django superuser can edit another superuser account.')],
-                    status=403,
-                )
-
-            password_changed = False
-            if new_password:
-                if new_password != confirm_password:
-                    return edit_response(
-                        False,
-                        [_('The two password fields did not match.')],
-                        status=400,
-                    )
-                try:
-                    validate_password(new_password, user=user)
-                except ValidationError as exc:
-                    return edit_response(False, exc.messages, status=400)
-                user.set_password(new_password)
-                password_changed = True
-
-            profile, profile_created = UserProfile.objects.get_or_create(user=user)
-            profile_form = UserWorkflowProfileForm(request.POST, request.FILES, instance=profile)
-            if not profile_form.is_valid():
-                form_errors = []
-                for field_errors in profile_form.errors.values():
-                    for err in field_errors:
-                        form_errors.append(str(err))
-                return edit_response(False, form_errors, status=400)
-
-            new_is_staff = user.is_staff
-            new_is_superuser = user.is_superuser
-            if request_is_superuser:
-                new_is_superuser = request.POST.get('is_superuser') == 'on'
-                new_is_staff = request.POST.get('is_staff') == 'on' or new_is_superuser
-                removing_final_superuser = (
-                    user.is_superuser
-                    and not new_is_superuser
-                    and User.objects.filter(is_superuser=True, is_active=True).count() <= 1
-                )
-                if removing_final_superuser:
-                    return edit_response(
-                        False,
-                        [_('The final active superuser cannot be demoted.')],
-                        status=400,
-                    )
-
-            user.username = username
-            user.email = email
-            user.first_name = first_name
-            user.last_name = last_name
-            user.is_staff = new_is_staff
-            user.is_superuser = new_is_superuser
-            with transaction.atomic():
-                user.save()
-                updated_profile = profile_form.save(commit=False)
-                updated_profile.save()
-                ActivityLog.objects.create(
-                    user=request.user,
-                    action="edited",
-                    object_type="User",
-                    object_name=username
-                )
-                if password_changed:
-                    if user.pk == request.user.pk:
-                        update_session_auth_hash(request, user)
-                    else:
-                        _invalidate_user_authentication(user.id)
-                    ActivityLog.objects.create(
-                        user=request.user,
-                        action="reset password",
-                        object_type="User",
-                        object_name=username
-                    )
-
-            full_name = f"{user.first_name} {user.last_name}".strip() or user.username
-            role_val = updated_profile.role or ''
-            role_label = dict(UnifiedWorkflowRoles.CHOICES).get(role_val, role_val)
-            if role_val == WorkflowRoles.APPROVER and updated_profile.approval_role:
-                role_label = updated_profile.approval_role
-
-            user_payload = {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email or '',
-                'first_name': user.first_name or '',
-                'last_name': user.last_name or '',
-                'full_name': full_name,
-                'phone': updated_profile.phone_number or '',
-                'role': updated_profile.approval_role if updated_profile.role == WorkflowRoles.APPROVER and updated_profile.approval_role else role_val,
-                'role_label': role_label,
-                'approval_role': updated_profile.approval_role or '',
-                'country_id': str(updated_profile.country_id or ''),
-                'country_name': updated_profile.country.name if updated_profile.country else '',
-                'country_flag_url': updated_profile.country_flag_url or '',
-                'department': updated_profile.department or '',
-                'can_factory': 1 if updated_profile.can_receive_factory_assignments else 0,
-                'is_staff': 1 if user.is_staff else 0,
-                'is_superuser': 1 if user.is_superuser else 0,
-                'photo_url': updated_profile.photo.url if updated_profile.photo else '',
-                'password_changed': password_changed,
-            }
-
-            if password_changed:
-                msg = _('User %(username)s and password were updated.') % {'username': username}
-            else:
-                msg = _('User %(username)s and workflow access were updated.') % {'username': username}
-
-            return edit_response(True, [msg], status=200, user_payload=user_payload)
+            user = save_control_user(request)
         except User.DoesNotExist:
             return edit_response(False, [_('User not found.')], status=404)
+        except PermissionDenied as exc:
+            return edit_response(False, [str(exc)], status=403)
+        except (ValidationError, IntegrityError) as exc:
+            return edit_response(False, getattr(exc, 'messages', [_('Unable to save this user. Check the submitted fields.')]), status=400)
+        return edit_response(True, [_('User %(username)s and workflow access were updated.') % {'username': user.username}], user_payload={**public_user(user), 'password_changed': bool(request.POST.get('new_password'))})
 
-    return redirect(edit_redirect)
+    return redirect('admin_panel')
 
 
 def _invalidate_user_authentication(user_id):
@@ -6718,11 +6665,17 @@ def delete_user_photo(request, user_id):
 
 @user_passes_test(is_workflow_admin)
 @require_POST
+@transaction.atomic
 def delete_user(request):
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.select_for_update().get(id=user_id)
+            from .services.activity_permissions import administrative_account, protected_admin
+            if administrative_account(user) and not protected_admin(request.user):
+                raise PermissionDenied(_('Only Admin may delete administrative accounts.'))
+            if PatternDesignApproval.objects.filter(Q(designer=user) | Q(cad_reviewer=user) | Q(ed_reviewer=user) | Q(md_reviewer=user)).exists():
+                raise PermissionDenied(_('This account has recorded design review history. Deactivate it instead.'))
             if user == request.user:
                 messages.error(request, _("You cannot delete your own signed-in account."))
                 return redirect('admin_panel')
@@ -7473,6 +7426,8 @@ def get_measurement_files_api(request):
     from management.services.measurement_files import serialize_measurement_file
 
     qs = PatternMeasurementFile.objects.filter(vehicle_id=vehicle_id).select_related('uploaded_by').order_by('-uploaded_at')
+    if not activity_granted(request.user, 'measurement.view_all'):
+        qs = qs.filter(uploaded_by=request.user)
 
     category = request.GET.get('category')
     if category:
@@ -7491,12 +7446,12 @@ def get_measurement_files_api(request):
             reference_files.append(serialized)
 
     color_sel = PatternColorSelection.objects.filter(vehicle_id=vehicle_id).exclude(swatch_image='').first()
-    if color_sel and color_sel.swatch_image:
+    if color_sel and color_sel.swatch_image and activity_granted(request.user, 'color.view') and (activity_granted(request.user, 'measurement.view_all') or color_sel.submitted_by_id == request.user.pk):
         reference_files.insert(0, {
             'id': f"swatch_{color_sel.id}",
             'filename': os.path.basename(color_sel.swatch_image.name),
-            'url': color_sel.swatch_image.url,
-            'download_url': color_sel.swatch_image.url,
+            'url': reverse('color_selection_file', args=[color_sel.pk]),
+            'download_url': reverse('color_selection_file', args=[color_sel.pk]),
             'file_size': getattr(color_sel.swatch_image, 'size', 0),
             'file_size_display': f"{round(getattr(color_sel.swatch_image, 'size', 0) / 1024, 1)} KB",
             'file_type': 'image',
@@ -7532,7 +7487,17 @@ def measurement_file_download(request, file_id):
     meas_file = get_object_or_404(PatternMeasurementFile, pk=file_id)
     if not meas_file.file:
         return HttpResponse(_('File is unavailable.'), status=404)
-    return redirect(meas_file.file.url)
+    try:
+        content = meas_file.file.open('rb')
+    except FileNotFoundError:
+        return HttpResponse(status=404)
+    content.seek(0, 2)
+    size = content.tell()
+    content.seek(0)
+    response = FileResponse(content, as_attachment=request.GET.get('download') == '1', filename=meas_file.filename)
+    response['Cache-Control'] = 'private, no-store'
+    from .services.private_media import apply_private_range
+    return apply_private_range(request, response, content, size)
 
 
 @login_required
@@ -7571,6 +7536,21 @@ def save_color_selection_api(request):
     except Exception as e:
         logger.exception("Error saving color selection")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+@never_cache
+@require_GET
+def color_selection_file(request, selection_id):
+    selection = get_object_or_404(PatternColorSelection, pk=selection_id)
+    if not selection.swatch_image:
+        return HttpResponse(status=404)
+    try:
+        response = FileResponse(selection.swatch_image.open('rb'))
+    except FileNotFoundError:
+        return HttpResponse(status=404)
+    response['Cache-Control'] = 'private, no-store'
+    return response
 
 
 @login_required

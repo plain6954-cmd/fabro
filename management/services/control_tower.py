@@ -55,12 +55,14 @@ def _design_context(image):
 def control_tower_snapshot(user, *, at=None):
     if not user.is_authenticated or not user.is_active or not is_workflow_admin(user):
         raise PermissionDenied(_('ERP administrator access is required.'))
+    from management.services.activity_permissions import require, visible_files, granted
+    require(user, 'erp.control_tower')
     current = at or timezone.now()
     delay_hours = max(1, int(getattr(settings, 'CONTROL_TOWER_REVIEW_DELAY_HOURS', 48)))
     cutoff = current - timedelta(hours=delay_hours)
     latest = PatternDesignApproval.objects.filter(design_image_id=OuterRef('design_image_id')).order_by('-cycle').values('pk')[:1]
     # One row per design's current cycle; historical pending votes never enter the counts.
-    reviews = PatternDesignApproval.objects.filter(pk=Subquery(latest), design_image__is_reference=False)
+    reviews = PatternDesignApproval.objects.filter(pk=Subquery(latest), design_image__is_reference=False, design_image_id__in=visible_files(user, PatternDesignImage.objects.all()).values('pk'))
     aggregates = {
         'pending_designs': Count('pk', filter=PENDING),
         'delayed': Count('pk', filter=PENDING & Q(submitted_at__lte=cutoff)),
@@ -104,6 +106,8 @@ def control_tower_snapshot(user, *, at=None):
                'deleted': (_('Deleted design record'), 'trash-alt'),
                'created': (_('Created design record'), 'plus')}
     for log in ActivityLog.objects.select_related('user').order_by('-pk')[:AUDIT_WINDOW]:
+        if not (granted(user, 'design.view_all') and granted(user, 'reference.view_all')):
+            continue
         if log.object_type not in ('Design Image', 'Design Folder'):
             continue
         action = actions.get(log.action)
@@ -116,7 +120,7 @@ def control_tower_snapshot(user, *, at=None):
             activity.append({'key': f'audit-{log.pk}', 'actor': log.user.username if log.user else _('Account unavailable'),
                              'action': action[0], 'icon': action[1], 'context': log.object_name,
                              'timestamp': log.timestamp, 'url': reverse('admin_panel') + '?section=logs#logs', 'source': 'audit'})
-    for image in PatternDesignImage.objects.select_related('uploaded_by', *VEHICLE_RELATIONS).order_by('-pk')[:ACTIVITY_LIMIT]:
+    for image in visible_files(user, PatternDesignImage.objects.all()).select_related('uploaded_by', *VEHICLE_RELATIONS).order_by('-pk')[:ACTIVITY_LIMIT]:
         context = _design_context(image)
         activity.append({'key': f'upload-{image.pk}', 'actor': image.uploaded_by.username if image.uploaded_by else _('Account unavailable'),
                          'action': _('Uploaded reference file') if image.is_reference else _('Uploaded design file'), 'icon': 'upload',

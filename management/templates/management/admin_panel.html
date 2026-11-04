@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="ltr">
@@ -16,13 +17,18 @@
     <link rel="stylesheet" href="{% static 'management/css/control_tower.css' %}?v=20261104">
     <script src="{% static 'management/js/gallery_sync.js' %}?v=20261104-interval" defer></script>
     <script src="{% static 'management/js/control_tower.js' %}?v=20261104" defer></script>
+    <link rel="stylesheet" href="{% static 'management/css/user_control_panel.css' %}?v=20261104">
+    <script src="{% static 'management/js/user_control_panel.js' %}?v=20261104" defer></script>
+{{ activity_data|json_script:'fabro-activity-data' }}
+<script src="{% static 'management/js/activity_ui.js' %}?v=20261104" defer></script>
+<style>[data-activity][hidden], [data-activity-any][hidden] { display: none !important; }</style>
 </head>
 <body>
 
     <!-- TOP NAVIGATION BAR -->
     <header class="erp-topbar">
         <div class="erp-topbar-left">
-            <a href="{% url 'admin_panel' %}" class="erp-logo-brand">
+            <a href="{% url 'admin_panel' %}" class="erp-logo-brand" {% activity_attrs 'erp.view' %}>
                 <img src="/static/FABRO__BRAND ICON_FINAL_CMYK.png" alt="Fabro">
                 <span>{% translate "FABRO" %}</span>
                 <span class="erp-logo-badge">{% translate "ERP ADMIN" %}</span>
@@ -30,32 +36,32 @@
 
             <!-- Central Sub-Navigation Tabs -->
             <nav class="erp-topbar-nav">
-                <div class="erp-nav-tab active" onclick="switchErpTab('dashboard')">
+                <div class="erp-nav-tab active" onclick="switchErpTab('dashboard')" {% activity_attrs 'erp.control_tower' %}>
                     <i class="fas fa-chart-pie"></i> {% translate "Dashboard" %}
                 </div>
-                <div class="erp-nav-tab" onclick="switchErpTab('users')">
+                <div class="erp-nav-tab" onclick="switchErpTab('users')" {% activity_attrs 'users.manage' %}>
                     <i class="fas fa-users"></i> {% translate "Users" %}
                 </div>
-                <div class="erp-nav-tab" onclick="switchErpTab('skus')">
+                <div class="erp-nav-tab" onclick="switchErpTab('skus')" {% activity_attrs 'sku.view' %}>
                     <i class="fas fa-box-open"></i> {% translate "SKUs" %}{% if total_skus_count %} <span style="font-size:0.68rem; background:rgba(88,166,255,0.18); color:#58a6ff; padding:1px 6px; border-radius:10px; margin-left:3px; font-weight:600;">{{ total_skus_count }}</span>{% endif %}
                 </div>
-                <div class="erp-nav-tab" onclick="switchErpTab('brands')">
+                <div class="erp-nav-tab" onclick="switchErpTab('brands')" {% activity_attrs 'vehicle.view' %}>
                     <i class="fas fa-car"></i> {% translate "Vehicle Catalog" %}{% if total_brands_count %} <span style="font-size:0.68rem; background:rgba(188,140,255,0.18); color:#bc8cff; padding:1px 6px; border-radius:10px; margin-left:3px; font-weight:600;">{{ total_brands_count }}</span>{% endif %}
                 </div>
-                <div class="erp-nav-tab" onclick="switchErpTab('master')">
+                <div class="erp-nav-tab" onclick="switchErpTab('master')" {% activity_attrs 'master.view' %}>
                     <i class="fas fa-sliders-h"></i> {% translate "Master Settings" %}
                 </div>
-                <div class="erp-nav-tab" onclick="switchErpTab('sessions')">
+                <div class="erp-nav-tab" onclick="switchErpTab('sessions')" {% activity_attrs 'erp.sessions_view' %}>
                     <i class="fas fa-network-wired"></i> {% translate "Active Sessions" %} <span id="nav-sessions-count" style="font-size:0.68rem; background:rgba(247,120,186,0.18); color:#f778ba; padding:1px 6px; border-radius:10px; margin-left:3px; font-weight:600;">{{ active_sessions_count }}</span>
                 </div>
-                <div class="erp-nav-tab" onclick="switchErpTab('logs')">
+                <div class="erp-nav-tab" onclick="switchErpTab('logs')" {% activity_attrs 'reports.activity' %}>
                     <i class="fas fa-history"></i> {% translate "Activity Logs" %}
                 </div>
             </nav>
         </div>
 
         <div class="erp-topbar-right">
-            <a href="{% url 'complaint_list' %}" class="erp-portal-link" title="{% translate "Return to Main Portal" %}">
+            <a href="{% url 'complaint_list' %}" class="erp-portal-link" title="{% translate "Return to Main Portal" %}" {% activity_attrs 'complaint.view' %}>
                 <i class="fas fa-arrow-left"></i> <span class="erp-portal-link-text">{% translate "Back to Portal" %}</span>
             </a>
             <div class="erp-user-capsule">
@@ -76,31 +82,31 @@
 
         <!-- LEFT ICON SIDEBAR -->
         <aside class="erp-icon-sidebar">
-            <button class="erp-sidebar-btn active" id="side-dashboard" onclick="switchErpTab('dashboard')" title="{% translate "Dashboard" %}">
+            <button class="erp-sidebar-btn active" id="side-dashboard" onclick="switchErpTab('dashboard')" title="{% translate "Dashboard" %}" {% activity_attrs 'erp.control_tower' %}>
                 <i class="fas fa-chart-pie"></i>
                 <span>{% translate "Dash" %}</span>
             </button>
-            <button class="erp-sidebar-btn" id="side-users" onclick="switchErpTab('users')" title="{% translate "User Directory" %}">
+            <button class="erp-sidebar-btn" id="side-users" onclick="switchErpTab('users')" title="{% translate "User Directory" %}" {% activity_attrs 'users.manage' %}>
                 <i class="fas fa-users"></i>
                 <span>{% translate "Users" %}</span>
             </button>
-            <button class="erp-sidebar-btn" id="side-skus" onclick="switchErpTab('skus')" title="{% translate "SKU Catalog" %}">
+            <button class="erp-sidebar-btn" id="side-skus" onclick="switchErpTab('skus')" title="{% translate "SKU Catalog" %}" {% activity_attrs 'sku.view' %}>
                 <i class="fas fa-box-open"></i>
                 <span>{% translate "SKUs" %}</span>
             </button>
-            <button class="erp-sidebar-btn" id="side-brands" onclick="switchErpTab('brands')" title="{% translate "Vehicle Brands & Models" %}">
+            <button class="erp-sidebar-btn" id="side-brands" onclick="switchErpTab('brands')" title="{% translate "Vehicle Brands & Models" %}" {% activity_attrs 'vehicle.view' %}>
                 <i class="fas fa-car"></i>
                 <span>{% translate "Brands" %}</span>
             </button>
-            <button class="erp-sidebar-btn" id="side-master" onclick="switchErpTab('master')" title="{% translate "Master Settings" %}">
+            <button class="erp-sidebar-btn" id="side-master" onclick="switchErpTab('master')" title="{% translate "Master Settings" %}" {% activity_attrs 'master.view' %}>
                 <i class="fas fa-sliders-h"></i>
                 <span>{% translate "Master" %}</span>
             </button>
-            <button class="erp-sidebar-btn" id="side-sessions" onclick="switchErpTab('sessions')" title="{% translate "Active Sessions" %}">
+            <button class="erp-sidebar-btn" id="side-sessions" onclick="switchErpTab('sessions')" title="{% translate "Active Sessions" %}" {% activity_attrs 'erp.sessions_view' %}>
                 <i class="fas fa-network-wired"></i>
                 <span>{% translate "Sessions" %}</span>
             </button>
-            <button class="erp-sidebar-btn" id="side-logs" onclick="switchErpTab('logs')" title="{% translate "Activity Logs" %}">
+            <button class="erp-sidebar-btn" id="side-logs" onclick="switchErpTab('logs')" title="{% translate "Activity Logs" %}" {% activity_attrs 'reports.activity' %}>
                 <i class="fas fa-history"></i>
                 <span>{% translate "Logs" %}</span>
             </button>
@@ -189,7 +195,7 @@
                 <!-- Action Subheader -->
                 <div class="erp-action-subheader">
                     <div class="erp-subheader-left">
-                        <button class="btn-erp-new" onclick="openCreateUserModal()">
+                        <button class="btn-erp-new" onclick="openCreateUserModal()" {% activity_attrs 'users.create' %}>
                             <i class="fas fa-plus"></i> {% translate "New" %}
                         </button>
                         <span class="erp-module-title">
@@ -462,7 +468,7 @@
             <div id="tab-skus" class="erp-tab-pane">
                 <div class="erp-action-subheader">
                     <span class="erp-module-title"><i class="fas fa-box-open" style="color: #58a6ff;"></i> {% translate "SKU Master Catalog" %}{% if total_skus_count %} <span style="font-size:0.8rem; color:var(--erp-text-muted); font-weight:normal;">({{ total_skus_count }})</span>{% endif %}</span>
-                    <a href="{% url 'add_sku' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-plus"></i> {% translate "Add SKU" %}</a>
+                    <a href="{% url 'add_sku' %}" class="btn-erp-new" style="text-decoration:none;" {% activity_attrs 'sku.view' %}><i class="fas fa-plus"></i> {% translate "Add SKU" %}</a>
                 </div>
                 <div style="flex:1; overflow-y:auto; padding:1rem;">
                     <table class="erp-admin-table">
@@ -501,7 +507,7 @@
             <div id="tab-brands" class="erp-tab-pane">
                 <div class="erp-action-subheader">
                     <span class="erp-module-title"><i class="fas fa-car" style="color: #bc8cff;"></i> {% translate "Vehicle Brands & Models" %}{% if total_brands_count %} <span style="font-size:0.8rem; color:var(--erp-text-muted); font-weight:normal;">({{ total_brands_count }})</span>{% endif %}</span>
-                    <a href="{% url 'car_details' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-car-side"></i> {% translate "Manage Catalog" %}</a>
+                    <a href="{% url 'car_details' %}" class="btn-erp-new" style="text-decoration:none;" {% activity_attrs 'pattern.view' %}><i class="fas fa-car-side"></i> {% translate "Manage Catalog" %}</a>
                 </div>
                 <div style="flex:1; overflow-y:auto; padding:1rem;">
                     <div class="erp-brands-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;" aria-live="polite">
@@ -540,7 +546,7 @@
             <div id="tab-master" class="erp-tab-pane">
                 <div class="erp-action-subheader">
                     <span class="erp-module-title"><i class="fas fa-sliders-h" style="color: #e3b341;"></i> {% translate "Master Settings" %}</span>
-                    <a href="{% url 'master_settings' %}" class="btn-erp-new" style="text-decoration:none;"><i class="fas fa-external-link-alt"></i> {% translate "Manage Master Settings" %}</a>
+                    <a href="{% url 'master_settings' %}" class="btn-erp-new" style="text-decoration:none;" {% activity_attrs 'master.view' %}><i class="fas fa-external-link-alt"></i> {% translate "Manage Master Settings" %}</a>
                 </div>
                 <div style="flex:1; overflow-y:auto; padding:1rem;">
                     <table class="erp-admin-table">
@@ -583,7 +589,7 @@
                 <div class="erp-action-subheader">
                     <span class="erp-module-title"><i class="fas fa-network-wired" style="color: #f778ba;"></i> {% blocktranslate with count=active_sessions_count %}Live Active User Sessions ({{ count }}){% endblocktranslate %}</span>
                     {% if active_sessions|length > 1 %}
-                    <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;">
+                    <form method="post" action="{% url 'terminate_all_sessions' %}" style="display:inline;" {% activity_attrs 'erp.sessions_terminate' %}>
                         {% csrf_token %}
                         <button type="submit" class="btn-danger" onclick="return confirm(window.FabroI18n.gettext('Terminate all other user sessions?'));">
                             {% translate "Terminate Other Sessions" %}
@@ -611,7 +617,7 @@
                                     {% if session.session_key == request.session.session_key %}
                                         <span style="color: #3fb950; font-weight: 700;">{% translate "CURRENT SESSION" %}</span>
                                     {% else %}
-                                        <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;">
+                                        <form method="post" action="{% url 'terminate_session' session.session_key %}" style="display:inline;" {% activity_attrs 'erp.sessions_terminate' %}>
                                              {% csrf_token %}
                                             <button type="submit" class="btn-danger" onclick="return confirm(window.FabroI18n.gettext('Kick this user session?'));">{% translate "Terminate" %}</button>
                                         </form>
@@ -677,226 +683,7 @@
         </main>
     </div>
 
-    <!-- ========================================================
-         MODAL 1: CREATE NEW USER (In-Place)
-         ======================================================== -->
-    <div id="createUserModal" class="erp-modal" style="display: none;">
-        <div class="erp-modal-box">
-            <div class="erp-modal-header">
-                <span class="erp-modal-title"><i class="fas fa-user-plus" style="color: #e63946;"></i> {% translate "Create New User" %}</span>
-                <button type="button" class="erp-modal-close" onclick="closeCreateUserModal()">×</button>
-            </div>
-            <form method="post" enctype="multipart/form-data" action="{% url 'admin_panel' %}">
-                {% csrf_token %}
-                <div class="erp-modal-body">
-                    <div class="erp-form-grid-2">
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Username *" %}</label>
-                            <input type="text" name="username" class="erp-form-input" required>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Email Address *" %}</label>
-                            <input type="email" name="email" class="erp-form-input" required>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "First Name" %}</label>
-                            <input type="text" name="first_name" class="erp-form-input">
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Last Name" %}</label>
-                            <input type="text" name="last_name" class="erp-form-input">
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Password *" %}</label>
-                            <div style="position: relative; display: flex; align-items: center;">
-                                <input type="password" name="password" id="createUserPassword" class="erp-form-input" style="width: 100%; padding-right: 2.2rem;" required>
-                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('createUserPassword', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.6rem; background: none; border: none; color: var(--erp-text-muted); cursor: pointer; padding: 0.2rem; font-size: 0.82rem;">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Phone Number" %}</label>
-                            <input type="text" name="phone_number" class="erp-form-input" placeholder="+966 ...">
-                        </div>
-                        <div class="erp-form-group full-width">
-                            <label class="erp-form-label">{% translate "Role *" %}</label>
-                            <select name="role" class="erp-form-select">
-                                <option value="country_executive">{% translate "Country Executive" %}</option>
-                                <option value="factory_viewer" selected>{% translate "Factory Viewer" %}</option>
-                                <option value="factory_executive">{% translate "Factory Executive" %}</option>
-                                <option value="factory_complaint_registrar">{% translate "Factory Complaint Registrar" %}</option>
-                                <option value="freelance_3d_designer">{% translate "3D Designer Freelancer" %}</option>
-                                <option value="PM">{% translate "PM" %}</option>
-                                <option value="OM">{% translate "OM" %}</option>
-                                <option value="CAD">{% translate "CAD" %}</option>
-                                <option value="ED">{% translate "ED" %}</option>
-                                <option value="MD">{% translate "MD" %}</option>
-                                <option value="admin">{% translate "Admin" %}</option>
-                            </select>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Assigned Country" %}</label>
-                            <select name="country" class="erp-form-select">
-                                <option value="">{% translate "None (Global)" %}</option>
-                                {% for country in workflow_countries %}
-                                <option value="{{ country.id }}">{{ country.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Department" %}</label>
-                            <input type="text" name="department" class="erp-form-input" placeholder="{% translate "e.g. Sales, Operations" %}">
-                        </div>
-                        <div class="erp-form-group full-width">
-                            <label class="erp-form-label">{% translate "Profile Photo" %}</label>
-                            <input type="file" name="photo" class="erp-form-input" accept="image/*">
-                        </div>
-                        <div class="erp-form-group full-width erp-checkbox-group" style="display: flex; flex-direction: row; gap: 1rem; align-items: center; margin-top: 0.25rem;">
-                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                                <input type="checkbox" name="can_receive_factory_assignments" style="accent-color: #e63946;"> {% translate "Can receive factory assignments" %}
-                            </label>
-                            {% if request.user.is_superuser %}
-                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                                <input type="checkbox" name="is_staff" style="accent-color: #e63946;"> {% translate "Staff" %}
-                            </label>
-                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                                <input type="checkbox" name="is_superuser" style="accent-color: #e63946;"> {% translate "Superuser" %}
-                            </label>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                <div class="erp-modal-footer">
-                    <button type="button" class="btn-secondary" onclick="closeCreateUserModal()">{% translate "Cancel" %}</button>
-                    <button type="submit" name="add_user" class="btn-erp-new">{% translate "Create User" %}</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ========================================================
-         MODAL 2: EDIT USER (Direct In-Place Admin Editor)
-         ======================================================== -->
-    <div id="editUserModal" class="erp-modal" style="display: none;">
-        <div class="erp-modal-box">
-            <div class="erp-modal-header">
-                <span class="erp-modal-title"><i class="fas fa-user-edit" style="color: #e63946;"></i> {% translate "Edit User Profile & Role" %}</span>
-                <button type="button" class="erp-modal-close" onclick="closeEditUserModal()">×</button>
-            </div>
-            <form id="editUserForm" method="post" enctype="multipart/form-data" action="{% url 'edit_user' %}" onsubmit="saveEditUser(event)">
-                {% csrf_token %}
-                <input type="hidden" name="user_id" id="editUserId">
-                <div class="erp-modal-body">
-                    <div class="erp-form-grid-2">
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Username *" %}</label>
-                            <input type="text" name="username" id="editUsername" class="erp-form-input" required>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Email Address *" %}</label>
-                            <input type="email" name="email" id="editEmail" class="erp-form-input" required>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "First Name" %}</label>
-                            <input type="text" name="first_name" id="editFirstName" class="erp-form-input">
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Last Name" %}</label>
-                            <input type="text" name="last_name" id="editLastName" class="erp-form-input">
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Phone Number" %}</label>
-                            <input type="text" name="phone_number" id="editPhone" class="erp-form-input">
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Reset Password" %}</label>
-                            <div style="position: relative; display: flex; align-items: center;">
-                                <input type="password" name="new_password" id="editUserPassword" class="erp-form-input" placeholder="{% translate "Enter a new password" %}" autocomplete="new-password" style="width: 100%; padding-right: 2.2rem;">
-                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('editUserPassword', this)" title="{% translate "Show/Hide Password" %}" style="position: absolute; right: 0.6rem; background: none; border: none; color: var(--erp-text-muted); cursor: pointer; padding: 0.2rem; font-size: 0.82rem;">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            <input type="password" name="confirm_password" id="editUserPasswordConfirm" class="erp-form-input" placeholder="{% translate "Confirm new password" %}" autocomplete="new-password" style="margin-top:0.4rem;">
-                            <button type="button" id="resetUserPasswordButton" onclick="resetUserPassword()" class="btn-secondary" style="margin-top: 0.4rem; align-self: flex-start;">
-                                <i class="fas fa-key"></i> {% translate "Reset Password" %}
-                            </button>
-                        </div>
-                        <div class="erp-form-group full-width">
-                            <label class="erp-form-label">{% translate "Role *" %}</label>
-                            <select name="role" id="editRole" class="erp-form-select">
-                                <option value="country_executive">{% translate "Country Executive" %}</option>
-                                <option value="factory_viewer">{% translate "Factory Viewer" %}</option>
-                                <option value="factory_executive">{% translate "Factory Executive" %}</option>
-                                <option value="factory_complaint_registrar">{% translate "Factory Complaint Registrar" %}</option>
-                                <option value="freelance_3d_designer">{% translate "3D Designer Freelancer" %}</option>
-                                <option value="PM">{% translate "PM" %}</option>
-                                <option value="OM">{% translate "OM" %}</option>
-                                <option value="CAD">{% translate "CAD" %}</option>
-                                <option value="ED">{% translate "ED" %}</option>
-                                <option value="MD">{% translate "MD" %}</option>
-                                <option value="admin">{% translate "Admin" %}</option>
-                            </select>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Assigned Country" %}</label>
-                            <select name="country" id="editCountry" class="erp-form-select">
-                                <option value="">{% translate "None (Global)" %}</option>
-                                {% for country in workflow_countries %}
-                                <option value="{{ country.id }}">{{ country.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="erp-form-group">
-                            <label class="erp-form-label">{% translate "Department" %}</label>
-                            <input type="text" name="department" id="editDepartment" class="erp-form-input">
-                        </div>
-                        <div class="erp-form-group full-width">
-                            <label class="erp-form-label">{% translate "Update Profile Photo" %}</label>
-                            <input type="file" name="photo" class="erp-form-input" accept="image/*">
-                            <button type="button" id="removeUserPhotoButton" data-url-template="{% url 'delete_user_photo' 0 %}" class="btn-danger" style="margin-top:.4rem; align-self:flex-start;" onclick="removeUserPhoto()">{% translate "Remove current photo" %}</button>
-                        </div>
-                        <div class="erp-form-group full-width erp-checkbox-group" style="display: flex; flex-direction: row; gap: 1rem; align-items: center;">
-                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                                <input type="checkbox" name="can_receive_factory_assignments" id="editCanFactory" style="accent-color: #e63946;"> {% translate "Can receive factory assignments" %}
-                            </label>
-                            {% if request.user.is_superuser %}
-                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                                <input type="checkbox" name="is_staff" id="editIsStaff" style="accent-color: #e63946;"> {% translate "Staff" %}
-                            </label>
-                            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                                <input type="checkbox" name="is_superuser" id="editIsSuperuser" style="accent-color: #e63946;"> {% translate "Superuser" %}
-                            </label>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                <div class="erp-modal-footer">
-                    <button type="button" class="btn-danger icon-only-action" onclick="triggerDeleteFromEdit()" title="{% translate "Delete User" %}" aria-label="{% translate "Delete User" %}">
-                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                    </button>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <div id="editUserFeedback" role="status" aria-live="polite">
-                        {% for message in messages %}
-                            {% if 'edit-user-feedback' in message.tags %}
-                            <span class="save-status-pill edit-user-feedback {% if 'error' in message.tags %}error{% else %}success{% endif %}">
-                                <i class="fas {% if 'error' in message.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
-                                {{ message }}
-                            </span>
-                            {% endif %}
-                        {% endfor %}
-                        </div>
-                        <button type="button" class="btn-secondary icon-only-action" onclick="closeEditUserModal()" title="{% translate "Cancel" %}" aria-label="{% translate "Cancel" %}">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                        </button>
-                        <button type="submit" id="saveEditUserButton" class="btn-erp-new icon-only-action" title="{% translate "Save Changes" %}" aria-label="{% translate "Save Changes" %}">
-                            <i class="fas fa-save" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+    {% include 'management/includes/user_control_panel.html' %}
 
     <!-- Hidden Delete Form -->
     <form id="deleteUserForm" method="post" action="{% url 'delete_user' %}" style="display:none;">
@@ -919,7 +706,6 @@
     </div>
     {% endif %}
 
-    <!-- JavaScript Interactive Logic -->
     <script>
     // Faceted Filter State
     window.erpActiveFilters = {
@@ -1326,7 +1112,7 @@
         button.disabled = true;
 
         try {
-            const response = await fetch(form.action, {
+            const response = await fetch(modal.dataset.resetUrl || form.action, {
                 method: 'POST',
                 body: formData,
                 headers: {

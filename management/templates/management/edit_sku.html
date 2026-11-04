@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
@@ -414,7 +415,7 @@
                 {{ form.as_p }}
             </div>
                 <div class="btn-group">
-                <a href="{% url 'add_sku' %}" class="btn btn-secondary">
+                <a href="{% url 'add_sku' %}" class="btn btn-secondary" {% activity_attrs 'sku.view' %}>
                     <i class="fas fa-times"></i>
                     {% translate "Cancel" %}
                 </a>

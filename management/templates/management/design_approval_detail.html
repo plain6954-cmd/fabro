@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}<template data-fabro-page-head>{% else %}
 <!DOCTYPE html>
@@ -23,7 +24,7 @@
         <header class="design-identity" aria-label="{% translate 'Pattern identification' %}">
             <div class="review-vehicle"><small>{% translate "Vehicle Name" %}</small><strong>{{ design_vehicle_name|default:"—" }}</strong></div>
             <div class="review-pattern"><small>{% translate "Pattern Number" %}</small><strong>{{ design_vehicle.serial_number|default:"—" }}</strong></div>
-            {% if design_image.image %}<a class="review-button review-download" href="{% url 'pattern_design_image_download' design_image.pk %}?download=1"><i class="fas fa-download" aria-hidden="true"></i> {% translate "Download File" %}</a>{% endif %}
+            {% if design_image.image %}<a class="review-button review-download" {% file_activity_attrs design_image 'download' %} href="{% url 'pattern_design_image_download' design_image.pk %}?download=1"><i class="fas fa-download" aria-hidden="true"></i> {% translate "Download File" %}</a>{% endif %}
         </header>
         <div class="design-review-grid">
             <section class="review-preview-panel review-surface" aria-label="{% translate 'Design preview' %}">

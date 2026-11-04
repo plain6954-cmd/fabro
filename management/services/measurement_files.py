@@ -113,16 +113,21 @@ def serialize_measurement_file(meas_file, request=None):
     from django.urls import reverse
 
     download_url = reverse('measurement_file_download', args=[meas_file.pk])
-    preview_url = meas_file.file.url if meas_file.file else ''
+    preview_url = download_url if meas_file.file else ''
+    from management.services.activity_permissions import scoped
+    may_download = not request or scoped(request.user, 'measurement', 'download', meas_file.uploaded_by_id)
 
+    from management.services.workflow import can_user_manage_catalog
+    can_delete = bool(request and scoped(request.user, 'measurement', 'delete', meas_file.uploaded_by_id) and (request.user.is_superuser or meas_file.uploaded_by_id == request.user.pk or can_user_manage_catalog(request.user)))
     return {
+        'can_delete': can_delete,
         'id': meas_file.id,
         'filename': meas_file.filename,
         'file_size': meas_file.file_size,
         'file_type': meas_file.file_type,
         'file_ext': meas_file.file_ext,
         'url': preview_url,
-        'download_url': download_url,
+        'download_url': download_url + '?download=1' if may_download else None,
         'uploaded_at': timezone.localtime(meas_file.uploaded_at).strftime('%b %d, %Y %H:%M'),
         'uploaded_by': meas_file.uploaded_by.username if meas_file.uploaded_by else '',
     }

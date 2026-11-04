@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load i18n %}
                 <section class="review-matrix review-surface">
                     {% if not comparison_workspace %}<div class="review-panel-heading"><h2>{% translate "Design Review Matrix (CAD, ED, MD)" %}</h2></div>{% endif %}
@@ -62,15 +63,15 @@
                             <label for="cadCommentInput">
                                 {% translate "CAD Review Comment" %} <span>({% translate "Optional" %})</span>
                             </label>
-                            <div class="review-remarks-input"><textarea name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}"></textarea>
+                            <div class="review-remarks-input"><textarea {% activity_attrs 'design_approval.comment' %} name="comment" id="cadCommentInput" rows="3" placeholder="{% translate "Enter feedback or pattern dimension notes..." %}"></textarea>
                                 {% include 'management/includes/design_review_voice_recorder.html' %}
                             </div>
                         </div>
                         <div class="design-review-buttons-wrap review-actions">
-                            <button type="submit" name="decision" value="approved" class="review-button review-approve">
+                            <button type="submit" name="decision" value="approved" {% activity_attrs 'design_approval.approve' %} class="review-button review-approve">
                                 <i class="fas fa-check"></i> {% if comparison_workspace %}{% translate "Approve" %}{% else %}{% translate "Approve Design" %}{% endif %}
                             </button>
-                            <button type="submit" name="decision" value="rejected" class="review-button review-decline" data-confirm-decline>
+                            <button type="submit" name="decision" value="rejected" {% activity_attrs 'design_approval.reject' %} class="review-button review-decline" data-confirm-decline>
                                 <i class="fas fa-times"></i> {% if comparison_workspace %}{% translate "Reject" %}{% else %}{% translate "Decline Design" %}{% endif %}
                             </button>
                         </div>
@@ -137,15 +138,15 @@
                             <label for="edCommentInput">
                                 {% translate "ED Review Comment" %} <span>({% translate "Optional" %})</span>
                             </label>
-                            <div class="review-remarks-input"><textarea name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}"></textarea>
+                            <div class="review-remarks-input"><textarea {% activity_attrs 'design_approval.comment' %} name="comment" id="edCommentInput" rows="3" placeholder="{% translate "Enter feedback or engineering review notes..." %}"></textarea>
                                 {% include 'management/includes/design_review_voice_recorder.html' %}
                             </div>
                         </div>
                         <div class="design-review-buttons-wrap review-actions">
-                            <button type="submit" name="decision" value="approved" class="review-button review-approve">
+                            <button type="submit" name="decision" value="approved" {% activity_attrs 'design_approval.approve' %} class="review-button review-approve">
                                 <i class="fas fa-check"></i> {% if comparison_workspace %}{% translate "Approve" %}{% else %}{% translate "Approve Design" %}{% endif %}
                             </button>
-                            <button type="submit" name="decision" value="rejected" class="review-button review-decline" data-confirm-decline>
+                            <button type="submit" name="decision" value="rejected" {% activity_attrs 'design_approval.reject' %} class="review-button review-decline" data-confirm-decline>
                                 <i class="fas fa-times"></i> {% if comparison_workspace %}{% translate "Reject" %}{% else %}{% translate "Decline Design" %}{% endif %}
                             </button>
                         </div>
@@ -178,12 +179,12 @@
                             <option value="major">{% translate "Major Change" %}</option>
                         </select>
                         <label for="mdCommentInput">{% translate "MD Review Comment" %} ({% translate "Optional" %})</label>
-                        <div class="review-remarks-input"><textarea name="comment" id="mdCommentInput" rows="3"></textarea>
+                        <div class="review-remarks-input"><textarea {% activity_attrs 'design_approval.comment' %} name="comment" id="mdCommentInput" rows="3"></textarea>
                                 {% include 'management/includes/design_review_voice_recorder.html' %}
                             </div>
                         <div class="design-review-buttons-wrap review-actions">
-                            <button type="submit" name="decision" value="approved" class="review-button review-approve">{% if comparison_workspace %}{% translate "Approve" %}{% else %}{% translate "Approve Design" %}{% endif %}</button>
-                            <button type="submit" name="decision" value="rejected" class="review-button review-decline" data-confirm-decline>{% if comparison_workspace %}{% translate "Reject" %}{% else %}{% translate "Decline Design" %}{% endif %}</button>
+                            <button type="submit" name="decision" value="approved" {% activity_attrs 'design_approval.approve' %} class="review-button review-approve">{% if comparison_workspace %}{% translate "Approve" %}{% else %}{% translate "Approve Design" %}{% endif %}</button>
+                            <button type="submit" name="decision" value="rejected" {% activity_attrs 'design_approval.reject' %} class="review-button review-decline" data-confirm-decline>{% if comparison_workspace %}{% translate "Reject" %}{% else %}{% translate "Decline Design" %}{% endif %}</button>
                         </div>
                     </form>
                 {% else %}

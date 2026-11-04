@@ -66,14 +66,7 @@
      * Load the 3D Design Workspace data for a given vehicle
      */
     function canCurrentUserDelete(item) {
-        if (state.canDelete === true) return true;
-        if (item && item.can_delete === true) return true;
-        if (item && state.currentUser && state.currentUser.is_designer) {
-            if (!item.is_reference && (!item.uploaded_by || item.uploaded_by === state.currentUser.username)) {
-                return true;
-            }
-        }
-        return false;
+        return item?.can_delete === true;
     }
 
     async function delete3DDesignFile(fileId, fileTitle) {

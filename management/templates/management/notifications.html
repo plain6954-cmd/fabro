@@ -1,3 +1,4 @@
+{% load activity_access %}
 {% load static i18n %}
 {% if is_htmx_request %}
 <template data-fabro-page-head>
@@ -66,11 +67,11 @@
                     <i class="fas fa-check-circle"></i>
                     <span>{% translate "All marked as read" %}</span>
                 </div>
-                <form id="mark-all-read-form" method="post" action="{% url 'mark_all_notifications_read' %}">
+                <form id="mark-all-read-form" method="post" action="{% url 'mark_all_notifications_read' %}" {% activity_attrs 'notification.read' %}>
                     {% csrf_token %}
                     <button type="submit" id="mark-all-read-btn" class="workflow-btn secondary"><i class="fas fa-check-double"></i> {% translate "Mark All Read" %}</button>
                 </form>
-                <a href="{% url 'index' %}" class="workflow-btn secondary"><i class="fas fa-home"></i> {% translate "Dashboard" %}</a>
+                <a href="{% url 'index' %}" class="workflow-btn secondary" {% activity_attrs 'dashboard.view' %}><i class="fas fa-home"></i> {% translate "Dashboard" %}</a>
             </div>
         </header>
 
@@ -118,7 +119,7 @@
                                 </div>
                             </div>
                         {% else %}
-                            <a href="{% url 'open_notification' notification.id %}" class="notification-row {% if not notification.is_read %}unread{% endif %}">
+                            <a href="{% url 'open_notification' notification.id %}" class="notification-row {% if not notification.is_read %}unread{% endif %}" {% activity_attrs 'notification.read' %}>
                                 <span class="notification-icon">
                                     <i class="fas {% if notification.notification_type == 'approval' %}fa-user-check{% elif notification.notification_type == 'pattern_approval' %}fa-shield-halved{% elif notification.notification_type == 'fully_approved' %}fa-flag-checkered{% elif notification.notification_type == 'rework' %}fa-rotate-left{% elif notification.notification_type == 'closed' %}fa-check-circle{% else %}fa-bell{% endif %}"></i>
                                 </span>

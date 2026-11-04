@@ -216,6 +216,11 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     if decision not in ('approved', 'rejected'):
         raise ValidationError(_("Invalid decision. Must be 'approved' or 'rejected'."))
 
+    from management.services.activity_permissions import require
+    require(reviewer_user, 'design_approval.view', 'design_approval.approve' if decision == 'approved' else 'design_approval.reject')
+    if comment:
+        require(reviewer_user, 'design_approval.comment')
+
     change_type_clean = (change_type or '').strip().lower()
     if change_type_clean not in ('minor', 'major'):
         raise ValidationError(_("Please select either Minor Change or Major Change."))

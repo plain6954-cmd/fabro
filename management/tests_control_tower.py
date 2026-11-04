@@ -169,7 +169,7 @@ class ControlTowerTests(TestCase):
             self.review(self.image(vehicle=self.vehicle, title=f'Queue {number}'))
         with CaptureQueriesContext(connection) as queries:
             data = self.snapshot()
-        self.assertEqual(len(queries), 4)
+        self.assertEqual(len(queries), 5)  # One request-cached profile gate plus four projections.
         self.assertEqual(len(data['attention']), 12)
         self.assertEqual(data['counts']['attention'], 24)
         self.assertEqual(len(data['activity']), 16)

@@ -72,6 +72,7 @@ class WorkflowUserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = '__all__'
+        read_only_fields = ['activity_permissions']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -219,7 +220,14 @@ class ComplaintSerializer(serializers.ModelSerializer):
     case_type_name = serializers.CharField(source='case_sub_category.name', read_only=True)
     series_name = serializers.CharField(source='series.name', read_only=True)
     material_name = serializers.CharField(source='material.name', read_only=True)
-    media = ComplaintMediaSerializer(source='media_files', many=True, read_only=True)
+    media = serializers.SerializerMethodField()
+
+    def get_media(self, obj):
+        from management.services.activity_permissions import granted
+        request = self.context.get('request')
+        if request and not granted(request.user, 'complaint.media_view'):
+            return []
+        return ComplaintMediaSerializer(obj.media_files.all(), many=True, context=self.context).data
     approvals = ComplaintApprovalSerializer(many=True, read_only=True)
     timeline_events = ComplaintTimelineSerializer(many=True, read_only=True)
 

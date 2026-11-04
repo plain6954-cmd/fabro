@@ -87,7 +87,7 @@ class DesignApprovalDetailsTests(TestCase):
         entries = response.context['preview_images']
         self.assertEqual([entry['id'] for entry in entries], [image.pk, sibling.pk])
         self.assertEqual(entries[0]['url'], reverse('pattern_design_image_download', args=[image.pk]))
-        self.assertIn('pattern_design_thumbnails/existing.webp', entries[0]['thumbnail'])
+        self.assertEqual(entries[0]['thumbnail'], reverse('design_comparison_file', args=[image.pk]) + '?thumbnail=1')
         self.assertEqual(set(entries[0]), {'id', 'title', 'url', 'thumbnail'})
         self.assertContains(response, 'id="designImageViewer"', count=1)
 
@@ -101,6 +101,12 @@ class DesignApprovalDetailsTests(TestCase):
 
     def test_details_and_fullsize_media_keep_existing_access_controls(self):
         image = self.image()
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
+        saved = default_storage.save(image.image.name, ContentFile(b'private fixture'))
+        image.image.name = saved
+        image.save()
+        self.addCleanup(default_storage.delete, saved)
         detail_url = reverse('design_approval_detail', args=[image.pk])
         media_url = reverse('pattern_design_image_download', args=[image.pk])
         self.assertEqual(self.client.get(detail_url).status_code, 302)
@@ -110,7 +116,10 @@ class DesignApprovalDetailsTests(TestCase):
         self.assertEqual(self.detail(image, self.factory).status_code, 403)
         self.assertEqual(self.client.get(media_url).status_code, 404)
         self.assertEqual(self.detail(image, self.designer).status_code, 200)
-        self.assertEqual(self.client.get(media_url).status_code, 302)
+        response = self.client.get(media_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b''.join(response.streaming_content), b'private fixture')
+        response.close()
 
     def test_review_defaults_and_optional_remarks_remain_intact(self):
         from management.services.design_approvals import submit_design_for_approval
