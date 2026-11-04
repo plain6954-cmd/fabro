@@ -251,7 +251,7 @@ test('actual Pattern Master designer thumbnails open comparison in grid and list
  await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
  await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.upload}"]`)).toBeAttached();
  expect(await page.evaluate(()=>typeof (window as any).openDesignComparison)).toBe('function');
- await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/workspace-drafts/);
+ await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/\?v=20261104-live/);
  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  await page.locator('#design3DFilesSearch').fill('Designer');
  for(const mode of ['grid','list']){
@@ -515,4 +515,23 @@ test('integrated voice draft survives file switching and submits through the exi
  await expect.poll(()=>bubble.locator('input[type="range"]').inputValue()).not.toBe('0');
  await choose(page,'upload','Workspace primary.png');await expect(dialog.locator(`.comparison-approval-document[data-design-id="${ids.review_primary}"] .workspace-history .review-voice-bubble`)).toHaveCount(0);
  expect(await page.evaluate(()=>(window as any).__voice.stopped)).toBe(1);await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
+});
+
+test('live history revocation and grant preserve an unsaved comparison review draft',async({page})=>{
+ await reviewWorkspace(page,'comparison_browser_admin');await choose(page,'upload','Workspace sibling.pdf');
+ const root=viewer(page).locator(`.comparison-approval-document[data-design-id="${ids.review_sibling}"]`);
+ const actor=await page.evaluate(()=>JSON.parse(document.getElementById('fabro-activity-sync')!.textContent!).user_id);
+ await root.locator('#review-tab-ed').click();await root.locator('#edCommentInput').fill('Keep this draft through access changes');
+ try {
+  runDjangoCode(`from management.models import UserProfile; UserProfile.objects.filter(user_id=${actor}).update(activity_permissions={'design_approval.history':'deny'})`);
+  await expect(root.locator('.workspace-history')).not.toBeVisible({timeout:8000});
+  runDjangoCode(`from management.models import UserProfile; UserProfile.objects.filter(user_id=${actor}).update(activity_permissions={})`);
+  await expect(root.locator('.workspace-history')).toBeVisible({timeout:8000});
+  await expect(root.locator('.workspace-history .workspace-upload-event')).toBeVisible();
+  await expect(root.locator('[data-history-cycle="1"]')).toBeVisible();
+  await expect(root.locator('#edCommentInput')).toHaveValue('Keep this draft through access changes');
+  page.once('dialog',dialog=>dialog.accept());await page.keyboard.press('Escape');
+ } finally {
+  runDjangoCode(`from management.models import UserProfile; UserProfile.objects.filter(user_id=${actor}).update(activity_permissions={})`);
+ }
 });

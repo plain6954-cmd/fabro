@@ -252,8 +252,8 @@ def _can_manage_design_assets(user):
     return can_user_manage_design_assets(user)
 
 
-def _can_upload_reference_images(user):
-    if not activity_granted(user, 'reference.upload'):
+def _can_upload_reference_images(user, *, check_activity=True):
+    if check_activity and not activity_granted(user, 'reference.upload'):
         return False
     if not user or not user.is_authenticated or not user.is_active:
         return False
@@ -267,8 +267,8 @@ def _can_upload_reference_images(user):
     )
 
 
-def _can_upload_3d_designs(user):
-    if not activity_granted(user, 'design.upload'):
+def _can_upload_3d_designs(user, *, check_activity=True):
+    if check_activity and not activity_granted(user, 'design.upload'):
         return False
     if not user or not user.is_authenticated or not user.is_active:
         return False
@@ -1259,8 +1259,8 @@ def car_details(request):
         'can_manage_catalog': can_manage_catalog,
         'can_manage_design_assets': can_user_manage_design_assets(request.user),
         'can_delete_design_assets': _can_delete_design_assets(request.user),
-        'can_upload_reference_images': _can_upload_reference_images(request.user),
-        'can_upload_3d_designs': _can_upload_3d_designs(request.user),
+        'can_upload_reference_images': _can_upload_reference_images(request.user, check_activity=False),
+        'can_upload_3d_designs': _can_upload_3d_designs(request.user, check_activity=False),
         'can_approve_designs': _can_approve_design_assets(request.user),
         'is_designer': is_designer_user,
         'user_approval_role': user_approval_role,
@@ -2398,7 +2398,8 @@ def _design_gallery_snapshot(user, vehicle_id, user_info):
         review_count=Count('approval_requests'),
     ).order_by('pk')
     prof = getattr(user, 'workflow_profile', None)
-    scope = [user.pk, vehicle_id, user_info, getattr(prof, 'preferred_language', ''), getattr(prof, 'timezone', '')]
+    from .services.activity_sync import access_snapshot
+    scope = [user.pk, vehicle_id, user_info, access_snapshot(user)['version'], getattr(prof, 'preferred_language', ''), getattr(prof, 'timezone', '')]
     scope = json.dumps(scope, default=str, sort_keys=True)
     manifest = {str(row['pk']): salted_hmac('fabro.gallery.file', scope + json.dumps(
         row, default=str, sort_keys=True), algorithm='sha256').hexdigest() for row in rows}
@@ -3399,11 +3400,9 @@ def design_approval_detail(request, image_id):
                 'thumbnail': reverse('design_comparison_file', args=[image.pk]) + ('?thumbnail=1' if image.thumbnail else ''),
             })
 
-    permitted_decision = activity_granted(user, 'design_approval.approve') or activity_granted(user, 'design_approval.reject')
-    can_review_cad = can_review_cad and permitted_decision
-    can_review_ed = can_review_ed and permitted_decision
-    can_review_md = can_review_md and permitted_decision
-    can_resubmit = can_resubmit and activity_granted(user, 'design.resubmit_own' if design_image.uploaded_by_id == user.pk else 'design.resubmit_all')
+    # Render business-eligible form shells so live feature grants can reveal the
+    # existing actions without replacing unsaved text/voice drafts. Each action
+    # is hidden declaratively and independently authorized on submission.
     review_stages = []
     for role, allowed in (('cad', can_review_cad), ('ed', can_review_ed), ('md', can_review_md)):
         review_stages.append({
@@ -4442,8 +4441,8 @@ def complaint_list(request):
     for complaint in page_obj.object_list:
         if not activity_granted(request.user, 'complaint.media_view'):
             complaint._prefetched_objects_cache['media_files'] = ComplaintMedia.objects.none()
-        complaint.can_edit = can_user_edit_report_step(request.user, complaint) and activity_granted(request.user, 'complaint.edit')
-        complaint.can_delete = is_workflow_admin(request.user) and activity_granted(request.user, 'complaint.delete')
+        complaint.can_edit = can_user_edit_report_step(request.user, complaint)
+        complaint.can_delete = is_workflow_admin(request.user)
         complaint.can_factory_review = (
             can_user_review_factory_step(request.user, complaint)
             and can_start_factory_review(complaint)
@@ -6427,8 +6426,15 @@ def admin_control_tower(request):
 @never_cache
 @require_GET
 def user_activity_state(request):
-    from .services.activity_permissions import REGISTRY
-    return JsonResponse({'permissions': {key: activity_granted(request.user, key) for key in REGISTRY}})
+    from .services.activity_sync import access_snapshot, page_allowed
+    data = access_snapshot(request.user)
+    data['type'] = 'activity_access'
+    data['page_allowed'] = page_allowed(request, request.GET.get('page', '/profile/'))
+    if request.GET.get('version') == data['version']:
+        data.pop('permissions')
+    response = JsonResponse(data)
+    response['Cache-Control'] = 'private, no-store'
+    return response
 
 
 @user_passes_test(is_workflow_admin)

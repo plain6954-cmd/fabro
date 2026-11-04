@@ -42,6 +42,20 @@
         galleryLoading: false,
     };
     let gallerySync = null;
+    let accessRefreshPending = false;
+    function refreshAccess(force = false) {
+        if (!state.vehicleId || state.galleryLoading && !force) return;
+        load3DDesignWorkspace(state.vehicleId).then(success => { accessRefreshPending = !success; });
+    }
+    document.addEventListener('fabro:access-changed', () => {
+        if (!state.vehicleId) return;
+        // Reuse authorized manifests for own/all and protected-workflow state.
+        // Existing loader retains open review drafts and guards stale responses.
+        document.querySelectorAll('.tiny-pic-delete-btn, .tile-delete-x-btn, .btn-tile-delete').forEach(node => { node.hidden = true; });
+        accessRefreshPending = true;
+        refreshAccess(true);
+    }, {signal: eventController.signal});
+    document.addEventListener('fabro:access-revalidated', () => { if (accessRefreshPending) refreshAccess(); }, {signal: eventController.signal});
 
     function getCsrfToken() {
         const el = document.querySelector('#designOptionsGlobalCsrf [name=csrfmiddlewaretoken]')
@@ -761,6 +775,7 @@
         const nodes = tiles.map(({ key, html }) => {
             const previous = state.renderedTiles.get(key);
             let node = previous?.node;
+            if (node && previous.html === html) node.querySelectorAll('.tile-delete-x-btn, .btn-tile-delete').forEach(button => { button.hidden = false; });
             if (!node || previous.html !== html) {
                 const template = document.createElement('template');
                 template.innerHTML = html.trim();

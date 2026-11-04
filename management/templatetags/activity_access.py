@@ -4,10 +4,17 @@ from management.services.activity_permissions import granted
 register = template.Library()
 
 @register.simple_tag(takes_context=True)
+def activity_any_attrs(context, *keys):
+    value = ' '.join(keys)
+    if any(granted(context['request'].user, key) for key in keys):
+        return format_html('data-activity-any="{}"', value)
+    return format_html('data-activity-any="{}" hidden aria-hidden="true" data-activity-denied="true"', value)
+
+@register.simple_tag(takes_context=True)
 def activity_attrs(context, key):
     if granted(context['request'].user, key):
         return format_html('data-activity="{}"', key)
-    return format_html('data-activity="{}" hidden disabled aria-hidden="true" data-activity-disabled-by-gate="true"', key)
+    return format_html('data-activity="{}" hidden disabled aria-hidden="true" data-activity-denied="true" data-activity-disabled-by-gate="true"', key)
 
 
 @register.simple_tag(takes_context=True)
@@ -21,4 +28,4 @@ def file_activity_attrs(context, image, action):
     value = ' '.join(keys)
     if scoped(user, resource, action, image.uploaded_by_id):
         return format_html('data-activity-any="{}"', value)
-    return format_html('data-activity-any="{}" hidden disabled data-activity-disabled-by-gate="true"', value)
+    return format_html('data-activity-any="{}" hidden disabled data-activity-denied="true" data-activity-disabled-by-gate="true"', value)

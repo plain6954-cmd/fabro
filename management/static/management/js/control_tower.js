@@ -61,6 +61,7 @@
             if (!controller.signal.aborted) for (const [host, html] of pending) apply(host, html);
         }), {signal: controller.signal});
         window.addEventListener('focus', refresh, {signal: controller.signal});
+        document.addEventListener('fabro:access-changed', refresh, {signal: controller.signal});
         window.addEventListener('pagehide', owner.dispose, {once: true, signal: controller.signal});
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, {once: true});

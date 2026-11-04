@@ -38,6 +38,50 @@
         const approvalEntries = new Map();
         let currentApproval = null;
         let manifest = null, request = null, openToken = 0, restore = null, opener = null, activeSide = 'upload';
+        scope.listen(document, 'fabro:access-changed', async event => {
+            if (!dialog.open || !manifest) return;
+            const token = openToken, id = manifest.selected_id;
+            try {
+                const response = await fetch(`/api/design-images/${id}/comparison/`, {credentials: 'same-origin', cache: 'no-store', signal: scope.signal});
+                if (token !== openToken || !dialog.open || event.detail.version !== window.fabroActivityAccess?.version) return;
+                if (!response.ok || response.redirected) {
+                    for (const p of Object.values(panels)) { clearPanel(p); p.model = new ComparisonPanelState(); carousel(p); }
+                    for (const entry of approvalEntries.values()) entry.host.hidden = true;
+                    notice.textContent = 'Comparison access changed. Select an authorized file to continue.'; notice.hidden = false; return;
+                }
+                const fresh = await response.json();
+                if (token !== openToken || !dialog.open || event.detail.version !== window.fabroActivityAccess?.version) return;
+                manifest = fresh;
+                for (const [side, files] of [['reference', fresh.references], ['upload', fresh.uploads]]) {
+                    const p = panels[side], selected = p.model.current()?.id;
+                    p.model.files = files; p.model.index = files.findIndex(file => file.id === selected);
+                    if (p.model.index < 0) { p.model.select(0); loadPanel(p); }
+                    carousel(p);
+                }
+                // Unsaved text and voice drafts remain mounted. Declarative gates
+                // revoke their actions; clean forms can be safely reauthorized.
+                for (const [key, entry] of approvalEntries) {
+                    if (!dirty(entry) && !entry.submitting) { entry.scope.dispose(); entry.host.remove(); approvalEntries.delete(key); }
+                    else if (['design.history', 'design_approval.history'].some(name => event.detail.permissions[name] !== event.detail.previous[name])) {
+                        // Reauthorize recorded content without replacing draft forms.
+                        const historyResponse = await fetch(entry.url, {credentials: 'same-origin', cache: 'no-store', signal: entry.scope.signal});
+                        if (!historyResponse.ok || historyResponse.redirected || token !== openToken) continue;
+                        const source = new DOMParser().parseFromString(await historyResponse.text(), 'text/html');
+                        if (event.detail.version !== window.fabroActivityAccess?.version) continue;
+                        const history = source.querySelector('.workspace-history'), old = entry.root.querySelector('.workspace-history');
+                        if (old) entry.voice?.stopPlaybackWithin(old);
+                        if (history) { if (old) old.replaceWith(history); else entry.root.querySelector('.comparison-approval-document').append(history); populateVoice(entry, history, source); }
+                        else old?.remove();
+                        entry.root.querySelectorAll('[data-recorded-review]').forEach(record => {
+                            const next = source.querySelector(`[data-recorded-review="${record.dataset.recordedReview}"]`);
+                            if (!next) return;
+                            entry.voice?.stopPlaybackWithin(record); record.replaceChildren(...Array.from(next.childNodes)); populateVoice(entry, record, source);
+                        });
+                    }
+                }
+                await updateApproval(); metadata(); window.fabroActivityAccess?.apply();
+            } catch (_) { /* Offline: retain drafts; every eventual POST is authorized. */ }
+        });
         function node(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
         function privateUrl(file, key = 'url') {
             const url = new URL(file[key], location.origin);
@@ -225,9 +269,13 @@
                 });
                 const openCycles = new Set(Array.from(entry.root.querySelectorAll('[data-history-cycle][open]'), item => item.dataset.historyCycle));
                 const history = freshRoot.querySelector('.workspace-history');
-                history.querySelectorAll('[data-history-cycle]').forEach(item => { if (openCycles.has(item.dataset.historyCycle)) item.open = true; });
-                entry.voice?.stopPlaybackWithin(entry.root.querySelector('.workspace-history'));
-                entry.root.querySelector('.workspace-history').replaceWith(history); populateVoice(entry, history, fresh);
+                const oldHistory = entry.root.querySelector('.workspace-history');
+                if (oldHistory) entry.voice?.stopPlaybackWithin(oldHistory);
+                if (history) {
+                    history.querySelectorAll('[data-history-cycle]').forEach(item => { if (openCycles.has(item.dataset.historyCycle)) item.open = true; });
+                    if (oldHistory) oldHistory.replaceWith(history); else entry.root.querySelector('.comparison-approval-document').append(history);
+                    populateVoice(entry, history, fresh);
+                } else oldHistory?.remove();
                 entry.root.querySelector('#design-review-voice-notes').textContent = fresh.querySelector('#design-review-voice-notes').textContent;
                 feedback(entry, fresh.querySelector('[data-review-feedback*="success"]')?.textContent || 'Your review decision has been recorded.', 'success');
                 approvalPanel.scrollTop = 0;

@@ -28,8 +28,10 @@ function harness(initial) {
         }),
         fabroReviewVoice: {suspendWithin: panel => suspended.push(panel.dataset.reviewPanel)},
     };
+    const document = new EventTarget();
+    Object.assign(document, {querySelector: () => root, querySelectorAll: () => [], getElementById: () => null});
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../management/static/management/js/design_review.js'), 'utf8'), {
-        window, document: {querySelector: () => root, querySelectorAll: () => [], getElementById: () => null},
+        window, document,
         cancelAnimationFrame() {},
     });
     function key(role, value) {

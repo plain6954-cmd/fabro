@@ -38,6 +38,7 @@
                 {% if latest_approval.cad_status == 'skipped_uploader' %}
                     <p>{% translate "No review decision required for the uploader's stage." %}</p>
                 {% elif latest_approval.cad_status != 'pending' %}
+                    <div data-recorded-review="CAD" data-activity-all="design.history design_approval.history">
                     <div>
                         {% translate "Reviewed by" %} <strong>{{ latest_approval.cad_reviewer.username|default:"CAD Reviewer" }}</strong>
                         {% if latest_approval.cad_decided_at %}• {{ latest_approval.cad_decided_at|date:"M d, Y H:i" }}{% endif %}
@@ -47,10 +48,11 @@
                     </div>
                     <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="CAD"></div>
                     {% if latest_approval.cad_change_type %}<small>{{ latest_approval.cad_change_type|title }} {% translate "Change" %}</small>{% endif %}
+                    </div>
                 {% else %}
                     <!-- CAD Review Action Form (Visible to CAD approver only) -->
                     {% if can_review_as_cad %}
-                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="cadReviewForm">
+                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="cadReviewForm" {% activity_any_attrs 'design_approval.approve' 'design_approval.reject' %}>
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
                         <input type="hidden" name="stage" value="cad">
@@ -113,6 +115,7 @@
                 {% if latest_approval.ed_status == 'skipped_uploader' %}
                     <p>{% translate "No review decision required for the uploader's stage." %}</p>
                 {% elif latest_approval.ed_status != 'pending' %}
+                    <div data-recorded-review="ED" data-activity-all="design.history design_approval.history">
                     <div>
                         {% translate "Reviewed by" %} <strong>{{ latest_approval.ed_reviewer.username|default:"ED Reviewer" }}</strong>
                         {% if latest_approval.ed_decided_at %}• {{ latest_approval.ed_decided_at|date:"M d, Y H:i" }}{% endif %}
@@ -122,10 +125,11 @@
                     </div>
                     <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="ED"></div>
                     {% if latest_approval.ed_change_type %}<small>{{ latest_approval.ed_change_type|title }} {% translate "Change" %}</small>{% endif %}
+                    </div>
                 {% else %}
                     <!-- ED Review Action Form (Visible to ED approver only) -->
                     {% if can_review_as_ed %}
-                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="edReviewForm">
+                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="edReviewForm" {% activity_any_attrs 'design_approval.approve' 'design_approval.reject' %}>
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
                         <input type="hidden" name="stage" value="ed">
@@ -165,11 +169,13 @@
                 {% if latest_approval.md_status == 'skipped_uploader' %}
                     <p>{% translate "No review decision required for the uploader's stage." %}</p>
                 {% elif latest_approval.md_decided_at %}
+                    <div data-recorded-review="MD" data-activity-all="design.history design_approval.history">
                     <p>{{ latest_approval.md_reviewer.username }} · {{ latest_approval.md_decided_at|date:"M d, Y H:i" }}{% if latest_approval.md_change_type %} · {{ latest_approval.md_change_type|title }} {% translate "Change" %}{% endif %}</p>
                     <p>{{ latest_approval.md_comment|default:"No comment provided." }}</p>
                     <div class="review-voice-history" data-review-voice-history data-approval-cycle="{{ latest_approval.cycle }}" data-review-stage="MD"></div>
+                    </div>
                 {% elif can_review_as_md %}
-                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="mdReviewForm">
+                    <form class="review-decision-form" method="POST" enctype="multipart/form-data" id="mdReviewForm" {% activity_any_attrs 'design_approval.approve' 'design_approval.reject' %}>
                         {% csrf_token %}
                         <input type="hidden" name="action" value="review">
                         <input type="hidden" name="stage" value="md">

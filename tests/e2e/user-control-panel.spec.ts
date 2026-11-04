@@ -175,7 +175,9 @@ test('denied navigation and review controls stay hidden and direct calls fail',a
     const details=page.locator('a[href*="/design-approvals/"]').filter({hasText:/View Details/}).first();
     await details.click();
     await expect(page.locator('.design-review-page')).toBeVisible();
-    await expect(page.locator('.review-decision-form')).toHaveCount(0);
+    // Live grants reuse a retained, inaccessible business-eligible shell.
+    await expect(page.locator('.review-decision-form:visible')).toHaveCount(0);
+    await expect(page.locator('.review-decision-form button[type="submit"]:visible')).toHaveCount(0);
     const id=new URL(page.url()).pathname.split('/').filter(Boolean).pop();
     const csrf=(await page.context().cookies()).find(cookie=>cookie.name==='csrftoken')!.value;
     expect((await page.request.post(`/api/design-images/${id}/approve/`,{headers:{'X-CSRFToken':csrf},data:{stage:'cad',change_type:'minor'}})).status()).toBe(403);

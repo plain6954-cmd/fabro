@@ -268,6 +268,10 @@ window.fabroInitReviewVoice = function (root, scope) {
         },
     };
     if (root === document) window.fabroReviewVoice = api;
+    scope.listen(document, 'fabro:access-changed', event => {
+        if (['design.history', 'design_approval.history', 'design_approval.voice'].some(key => event.detail.previous[key] && !event.detail.permissions[key])) stopPlaybackWithin(root);
+        if (!event.detail.permissions['design_approval.voice']) api.suspendWithin(root);
+    });
     const notes = JSON.parse(root.querySelector('#design-review-voice-notes')?.textContent || '[]');
     root.querySelectorAll('[data-review-voice-history]').forEach(host => appendBubbles(host,
         notes.filter(note => String(note.cycle) === host.dataset.approvalCycle && (!host.dataset.reviewStage || note.stage === host.dataset.reviewStage))));

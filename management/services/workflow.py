@@ -1,7 +1,10 @@
+import logging
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 from management.models import (
     ApprovalRoles,

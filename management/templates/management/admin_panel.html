@@ -16,12 +16,13 @@
     <link rel="stylesheet" href="{% static 'management/css/admin-panel.css' %}?v=20260923-pagination2">
     <link rel="stylesheet" href="{% static 'management/css/control_tower.css' %}?v=20261104">
     <script src="{% static 'management/js/gallery_sync.js' %}?v=20261104-interval" defer></script>
-    <script src="{% static 'management/js/control_tower.js' %}?v=20261104" defer></script>
+    <script src="{% static 'management/js/control_tower.js' %}?v=20261104-live" defer></script>
     <link rel="stylesheet" href="{% static 'management/css/user_control_panel.css' %}?v=20261104">
     <script src="{% static 'management/js/user_control_panel.js' %}?v=20261104" defer></script>
 {{ activity_data|json_script:'fabro-activity-data' }}
-<script src="{% static 'management/js/activity_ui.js' %}?v=20261104" defer></script>
-<style>[data-activity][hidden], [data-activity-any][hidden] { display: none !important; }</style>
+{{ activity_sync|json_script:'fabro-activity-sync' }}
+<script src="{% static 'management/js/activity_ui.js' %}?v=20261104-live" defer></script>
+<style>[data-activity][hidden], [data-activity-any][hidden], [data-activity-all][hidden] { display: none !important; }</style>
 </head>
 <body>
 
@@ -118,7 +119,7 @@
             <!-- ========================================================
                  TAB 1: DEFAULT MINIMAL DASHBOARD
                  ======================================================== -->
-            <div id="tab-dashboard" class="erp-tab-pane active">
+            <div id="tab-dashboard" class="erp-tab-pane active" {% activity_attrs 'erp.control_tower' %}>
                 <div class="erp-dashboard-pane">
 
                     <!-- 6 Essential Metric Tiles -->
@@ -190,7 +191,7 @@
             <!-- ========================================================
                  TAB 2: USERS DIRECTORY (Kanban & List with Faceted Filter)
                  ======================================================== -->
-            <div id="tab-users" class="erp-tab-pane">
+            <div id="tab-users" class="erp-tab-pane" {% activity_attrs 'users.manage' %}>
 
                 <!-- Action Subheader -->
                 <div class="erp-action-subheader">
@@ -585,7 +586,7 @@
             <!-- ========================================================
                  TAB 6: ACTIVE SESSIONS
                  ======================================================== -->
-            <div id="tab-sessions" class="erp-tab-pane">
+            <div id="tab-sessions" class="erp-tab-pane" data-access-fragment="admin-sessions" data-access-keys="erp.sessions_view erp.sessions_terminate" {% activity_attrs 'erp.sessions_view' %}>
                 <div class="erp-action-subheader">
                     <span class="erp-module-title"><i class="fas fa-network-wired" style="color: #f778ba;"></i> {% blocktranslate with count=active_sessions_count %}Live Active User Sessions ({{ count }}){% endblocktranslate %}</span>
                     {% if active_sessions|length > 1 %}
@@ -642,7 +643,7 @@
             <!-- ========================================================
                  TAB 7: ACTIVITY LOGS
                  ======================================================== -->
-            <div id="tab-logs" class="erp-tab-pane">
+            <div id="tab-logs" class="erp-tab-pane" {% activity_attrs 'reports.activity' %}>
                 <div class="erp-action-subheader">
                     <span class="erp-module-title"><i class="fas fa-history" style="color: #e63946;"></i> {% translate "Audit & Activity Logs" %}</span>
                 </div>

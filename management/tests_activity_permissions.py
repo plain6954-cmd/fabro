@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import connection
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 from django.urls import reverse, get_resolver
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
@@ -455,3 +456,79 @@ class ActivityPermissionTests(TestCase):
         self.assertEqual(self.client.post(reverse('delete_design_image_api', args=[visible.pk])).status_code, 403)
         self.assertTrue(PatternDesignImage.objects.filter(pk=hidden.pk).exists())
         self.assertTrue(PatternDesignImage.objects.filter(pk=visible.pk).exists())
+
+    def test_live_snapshot_is_private_compact_and_detects_next_request_revocation(self):
+        self.client.force_login(self.designer)
+        url = reverse('user_activity_state')
+        first = self.client.get(url).json()
+        self.assertEqual(first['user_id'], self.designer.pk)
+        self.assertEqual(first['type'], 'activity_access')
+        self.assertTrue(first['permissions']['chat.send'])
+        unchanged = self.client.get(url, {'version': first['version']})
+        self.assertNotIn('permissions', unchanged.json())
+        self.assertIn('no-store', unchanged['Cache-Control'])
+        self.override(self.designer, {'chat.send': 'deny'})
+        changed = self.client.get(url, {'version': first['version'], 'user_id': self.admin.pk}).json()
+        self.assertNotEqual(first['version'], changed['version'])
+        self.assertEqual(changed['user_id'], self.designer.pk)
+        self.assertFalse(changed['permissions']['chat.send'])
+        self.assertEqual(self.client.post('/api/chat/send/').status_code, 403)
+
+    def test_live_token_tracks_role_defaults_groups_and_business_scope(self):
+        from management.services.activity_sync import access_snapshot
+        def current():
+            return access_snapshot(User.objects.get(pk=self.designer.pk))['version']
+        before = current()
+        with override_settings(ACTIVITY_ROLE_DEFAULTS={R.FREELANCE_3D_DESIGNER: {'chat.send': False}}):
+            self.assertNotEqual(before, current())
+        self.assertEqual(before, current())
+        self.designer.groups.add(self.group)
+        grouped = current()
+        self.assertNotEqual(before, grouped)
+        self.designer.workflow_profile.department = 'Not an authorization field'
+        self.designer.workflow_profile.save(update_fields=['department'])
+        self.assertEqual(grouped, current())
+
+    def test_rolled_back_changes_do_not_publish_a_different_snapshot(self):
+        from django.db import transaction
+        from management.services.activity_sync import access_snapshot
+        before = access_snapshot(User.objects.get(pk=self.designer.pk))['version']
+        with transaction.atomic():
+            type(self.designer.workflow_profile).objects.filter(user=self.designer).update(activity_permissions={'chat.send': 'deny'})
+            transaction.set_rollback(True)
+        self.assertEqual(before, access_snapshot(User.objects.get(pk=self.designer.pk))['version'])
+
+    def test_live_page_revocation_and_anonymous_session_do_not_expose_permissions(self):
+        self.client.force_login(self.designer)
+        self.override(self.designer, {'chat.view': 'deny'})
+        response = self.client.get(reverse('user_activity_state'), {'page': '/chat/'})
+        self.assertFalse(response.json()['page_allowed'])
+        self.assertTrue(self.client.get(reverse('user_activity_state'), {'page': '/profile/'}).json()['page_allowed'])
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('user_activity_state')).status_code, 302)
+
+    def test_live_grants_do_not_make_submitted_or_foreign_reference_files_deletable(self):
+        self.designer.groups.add(self.group)
+        own = self.image(is_reference=True)
+        foreign = self.image(is_reference=True, uploaded_by=self.other)
+        protected = self.image(is_reference=True, approved_at=timezone.now())
+        self.override(self.designer, {'reference.delete_all': 'deny'})
+        self.client.force_login(self.designer)
+        payload = self.client.get(reverse('get_design_folders_api'), {'vehicle_id': self.vehicle.pk}).json()
+        images = {entry['id']: entry for entry in payload['reference_images']}
+        self.assertTrue(images[own.pk]['can_delete'])
+        self.assertFalse(images.get(foreign.pk, {}).get('can_delete', False))
+        self.assertFalse(images[protected.pk]['can_delete'])
+
+    def test_live_page_checks_preserve_section_query_and_bound_snapshot_queries(self):
+        from management.services.activity_sync import access_snapshot
+        self.override(self.md, {'users.manage': 'deny'})
+        self.client.force_login(self.md)
+        url = reverse('user_activity_state')
+        self.assertFalse(self.client.get(url, {'page': '/admin_panel/?section=users'}).json()['page_allowed'])
+        self.assertTrue(self.client.get(url, {'page': '/admin_panel/?section=dashboard'}).json()['page_allowed'])
+        self.assertFalse(self.client.get(url, {'page': '//other.example/private/'}).json()['page_allowed'])
+        fresh = User.objects.get(pk=self.designer.pk)
+        with CaptureQueriesContext(connection) as queries:
+            access_snapshot(fresh)
+        self.assertLessEqual(len(queries), 4)

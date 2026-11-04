@@ -58,10 +58,11 @@
             <aside class="review-workspace" aria-label="{% translate 'Review workspace' %}">
                 {% include 'management/includes/design_review_matrix.html' %}
                 {% if can_resubmit %}
-                <section class="review-resubmit review-surface"><h2>{% translate "Revise & Resubmit Design" %}</h2><p>{% translate "Review the feedback and submit an updated design revision for the required reviewers." %}</p>
+                <section class="review-resubmit review-surface" {% file_activity_attrs design_image 'resubmit' %}><h2>{% translate "Revise & Resubmit Design" %}</h2><p>{% translate "Review the feedback and submit an updated design revision for the required reviewers." %}</p>
                     <form method="POST" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="resubmit"><label for="reviewReplacement">{% translate "Upload Revised File (Optional replacement)" %}</label><input id="reviewReplacement" type="file" name="image"><button type="submit" class="review-button">{% translate "Resubmit for Review" %}</button></form>
                 </section>
                 {% endif %}
+                <div data-access-history data-activity-all="design.history design_approval.history">
                 {% if history_cycles %}
                 <details class="review-history review-surface" {% if history_cycles|length > 1 %}open{% endif %}><summary>{% translate "Revision History" %}<span>{{ history_cycles|length }}</span></summary>
                     {% for cycle_item in history_cycles %}<article class="review-history-cycle"><header><strong>{% translate "Revision" %} #{{ cycle_item.cycle }}</strong><time>{{ cycle_item.submitted_at|date:"M d, Y H:i" }}</time></header>
@@ -73,6 +74,7 @@
                     </article>{% endfor %}
                 </details>
                 {% endif %}
+                </div>
             </aside>
         </div>
     </div>
@@ -84,7 +86,7 @@
 {{ design_image.pk|json_script:"review-design-id" }}
 <script src="{% static 'management/js/design_approval_preview.js' %}?v=20261021-gallery-viewer" data-fabro-page-asset></script>
 <script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261103-comparison" data-fabro-page-asset></script>
-<script src="{% static 'management/js/design_review_voice.js' %}?v=20261104-workspace" data-fabro-page-asset></script>
+<script src="{% static 'management/js/design_review_voice.js' %}?v=20261104-live" data-fabro-page-asset></script>
 {% include 'management/includes/design_comparison_assets.html' %}
 </div>
 {% if not is_htmx_request %}</body></html>{% endif %}

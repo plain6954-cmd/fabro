@@ -7,7 +7,7 @@
     <header class="workspace-approval-heading"><span class="workspace-eyebrow">{% translate 'Design review' %}</span><h2>{{ workspace_heading }}</h2><p class="workspace-design-name">{{ design_filename }}</p><span class="review-status {{ review_overall_status }}">{{ review_overall_label }}</span></header>
     <div data-workspace-feedback aria-live="polite">{% for message in messages %}<p role="status" class="workspace-feedback {{ message.tags }}" data-review-feedback="{{ message.tags }}">{{ message }}</p>{% endfor %}</div>
     {% include 'management/includes/design_review_matrix.html' %}
-    {% if activities.design.history and activities.design_approval.history %}<section class="workspace-history" aria-label="{% translate 'Complete Approval History' %}">
+    {% if activities.design.history and activities.design_approval.history %}<section class="workspace-history" data-activity-all="design.history design_approval.history" aria-label="{% translate 'Complete Approval History' %}">
         <h2>{% translate 'Complete Approval History' %}</h2>
         <article class="workspace-upload-event"><span class="workspace-event-dot"></span><strong>{% translate 'Original upload' %}</strong><p>{{ design_image.uploaded_by.username|default:'—' }}</p><time>{{ design_image.uploaded_at|date:'M d, Y H:i' }}</time></article>
         {% for cycle in workspace_cycles %}

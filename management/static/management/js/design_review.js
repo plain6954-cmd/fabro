@@ -4,6 +4,31 @@ window.fabroInitDesignReview = function (root, scope, voice) {
     voice = voice || window.fabroReviewVoice;
     const tabs = Array.from(root.querySelectorAll('[data-review-stage]')).filter(tab => !tab.disabled);
     const panels = Array.from(root.querySelectorAll('[data-review-panel]'));
+    scope.listen(document, 'fabro:access-changed', async event => {
+        const host = root.querySelector('[data-access-history]');
+        if (!host || root.getRootNode() !== document) return;
+        const keys = ['design.history', 'design_approval.history'];
+        if (!keys.some(key => event.detail.permissions[key] !== event.detail.previous[key])) return;
+        voice?.stopPlaybackWithin(host);
+        if (!keys.every(key => event.detail.permissions[key])) { host.replaceChildren(); return; }
+        try {
+            const response = await scope.fetch(location.pathname, {cache: 'no-store', credentials: 'same-origin'});
+            if (!response.ok || response.redirected) return;
+            const fresh = new DOMParser().parseFromString(await response.text(), 'text/html');
+            if (!keys.every(key => window.fabroActivityAllowed(key)) || event.detail.version !== window.fabroActivityAccess?.version) return;
+            const next = fresh.querySelector('[data-access-history]');
+            if (!next) return;
+            host.replaceChildren(...Array.from(next.childNodes));
+            const notes = JSON.parse(fresh.querySelector('#design-review-voice-notes')?.textContent || '[]');
+            host.querySelectorAll('[data-review-voice-history]').forEach(item => voice?.appendBubbles(item, notes.filter(note => String(note.cycle) === item.dataset.approvalCycle)));
+            root.querySelectorAll('[data-recorded-review]').forEach(record => {
+                const source = fresh.querySelector(`[data-recorded-review="${record.dataset.recordedReview}"]`);
+                if (!source) return;
+                voice?.stopPlaybackWithin(record); record.replaceChildren(...Array.from(source.childNodes));
+                record.querySelectorAll('[data-review-voice-history]').forEach(item => voice?.appendBubbles(item, notes.filter(note => String(note.cycle) === item.dataset.approvalCycle && note.stage === item.dataset.reviewStage)));
+            });
+        } catch (_) { /* Reconnection revalidation remains available. */ }
+    });
     function selectStage(role, focus = false) {
         tabs.forEach(tab => {
             const selected = tab.dataset.reviewStage === role;

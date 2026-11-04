@@ -22,6 +22,8 @@ def workflow_access(request):
         return {'is_htmx_request': is_htmx_request}
 
     from .services.activity_permissions import granted, REGISTRY
+    from .services.activity_sync import access_snapshot
+    snapshot = access_snapshot(user)
     activity_map = {}
     for key in REGISTRY:
         category, action = key.split('.', 1)
@@ -76,22 +78,23 @@ def workflow_access(request):
 
     return {
         'activities': activity_map,
-        'activity_data': {key: granted(user, key) for key in REGISTRY},
+        'activity_data': snapshot['permissions'],
+        'activity_sync': {key: snapshot[key] for key in ('user_id', 'version', 'context_version')},
         'is_htmx_request': is_htmx_request,
         'workflow_profile': profile,
         'workflow_role_label': role_label,
-        'can_create_complaint': can_user_create_complaint(user) and granted(user, 'complaint.create'),
-        'can_manage_catalog': can_user_manage_catalog(user) and (granted(user, 'vehicle.create') or granted(user, 'vehicle.edit')),
+        'can_create_complaint': can_user_create_complaint(user),
+        'can_manage_catalog': can_user_manage_catalog(user),
         'can_manage_design_assets': can_user_manage_design_assets(user),
         'can_manage_drive_links': can_user_manage_drive_links(user),
         'is_designer_freelancer': bool(
             profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER
         ),
-        'can_manage_workflow': is_workflow_admin(user) and granted(user, 'erp.view'),
+        'can_manage_workflow': is_workflow_admin(user),
         'is_workflow_approver': bool(
             profile and profile.role == WorkflowRoles.APPROVER
         ),
-        'can_view_approvals': can_view_approvals_flag and (granted(user, 'workflow.view') or granted(user, 'design_approval.view') or granted(user, 'color.history')),
+        'can_view_approvals': can_view_approvals_flag,
         'pending_approvals_count': pending_approvals_count,
         'unread_chat_count': unread_chat_count,
         'current_language': get_language() or 'en',

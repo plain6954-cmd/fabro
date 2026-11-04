@@ -1,6 +1,16 @@
 // FABRO — Pattern Master Measurements Workspace Controller
 (function() {
     let currentVehicleId = null;
+    let accessGeneration = 0;
+    const accessScope = window.fabroCreatePageScope();
+    accessScope.onCleanup(() => { accessGeneration++; currentVehicleId = null; });
+    accessScope.listen(document, 'fabro:access-changed', () => {
+        accessGeneration++;
+        // Never retain stale view/action grants while the server reauthorizes.
+        lastScannedFiles = []; lastInteriorFiles = [];
+        renderScannedFiles([]); renderInteriorMedia([]);
+        if (currentVehicleId) loadMeasurementFiles(currentVehicleId);
+    });
     let availableColors = [];
     let isSubmittingColor = false;
 
@@ -291,10 +301,11 @@
 
     function loadMeasurementFiles(vehicleId) {
         if (!vehicleId) return;
-
+        const generation = accessGeneration;
         fetch(`/api/measurement-files/?vehicle_id=${vehicleId}`)
             .then(r => r.json())
             .then(res => {
+                if (generation !== accessGeneration || vehicleId !== currentVehicleId) return;
                 if (res.status === 'success') {
                     lastScannedFiles = res.scanned_patterns || [];
                     lastInteriorFiles = res.interior_media || [];

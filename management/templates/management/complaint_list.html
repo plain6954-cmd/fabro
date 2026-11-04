@@ -330,7 +330,7 @@
                                         <i class="fas fa-comment-dots"></i>
                                     </button>
                                     {% if complaint.can_edit %}
-                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="{% translate "Edit" %}" aria-label="Edit complaint {{ complaint.complaint_id }}" {% activity_attrs 'complaint.view' %}>
+                                    <a href="{% url 'edit_complaint' complaint.complaint_id %}" class="action-btn edit" title="{% translate "Edit" %}" aria-label="Edit complaint {{ complaint.complaint_id }}" {% activity_attrs 'complaint.edit' %}>
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% endif %}
