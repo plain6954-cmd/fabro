@@ -674,11 +674,11 @@
             const canPreview = isImage || isPdf;
 
             // Status Badge Overlay
+            const universalApproved = file.cad?.status === 'approved'
+                && (file.ed?.status === 'approved' || file.md?.status === 'approved');
             let statusPill = '';
-            if (isApproved) {
+            if (universalApproved) {
                 statusPill = `<span id="design3DStatus${file.id}" class="stepper-badge tile-overall-status approved" onclick="event.stopPropagation()"><i class="fas fa-check-circle" aria-hidden="true"></i> Approved</span>`;
-            } else if (isRejected) {
-                statusPill = `<span id="design3DStatus${file.id}" class="stepper-badge tile-overall-status rejected" onclick="event.stopPropagation()"><i class="fas fa-times-circle" aria-hidden="true"></i> Rejected</span>`;
             } else {
                 statusPill = `<span id="design3DStatus${file.id}" class="stepper-badge tile-overall-status pending" onclick="event.stopPropagation()"><i class="far fa-clock" aria-hidden="true"></i> Pending</span>`;
             }
