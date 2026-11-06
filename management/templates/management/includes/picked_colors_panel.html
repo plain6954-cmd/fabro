@@ -1,0 +1,5 @@
+{% load i18n activity_access %}
+<section class="measurement-panel" id="panelPickedColors" {% activity_attrs 'picked_colors.view' %}>
+  <header class="measurement-panel-header"><div class="panel-header-left"><span class="panel-number-badge">4</span><h3 class="measurement-panel-title">{% translate 'Picked Colors' %}</h3></div><span id="pickedColorsCount">0</span></header>
+  <div class="measurement-panel-body"><p id="pickedColorsFeedback" role="status" aria-live="polite"></p><div id="pickedColorsList" class="picked-colors-list"></div></div>
+</section>

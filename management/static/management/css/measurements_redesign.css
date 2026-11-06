@@ -18,6 +18,50 @@
     --fabro-active-nav-bg: #381A20;
 }
 
+/* Measurements: compact uploads, independent thumbnail strips and saved colors. */
+.measurements-grid > .measurement-panel { min-width: 0; }
+.measurement-upload-panel .measurement-panel-header { gap: .65rem; }
+.measurement-upload-actions { display:flex; align-items:center; gap:.75rem; margin-left:auto; }
+.measurement-upload-panel .measurement-panel-body { padding:.75rem; gap:.55rem; }
+.measurement-upload-progress { height:3px; background:var(--fabro-red); width:0; }
+.measurement-upload-panel .measurement-thumb-strip { display:flex; flex-direction:row; flex-wrap:nowrap; gap:.6rem; overflow-x:auto; overflow-y:hidden; min-height:112px; max-height:145px; padding:.2rem 0 .5rem; scroll-snap-type:x proximity; overscroll-behavior-x:contain; }
+#btnCancelPickedEdit[hidden] { display:none; }
+.measurement-thumb { width:116px; flex:0 0 116px; min-width:0; scroll-snap-align:start; }
+.measurement-thumb-preview { display:flex; width:100%; height:75px; align-items:center; justify-content:center; padding:0; color:var(--fabro-text-secondary); background:var(--fabro-workspace); border:1px solid var(--fabro-border); border-radius:7px; cursor:pointer; overflow:hidden; }
+.measurement-thumb-preview img { width:100%; height:100%; object-fit:contain; }
+.measurement-thumb-preview i { font-size:1.55rem; }
+.measurement-thumb-name { display:block; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:.2rem 0; }
+.measurement-thumb-actions { display:flex; gap:.5rem; font-size:.7rem; align-items:center; }
+.measurement-thumb-actions button { padding:0; background:transparent; color:var(--fabro-red); border:0; cursor:pointer; }
+.measurement-thumb-strip .panel-empty-state { padding:.65rem; min-height:0; font-size:.8rem; margin:auto; }
+.picked-colors-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:.7rem; }
+.picked-color-tile { display:flex; gap:.65rem; padding:.75rem; border:1px solid var(--fabro-border); border-radius:9px; min-width:0; background:var(--fabro-card); }
+.picked-color-swatch { width:52px; height:65px; border-radius:7px; flex:none; border:1px solid var(--fabro-border); }
+.picked-color-details { min-width:0; flex:1; font-size:.78rem; overflow-wrap:anywhere; }
+.picked-color-details p { margin:.3rem 0; white-space:pre-wrap; }
+.picked-color-details small { color:var(--fabro-text-secondary); display:block; }
+.picked-color-actions { display:flex; gap:.5rem; margin-top:.45rem; }
+.picked-color-actions button { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; width:auto; height:auto; min-width:0; white-space:nowrap; overflow-wrap:normal; padding:.35rem .5rem; border:1px solid var(--fabro-border); border-radius:6px; background:var(--fabro-workspace); color:var(--fabro-text-primary); font-size:.72rem; line-height:1.3; cursor:pointer; }
+.picked-color-actions button[data-picked-action="delete"] { background:var(--fabro-red); border-color:var(--fabro-red); color:#fff; }
+.picked-color-actions button:focus-visible { outline:2px solid var(--fabro-red); outline-offset:2px; }
+.measurement-thumb-actions a { color:var(--fabro-text-secondary); }
+.measurement-upload-panel .panel-files-header > span { white-space:nowrap; font-size:.75rem; }
+.measurement-upload-panel .panel-files-header select { width:auto; max-width:50%; font-size:.75rem; padding:.3rem .5rem; }
+.measurement-thumb-strip:has(.panel-empty-state) { min-height:44px; }
+.measurement-upload-actions .supported-formats-wrapper:focus .supported-formats-popover { visibility:visible; opacity:1; }
+@media(max-width:700px) { #patternMeasurementsWorkspace #patternColorStatusCard { flex-direction:column; align-items:stretch; } #patternMeasurementsWorkspace .color-approval-status-left { width:100%; min-width:0; } #patternMeasurementsWorkspace .color-approval-status-text { min-width:0; flex:1; } }
+#pickedColorsFeedback:empty, #pickedEditNotice:empty { display:none; }
+.measurement-file-viewer { margin:auto; width:min(94vw,1400px); height:min(92dvh,1050px); max-height:92dvh; max-width:94vw; padding:1rem; box-sizing:border-box; color:var(--fabro-text-primary); background:var(--fabro-page-bg); border:1px solid var(--fabro-border); border-radius:12px; overflow:hidden; }
+.measurement-file-viewer[open] { display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:.75rem; }
+.measurement-file-viewer::backdrop { background:rgba(0,0,0,.85); }
+.measurement-file-viewer header, .measurement-file-viewer footer { display:flex; justify-content:space-between; align-items:center; gap:.6rem; min-width:0; }
+.measurement-file-viewer h2 { font-size:1rem; margin:0; overflow-wrap:anywhere; }
+.measurement-file-viewer p { font-size:.76rem; color:var(--fabro-text-secondary); margin:.3rem 0; }
+.measurement-preview-content { min-height:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.measurement-preview-content img, .measurement-preview-content video { display:block; width:100%; height:100%; object-fit:contain; }
+.measurement-thumb-preview:focus-visible, .measurement-thumb-strip:focus-visible { outline:2px solid var(--fabro-red); outline-offset:2px; }
+@media(max-width:700px) { .measurement-file-viewer { width:96vw; max-width:96vw; height:90dvh; padding:.6rem; } }
+
 /* --------------------------------------------------------------------------
    Phase 8 — Slide-In Drawer & Backdrop Animation
    -------------------------------------------------------------------------- */
@@ -439,12 +483,12 @@ body.fabro-drawer-open {
    -------------------------------------------------------------------------- */
 .measurements-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
     align-items: stretch;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 700px) {
     .measurements-grid {
         grid-template-columns: 1fr;
     }
@@ -2478,7 +2522,7 @@ body.is-design-tab::before {
 }
 
 /* Shared compact upload action throughout the 3D Design workspace. */
-#pattern3DDesignWorkspace .design-upload-icon {
+:is(#pattern3DDesignWorkspace, #patternMeasurementsWorkspace) .design-upload-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2502,17 +2546,17 @@ body.is-design-tab::before {
     transition: background-color 175ms ease, transform 175ms ease, box-shadow 175ms ease;
 }
 
-#pattern3DDesignWorkspace .design-upload-icon:hover {
+:is(#pattern3DDesignWorkspace, #patternMeasurementsWorkspace) .design-upload-icon:hover {
     background: var(--fabro-red-hover);
     box-shadow: 0 3px 10px var(--fabro-red-glow);
     transform: translateY(-1px);
 }
 
-#pattern3DDesignWorkspace .design-upload-icon:active { transform: scale(0.96); }
-#pattern3DDesignWorkspace .design-upload-icon:focus-visible { outline: 2px solid var(--fabro-text-primary); outline-offset: 3px; }
+:is(#pattern3DDesignWorkspace, #patternMeasurementsWorkspace) .design-upload-icon:active { transform: scale(0.96); }
+:is(#pattern3DDesignWorkspace, #patternMeasurementsWorkspace) .design-upload-icon:focus-visible { outline: 2px solid var(--fabro-text-primary); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
-    #pattern3DDesignWorkspace .design-upload-icon { transition: none; }
+    :is(#pattern3DDesignWorkspace, #patternMeasurementsWorkspace) .design-upload-icon { transition: none; }
 }
 
 #pattern3DDesignWorkspace .design-files-controls-bar {

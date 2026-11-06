@@ -13,7 +13,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261104-upload-buttons" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261106-picked-colors" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_review_voice.css' %}?v=20261031" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_review_drawer.css' %}?v=20261101" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_approval_preview.css' %}?v=20261021-gallery-viewer" data-fabro-page-asset>
@@ -2471,158 +2471,7 @@
                             </div>
 
                             <div class="measurements-grid">
-                                <!-- PANEL 1: Scanned Patterns & Data -->
-                                <div class="measurement-panel" id="panelScannedPatterns">
-                                    <div class="measurement-panel-header">
-                                        <div class="panel-header-left">
-                                            <span class="panel-number-badge badge-red">1</span>
-                                            <i class="fas fa-file-lines panel-header-icon"></i>
-                                            <h3 class="measurement-panel-title">{% translate "Scanned Patterns & Data" %}</h3>
-                                        </div>
-                                        <div class="supported-formats-wrapper">
-                                            <div class="btn-supported-formats" tabindex="0">
-                                                <i class="fas fa-info-circle"></i>
-                                                <span>{% translate "Supported Formats" %}</span>
-                                            </div>
-                                            <div class="supported-formats-popover">
-                                                <div class="formats-popover-title">
-                                                    <i class="fas fa-file-lines" style="color: #38bdf8;"></i>
-                                                    <span>{% translate "Pattern Files" %}</span>
-                                                </div>
-                                                <div class="formats-popover-row">
-                                                    <span class="formats-label">{% translate "Formats" %}:</span>
-                                                    <span class="formats-chips">
-                                                        <span class="format-chip">DXF</span>
-                                                        <span class="format-chip">PDF</span>
-                                                        <span class="format-chip">JPG</span>
-                                                        <span class="format-chip">PNG</span>
-                                                        <span class="format-chip">HEIC</span>
-                                                        <span class="format-chip">WEBP</span>
-                                                    </span>
-                                                </div>
-                                                <div class="formats-popover-row">
-                                                    <span class="formats-label">{% translate "Max Size" %}:</span>
-                                                    <span class="formats-val">50 MB / file</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="measurement-panel-body">
-                                        <div class="measurement-dropzone" id="scannedPatternDropzone" {% activity_attrs 'measurement.upload' %}>
-                                            <i class="fas fa-cloud-arrow-up dropzone-icon"></i>
-                                            <p class="measurement-dropzone-text">
-                                                <strong>{% translate "Drag and drop files here" %}</strong><br>
-                                                <span class="browse-link">{% translate "or click to browse" %}</span>
-                                            </p>
-                                            <span class="measurement-dropzone-hint">{% translate "Supports: DXF, PDF, JPG, PNG, JPEG, HEIC, WEBP" %}</span>
-                                            <span class="measurement-dropzone-limit">{% translate "(Max 50 MB per file)" %}</span>
-                                        </div>
-                                        <input type="file" id="scannedPatternFileInput" multiple accept=".dxf,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" style="display: none;" {% activity_attrs 'measurement.upload' %}>
-                                        <div id="scannedUploadProgress" style="display: none; height: 3px; background: #38bdf8; border-radius: 2px; transition: width 0.2s ease; width: 0%;"></div>
-
-                                        <!-- Uploaded Files Section -->
-                                        <div class="panel-files-section">
-                                            <div class="panel-files-header">
-                                                <span class="files-count-label">{% translate "Uploaded Files" %} (<span id="scannedFilesCountBadge">0</span>)</span>
-                                                <div class="sort-control">
-                                                    <span class="sort-label">{% translate "Sort:" %}</span>
-                                                    <select id="scannedFilesSortSelect" class="sort-select" onchange="window.sortScannedFiles(this.value)">
-                                                        <option value="newest">{% translate "Newest" %}</option>
-                                                        <option value="oldest">{% translate "Oldest" %}</option>
-                                                        <option value="name">{% translate "Name" %}</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div class="measurement-file-list" id="scannedFilesList">
-                                                <div class="panel-empty-state">
-                                                    <svg class="empty-folder-svg" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
-                                                    </svg>
-                                                    <strong class="empty-state-title">{% translate "No files uploaded yet" %}</strong>
-                                                    <p class="empty-state-desc">{% translate "Upload scanned patterns, DXF files, PDFs or reference images." %}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- PANEL 2: Interior Pictures & Videos -->
-                                <div class="measurement-panel" id="panelInteriorMedia">
-                                    <div class="measurement-panel-header">
-                                        <div class="panel-header-left">
-                                            <span class="panel-number-badge badge-blue">2</span>
-                                            <i class="fas fa-camera panel-header-icon"></i>
-                                            <h3 class="measurement-panel-title">{% translate "Interior Pictures & Videos" %}</h3>
-                                        </div>
-                                        <div class="supported-formats-wrapper">
-                                            <div class="btn-supported-formats" tabindex="0">
-                                                <i class="fas fa-info-circle"></i>
-                                                <span>{% translate "Supported Formats" %}</span>
-                                            </div>
-                                            <div class="supported-formats-popover">
-                                                <div class="formats-popover-title">
-                                                    <i class="fas fa-photo-film" style="color: #a855f7;"></i>
-                                                    <span>{% translate "Media Files" %}</span>
-                                                </div>
-                                                <div class="formats-popover-row">
-                                                    <span class="formats-label">{% translate "Formats" %}:</span>
-                                                    <span class="formats-chips">
-                                                        <span class="format-chip">MP4</span>
-                                                        <span class="format-chip">MOV</span>
-                                                        <span class="format-chip">AVI</span>
-                                                        <span class="format-chip">JPG</span>
-                                                        <span class="format-chip">PNG</span>
-                                                        <span class="format-chip">HEIC</span>
-                                                        <span class="format-chip">WEBP</span>
-                                                    </span>
-                                                </div>
-                                                <div class="formats-popover-row">
-                                                    <span class="formats-label">{% translate "Max Size" %}:</span>
-                                                    <span class="formats-val">500 MB / file</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="measurement-panel-body">
-                                        <div class="measurement-dropzone" id="interiorMediaDropzone" {% activity_attrs 'measurement.upload' %}>
-                                            <i class="fas fa-cloud-arrow-up dropzone-icon"></i>
-                                            <p class="measurement-dropzone-text">
-                                                <strong>{% translate "Drag and drop files here" %}</strong><br>
-                                                <span class="browse-link">{% translate "or click to browse" %}</span>
-                                            </p>
-                                            <span class="measurement-dropzone-hint">{% translate "Supports: MP4, MOV, AVI, JPG, PNG, JPEG, HEIC, WEBP" %}</span>
-                                            <span class="measurement-dropzone-limit">{% translate "(Max 500 MB per file)" %}</span>
-                                        </div>
-                                        <input type="file" id="interiorMediaFileInput" multiple accept="image/*,video/*,.heic,.heif" style="display: none;" {% activity_attrs 'measurement.upload' %}>
-                                        <div id="interiorUploadProgress" style="display: none; height: 3px; background: #a855f7; border-radius: 2px; transition: width 0.2s ease; width: 0%;"></div>
-
-                                        <!-- Uploaded Files Section -->
-                                        <div class="panel-files-section">
-                                            <div class="panel-files-header">
-                                                <span class="files-count-label">{% translate "Uploaded Files" %} (<span id="interiorMediaCountBadge">0</span>)</span>
-                                                <div class="sort-control">
-                                                    <span class="sort-label">{% translate "Sort:" %}</span>
-                                                    <select id="interiorMediaSortSelect" class="sort-select" onchange="window.sortInteriorMedia(this.value)">
-                                                        <option value="newest">{% translate "Newest" %}</option>
-                                                        <option value="oldest">{% translate "Oldest" %}</option>
-                                                        <option value="name">{% translate "Name" %}</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div class="interior-media-grid" id="interiorMediaGrid">
-                                                <div class="panel-empty-state">
-                                                    <svg class="empty-folder-svg" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
-                                                    </svg>
-                                                    <strong class="empty-state-title">{% translate "No files uploaded yet" %}</strong>
-                                                    <p class="empty-state-desc">{% translate "Upload interior photos or videos for reference." %}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                {% include 'management/includes/measurement_upload_panels.html' %}
 
                                 <!-- PANEL 3: Color Picker -->
                                 <div class="measurement-panel" id="panelColorPicker">
@@ -2705,6 +2554,7 @@
                                                         {% translate "Pantone Code" %}
                                                     </label>
                                                     <div style="position: relative;">
+                                                        <input type="text" id="newSingleNameInput" class="form-input" maxlength="100" aria-label="{% translate 'Color name (optional)' %}" placeholder="{% translate 'Color name (optional)' %}">
                                                         <input type="text" id="newSinglePantoneInput" class="form-input" placeholder="e.g. PANTONE 19-1664 TCX" style="height: 34px; font-size: 0.8rem; padding: 0.3rem 2rem 0.3rem 0.65rem; width: 100%; box-sizing: border-box; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
                                                         <i class="fas fa-search" style="position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.75rem; pointer-events: none;"></i>
                                                     </div>
@@ -2738,6 +2588,7 @@
 
                                                     <!-- If New -->
                                                     <div id="dualInnerNewColorBox">
+                                                        <input type="text" id="dualInnerNewNameInput" class="form-input" maxlength="100" aria-label="{% translate 'Color name (optional)' %}" placeholder="{% translate 'Color name (optional)' %}">
                                                         <input type="text" id="dualInnerNewPantoneInput" class="form-input" placeholder="Pantone Code" style="height: 28px; font-size: 0.74rem; margin-bottom: 0.35rem; padding: 0.2rem 0.45rem; width: 100%; box-sizing: border-box; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
                                                         <div class="visual-color-picker-box" style="padding: 0.45rem; gap: 0.35rem;">
                                                             <div id="dualInnerNewCanvas" class="sat-val-canvas" style="height: 68px;"></div>
@@ -2776,6 +2627,7 @@
 
                                                     <!-- If New -->
                                                     <div id="dualOuterNewColorBox">
+                                                        <input type="text" id="dualOuterNewNameInput" class="form-input" maxlength="100" aria-label="{% translate 'Color name (optional)' %}" placeholder="{% translate 'Color name (optional)' %}">
                                                         <input type="text" id="dualOuterNewPantoneInput" class="form-input" placeholder="Pantone Code" style="height: 28px; font-size: 0.74rem; margin-bottom: 0.35rem; padding: 0.2rem 0.45rem; width: 100%; box-sizing: border-box; background: #15171b; border: 1px solid var(--fabro-border); color: #fff; border-radius: 6px;">
                                                         <div class="visual-color-picker-box" style="padding: 0.45rem; gap: 0.35rem;">
                                                             <div id="dualOuterNewCanvas" class="sat-val-canvas" style="height: 68px;"></div>
@@ -2820,13 +2672,18 @@
                                             </div>
                                         </div>
 
+                                        <label class="form-label" for="pickedColorRemarks">{% translate 'Remarks (optional)' %}</label>
+                                        <textarea id="pickedColorRemarks" class="form-input" rows="3" maxlength="2000"></textarea>
+                                        <p id="pickedEditNotice" role="status" aria-live="polite"></p>
+                                        <button type="button" id="btnCancelPickedEdit" class="btn btn-secondary" hidden onclick="window.cancelPickedColorEdit()">{% translate 'Cancel edit' %}</button>
                                         <!-- Save Color Selection Button -->
-                                        <button type="button" id="btnSaveColorSelection" class="btn-save-color-selection" onclick="window.saveColorSelection()">
+                                        <button type="button" id="btnSaveColorSelection" class="btn-save-color-selection" onclick="window.saveColorSelection()" data-activity-any="picked_colors.add picked_colors.edit_own picked_colors.edit_all">
                                             <i class="fas fa-save"></i>
                                             <span>{% translate "Save Color Selection" %}</span>
                                         </button>
                                     </div>
                                 </div>
+                                {% include 'management/includes/picked_colors_panel.html' %}
                             </div><!-- /.measurements-grid -->
 
                             <!-- New Color Approval Status Card (Full-width banner below panels as in Image 2) -->
@@ -3107,14 +2964,11 @@
 
 <!-- Interior Media Preview Lightbox Modal -->
 <!-- Interior Media Preview Modal -->
-<div id="interiorMediaPreviewModal" class="modal" style="display: none; z-index: 1095; align-items: center; justify-content: center; background: rgba(0,0,0,0.85);" onclick="if(event.target===this) window.closeInteriorMediaPreview()">
-    <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center;">
-        <button type="button" onclick="window.closeInteriorMediaPreview()" style="position: absolute; top: -36px; right: 0; background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">
-            <i class="fas fa-times"></i>
-        </button>
-        <div id="interiorMediaPreviewContainer"></div>
-    </div>
-</div>
+<dialog id="interiorMediaPreviewModal" class="measurement-file-viewer" aria-labelledby="measurementViewerTitle">
+  <header><div><h2 id="measurementViewerTitle"></h2><p id="measurementViewerMetadata"></p></div><button type="button" class="btn btn-secondary" aria-label="{% translate 'Close file viewer' %}" onclick="window.closeInteriorMediaPreview()">×</button></header>
+  <div id="interiorMediaPreviewContainer" class="measurement-preview-content"></div>
+  <footer><button type="button" class="btn btn-secondary" aria-label="{% translate 'Previous file' %}" onclick="window.navigateMeasurementPreview(-1)">←</button><span id="measurementViewerCounter"></span><button type="button" class="btn btn-secondary" aria-label="{% translate 'Next file' %}" onclick="window.navigateMeasurementPreview(1)">→</button></footer>
+</dialog>
 
 <!-- Slide-In Color Approval Drawer -->
 {% include 'management/includes/color_approval_drawer.html' %}
@@ -3313,7 +3167,7 @@
 ]
 </script>
 <script src="{% static 'management/js/color_approval_drawer.js' %}?v=20261017" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_measurements.js' %}?v=20261104-live" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_measurements.js' %}?v=20261106-picked-colors" data-fabro-page-asset></script>
 <script>
 window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}false{% endif %};
 </script>

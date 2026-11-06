@@ -1410,6 +1410,26 @@ class PatternColorSelection(models.Model):
         return False
 
 
+class PickedColorSelection(models.Model):
+    """Editable vehicle snapshots; approval subjects and shared media stay intact."""
+    vehicle = models.ForeignKey(YearRange, null=True, on_delete=models.SET_NULL, related_name='picked_colors')
+    source_selection = models.OneToOneField(PatternColorSelection, null=True, on_delete=models.SET_NULL, related_name='picked_color')
+    created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='picked_colors')
+    creator_name = models.CharField(max_length=320)
+    snapshot = models.JSONField(default=dict)
+    remarks = models.TextField(max_length=2000, blank=True, default='')
+    client_submission_key = models.CharField(max_length=120, unique=True, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+    edited_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='edited_picked_colors')
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    audit_events = models.JSONField(default=list, editable=False)
+
+    class Meta:
+        ordering = ['-created_at', '-pk']
+        indexes = [models.Index(fields=['vehicle', 'deleted_at', '-created_at'], name='picked_vehicle_active_idx')]
+
+
 class PatternColorApprovalDecision(models.Model):
     DEPT_MD = 'MD'
     DEPT_ED = 'ED'

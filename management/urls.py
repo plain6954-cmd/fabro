@@ -1,7 +1,7 @@
 # pyrefly: ignore [missing-import]
 from django.urls import path
 from .security import RateLimitedLoginView
-from . import views
+from . import views, picked_color_views
 from .api_views import (
     LoginAPIView, LogoutAPIView, RegisterAPIView, UserProfileAPIView, DashboardAPIView,
     ComplaintListCreateAPIView, ComplaintRetrieveUpdateDestroyAPIView,
@@ -108,6 +108,10 @@ urlpatterns = [
     path('api/measurement-files/<int:file_id>/delete/', views.delete_measurement_file_api, name='delete_measurement_file_api'),
     path('measurement-files/<int:file_id>/download/', views.measurement_file_download, name='measurement_file_download'),
     path('api/pattern-color-selection/save/', views.save_color_selection_api, name='save_color_selection_api'),
+    path('api/picked-colors/', picked_color_views.list_picked_colors, name='list_picked_colors'),
+    path('api/picked-colors/<int:selection_id>/edit/', picked_color_views.edit_picked_color, name='edit_picked_color'),
+    path('api/picked-colors/<int:selection_id>/delete/', picked_color_views.delete_picked_color, name='delete_picked_color'),
+    path('picked-colors/<int:selection_id>/swatch/', picked_color_views.picked_color_swatch, name='picked_color_swatch'),
     path('color-selections/<int:selection_id>/file/', views.color_selection_file, name='color_selection_file'),
     path('api/pattern-color-selection/details/', views.get_color_selection_details_api, name='get_color_selection_details_api'),
     path('api/pattern-color-selection/decide/', views.submit_color_decision_api, name='submit_color_decision_api'),

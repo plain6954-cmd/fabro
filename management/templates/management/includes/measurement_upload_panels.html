@@ -1,0 +1,19 @@
+{% load i18n activity_access %}
+<section class="measurement-panel measurement-upload-panel" id="panelScannedPatterns">
+  <header class="measurement-panel-header"><div class="panel-header-left"><span class="panel-number-badge">1</span><h3 class="measurement-panel-title">{% translate 'Scanned Patterns' %}</h3></div>
+    <div class="measurement-upload-actions"><span class="supported-formats-wrapper" tabindex="0" title="DXF, DWG, STEP, PDF, JPG, PNG, WebP, HEIC · 100 MB/file"><i class="fas fa-info-circle" aria-label="{% translate 'Supported formats' %}"></i><span class="supported-formats-popover">DXF, DWG, STEP, PDF, JPG, PNG, WebP, HEIC · 100 MB/file</span></span><button type="button" class="design-upload-icon" id="scannedPatternDropzone" title="{% translate 'Upload scanned patterns' %}" aria-label="{% translate 'Upload scanned patterns' %}" {% activity_attrs 'measurement.upload' %}><i class="fas fa-plus" aria-hidden="true"></i></button></div>
+  </header>
+  <div class="measurement-panel-body"><input type="file" id="scannedPatternFileInput" style="display:none" multiple accept=".dxf,.dwg,.step,.stp,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" hidden {% activity_attrs 'measurement.upload' %}><div id="scannedUploadProgress" class="measurement-upload-progress" style="display:none"></div>
+    <div class="panel-files-header"><span>{% translate 'Uploaded Files' %} (<span id="scannedFilesCountBadge">0</span>)</span><select id="scannedFilesSortSelect" class="sort-select" aria-label="{% translate 'Sort scanned files' %}" onchange="window.sortScannedFiles(this.value)"><option value="newest">{% translate 'Newest' %}</option><option value="oldest">{% translate 'Oldest' %}</option><option value="name">{% translate 'Name' %}</option></select></div>
+    <div class="measurement-file-list measurement-thumb-strip" id="scannedFilesList" tabindex="0" aria-label="{% translate 'Scanned pattern files' %}"></div>
+  </div>
+</section>
+<section class="measurement-panel measurement-upload-panel" id="panelInteriorMedia">
+  <header class="measurement-panel-header"><div class="panel-header-left"><span class="panel-number-badge">2</span><h3 class="measurement-panel-title">{% translate 'Interior Pictures' %}</h3></div>
+    <div class="measurement-upload-actions"><span class="supported-formats-wrapper" tabindex="0" title="MP4, MOV, WebM, AVI, MKV, JPG, PNG, WebP, HEIC · 100 MB/file"><i class="fas fa-info-circle" aria-label="{% translate 'Supported formats' %}"></i><span class="supported-formats-popover">MP4, MOV, WebM, AVI, MKV, JPG, PNG, WebP, HEIC · 100 MB/file</span></span><button type="button" class="design-upload-icon" id="interiorMediaDropzone" title="{% translate 'Upload interior pictures or videos' %}" aria-label="{% translate 'Upload interior pictures or videos' %}" {% activity_attrs 'measurement.upload' %}><i class="fas fa-plus" aria-hidden="true"></i></button></div>
+  </header>
+  <div class="measurement-panel-body"><input type="file" id="interiorMediaFileInput" style="display:none" multiple accept="image/*,video/*,.heic,.heif" hidden {% activity_attrs 'measurement.upload' %}><div id="interiorUploadProgress" class="measurement-upload-progress" style="display:none"></div>
+    <div class="panel-files-header"><span>{% translate 'Uploaded Files' %} (<span id="interiorMediaCountBadge">0</span>)</span><select id="interiorMediaSortSelect" class="sort-select" aria-label="{% translate 'Sort interior files' %}" onchange="window.sortInteriorMedia(this.value)"><option value="newest">{% translate 'Newest' %}</option><option value="oldest">{% translate 'Oldest' %}</option><option value="name">{% translate 'Name' %}</option></select></div>
+    <div class="interior-media-grid measurement-thumb-strip" id="interiorMediaGrid" tabindex="0" aria-label="{% translate 'Interior pictures and videos' %}"></div>
+  </div>
+</section>

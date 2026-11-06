@@ -7518,39 +7518,25 @@ def measurement_file_download(request, file_id):
 @login_required
 @require_POST
 def save_color_selection_api(request):
-    vehicle_id = request.POST.get('vehicle_id')
-    if not vehicle_id:
-        return JsonResponse({'status': 'error', 'message': _('Vehicle ID is required.')}, status=400)
-
+    from uuid import uuid4
+    from management.services import picked_colors
+    from management.services.color_approval import serialize_color_selection
+    data = request.POST.copy()
+    if 'client_submission_key' not in data:
+        data['client_submission_key'] = str(uuid4())
     try:
-        vehicle = YearRange.objects.get(id=vehicle_id)
-    except YearRange.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': _('Vehicle not found.')}, status=404)
-
-    swatch_file = request.FILES.get('swatch_image')
-    client_key = request.POST.get('client_submission_key')
-
-    from management.services.color_approval import save_color_selection, serialize_color_selection
-
-    try:
-        selection, created = save_color_selection(
-            vehicle=vehicle,
-            user=request.user,
-            data=request.POST,
-            swatch_file=swatch_file,
-            client_key=client_key,
-        )
+        row, created = picked_colors.save(request.user, data.get('vehicle_id'), data,
+            swatch_file=request.FILES.get('swatch_image'))
         return JsonResponse({
             'status': 'success',
             'created': created,
-            'selection': serialize_color_selection(selection, request.user),
+            'selection': serialize_color_selection(row.source_selection, request.user),
+            'picked_selection': picked_colors.serialize(row, request.user),
+            'is_new_color': row.source_selection.is_new_color,
         })
     except ValidationError as e:
         msg = e.message if hasattr(e, 'message') else '; '.join(e.messages) if hasattr(e, 'messages') else str(e)
         return JsonResponse({'status': 'error', 'message': msg}, status=400)
-    except Exception as e:
-        logger.exception("Error saving color selection")
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 @login_required

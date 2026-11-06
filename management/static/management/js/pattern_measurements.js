@@ -4,8 +4,12 @@
     let accessGeneration = 0;
     const accessScope = window.fabroCreatePageScope();
     accessScope.onCleanup(() => { accessGeneration++; currentVehicleId = null; });
-    accessScope.listen(document, 'fabro:access-changed', () => {
+    accessScope.listen(document, 'fabro:access-changed', event => {
         accessGeneration++;
+        if (['measurement.view_own', 'measurement.view_all'].some(key => event.detail.previous[key] !== event.detail.permissions[key])) closeInteriorMediaPreview();
+        if (editingPicked) editingPicked.can_edit = false;
+        updatePickerSaveState();
+        loadPickedColors(currentVehicleId);
         // Never retain stale view/action grants while the server reauthorizes.
         lastScannedFiles = []; lastInteriorFiles = [];
         renderScannedFiles([]); renderInteriorMedia([]);
@@ -212,7 +216,8 @@
         // Scanned dropzone
         const scannedZone = document.getElementById('scannedPatternDropzone');
         const scannedInput = document.getElementById('scannedPatternFileInput');
-        if (scannedZone && scannedInput) {
+        if (scannedZone && scannedInput && !scannedZone.dataset.uploadBound) {
+            scannedZone.dataset.uploadBound = 'true';
             scannedZone.addEventListener('click', () => scannedInput.click());
             scannedZone.addEventListener('dragover', (e) => { e.preventDefault(); scannedZone.classList.add('dragover'); });
             scannedZone.addEventListener('dragleave', () => scannedZone.classList.remove('dragover'));
@@ -234,7 +239,8 @@
         // Interior media dropzone
         const interiorZone = document.getElementById('interiorMediaDropzone');
         const interiorInput = document.getElementById('interiorMediaFileInput');
-        if (interiorZone && interiorInput) {
+        if (interiorZone && interiorInput && !interiorZone.dataset.uploadBound) {
+            interiorZone.dataset.uploadBound = 'true';
             interiorZone.addEventListener('click', () => interiorInput.click());
             interiorZone.addEventListener('dragover', (e) => { e.preventDefault(); interiorZone.classList.add('dragover'); });
             interiorZone.addEventListener('dragleave', () => interiorZone.classList.remove('dragover'));
@@ -307,10 +313,11 @@
             .then(res => {
                 if (generation !== accessGeneration || vehicleId !== currentVehicleId) return;
                 if (res.status === 'success') {
-                    lastScannedFiles = res.scanned_patterns || [];
-                    lastInteriorFiles = res.interior_media || [];
+                    lastScannedFiles = res.scanned_files || [];
+                    lastInteriorFiles = res.interior_files || [];
                     renderScannedFiles(lastScannedFiles);
                     renderInteriorMedia(lastInteriorFiles);
+                    if (previewFiles.length && ![...lastScannedFiles, ...lastInteriorFiles].some(file => file.id === previewFiles[previewIndex]?.id)) closeInteriorMediaPreview();
                 }
             })
             .catch(err => console.error('Error loading measurement files:', err));
@@ -340,95 +347,51 @@
         renderInteriorMedia(sorted);
     }
 
-    function renderScannedFiles(files) {
-        const list = document.getElementById('scannedFilesList');
-        const countBadge = document.getElementById('scannedFilesCountBadge');
-        if (countBadge) countBadge.textContent = files.length;
-        if (!list) return;
-
-        if (files.length === 0) {
-            list.innerHTML = `
-                <div class="panel-empty-state">
-                    <svg class="empty-folder-svg" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
-                    </svg>
-                    <strong class="empty-state-title">No files uploaded yet</strong>
-                    <p class="empty-state-desc">Upload scanned patterns, DXF files, PDFs or reference images.</p>
-                </div>
-            `;
-            return;
+    function element(tag, className = '', text) {
+        const node = document.createElement(tag); node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+    function authorizedUrl(value) {
+        const url = new URL(value, location.origin);
+        if (url.origin !== location.origin || !/^\/(measurement-files\/\d+\/download\/|picked-colors\/\d+\/swatch\/)$/.test(url.pathname)) throw Error('Invalid file URL');
+        return url.href;
+    }
+    const previewable = file => ['image', 'video'].includes(file.file_type);
+    function renderMeasurementStrip(files, id, counter) {
+        const host = document.getElementById(id), badge = document.getElementById(counter);
+        if (badge) badge.textContent = files.length;
+        if (!host) return;
+        host.replaceChildren();
+        if (!files.length) host.append(element('p', 'panel-empty-state', 'No files uploaded yet.'));
+        for (const file of files) {
+            const tile = element('div', 'measurement-thumb'); tile.dataset.fileId = file.id;
+            const button = element('button', 'measurement-thumb-preview'); button.type = 'button';
+            button.setAttribute('aria-label', 'Open ' + file.filename);
+            if (file.file_type === 'image') {
+                const image = element('img'); image.src = authorizedUrl(file.url); image.alt = file.filename; image.loading = 'lazy';
+                image.onerror = () => image.replaceWith(element('i', 'far fa-file-image')); button.append(image);
+            } else button.append(element('i', file.file_type === 'video' ? 'fas fa-video' : file.file_type === 'pdf' ? 'fas fa-file-pdf' : 'far fa-file'));
+            button.addEventListener('click', () => {
+                if (previewable(file)) openMeasurementFile(file, files);
+                else window.open(authorizedUrl(file.download_url || file.url), '_blank', 'noopener');
+            });
+            const name = element('span', 'measurement-thumb-name', file.filename); name.title = file.filename;
+            const actions = element('div', 'measurement-thumb-actions');
+            actions.append(element('span', '', (file.file_ext || file.file_type || 'FILE').toUpperCase()));
+            if (file.download_url) { const link = element('a'); link.href = authorizedUrl(file.download_url); link.title = 'Download '+file.filename; link.setAttribute('aria-label',link.title); link.append(element('i','fas fa-download')); actions.append(link); }
+            if (file.can_delete) { const remove = element('button'); remove.title='Delete '+file.filename; remove.setAttribute('aria-label',remove.title); remove.append(element('i','fas fa-trash')); remove.type = 'button'; remove.onclick = () => deleteMeasurementFile(file.id); actions.append(remove); }
+            tile.append(button, name, actions); host.append(tile);
         }
-
-        list.innerHTML = files.map(f => {
-            let iconClass = 'file-type-icon';
-            let iconMarkup = '<i class="fas fa-file"></i>';
-            const ext = (f.file_ext || '').toLowerCase();
-            if (ext === '.dxf') {
-                iconClass += ' dxf';
-                iconMarkup = '<i class="fas fa-drafting-compass"></i>';
-            } else if (ext === '.pdf') {
-                iconClass += ' pdf';
-                iconMarkup = '<i class="fas fa-file-pdf"></i>';
-            } else {
-                iconClass += ' image';
-                iconMarkup = '<i class="fas fa-file-image"></i>';
+        host.onwheel = event => {
+            if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+                const before = host.scrollLeft; host.scrollLeft += event.deltaY;
+                if (host.scrollLeft !== before) event.preventDefault();
             }
-
-            return `
-                <div class="measurement-file-item" id="meas-file-${f.id}">
-                    <div class="measurement-file-info">
-                        <div class="${iconClass}">${iconMarkup}</div>
-                        <div class="measurement-file-meta">
-                            <span class="measurement-file-name" title="${escapeHtml(f.filename)}">${escapeHtml(f.filename)}</span>
-                            <span class="measurement-file-size">${f.file_size_formatted}</span>
-                        </div>
-                    </div>
-                    <div class="measurement-file-actions">
-                        ${f.download_url ? `<a href="${f.download_url || '#'}" ${f.download_url ? '' : 'hidden'} class="btn btn-secondary btn-sm" title="Download" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
-                            <i class="fas fa-download"></i>
-                        </a>` : ''}
-                        ${f.can_delete ? `<button type="button" class="btn btn-danger btn-sm" onclick="window.deleteMeasurementFile(${f.id})" title="Delete" style="padding:0.25rem 0.5rem; font-size:0.75rem;">
-                            <i class="fas fa-trash"></i>
-                        </button>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
+        };
     }
-
-    function renderInteriorMedia(files) {
-        const grid = document.getElementById('interiorMediaGrid');
-        const countBadge = document.getElementById('interiorMediaCountBadge');
-        if (countBadge) countBadge.textContent = files.length;
-        if (!grid) return;
-
-        if (files.length === 0) {
-            grid.innerHTML = `
-                <div class="panel-empty-state" style="grid-column: 1 / -1;">
-                    <svg class="empty-folder-svg" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
-                    </svg>
-                    <strong class="empty-state-title">No files uploaded yet</strong>
-                    <p class="empty-state-desc">Upload interior photos or videos for reference.</p>
-                </div>
-            `;
-            return;
-        }
-
-        grid.innerHTML = files.map(f => {
-            const isVideo = f.is_video;
-            const badgeIcon = isVideo ? '<i class="fas fa-video"></i> VIDEO' : '<i class="fas fa-image"></i> IMG';
-            return `
-                <div class="interior-media-card" id="meas-file-${f.id}" onclick="window.openInteriorMediaPreview('${f.url}', ${isVideo})">
-                    <img src="${f.thumbnail_url || f.url}" alt="${escapeHtml(f.filename)}" class="interior-media-thumb">
-                    <span class="interior-media-overlay-badge">${badgeIcon}</span>
-                    ${f.can_delete ? `<button type="button" class="interior-media-delete-btn" onclick="event.stopPropagation(); window.deleteMeasurementFile(${f.id});" title="Delete">
-                        <i class="fas fa-times"></i>
-                    </button>` : ''}
-                </div>
-            `;
-        }).join('');
-    }
+    function renderScannedFiles(files) { renderMeasurementStrip(files, 'scannedFilesList', 'scannedFilesCountBadge'); }
+    function renderInteriorMedia(files) { renderMeasurementStrip(files, 'interiorMediaGrid', 'interiorMediaCountBadge'); }
 
     function deleteMeasurementFile(fileId) {
         if (!confirm('Are you sure you want to delete this file?')) return;
@@ -448,29 +411,70 @@
         .catch(() => alert('Network error deleting file.'));
     }
 
-    function openInteriorMediaPreview(url, isVideo) {
+    let previewFiles = [], previewIndex = 0, previewOverflow = null, previewOpener, previewRender = 0;
+    function showMeasurementFile() {
+        const generation = ++previewRender;
+        const file = previewFiles[previewIndex], host = document.getElementById('interiorMediaPreviewContainer');
+        if (!file || !host) return;
+        host.querySelectorAll('video').forEach(video => { video.pause(); video.removeAttribute('src'); video.load(); });
+        host.replaceChildren();
+        const media = element(file.file_type === 'video' ? 'video' : 'img');
+        media.src = authorizedUrl(file.url);
+        if (file.file_type === 'video') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
+        else media.alt = file.filename;
+        media.onerror = () => {
+            if (generation !== previewRender) return;
+            const link = element('a', 'btn btn-secondary', 'Open authorized file'); link.href = authorizedUrl(file.download_url || file.url); link.target = '_blank'; link.rel = 'noopener';
+            host.replaceChildren(element('p', '', 'This browser cannot preview this format.'), link);
+        };
+        host.append(media);
+        document.getElementById('measurementViewerTitle').textContent = file.filename;
+        document.getElementById('measurementViewerMetadata').textContent = [file.uploaded_by, file.uploaded_at, Math.round((file.file_size || 0) / 1024) + ' KB'].filter(Boolean).join(' · ');
+        document.getElementById('measurementViewerCounter').textContent = `${previewIndex + 1} / ${previewFiles.length}`;
+        document.querySelectorAll('#interiorMediaPreviewModal footer button').forEach(button => { button.disabled = previewFiles.length < 2; });
+    }
+    function openMeasurementFile(file, files) {
         const modal = document.getElementById('interiorMediaPreviewModal');
-        const container = document.getElementById('interiorMediaPreviewContainer');
-        if (!modal || !container) return;
-
-        if (isVideo) {
-            container.innerHTML = `<video controls autoplay style="max-width:100%; max-height:80vh; border-radius:8px;"><source src="${url}">Your browser does not support video playback.</video>`;
-        } else {
-            container.innerHTML = `<img src="${url}" alt="Preview" style="max-width:100%; max-height:80vh; object-fit:contain; border-radius:8px;">`;
+        if (!modal) return;
+        previewFiles = files.filter(previewable); previewIndex = previewFiles.findIndex(item => item.id === file.id);
+        if (previewIndex < 0) return;
+        if (!modal.dataset.measurementBound) {
+            modal.dataset.measurementBound = 'true';
+            accessScope.listen(modal, 'cancel', event => { event.preventDefault(); closeInteriorMediaPreview(); });
+            accessScope.listen(modal, 'keydown', event => {
+                if (['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); navigateMeasurementPreview(event.key === 'ArrowLeft' ? -1 : 1); }
+            });
+            accessScope.listen(modal, 'click', event => { if (event.target === modal) closeInteriorMediaPreview(); });
         }
-        modal.style.display = 'flex';
+        if (!modal.open) {
+            previewOverflow = [document.body, document.documentElement].map(node => [node, node.style.getPropertyValue('overflow'), node.style.getPropertyPriority('overflow')]);
+            previewOverflow.forEach(([node]) => node.style.setProperty('overflow', 'hidden', 'important'));
+            previewOpener = document.activeElement; modal.showModal();
+        }
+        showMeasurementFile();
     }
-
+    function navigateMeasurementPreview(delta) {
+        if (!previewFiles.length) return;
+        previewIndex = (previewIndex + delta + previewFiles.length) % previewFiles.length; showMeasurementFile();
+    }
+    function openInteriorMediaPreview(url) {
+        const files = [...lastScannedFiles, ...lastInteriorFiles], file = files.find(item => item.url === url);
+        if (file && previewable(file)) openMeasurementFile(file, files);
+    }
     function closeInteriorMediaPreview() {
-        const modal = document.getElementById('interiorMediaPreviewModal');
-        const container = document.getElementById('interiorMediaPreviewContainer');
-        if (modal) modal.style.display = 'none';
-        if (container) container.innerHTML = '';
+        previewRender++;
+        const modal = document.getElementById('interiorMediaPreviewModal'), host = document.getElementById('interiorMediaPreviewContainer');
+        host?.querySelectorAll('video').forEach(video => { video.pause(); video.removeAttribute('src'); video.load(); });
+        host?.replaceChildren(); if (modal?.open) modal.close();
+        if (previewOverflow !== null) { previewOverflow.forEach(([node, value, priority]) => { if (value) node.style.setProperty('overflow', value, priority); else node.style.removeProperty('overflow'); }); previewOverflow = null; }
+        if (previewOpener?.isConnected) previewOpener.focus({preventScroll:true}); previewOpener = null; previewFiles = [];
     }
+    accessScope.onCleanup(closeInteriorMediaPreview);
 
     // --------------------------------------------------------------------------
     // Color Picker UI Controller
     // --------------------------------------------------------------------------
+    let editingPicked = null, pickedRows = [], pickedRequest = 0, colorSubmissionKey = null, colorDraftDirty = false;
     let currentMode = 'existing'; // 'existing' or 'new'
     let currentTone = 'single';   // 'single' or 'dual'
     let dualInnerSource = 'new';  // 'new' or 'existing'
@@ -560,8 +564,11 @@
         selects.forEach(sel => {
             if (!sel) return;
             const currentVal = sel.value;
-            sel.innerHTML = '<option value="">-- Choose from Color Master --</option>' +
-                availableColors.map(c => `<option value="${c.id}" data-hex="${c.hex_code}" data-code="${c.color_code}">${escapeHtml(c.name)} (${c.color_code})</option>`).join('');
+            sel.replaceChildren(new Option('-- Choose from Color Master --', ''));
+            for (const color of availableColors) {
+                const option = new Option(`${color.name} (${color.color_code})`, color.id);
+                option.dataset.hex = color.hex_code; option.dataset.code = color.color_code; sel.append(option);
+            }
             if (currentVal) sel.value = currentVal;
 
             sel.addEventListener('change', () => {
@@ -610,7 +617,8 @@
         const formData = new FormData();
         formData.append('vehicle_id', currentVehicleId);
         formData.append('tone_type', currentTone);
-        formData.append('client_submission_key', crypto.randomUUID());
+        formData.append('client_submission_key', colorSubmissionKey || (colorSubmissionKey = crypto.randomUUID()));
+        formData.append('remarks', document.getElementById('pickedColorRemarks')?.value || '');
 
         const swatchInput = document.getElementById('matchingSwatchPhotoInput');
         if (swatchInput && swatchInput.files && swatchInput.files[0]) {
@@ -684,46 +692,131 @@
             }
         }
 
-        const btnSave = document.getElementById('btnSaveColorSelection');
-        isSubmittingColor = true;
-        if (btnSave) {
-            btnSave.disabled = true;
-            btnSave.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving...';
+        if (currentMode === 'new') {
+            formData.append('inner_color_name', document.getElementById(currentTone === 'single' ? 'newSingleNameInput' : 'dualInnerNewNameInput')?.value || '');
+            if (currentTone === 'dual') formData.append('outer_color_name', document.getElementById('dualOuterNewNameInput')?.value || '');
         }
-
-        fetch('/api/pattern-color-selection/save/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() },
-            body: formData
-        })
-        .then(r => r.json())
-        .then(res => {
-            isSubmittingColor = false;
-            if (btnSave) {
-                btnSave.disabled = false;
-                btnSave.innerHTML = '<i class="fas fa-save"></i> Save Color Selection';
-            }
-
-            if (res.status === 'success') {
-                if (res.is_new_color) {
-                    alert('Color selection saved! Submitted for MD, ED, and CAD approval.');
-                } else {
-                    alert('Color selection saved successfully.');
-                }
-                loadPatternColorSelection(currentVehicleId);
-            } else {
-                alert(res.message || 'Error saving color selection.');
-            }
-        })
-        .catch(() => {
-            isSubmittingColor = false;
-            if (btnSave) {
-                btnSave.disabled = false;
-                btnSave.innerHTML = '<i class="fas fa-save"></i> Save Color Selection';
-            }
-            alert('Network error saving color selection.');
-        });
+        const vehicleId = currentVehicleId, editingId = editingPicked?.id;
+        if (editingPicked && !editingPicked.can_edit) { pickerFeedback('Editing access changed. Your draft is preserved.'); return; }
+        isSubmittingColor = true; updatePickerSaveState();
+        const url = editingId ? `/api/picked-colors/${editingId}/edit/` : '/api/pattern-color-selection/save/';
+        fetch(url, {method:'POST', headers:{'X-CSRFToken':getCsrfToken()}, body:formData, signal:accessScope.signal})
+            .then(async response => {
+                if (!response.ok) { const error = await response.json().catch(() => ({})); throw Error(error.message || 'Saving is not permitted or unavailable.'); }
+                return response.json();
+            }).then(res => {
+                if (vehicleId !== currentVehicleId) return;
+                if (res.status !== 'success') throw Error(res.message || 'Unable to save this color selection.');
+                editingPicked = null; colorSubmissionKey = null; colorDraftDirty = false;
+                document.getElementById('pickedColorRemarks').value = ''; clearSwatchPhoto();
+                pickerFeedback('Color selection saved.');
+                loadPickedColors(vehicleId); loadPatternColorSelection(vehicleId);
+            }).catch(error => { if (!accessScope.signal.aborted && vehicleId === currentVehicleId) pickerFeedback(error.message); })
+            .finally(() => { isSubmittingColor = false; if (!accessScope.signal.aborted) updatePickerSaveState(); });
     }
+
+    function pickerFeedback(message) { const host = document.getElementById('pickedEditNotice'); if (host) host.textContent = message; }
+    function updatePickerSaveState() {
+        const button = document.getElementById('btnSaveColorSelection'); if (!button) return;
+        const allowed = key => window.fabroActivityAllowed?.(key) === true;
+        button.disabled = isSubmittingColor || (editingPicked
+            ? !editingPicked.can_edit || !(allowed('picked_colors.edit_own') || allowed('picked_colors.edit_all'))
+            : !allowed('picked_colors.add'));
+        button.textContent = isSubmittingColor ? 'Saving…' : editingPicked ? 'Save Changes' : 'Save Color Selection';
+        const cancel = document.getElementById('btnCancelPickedEdit');
+        if (cancel) { cancel.hidden = !editingPicked; cancel.disabled = isSubmittingColor; }
+        if (editingPicked && button.disabled && !isSubmittingColor) pickerFeedback('Editing access changed. Your draft is preserved.');
+    }
+    async function loadPickedColors(vehicleId) {
+        if (!vehicleId) return;
+        const token = ++pickedRequest, generation = accessGeneration;
+        const host = document.getElementById('pickedColorsList'); if (!host) return;
+        try {
+            const response = await fetch(`/api/picked-colors/?vehicle_id=${encodeURIComponent(vehicleId)}`, {cache:'no-store',credentials:'same-origin'});
+            if (!response.ok) throw Error('Picked Colors is unavailable for your current access.');
+            const data = await response.json();
+            if (token !== pickedRequest || generation !== accessGeneration || vehicleId !== currentVehicleId) return;
+            pickedRows = data.selections || []; renderPickedColors();
+            if (editingPicked) editingPicked.can_edit = pickedRows.find(row => row.id === editingPicked.id)?.can_edit === true;
+        } catch (error) {
+            if (token !== pickedRequest || generation !== accessGeneration || vehicleId !== currentVehicleId) return;
+            pickedRows = []; host.replaceChildren(element('p','',error.message));
+            if (editingPicked) editingPicked.can_edit = false;
+        }
+        updatePickerSaveState();
+    }
+    function renderPickedColors() {
+        const host = document.getElementById('pickedColorsList'); if (!host) return;
+        host.replaceChildren(); document.getElementById('pickedColorsCount').textContent = pickedRows.length;
+        if (!pickedRows.length) host.append(element('p','','No saved color selections yet.'));
+        for (const row of pickedRows) {
+            const tile = element('article','picked-color-tile'); tile.dataset.pickedId = row.id;
+            const swatch = element('div','picked-color-swatch'), colors = row.snapshot;
+            const safeHex = color => /^#[a-fA-F0-9]{6}$/.test(color?.hex) ? color.hex : 'transparent';
+            swatch.style.background = colors.tone_type === 'dual' ? `linear-gradient(135deg, ${safeHex(colors.outer)} 0 50%, ${safeHex(colors.inner)} 50% 100%)` : safeHex(colors.inner);
+            swatch.setAttribute('aria-label', colors.tone_type === 'dual' ? 'Outer and inner colors' : 'Single tone color');
+            const details = element('div','picked-color-details');
+            for (const side of colors.tone_type === 'dual' ? ['outer','inner'] : ['inner']) {
+                const color = colors[side];
+                details.append(element('strong','',(colors.tone_type === 'dual' ? side[0].toUpperCase()+side.slice(1)+': ' : '') + (color.name || 'New color')));
+                details.append(element('small','',[color.code, color.pantone, color.hex].filter(Boolean).join(' · ')));
+            }
+            details.append(element('small','',new Date(row.created_at).toLocaleString() + ' · ' + row.creator_name));
+            if (row.remarks) details.append(element('p','',row.remarks));
+            if (row.swatch_url) { const photo = element('a','','Matching swatch'); photo.href = authorizedUrl(row.swatch_url); photo.target = '_blank'; photo.rel = 'noopener'; details.append(photo); }
+            const actions = element('div','picked-color-actions');
+            if (row.can_edit) { const edit = element('button','btn btn-secondary','Edit'); edit.type='button'; edit.dataset.pickedAction='edit'; edit.onclick=()=>editPickedColor(row.id); actions.append(edit); }
+            if (row.can_delete) { const remove = element('button','btn btn-danger','Delete'); remove.type='button'; remove.dataset.pickedAction='delete'; remove.onclick=()=>deletePickedColor(row.id); actions.append(remove); }
+            details.append(actions); tile.append(swatch,details); host.append(tile);
+        }
+    }
+    function setPickerValue(id,value) { const input=document.getElementById(id); if(input){input.value=value || '';input.dispatchEvent(new Event('input',{bubbles:true}));} }
+    function savedMaster(id,color) {
+        const select=document.getElementById(id); if(!select)return;
+        let option=[...select.options].find(item=>item.value===String(color.master_id));
+        if(!option){option=new Option('',String(color.master_id));select.append(option);}
+        option.textContent=`${color.name} (${color.code}) — saved`;option.dataset.hex=color.hex;
+        select.value=String(color.master_id);select.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    function editPickedColor(id) {
+        const row=pickedRows.find(item=>item.id===id); if(!row?.can_edit)return;
+        if(colorDraftDirty && !confirm('Replace the current unsaved color draft?'))return;
+        editingPicked=row; const colors=row.snapshot;
+        switchToneTab(colors.tone_type);
+        switchColorTopTab(colors.inner.source==='existing' && (!colors.outer || colors.outer.source==='existing') ? 'existing' : 'new');
+        for(const side of colors.tone_type==='dual'?['inner','outer']:['inner']) {
+            const color=colors[side];
+            if(colors.tone_type==='single') {
+                if(color.source==='existing')savedMaster('selectExistingSingleColor',color);
+                else {setPickerValue('newSingleHexInput',color.hex);setPickerValue('newSinglePantoneInput',color.pantone);setPickerValue('newSingleNameInput',color.name);}
+            } else if(currentMode==='existing') savedMaster(side==='inner'?'selectExistingDualInnerColor':'selectExistingDualOuterColor',color);
+            else {
+                (side==='inner'?switchDualInnerSource:switchDualOuterSource)(color.source);
+                if(color.source==='existing')savedMaster(side==='inner'?'selectDualInnerFromExisting':'selectDualOuterFromExisting',color);
+                else {const prefix=side==='inner'?'dualInnerNew':'dualOuterNew';setPickerValue(prefix+'HexInput',color.hex);setPickerValue(prefix+'PantoneInput',color.pantone);setPickerValue(prefix+'NameInput',color.name);}
+            }
+        }
+        setPickerValue('pickedColorRemarks',row.remarks);clearSwatchPhoto(); colorSubmissionKey=null;colorDraftDirty=false;
+        pickerFeedback('Editing saved selection. Original creator and date will be preserved.');updatePickerSaveState();
+        document.getElementById('panelColorPicker').scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
+    function cancelPickedColorEdit() {
+        if(isSubmittingColor || colorDraftDirty && !confirm('Discard the unsaved color edit?'))return;
+        editingPicked=null;colorSubmissionKey=null;colorDraftDirty=false;document.getElementById('pickedColorRemarks').value='';clearSwatchPhoto();pickerFeedback('');updatePickerSaveState();
+    }
+    async function deletePickedColor(id) {
+        if(!pickedRows.find(row=>row.id===id)?.can_delete || !confirm('Delete this saved color selection? Approval history and shared media will be retained.'))return;
+        const vehicleId=currentVehicleId;
+        try {
+            const data=new FormData();data.set('vehicle_id',vehicleId);
+            const response=await fetch(`/api/picked-colors/${id}/delete/`,{method:'POST',headers:{'X-CSRFToken':getCsrfToken()},body:data});
+            if(!response.ok)throw Error('Deleting this selection is not permitted or unavailable.');
+            if(vehicleId===currentVehicleId)loadPickedColors(vehicleId);
+        }catch(error){pickerFeedback(error.message);}
+    }
+    accessScope.listen(document,'input',event=>{if(event.isTrusted && event.target.closest('#panelColorPicker') && !isSubmittingColor){colorSubmissionKey=null;colorDraftDirty=true;}});
+    accessScope.listen(document,'fabro:access-changed',()=>{document.querySelectorAll('[data-picked-action]').forEach(button=>{button.hidden=true;button.disabled=true;});});
+    accessScope.listen(document,'fabro:access-revalidated',updatePickerSaveState);
 
     // Load saved color selection and status card
     function loadPatternColorSelection(vehicleId) {
@@ -810,6 +903,7 @@
     }
 
     function initWorkspace(vehicleId, vehicleData) {
+        if (currentVehicleId !== vehicleId) { closeInteriorMediaPreview(); editingPicked=null;colorSubmissionKey=null;colorDraftDirty=false;const remarks=document.getElementById('pickedColorRemarks');if(remarks)remarks.value=''; }
         currentVehicleId = vehicleId;
 
         // Parse available colors from template JSON script
@@ -859,6 +953,8 @@
 
         loadMeasurementFiles(vehicleId);
         loadPatternColorSelection(vehicleId);
+        loadPickedColors(vehicleId);
+        updatePickerSaveState();
     }
 
     function uploadVehiclePhoto(file) {
@@ -918,6 +1014,7 @@
     window.deleteMeasurementFile = deleteMeasurementFile;
     window.openInteriorMediaPreview = openInteriorMediaPreview;
     window.closeInteriorMediaPreview = closeInteriorMediaPreview;
+    window.navigateMeasurementPreview = navigateMeasurementPreview;
     window.switchColorTopTab = switchColorTopTab;
     window.switchToneTab = switchToneTab;
     window.switchDualInnerSource = switchDualInnerSource;
@@ -925,6 +1022,7 @@
     window.handleSwatchPhotoSelected = handleSwatchPhotoSelected;
     window.clearSwatchPhoto = clearSwatchPhoto;
     window.saveColorSelection = saveColorSelection;
+    window.cancelPickedColorEdit = cancelPickedColorEdit;
     window.switchSidebarSection = switchSidebarSection;
     window.sortScannedFiles = sortScannedFiles;
     window.sortInteriorMedia = sortInteriorMedia;

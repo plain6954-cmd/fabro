@@ -66,8 +66,8 @@ class ActivityPermissionTests(TestCase):
         data.update(kwargs)
         return self.client.post(reverse('user_control_save'), data)
 
-    def test_registry_has_eighteen_real_categories_and_all_routes_are_inventoried(self):
-        self.assertEqual(len(CATEGORIES), 18)
+    def test_registry_has_nineteen_real_categories_and_all_routes_are_inventoried(self):
+        self.assertEqual(len(CATEGORIES), 19)
         self.assertEqual(set(category for category, _ in CATEGORIES), {item.category for item in REGISTRY.values()})
         from management.urls import urlpatterns
         names = {pattern.name for pattern in urlpatterns}

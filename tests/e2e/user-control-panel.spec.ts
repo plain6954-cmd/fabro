@@ -49,7 +49,7 @@ test('Add and Edit use one full-screen panel preserving all supported user field
     await expect(page.locator('.user-control-panel')).toHaveCount(1);
     const box=await page.locator('#editUserModal').boundingBox();
     expect(box!.width).toBe(1366);expect(box!.height).toBe(768);expect(box!.x).toBe(0);expect(box!.y).toBe(0);
-    await expect(page.locator('.ucp-category')).toHaveCount(18);
+    await expect(page.locator('.ucp-category')).toHaveCount(19);
     for(const id of ['editUsername','editEmail','editFirstName','editLastName','editPhone','editRole','editCountry','editDepartment','ucpPhoto','editCanFactory','editIsStaff','editIsSuperuser','ucpActive','ucpGroups']) await expect(page.locator('#'+id)).toBeAttached();
     await expect(page.locator('#editUserPassword')).toHaveAttribute('name','password');
     await expect(page.locator('#editUserPassword')).toHaveAttribute('required','');
@@ -84,7 +84,7 @@ test('role defaults, manual choices, cancel/confirm role switch and reset remain
     await page.locator('[data-ucp-collapse]').click();
     await expect(page.locator('.ucp-category[open]')).toHaveCount(0);
     await page.locator('[data-ucp-expand]').click();
-    await expect(page.locator('.ucp-category[open]')).toHaveCount(18);
+    await expect(page.locator('.ucp-category[open]')).toHaveCount(19);
     page.once('dialog',dialog=>dialog.dismiss());await page.locator('#editUserModal .erp-modal-close').click();
     await expect(page.locator('#editUserModal')).toBeVisible();
     page.once('dialog',dialog=>dialog.accept());await page.keyboard.press('Escape');

@@ -29,9 +29,9 @@ async function save(page:Page) {
     await expect(page.locator('#editUserFeedback')).toContainText('saved successfully');
 }
 
-test('all 97 checkboxes are editable by Superuser and protected denials persist on reopen',async({page})=>{
+test('all 103 checkboxes are editable by Superuser and protected denials persist on reopen',async({page})=>{
     await users(page);await edit(page,'su_browser_locked');
-    await expect(page.locator('[data-permission]')).toHaveCount(97);
+    await expect(page.locator('[data-permission]')).toHaveCount(103);
     await expect(page.locator('[data-permission]:disabled')).toHaveCount(0);
     await choice(page,'erp.view').uncheck();await choice(page,'users.permissions').uncheck();await save(page);
     await page.locator('#editUserModal .erp-modal-close').click();await edit(page,'su_browser_locked');

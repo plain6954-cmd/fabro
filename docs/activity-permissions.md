@@ -2,7 +2,7 @@
 
 The registry in management/services/activity_permissions.py is authoritative. The route inventory in management/services/activity_routes.py is used by both authenticated HTML middleware and the DRF post-authentication adapter. All registered application routes have an inventory/essential classification regression assertion.
 
-97 supported activity keys across 18 categories. No permissions are created for viewer mechanics.
+103 supported activity keys across 19 categories. No permissions are created for viewer mechanics.
 
 ## Category counts
 
@@ -17,6 +17,7 @@ The registry in management/services/activity_permissions.py is authoritative. Th
 | Design Folders | 5 |
 | Design Approval | 6 |
 | Colors & Color Approval | 8 |
+| Picked Colors | 6 |
 | SKU Management | 4 |
 | Complaints | 8 |
 | Complaint Workflow | 7 |
@@ -154,3 +155,19 @@ Event: a saved role, account activation state, group-derived access or individua
 ## Deployment
 
 NOT DEPLOYED. Apply migration 0050 and the normal static-asset collection when an authorized deployment is performed. No new dependencies or infrastructure.
+
+
+## Picked Colors
+
+The six picked_colors activities use the same resolver, overrides, user-access audit and two-second snapshot synchronization. View/Add preserve authorized Measurements color selection access; edits/deletes default to own, with all scoped to catalogue managers. View requires Pattern Master access; Add/Edit also require existing color submission access. Grants never widen vehicle country scope or manufacture ownership.
+
+Measurements saves retain their existing approval records and create editable PickedColorSelection snapshots. Edits preserve creator/date, append audit events and create a separate proposal only when colors/swatch change; remarks-only edits leave proposals alone. Deletion is soft, retaining audit, Color Master records and shared media. Migration 0051 imports prior selections. Persisted names/HEX are retained; legacy Color Master codes were not historically snapshotted, so their available migration-time values are recorded explicitly.
+
+| Key | Endpoint/action |
+|---|---|
+| picked_colors.view | GET /api/picked-colors/ and authenticated swatch preview |
+| picked_colors.add | POST /api/pattern-color-selection/save/ |
+| picked_colors.edit_own | POST /api/picked-colors/<id>/edit/, original creator only |
+| picked_colors.edit_all | Same action, within authorized vehicle scope |
+| picked_colors.delete_own | POST /api/picked-colors/<id>/delete/, original creator only |
+| picked_colors.delete_all | Same action, within authorized vehicle scope |

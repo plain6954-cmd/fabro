@@ -15,7 +15,7 @@ CATEGORIES = (
     ('pattern', _('Pattern Master')), ('measurement', _('Measurements')),
     ('reference', _('Reference Images')), ('design', _('Designer Uploads')),
     ('folder', _('Design Folders')), ('design_approval', _('Design Approval')),
-    ('color', _('Colors & Color Approval')), ('sku', _('SKU Management')),
+    ('color', _('Colors & Color Approval')), ('picked_colors', _('Picked Colors')), ('sku', _('SKU Management')),
     ('complaint', _('Complaints')), ('workflow', _('Complaint Workflow')),
     ('master', _('Master Settings')), ('notification', _('Notifications')),
     ('chat', _('Internal Chat')), ('reports', _('Reports & Activity')),
@@ -66,6 +66,12 @@ activities('color', [('view', 'View colors'), ('create', 'Create colors', 'catal
     ('delete', 'Delete colors', 'catalog'), ('submit', 'Submit color proposals'), ('history', 'View color review history'),
     ('approve', 'Approve assigned color stage', 'color_review', ('color.view',)), ('reject', 'Reject assigned color stage', 'color_review', ('color.view',))])
 activities('sku', [('view', 'View SKUs'), ('create', 'Create SKUs', 'catalog'), ('edit', 'Edit SKUs', 'catalog'), ('delete', 'Delete SKUs', 'catalog')])
+activities('picked_colors', [('view', 'View saved color selections', 'authenticated', ('pattern.view',)),
+    ('add', 'Add color selections', 'authenticated', ('picked_colors.view', 'color.submit')),
+    ('edit_own', 'Edit own color selections', 'authenticated', ('picked_colors.view', 'color.submit')),
+    ('edit_all', 'Edit all authorized color selections', 'catalog', ('picked_colors.view', 'color.submit')),
+    ('delete_own', 'Delete own color selections', 'authenticated', ('picked_colors.view',)),
+    ('delete_all', 'Delete all authorized color selections', 'catalog', ('picked_colors.view',))])
 activities('complaint', [('view', 'View authorized complaints'), ('create', 'Register permitted complaint types', 'complaint_create'),
     ('edit', 'Edit eligible complaint reports', 'report_edit'), ('delete', 'Delete authorized complaints', 'erp'),
     ('export', 'Export authorized complaints'), ('media_view', 'View authorized complaint media'),
