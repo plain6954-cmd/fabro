@@ -124,10 +124,212 @@ class ActivityPermissionTests(TestCase):
             with self.assertRaises(ValidationError):
                 validate_overrides(values, identity(self.admin))
         self.override(self.admin, {'users.manage': 'deny', 'erp.view': 'deny', 'vehicle.create': 'deny', 'sku.delete': 'deny'})
-        self.assertTrue(granted(self.admin, 'users.manage'))
-        self.assertTrue(granted(self.admin, 'erp.view'))
-        self.assertTrue(granted(self.admin, 'vehicle.create'))
-        self.assertTrue(granted(self.admin, 'sku.delete'))
+        self.assertFalse(granted(self.admin, 'users.manage'))
+        self.assertFalse(granted(self.admin, 'erp.view'))
+        self.assertFalse(granted(self.admin, 'vehicle.create'))
+        self.assertFalse(granted(self.admin, 'sku.delete'))
+
+    def test_superuser_can_disable_and_restore_own_admin_permissions(self):
+        # Include dependent activities so the override remains valid.
+        blocked = {'users.manage', 'erp.view', 'users.permissions'}
+        while True:
+            expanded = blocked | {
+                key for key, item in REGISTRY.items()
+                if any(dependency in blocked for dependency in item.requires)
+            }
+            if expanded == blocked:
+                break
+            blocked = expanded
+
+        defaults = role_defaults(identity(self.admin))
+        denials = {key: 'deny' for key in blocked if defaults.get(key)}
+        self.assertIn('users.manage', denials)
+        self.assertIn('erp.view', denials)
+
+        response = self.post_user(
+            self.admin, is_superuser='on', is_staff='on',
+            activity_permissions=json.dumps(denials)
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+
+        fresh_admin = User.objects.get(pk=self.admin.pk)
+        self.assertFalse(granted(fresh_admin, 'users.manage'))
+        self.assertFalse(granted(fresh_admin, 'erp.view'))
+
+        # Ordinary management stays denied, but self-recovery works.
+        self.assertEqual(
+            self.client.get(reverse('admin_panel_alias'),
+                            {'section': 'dashboard'}).status_code, 403
+        )
+        self.assertEqual(
+            self.client.get(reverse('admin_panel_alias'),
+                            {'section': 'users'}).status_code, 200
+        )
+        self.assertEqual(
+            self.client.get(reverse('user_control_data'),
+                            {'user_id': str(self.viewer.pk)}).status_code, 403
+        )
+        own_data = self.client.get(
+            reverse('user_control_data'), {'user_id': str(self.admin.pk)}
+        )
+        self.assertEqual(own_data.status_code, 200)
+        self.assertTrue(own_data.json()['can_override_all_activities'])
+        self.assertTrue(own_data.json()['can_manage_permissions'])
+        self.assertTrue(own_data.json()['recovery_only'])
+        page = self.client.get(reverse('admin_panel_alias'), {'section': 'users', 'edit_user': self.viewer.pk})
+        self.assertEqual([person.pk for person in page.context['users']], [self.admin.pk])
+        self.assertEqual(page.context['edit_user_id'], str(self.admin.pk))
+        self.assertEqual(page.context['active_sessions'], [])
+        self.assertEqual(page.context['groups'], [])
+        self.assertEqual(page.context['permissions'], [])
+        self.assertTrue(all(country.user_count == 1 for country in page.context['workflow_countries']))
+
+        other_save = self.post_user(self.viewer)
+        self.assertEqual(other_save.status_code, 403)
+
+        restored = self.client.post(reverse('user_control_save'), {'user_id': self.admin.pk, 'activity_permissions': '{}'})
+        self.assertEqual(restored.status_code, 200, restored.content)
+        fresh_admin = User.objects.get(pk=self.admin.pk)
+        self.assertTrue(granted(fresh_admin, 'users.manage'))
+        self.assertTrue(granted(fresh_admin, 'erp.view'))
+
+        # A non-superuser administrator has no recovery bypass.
+        self.override(self.md, {'users.manage': 'deny', 'erp.view': 'deny'})
+        self.client.force_login(self.md)
+        self.assertEqual(
+            self.client.get(reverse('user_control_data'),
+                            {'user_id': str(self.md.pk)}).status_code, 403
+        )
+
+    def test_superuser_permission_denial_blocks_other_account_overrides(self):
+        self.override(self.admin, {'users.permissions': 'deny'})
+        self.client.force_login(self.admin)
+        data = self.client.get(reverse('user_control_data'), {'user_id': self.viewer.pk}).json()
+        self.assertFalse(data['can_manage_permissions'])
+        self.assertFalse(data['can_override_all_activities'])
+        self.assertEqual(self.post_user(self.viewer, activity_permissions='{"chat.send":"deny"}').status_code, 403)
+        self.viewer.workflow_profile.refresh_from_db()
+        self.assertEqual(self.viewer.workflow_profile.activity_permissions, {})
+
+    def test_recovery_only_changes_own_permissions_and_rejects_unrelated_fields(self):
+        self.override(self.admin, {'users.manage': 'deny', 'erp.view': 'deny', 'users.permissions': 'deny'})
+        self.client.force_login(self.admin)
+        before = (self.admin.username, self.admin.password, UserAccessAudit.objects.count())
+        for extra in ({'role': R.FACTORY_VIEWER}, {'is_active': ''}, {'is_superuser': ''},
+                      {'new_password': 'NotRecovery!369'}, {'groups': [self.group.pk]}, {'username': 'Changed'}):
+            response = self.client.post(reverse('user_control_save'), {'user_id': self.admin.pk, 'activity_permissions': '{}', **extra})
+            self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(self.client.post(reverse('admin_panel_alias')+'?section=users', {'add_group': '1', 'name': 'Forbidden recovery group'}).status_code, 403)
+        self.assertEqual(self.client.get(reverse('user_control_data')).status_code, 403)
+        self.admin.refresh_from_db()
+        self.assertEqual(before, (self.admin.username, self.admin.password, UserAccessAudit.objects.count()))
+        self.assertTrue(self.admin.is_superuser)
+        self.assertTrue(self.admin.is_active)
+
+    def test_superuser_ineligible_allow_is_retained_while_inheritance_remains_eligible(self):
+        values = {'vehicle.create': 'allow', 'users.permissions': 'allow'}
+        with override_settings(ACTIVITY_ROLE_DEFAULTS={R.FACTORY_VIEWER: {key: True for key in values}}):
+            info = identity(self.viewer)
+            self.assertFalse(role_defaults(info)['vehicle.create'])
+            self.assertFalse(granted(self.viewer, 'vehicle.create'))
+            self.assertEqual(validate_overrides(values, info, superuser_editor=True), values)
+            self.override(self.viewer, values)
+            self.assertTrue(granted(self.viewer, 'vehicle.create'))
+            self.assertTrue(granted(self.viewer, 'users.permissions'))
+
+    def test_explicit_privileged_grants_do_not_confer_admin_or_stage_identity(self):
+        self.override(self.viewer, {key: 'allow' for key in ('users.manage', 'users.permissions', 'users.create', 'erp.view', 'design_approval.view', 'design_approval.approve')})
+        self.client.force_login(self.viewer)
+        self.assertIn(self.client.get(reverse('user_control_data'), {'user_id': self.other.pk}).status_code, (302, 403))
+        from django.test import RequestFactory
+        from management.services.user_control import save_control_user
+        request = RequestFactory().post(reverse('user_control_save'), {'user_id': self.other.pk})
+        request.user = self.viewer
+        with self.assertRaises(PermissionDenied):
+            save_control_user(request)
+        image = self.image()
+        review = submit_design_for_approval(image, self.designer)
+        with self.assertRaises(PermissionDenied):
+            record_design_review_decision(image, self.viewer, 'approved', stage='ed', change_type='minor')
+        review.refresh_from_db()
+        self.assertEqual(review.ed_status, 'pending')
+
+    def test_non_superuser_cannot_mint_privileged_overrides_or_remove_protected_denials(self):
+        actor = self.account('ordinary-access-admin', R.ADMIN)
+        target = self.account('restricted-access-admin', R.ADMIN)
+        self.override(target, {'erp.view': 'deny'})
+        self.client.force_login(actor)
+        for permissions in ({}, {'erp.view': 'allow'}, {'erp.view': 'deny', 'users.manage': 'deny'}):
+            response = self.client.post(reverse('user_control_save'), {'user_id': target.pk, 'username': target.username,
+                'email': target.email, 'role': R.ADMIN, 'activity_permissions': json.dumps(permissions)})
+            self.assertEqual(response.status_code, 400, response.content)
+        response = self.client.post(reverse('user_control_save'), {'user_id': self.viewer.pk, 'username': self.viewer.username,
+            'email': self.viewer.email, 'role': R.FACTORY_VIEWER, 'activity_permissions': '{"users.permissions":"allow"}'})
+        self.assertEqual(response.status_code, 400, response.content)
+
+    def test_non_superuser_preserves_saved_locked_override_during_profile_edit(self):
+        actor = self.account('preserving-access-admin', R.ADMIN)
+        self.client.force_login(actor)
+        for target, values in ((self.viewer, {'users.permissions': 'allow'}), (self.account('locked-access-admin', R.ADMIN), {'erp.view': 'deny'})):
+            self.override(target, values)
+            response = self.client.post(reverse('user_control_save'), {'user_id': target.pk, 'username': target.username,
+                'email': target.email, 'role': target.workflow_profile.role, 'first_name': 'Kept', 'activity_permissions': json.dumps(values)})
+            self.assertEqual(response.status_code, 200, response.content)
+            target.refresh_from_db()
+            self.assertEqual(target.first_name, 'Kept')
+            self.assertEqual(target.workflow_profile.activity_permissions, values)
+
+    def test_superuser_dependency_violations_reject_atomically(self):
+        before = (User.objects.count(), UserAccessAudit.objects.count())
+        response = self.post_user(activity_permissions='{"chat.view":"deny","chat.send":"allow"}')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(before, (User.objects.count(), UserAccessAudit.objects.count()))
+        with self.assertRaises(ValidationError):
+            validate_overrides({'chat.view': 'deny', 'chat.send': 'allow'}, identity(self.viewer), superuser_editor=True)
+
+    def test_inactive_superusers_and_explicit_grantees_fail_closed(self):
+        self.override(self.viewer, {'users.manage': 'allow'})
+        self.assertTrue(granted(self.viewer, 'users.manage'))
+        self.viewer.is_active = False
+        self.assertFalse(granted(self.viewer, 'users.manage'))
+        self.admin.is_active = False
+        from django.test import RequestFactory
+        from management.services.user_control import save_control_user, control_data
+        request = RequestFactory().post(reverse('user_control_save'), {'user_id': self.admin.pk, 'activity_permissions': '{}'})
+        request.user = self.admin
+        self.assertFalse(control_data(self.admin, self.admin)['can_manage_permissions'])
+        with self.assertRaises(PermissionDenied):
+            save_control_user(request)
+
+    def test_final_active_superuser_and_administrator_safeguards_survive_overrides(self):
+        for changes in ({'is_active': ''}, {'is_superuser': ''}):
+            data = dict(is_superuser='on', is_staff='on', activity_permissions='{}')
+            data.update(changes)
+            response = self.post_user(self.admin, **data)
+            self.assertEqual(response.status_code, 400, response.content)
+            self.admin.refresh_from_db()
+            self.assertTrue(self.admin.is_active and self.admin.is_superuser)
+        ordinary = self.account('last-active-admin', R.ADMIN)
+        self.admin.is_active = False
+        self.admin.save(update_fields=['is_active'])
+        self.client.force_login(ordinary)
+        response = self.client.post(reverse('user_control_save'), {'user_id': ordinary.pk, 'username': ordinary.username,
+            'email': ordinary.email, 'role': R.FACTORY_VIEWER, 'activity_permissions': '{}'})
+        self.assertEqual(response.status_code, 400, response.content)
+        ordinary.refresh_from_db()
+        self.assertEqual(ordinary.workflow_profile.role, R.ADMIN)
+
+    @patch('management.services.push_notifications.send_push_on_commit')
+    def test_self_recovery_audits_once_and_keeps_existing_notification_trigger(self, push):
+        self.override(self.admin, {'users.manage': 'deny'})
+        self.client.force_login(self.admin)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(reverse('user_control_save'), {'user_id': self.admin.pk, 'activity_permissions': '{}'})
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(UserAccessAudit.objects.filter(actor=self.admin, target=self.admin).count(), 1)
+        self.assertEqual(Notification.objects.filter(recipient=self.admin, notification_type='access_change').count(), 1)
+        self.assertEqual(Notification.objects.exclude(recipient=self.admin).count(), 0)
+        push.assert_called_once()
 
     def test_each_assigned_design_stage_is_preserved(self):
         image = self.image()
@@ -245,8 +447,14 @@ class ActivityPermissionTests(TestCase):
         self.assertTrue(self.designer.groups.filter(pk=self.group.pk).exists())
         self.assertEqual(before, (User.objects.count(), ActivityLog.objects.count(), UserAccessAudit.objects.count()))
         response = self.post_user(activity_permissions='{"users.permissions":"allow"}')
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(User.objects.count(), before[0])
+        self.assertEqual(response.status_code, 200, response.content)
+        created = User.objects.get(username='new-access-user')
+        self.assertEqual(created.workflow_profile.activity_permissions, {'users.permissions': 'allow'})
+        self.assertFalse(created.is_superuser)
+        self.assertTrue(granted(created, 'users.permissions'))
+        self.assertFalse(granted(self.viewer, 'users.permissions'))
+        with self.assertRaises(ValidationError):
+            validate_overrides({'users.permissions': 'allow'}, identity(self.viewer))
 
     def test_blank_password_preserves_hash_and_edit_response_does_not_expose_it(self):
         password_hash = self.designer.password
@@ -377,20 +585,29 @@ class ActivityPermissionTests(TestCase):
 
 
     def test_private_measurement_preview_download_scope_and_video_ranges(self):
+        import tempfile
         from django.core.files.base import ContentFile
-        item = PatternMeasurementFile.objects.create(vehicle=self.vehicle, uploaded_by=self.viewer,
-            category=PatternMeasurementFile.CATEGORY_INTERIOR, filename='range.mp4', file=ContentFile(b'0123456789', name='range.mp4'))
-        self.addCleanup(item.file.delete, False)
-        self.client.force_login(self.viewer)
-        response = self.client.get(reverse('measurement_file_download', args=[item.pk]), HTTP_RANGE='bytes=3-5')
-        self.assertEqual(response.status_code, 206)
-        self.assertEqual(response['Content-Range'], 'bytes 3-5/10')
-        self.assertEqual(b''.join(response.streaming_content), b'345')
-        response.close()
-        self.override(self.viewer, {'measurement.download_own': 'deny', 'measurement.download_all': 'deny'})
-        response = self.client.get(reverse('get_measurement_files_api'), {'vehicle_id': self.vehicle.pk})
-        self.assertIsNone(response.json()['interior_files'][0]['download_url'])
-        self.assertEqual(self.client.get(reverse('measurement_file_download', args=[item.pk])+'?download=1').status_code, 403)
+        from django.core.files.storage import FileSystemStorage
+
+        # Exercise real file reads without depending on external S3 availability.
+        with tempfile.TemporaryDirectory() as media_dir:
+            field = PatternMeasurementFile._meta.get_field('file')
+            with patch.object(field, 'storage', FileSystemStorage(location=media_dir)):
+                item = PatternMeasurementFile.objects.create(vehicle=self.vehicle, uploaded_by=self.viewer,
+                    category=PatternMeasurementFile.CATEGORY_INTERIOR, filename='range.mp4', file=ContentFile(b'0123456789', name='range.mp4'))
+                self.client.force_login(self.viewer)
+                response = self.client.get(reverse('measurement_file_download', args=[item.pk]), HTTP_RANGE='bytes=3-5')
+                self.assertEqual(response.status_code, 206)
+                self.assertEqual(response['Content-Range'], 'bytes 3-5/10')
+                self.assertEqual(b''.join(response.streaming_content), b'345')
+                # Exhausting the range iterator closes its file in finally;
+                # the test client's wrapper safely closes the response too.
+                # A second response.close() would fire request_finished again.
+                self.assertTrue(response.closed)
+                self.override(self.viewer, {'measurement.download_own': 'deny', 'measurement.download_all': 'deny'})
+                response = self.client.get(reverse('get_measurement_files_api'), {'vehicle_id': self.vehicle.pk})
+                self.assertIsNone(response.json()['interior_files'][0]['download_url'])
+                self.assertEqual(self.client.get(reverse('measurement_file_download', args=[item.pk])+'?download=1').status_code, 403)
 
 
     def test_protected_assets_block_approved_deletion_but_not_rejecting_the_request(self):

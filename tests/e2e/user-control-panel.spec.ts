@@ -10,7 +10,7 @@ group,_=Group.objects.get_or_create(name='UCP file manager');group.permissions.a
 User=get_user_model()
 for name, role, stage in [('ucp_browser_edit','factory_viewer',''),('ucp_browser_denied','approver','CAD')]:
     user,_=User.objects.get_or_create(username=name)
-    user.email=name+'@example.com';user.set_password('UcpBrowser!369');user.save()
+    user.email=name+'@example.com';user.is_active=True;user.set_password('UcpBrowser!369');user.save()
     profile=user.workflow_profile
     profile.role=role;profile.approval_role=stage
     profile.activity_permissions={'chat.view':'deny','reference.upload':'deny','design_approval.approve':'deny','design_approval.reject':'deny'} if name.endswith('denied') else {}
@@ -63,7 +63,7 @@ test('Add and Edit use one full-screen panel preserving all supported user field
 test('role defaults, manual choices, cancel/confirm role switch and reset remain unsaved until Save', async ({page}) => {
     await users(page); await add(page);
     await expect(choice(page,'reference.upload')).not.toBeChecked();
-    await expect(choice(page,'reference.upload')).toBeDisabled();
+    await expect(choice(page,'reference.upload')).toBeEnabled();
     await choice(page,'chat.send').uncheck();
     await expect(choice(page,'chat.send').locator('..')).toContainText('Override: Deny');
     page.once('dialog', dialog => dialog.dismiss());
@@ -124,12 +124,13 @@ test('create user and duplicate-submit protection use the existing validation an
     runDjangoCode("from django.contrib.auth import get_user_model; u=get_user_model().objects.get(username='ucp_browser_created'); assert u.check_password('NewBrowser!368'); assert u.access_changes_received.count()==1");
 });
 
-test('protected admin activities remain checked and locked',async({page})=>{
+test('Superuser can customize protected admin activities',async({page})=>{
     await users(page);await add(page);await page.locator('#editRole').selectOption('admin');
     for(const key of ['users.manage','users.permissions','erp.view','erp.sessions_terminate']) {
-        await expect(choice(page,key)).toBeChecked();await expect(choice(page,key)).toBeDisabled();
+        await expect(choice(page,key)).toBeChecked();await expect(choice(page,key)).toBeEnabled();
     }
-    await expect(choice(page,'users.manage').locator('..')).toContainText('Protected administrative access');
+    await choice(page,'users.manage').uncheck();
+    await expect(choice(page,'users.manage').locator('..')).toContainText('Override: Deny');
 });
 
 test('desktop tablet mobile independent scrolling and fixed controls retain the ERP theme',async({page})=>{
@@ -186,12 +187,12 @@ test('denied navigation and review controls stay hidden and direct calls fail',a
 
 test('staff and existing Django groups update eligible choices before the atomic save',async({page})=>{
     await users(page); await add(page);
-    await expect(choice(page,'vehicle.create')).toBeDisabled();
+    await expect(choice(page,'vehicle.create')).toBeEnabled();
     let updated=page.waitForResponse(response=>response.url().includes('/admin-panel/users/control/?'));
     await page.locator('#editIsStaff').check();await updated;
     await expect(page.locator('#editUserModal')).toHaveAttribute('aria-busy','false');
     await expect(choice(page,'vehicle.create')).toBeChecked();await expect(choice(page,'vehicle.create')).toBeEnabled();
-    await expect(choice(page,'reference.delete_all')).toBeDisabled();
+    await expect(choice(page,'reference.delete_all')).toBeEnabled();
     updated=page.waitForResponse(response=>response.url().includes('/admin-panel/users/control/?'));
     await page.locator('#ucpGroups').selectOption({label:'UCP file manager'});await updated;
     await expect(page.locator('#editUserModal')).toHaveAttribute('aria-busy','false');

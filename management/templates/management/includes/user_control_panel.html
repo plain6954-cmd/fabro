@@ -95,6 +95,7 @@
 
                 <section class="ucp-permissions" id="ucpPermissions" role="tabpanel" aria-labelledby="ucpPermissionsTab">
                     <div class="ucp-permission-tools"><div><h2>{% translate 'Activity Permissions' %}</h2><p>{% translate 'Role defaults apply unless customized. Existing record and workflow restrictions always apply.' %}</p></div><span data-ucp-total role="status"></span><label class="erp-form-label" for="ucpSearch">{% translate 'Search permissions' %}</label><input id="ucpSearch" type="search" class="erp-form-input" placeholder="{% translate 'Search activities or categories' %}"><div class="ucp-tools"><button type="button" class="btn-secondary" data-ucp-expand>{% translate 'Expand all' %}</button><button type="button" class="btn-secondary" data-ucp-collapse>{% translate 'Collapse all' %}</button><button type="button" class="btn-secondary" data-ucp-reset>{% translate 'Reset to Role Defaults' %}</button></div><p data-ucp-readonly hidden>{% translate 'Only Admin can change activity permissions or reviewer assignments.' %}</p></div>
+                    <p data-ucp-recovery hidden>{% translate 'Access recovery: only your own activity permissions can be changed here. Account details and security settings remain unchanged.' %}</p>
                     <div data-ucp-categories></div><p data-ucp-empty hidden>{% translate 'No matching activities.' %}</p>
                 </section>
             </div>

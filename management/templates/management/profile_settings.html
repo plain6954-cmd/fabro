@@ -649,6 +649,11 @@
                     <i class="fas fa-user-cog"></i> {% translate "Profile Settings" %}
                 </h1>
                 <p class="profile-subtitle">{% translate "Configure your personal information and adjust account security credentials" %}</p>
+                {% if request.user.is_active and request.user.is_superuser %}
+                <a href="{% url 'admin_panel' %}?section=users&amp;edit_user={{ request.user.pk }}" class="btn btn-secondary compact-admin-btn" data-testid="recover-own-activity-access">
+                    <i class="fas fa-key"></i> {% translate 'Manage my activity access' %}
+                </a>
+                {% endif %}
             </div>
             {% if can_manage_workflow %}
             <a href="{% url 'admin_panel' %}" class="btn btn-secondary compact-admin-btn" data-testid="open-admin-panel" {% activity_attrs 'erp.view' %}>

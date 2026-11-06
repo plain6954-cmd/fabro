@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 from management.forms import UserCreationForm, UserWorkflowProfileForm, UnifiedWorkflowRoles
 from management.models import ActivityLog, UserAccessAudit, PatternDesignApproval, WorkflowRoles
 from management.services.activity_permissions import (ADMIN_KEYS, CATEGORIES, REGISTRY, eligible, granted,
-    identity, protected_admin, administrative_account, role_defaults, validate_overrides)
+    identity, protected_admin, administrative_account, role_defaults, validate_overrides, self_access_recovery)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -38,6 +38,9 @@ def public_user(user):
 
 
 def control_data(actor, target=None, prospective=None):
+    recovery = bool(target and target.pk == actor.pk and self_access_recovery(actor))
+    superuser_editor = bool(actor.is_authenticated and actor.is_active and actor.is_superuser)
+    can_edit = recovery or protected_admin(actor) and granted(actor, 'users.permissions')
     info = identity(target) if target else {'role': WorkflowRoles.FACTORY_VIEWER, 'approval_role': '', 'is_staff': False, 'is_superuser': False}
     if prospective:
         info.update(prospective)
@@ -52,9 +55,9 @@ def control_data(actor, target=None, prospective=None):
     return {'user': public_user(target) if target else None,
         'overrides': target.workflow_profile.activity_permissions if target else {},
         'can_delete_user': bool(target and target.pk != actor.pk and not PatternDesignApproval.objects.filter(Q(designer=target) | Q(cad_reviewer=target) | Q(ed_reviewer=target) | Q(md_reviewer=target)).exists()),
-        'can_manage_permissions': protected_admin(actor) and granted(actor, 'users.permissions'),
-        'can_manage_security': bool(actor.is_superuser), 'role_maps': role_maps,
-        'groups': list(Group.objects.order_by('name').values('id', 'name')),
+        'can_manage_permissions': bool(can_edit), 'recovery_only': recovery,
+        'can_manage_security': superuser_editor and not recovery, 'can_override_all_activities': superuser_editor and can_edit, 'role_maps': role_maps,
+        'groups': list((target.groups if recovery else Group.objects).order_by('name').values('id', 'name')),
         'categories': [{'key': key, 'label': str(label), 'actions': [
             {'key': item.key, 'label': str(item.label), 'requires': item.requires, 'protected': item.key in ADMIN_KEYS}
             for item in REGISTRY.values() if item.category == key]} for key, label in CATEGORIES]}
@@ -73,11 +76,15 @@ def _access_notification(user):
 @transaction.atomic
 def save_control_user(request, *, creating=False):
     actor, data = request.user, request.POST
+    from management.services.workflow import is_workflow_admin
+    if not actor.is_authenticated or not actor.is_active or not is_workflow_admin(actor):
+        raise PermissionDenied(_('Only an active workflow administrator may manage users.'))
+    recovery = self_access_recovery(actor) and not creating and data.get('user_id') == str(actor.pk)
     # Stable lock order also serializes the existing single-active-reviewer validation.
     list(User.objects.select_for_update(of=('self',)).filter(Q(is_superuser=True) | Q(workflow_profile__role=WorkflowRoles.ADMIN)).order_by('pk').values_list('pk', flat=True))
     if creating and not granted(actor, 'users.create'):
         raise PermissionDenied(_('Only Admin may create user accounts.'))
-    if not granted(actor, 'users.manage'):
+    if not granted(actor, 'users.manage') and not recovery:
         raise PermissionDenied(_('User management is disabled.'))
     if not creating and data.get('new_password') and data.get('new_password') != data.get('confirm_password', ''):
         raise ValidationError(_('The two password fields did not match.'))
@@ -89,6 +96,23 @@ def save_control_user(request, *, creating=False):
     old_role = identity(target) if target else {}
     old_overrides = dict(target.workflow_profile.activity_permissions) if target else {}
     old_groups = list(target.groups.values_list('pk', flat=True)) if target else []
+    if recovery:
+        allowed_fields = {'user_id', 'activity_permissions', 'control_panel', 'csrfmiddlewaretoken'}
+        if set(data) - allowed_fields or request.FILES or 'activity_permissions' not in data:
+            raise ValidationError(_('Recovery can change only your own activity permissions.'))
+        try:
+            submitted = json.loads(data['activity_permissions'])
+        except (TypeError, ValueError):
+            raise ValidationError(_('Invalid permission selections.'))
+        overrides = validate_overrides(submitted, old_role, superuser_editor=True)
+        saved_profile = target.workflow_profile
+        saved_profile.activity_permissions = overrides
+        saved_profile.save(update_fields=['activity_permissions'])
+        for attribute in ('_activity_grants', '_workflow_profile'):
+            target.__dict__.pop(attribute, None)
+        record_access_audit(actor, target, old_role, old_overrides, old_groups, old_groups, overrides)
+        ActivityLog.objects.create(user=actor, action='restored activity access', object_type='User', object_name=target.username)
+        return target
     if creating:
         if data.get('control_panel') == '1' and data.get('password') != data.get('confirm_password'):
             raise ValidationError(_('The two password fields did not match.'))
@@ -138,7 +162,7 @@ def save_control_user(request, *, creating=False):
             submitted = json.loads(data['activity_permissions'])
         except (TypeError, ValueError):
             raise ValidationError(_('Invalid permission selections.'))
-        overrides = validate_overrides(submitted, candidate)
+        overrides = validate_overrides(submitted, candidate, superuser_editor=bool(actor.is_superuser), existing=old_overrides)
     if data.get('control_panel') == '1':
         target.is_active = data.get('is_active') == 'on'
     if not creating:

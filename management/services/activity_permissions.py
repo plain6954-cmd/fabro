@@ -98,6 +98,11 @@ def protected_admin(user):
     return bool(user and user.is_authenticated and user.is_active and
                 (user.is_superuser or getattr(profile(user), 'role', '') == R.ADMIN))
 
+def self_access_recovery(user):
+    """Only active, authenticated Django superusers can recover their own gates."""
+    return bool(user and user.is_authenticated and user.is_active and user.is_superuser
+                and any(not granted(user, key) for key in ('erp.view', 'users.manage', 'users.permissions')))
+
 def identity(user):
     p = profile(user)
     file_delete = bool(user.has_perm('management.delete_patterndesignimage'))
@@ -139,7 +144,8 @@ def role_defaults(info):
     defaults = {key: eligible(item.policy, info) for key, item in REGISTRY.items()}
     role_key = info.get('approval_role') if info.get('role') == R.APPROVER else info.get('role')
     changes = getattr(settings, 'ACTIVITY_ROLE_DEFAULTS', {}).get(role_key, {})
-    defaults.update({key: value for key, value in changes.items() if key in REGISTRY and type(value) is bool})
+    defaults.update({key: value and eligible(REGISTRY[key].policy, info)
+                     for key, value in changes.items() if key in REGISTRY and type(value) is bool})
     if info.get('is_superuser') or info.get('role') == R.ADMIN:
         defaults.update({key: True for key in ADMIN_KEYS})
     for item in REGISTRY.values():
@@ -152,13 +158,13 @@ def granted(user, key):
         return False
     cache = getattr(user, '_activity_grants', None)
     if cache is None:
-        defaults = role_defaults(identity(user))
+        info = identity(user)
+        defaults = role_defaults(info)
         overrides = getattr(profile(user), 'activity_permissions', {}) or {}
-        cache = {name: (overrides.get(name) == 'allow' if name in overrides else value) for name, value in defaults.items()}
-        if protected_admin(user):
-            cache.update({name: True for name in ADMIN_KEYS})
+        # Explicit grants can extend role eligibility; inherited defaults cannot.
+        cache = {name: (overrides[name] == 'allow' if name in overrides else value and eligible(REGISTRY[name].policy, info)) for name, value in defaults.items()}
         user._activity_grants = cache
-    return cache[key] and eligible(REGISTRY[key].policy, identity(user)) and all(granted(user, dependency) for dependency in REGISTRY[key].requires)
+    return cache[key] and all(granted(user, dependency) for dependency in REGISTRY[key].requires)
 
 def require(user, *keys):
     if not all(granted(user, key) for key in keys):
@@ -191,15 +197,23 @@ def deletable(image):
         return False
     return not image.approval_requests.exists()
 
-def validate_overrides(data, info):
+def validate_overrides(data, info, *, superuser_editor=False, existing=None):
     if not isinstance(data, dict) or any(key not in REGISTRY or value not in ('allow', 'deny') for key, value in data.items()):
         raise ValidationError(_('Invalid activity permission keys or values.'))
     protected = info.get('is_superuser') or info.get('role') == R.ADMIN
     defaults = role_defaults(info)
+    existing = existing or {}
+    if not superuser_editor:
+        # Ordinary editors may preserve, but cannot alter or silently remove,
+        # a Superuser-managed override outside their editing authority.
+        for key in data.keys() | existing.keys():
+            locked = protected and key in ADMIN_KEYS or not eligible(REGISTRY[key].policy, info)
+            if locked and data.get(key) != existing.get(key):
+                raise ValidationError(_('Only a Django superuser may change this protected activity override.'))
     for key, value in data.items():
-        if protected and key in ADMIN_KEYS and value == 'deny':
+        if not superuser_editor and protected and key in ADMIN_KEYS and value == 'deny' and existing.get(key) != value:
             raise ValidationError(_('Protected administrative access cannot be removed.'))
-        if value == 'allow' and not eligible(REGISTRY[key].policy, info):
+        if not superuser_editor and value == 'allow' and not eligible(REGISTRY[key].policy, info) and existing.get(key) != value:
             raise ValidationError(_('An activity grant cannot confer administrative or reviewer authority.'))
     effective = {key: data.get(key, 'allow' if default else 'deny') == 'allow' for key, default in defaults.items()}
     for key, value in effective.items():

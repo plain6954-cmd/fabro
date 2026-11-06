@@ -8,7 +8,7 @@ import json
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import PermissionDenied
-from management.services.activity_permissions import granted, require, scoped
+from management.services.activity_permissions import granted, require, scoped, self_access_recovery
 
 ROUTES = {}
 def routes(names, read, write=None):
@@ -106,6 +106,14 @@ def payload(request):
 
 def request_keys(request, name=None):
     name = name or request.resolver_match.url_name
+    # Keep a narrow self-service recovery path for active Django superusers.
+    if self_access_recovery(request.user):
+        if name in ('admin_panel', 'admin_panel_alias') and request.method == 'GET' and request.GET.get('section') == 'users':
+            return []
+        if name == 'user_control_data' and request.method == 'GET' and request.GET.get('user_id') == str(request.user.pk):
+            return []
+        if name == 'user_control_save' and request.method == 'POST' and request.POST.get('user_id') == str(request.user.pk):
+            return []
     if request.resolver_match.namespace == 'admin':
         parts = name.split('_')
         model = parts[1] if len(parts) > 2 else ''

@@ -16,7 +16,7 @@
     function busy(value) {
         modal.setAttribute('aria-busy', String(value));
         modal.querySelectorAll('.erp-modal-footer button').forEach(button => { button.disabled = value; });
-        byId('resetUserPasswordButton').disabled = value;
+        byId('resetUserPasswordButton').disabled = value || Boolean(state.data?.recovery_only);
         modal.querySelector('.erp-modal-close').disabled = Boolean(value && state.saving);
     }
     function tab(name) {
@@ -31,7 +31,7 @@
             if (row.input.checked) selected++;
             const inherited = row.input.checked === row.default;
             row.label.dataset.override = String(!inherited && !row.input.disabled);
-            row.status.textContent = text(row.protected ? 'Protected administrative access' : !row.eligible ? 'Restricted by existing role rules' : inherited ? 'Inherited from role' : row.input.checked ? 'Override: Allow' : 'Override: Deny');
+            row.status.textContent = text(!inherited && row.input.disabled ? (row.input.checked ? 'Superuser-managed: Allow' : 'Superuser-managed: Deny') : row.protected && !state.data.can_override_all_activities ? 'Protected administrative access' : inherited ? 'Inherited from role' : row.input.checked ? 'Override: Allow — business rules still apply' : 'Override: Deny');
         }
         for (const category of modal.querySelectorAll('.ucp-category')) {
             const inputs = [...category.querySelectorAll('input')];
@@ -44,9 +44,9 @@
         for (const [key, row] of state.rows) {
             row.default = Boolean(role.defaults[key]); row.eligible = Boolean(role.eligible[key]);
             row.protected = role.protected && row.mandatory;
-            row.input.checked = row.eligible && (key in overrides ? overrides[key] === 'allow' : row.default);
-            if (row.protected) row.input.checked = true;
-            row.input.disabled = !state.data.can_manage_permissions || !row.eligible || row.protected;
+            row.input.disabled = !state.data.can_manage_permissions || (!state.data.can_override_all_activities && (!row.eligible || row.protected));
+            const selections = row.input.disabled ? state.data.overrides : overrides;
+            row.input.checked = key in selections ? selections[key] === 'allow' : row.default;
         }
         counts();
     }
@@ -66,6 +66,15 @@
                 state.rows.set(item.key, {input, label, status, mandatory: item.protected, dependencies: item.requires});
                 input.addEventListener('change', () => {
                     state.manual = state.dirty = true;
+                    // Enable required activities when selecting a dependent action.
+                    if (input.checked) for (const dependency of item.requires) {
+                        const required = state.rows.get(dependency);
+                        if (required && !required.input.checked && !required.input.disabled) {
+                            required.input.checked = true;
+                            required.input.dispatchEvent(new Event('change'));
+                        }
+                        if (!required?.input.checked) { input.checked = false; feedback(text('A required permission is locked or unavailable.'), true); break; }
+                    }
                     // Deselect dependent actions together instead of silently leaving unusable grants.
                     if (!input.checked) for (const row of state.rows.values()) {
                         if (row.dependencies.includes(item.key) && !row.input.disabled) {
@@ -90,6 +99,7 @@
         }
         state.open = true; state.dirty = state.manual = false;
         form.reset(); modal.style.display = 'flex'; busy(true); tab('details'); feedback(text('Loading user controls…'));
+        modal.querySelectorAll('.ucp-details input, .ucp-details select, .ucp-details button').forEach(input => { input.disabled = false; });
         modal.querySelector('.erp-modal-close').focus();
         try {
             const url = new URL(modal.dataset.configUrl, location.origin); if (userId) url.searchParams.set('user_id', userId);
@@ -115,6 +125,12 @@
             byId('ucpOverrides').disabled = !data.can_manage_permissions;
             modal.querySelector('[data-ucp-reset]').disabled = !data.can_manage_permissions;
             modal.querySelector('[data-ucp-readonly]').hidden = data.can_manage_permissions;
+            modal.querySelector('[data-ucp-recovery]').hidden = !data.recovery_only;
+            if (data.recovery_only) {
+                modal.querySelectorAll('.ucp-details input, .ucp-details select, .ucp-details button').forEach(input => { input.disabled = true; });
+                byId('resetUserPasswordButton').hidden = byId('removeUserPhotoButton').hidden = modal.querySelector('[data-ucp-delete]').hidden = true;
+                tab('permissions');
+            }
             state.security = securityValues(); renderCategories(); setPermissions(data.overrides);
             modal.querySelector('.ucp-details').scrollTop = modal.querySelector('.ucp-permissions').scrollTop = 0;
             busy(false); feedback(''); byId('editUsername').focus();
@@ -142,7 +158,10 @@
     });
     function permissionOverrides() {
         const role = currentRole(), overrides = {};
-        for (const [key, row] of state.rows) if (!row.input.disabled && row.input.checked !== Boolean(role.defaults[key])) overrides[key] = row.input.checked ? 'allow' : 'deny';
+        for (const [key, row] of state.rows) {
+            if (row.input.disabled && key in state.data.overrides) overrides[key] = state.data.overrides[key];
+            else if (!row.input.disabled && row.input.checked !== Boolean(role.defaults[key])) overrides[key] = row.input.checked ? 'allow' : 'deny';
+        }
         return overrides;
     }
     async function securityChanged() {
@@ -192,7 +211,7 @@
         byId('ucpOverrides').value = JSON.stringify(overrides);
         const data = new FormData(form);
         // Disabled role field is read-only for MD administrators, not omitted from profile validation.
-        data.set('role', byId('editRole').value);
+        if (!state.data.recovery_only) data.set('role', byId('editRole').value);
         state.saving = true; busy(true); feedback(text('Saving…'));
         try {
             const response = await fetch(form.action, {method: 'POST', body: data, credentials: 'same-origin', headers: {Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest'}});
@@ -205,6 +224,10 @@
                 byId('resetUserPasswordButton').hidden = false; modal.querySelector('[data-ucp-delete]').hidden = false;
                 state.dirty = state.manual = false; state.data.user = result.user;
                 window.updateUserCardInDOM?.(result.user);
+                const actorId = JSON.parse(document.getElementById('fabro-activity-sync')?.textContent || '{}').user_id;
+                if (result.user.id === actorId && (state.data.recovery_only || ['users.manage', 'users.permissions', 'erp.view'].some(key => overrides[key] === 'deny'))) {
+                    await open(result.user.id); feedback((result.messages || []).join(' '));
+                }
                 if (created) { window.erpLoadedSections?.delete('users'); await window.switchErpTab?.('users', {historyMode: 'replace', preservePage: true}); }
             }
         } catch (_error) { feedback(text('Unable to save. Check your connection and try again.'), true); }

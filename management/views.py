@@ -6253,6 +6253,8 @@ def edit_sku(request, sku_id):
 
 @user_passes_test(is_workflow_admin)
 def admin_panel_view(request):
+    from .services.activity_permissions import self_access_recovery
+    access_recovery_only = self_access_recovery(request.user) and request.GET.get('section') == 'users'
     user_form = UserCreationForm()
     if not request.user.is_superuser:
         user_form.fields.pop('is_staff', None)
@@ -6316,15 +6318,17 @@ def admin_panel_view(request):
     if section not in {'dashboard', 'users', 'skus', 'brands', 'master', 'sessions', 'logs'}:
         section = 'dashboard'
 
-    needs_session_details = section in {'dashboard', 'users', 'sessions'} and activity_granted(request.user, 'erp.sessions_view')
+    needs_session_details = not access_recovery_only and section in {'dashboard', 'users', 'sessions'} and activity_granted(request.user, 'erp.sessions_view')
     active_users = get_active_users() if needs_session_details else []
     active_sessions_count = (
         len(active_users)
         if needs_session_details
-        else Session.objects.filter(expire_date__gte=now()).count()
+        else 0 if access_recovery_only else Session.objects.filter(expire_date__gte=now()).count()
     )
     online_user_ids = {entry['user'].pk for entry in active_users}
     users_qs = User.objects.select_related('workflow_profile__country').order_by('username')
+    if access_recovery_only:
+        users_qs = users_qs.filter(pk=request.user.pk)
     users_page = Paginator(users_qs, 25).get_page(request.GET.get('section_page')) if section == 'users' else None
     users = list(users_page.object_list) if users_page else []
     for listed_user in users:
@@ -6343,13 +6347,17 @@ def admin_panel_view(request):
         )
     }
     if section in {'dashboard', 'users'}:
-        for role, approval_role, count in UserProfile.objects.values_list('role', 'approval_role').annotate(count=Count('pk')):
+        profile_counts = UserProfile.objects.filter(user=request.user) if access_recovery_only else UserProfile.objects.all()
+        for role, approval_role, count in profile_counts.values_list('role', 'approval_role').annotate(count=Count('pk')):
             role_key = approval_role if role == WorkflowRoles.APPROVER else role
             role_counts[role_key] = role_counts.get(role_key, 0) + count
 
     countries = MasterSetting.objects.filter(category='Country').annotate(
         user_count=Count('workflow_users'),
     ).order_by('name')
+    if access_recovery_only:
+        countries = countries.filter(pk=request.user.workflow_profile.country_id).annotate(
+            user_count=Count('workflow_users', filter=Q(workflow_users__user=request.user)))
     resolved_filter = Q(workflow_status=WorkflowStatuses.CLOSED) | Q(status__iexact='closed')
 
     complaint_stats = Complaint.objects.aggregate(
@@ -6382,8 +6390,8 @@ def admin_panel_view(request):
         'assign_form': assign_form,
         'active_users': active_users,
         'users': users,
-        'groups': Group.objects.prefetch_related('permissions__content_type') if section == 'users' else [],
-        'permissions': Permission.objects.select_related('content_type').all() if section == 'users' else [],
+        'groups': Group.objects.prefetch_related('permissions__content_type') if section == 'users' and not access_recovery_only else [],
+        'permissions': Permission.objects.select_related('content_type').all() if section == 'users' and not access_recovery_only else [],
         'active_sessions': session_page.object_list if session_page else (active_users if section == 'dashboard' else []),
         'activity_logs': logs_page.object_list if logs_page else [],
         'total_users_count': User.objects.count() if section == 'dashboard' else users_qs.count(),
@@ -6393,8 +6401,8 @@ def admin_panel_view(request):
         'complaints_resolved_count': complaint_stats['resolved'],
         'complaints_in_progress_count': complaint_stats['in_progress'],
         'role_counts': role_counts,
-        'total_skus_count': SKU.objects.count(),
-        'total_brands_count': Brand.objects.count(),
+        'total_skus_count': 0 if access_recovery_only else SKU.objects.count(),
+        'total_brands_count': 0 if access_recovery_only else Brand.objects.count(),
         'skus': sku_page.object_list if sku_page else [],
         'brands': Brand.objects.filter(
             pk__in=[brand.pk for brand in vehicle_page.object_list]
@@ -6403,7 +6411,8 @@ def admin_panel_view(request):
         'workflow_role_choices': WorkflowRoles.CHOICES,
         'approval_role_choices': ApprovalRoles.CHOICES,
         'workflow_countries': countries,
-        'edit_user_id': request.GET.get('edit_user', '').strip(),
+        'edit_user_id': str(request.user.pk) if access_recovery_only else request.GET.get('edit_user', '').strip(),
+        'access_recovery_only': access_recovery_only,
         'section': section,
         'active_tab': section,
         'section_page_obj': section_page_obj,
