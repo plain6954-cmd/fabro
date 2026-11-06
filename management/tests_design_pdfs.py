@@ -80,7 +80,8 @@ class DesignPdfTests(TestCase):
         self.assertEqual(image.approval_status, 'pending')
         self.assertEqual(image.latest_approval.cad_status, 'pending')
         url = reverse('pattern_design_image_download', args=[image.pk])
-        self.assertEqual(response.json()['images'][0]['url'], url)
+        self.assertEqual(response.json()['images'][0]['url'], reverse('design_comparison_file', args=[image.pk]))
+        self.assertEqual(response.json()['images'][0]['original_url'], url)
         # A display title without an extension does not change the actual PDF type.
         image.title = 'Renamed seat design'
         image.save(update_fields=['title'])
@@ -165,12 +166,15 @@ class DesignPdfTests(TestCase):
         self.assertEqual(PatternDesignImage.objects.get().latest_approval.pk, approval_id)
         self.assertEqual(list(Notification.objects.values_list('pk', flat=True)), notifications)
 
-    def test_missing_private_pdf_and_authorized_deletion(self):
+    def test_missing_private_pdf_and_submitted_deletion_protection(self):
         self.upload()
         image = PatternDesignImage.objects.get()
         storage = design_file_storage(image.image.name)
-        self.assertEqual(self.client.post(reverse('delete_design_image_api', args=[image.pk])).status_code, 200)
-        self.assertFalse(storage.exists(image.image.name))
+        approval_id = image.latest_approval.pk
+        self.assertEqual(self.client.post(reverse('delete_design_image_api', args=[image.pk])).status_code, 403)
+        self.assertTrue(storage.exists(image.image.name))
+        image.refresh_from_db()
+        self.assertEqual(image.latest_approval.pk, approval_id)
         missing = PatternDesignImage.objects.create(vehicle=self.vehicle, uploaded_by=self.designer,
             image='private_design_pdfs/missing.pdf', title='missing.pdf')
         self.assertEqual(self.client.get(reverse('pattern_design_image_download', args=[missing.pk])).status_code, 404)

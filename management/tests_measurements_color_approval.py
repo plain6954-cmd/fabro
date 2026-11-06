@@ -81,6 +81,8 @@ class MeasurementsColorApprovalTestCase(TestCase):
 
         self.regular_user = User.objects.create_user(username="regular_test", password="Password@123")
         self.regular_user.workflow_profile.role = WorkflowRoles.COUNTRY_EXECUTIVE
+        country = MasterSetting.objects.create(category='Country', name='Measurement Test Country')
+        self.regular_user.workflow_profile.country = country
         self.regular_user.workflow_profile.save()
 
         # Create vehicle
@@ -92,6 +94,7 @@ class MeasurementsColorApprovalTestCase(TestCase):
             year_start=2025,
             year_end=2027,
             serial_number="S0237",
+            vehicle_country=country,
         )
 
         # Existing colors

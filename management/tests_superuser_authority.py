@@ -209,8 +209,8 @@ class SuperuserAuthorityTestCase(TestCase):
     def test_non_superuser_cannot_access_master_settings(self):
         self.client.force_login(self.regular_user)
         res = self.client.get(reverse('master_settings'))
-        # Regular country executive redirected with error
-        self.assertEqual(res.status_code, 302)
+        # The activity-permission gate rejects direct unauthorized requests.
+        self.assertEqual(res.status_code, 403)
 
     # =========================================================================
     # 3. Pattern Master Tests

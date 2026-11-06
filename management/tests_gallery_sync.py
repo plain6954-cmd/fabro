@@ -129,6 +129,11 @@ class GallerySyncTests(TestCase):
         PatternDesignImage.objects.bulk_create([PatternDesignImage(vehicle=self.vehicle,
             image=f'pattern_designs/bulk-{index}.obj') for index in range(100)])
         with patch('management.views._ensure_pattern_thumbnail', side_effect=AssertionError('Snapshot read media')):
+            # First access loads the permission profile once, independent of file count.
+            with self.assertNumQueries(2):
+                _, manifest, revision = _design_gallery_snapshot(user, self.vehicle.pk, info)
+            # The request-local permission cache leaves only the compact manifest query.
             with self.assertNumQueries(1):
-                _, manifest, _ = _design_gallery_snapshot(user, self.vehicle.pk, info)
+                _, warmed_manifest, warmed_revision = _design_gallery_snapshot(user, self.vehicle.pk, info)
         self.assertEqual(len(manifest), 103)
+        self.assertEqual((warmed_manifest, warmed_revision), (manifest, revision))

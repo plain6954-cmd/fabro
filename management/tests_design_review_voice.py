@@ -202,9 +202,12 @@ class DesignReviewVoiceTests(TestCase):
         # another designer's private review recording.
         PatternDesignImage.objects.filter(pk=self.image.pk).update(approval_status='approved')
         self.image.refresh_from_db()
-        for user, expected in [(self.other, 0), (self.factory, 0), (self.designer, 1), (self.om, 1)]:
+        for user in (self.other, self.factory):
+            self.assertEqual(_serialize_design_image_details(self.image, user)['history'], [])
+        for user in (self.designer, self.om):
             history = _serialize_design_image_details(self.image, user)['history']
-            self.assertEqual(len(history[0]['voice_notes']), expected)
+            self.assertEqual(len(history), 1)
+            self.assertEqual(len(history[0]['voice_notes']), 1)
 
     def test_audio_authentication_and_authorization(self):
         note = self.note()

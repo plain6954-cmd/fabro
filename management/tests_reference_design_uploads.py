@@ -426,7 +426,12 @@ class ReferenceDesignUploadTests(TestCase):
         self.assertEqual((historical.cad_status, historical.ed_status, historical.md_status), ('pending',) * 3)
 
     def test_om_pm_all_design_states_details_media_and_mutation_denials(self):
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import InMemoryStorage
         from django.utils import timezone
+        storage = InMemoryStorage()
+        media = b'private design media'
+        storage.save('pattern_designs/read-only.png', ContentFile(media))
         images = []
         for uploader in [self.designer, self.om, self.pm] + self.reviewers:
             for status in ('pending', 'approved', 'rejected'):
@@ -456,7 +461,14 @@ class ReferenceDesignUploadTests(TestCase):
                     self.assertContains(page, 'id="designImageViewer"')
                     self.assertNotContains(page, 'name="decision"')
                     self.assertFalse(page.context['can_resubmit'])
-                    self.assertEqual(self.client.get(reverse('pattern_design_image_download', args=[image.pk])).status_code, 302)
+                    with patch('management.views.design_file_storage', return_value=storage):
+                        response = self.client.get(reverse('pattern_design_image_download', args=[image.pk]))
+                        self.assertEqual(response.status_code, 200)
+                        self.assertEqual(response['Content-Type'], 'image/png')
+                        directives = {part.strip() for part in response['Cache-Control'].split(',')}
+                        self.assertTrue({'private', 'no-store'} <= directives)
+                        self.assertNotIn('Location', response)
+                        self.assertEqual(b''.join(response.streaming_content), media)
                     before = image.latest_approval.cad_comment
                     for endpoint in ('approve_design_image_api', 'reject_design_image_api', 'resubmit_design_image_api'):
                         self.assertEqual(self.client.post(reverse(endpoint, args=[image.pk]), {'change_type': 'minor'}).status_code, 403)
@@ -488,7 +500,7 @@ class ReferenceDesignUploadTests(TestCase):
     def test_delete_requires_explicit_permission(self):
         image = PatternDesignImage.objects.create(
             vehicle=self.vehicle, image='pattern_designs/test.obj',
-            title='test.obj', uploaded_by=self.designer,
+            title='test.obj', uploaded_by=self.designer, approval_status='pending',
         )
         url = reverse('delete_design_image_api', args=[image.pk])
 
@@ -505,10 +517,10 @@ class ReferenceDesignUploadTests(TestCase):
             self.assertEqual(self.client.post(url).status_code, 200)
         self.assertFalse(PatternDesignImage.objects.filter(pk=image.pk).exists())
 
-        # Manager with explicit delete permission can delete any design image
+        # Explicit delete permission still requires business-record visibility.
         image2 = PatternDesignImage.objects.create(
             vehicle=self.vehicle, image='pattern_designs/test2.obj',
-            title='test2.obj', uploaded_by=self.designer,
+            title='test2.obj', uploaded_by=self.designer, approval_status='pending',
         )
         url2 = reverse('delete_design_image_api', args=[image2.pk])
         permission = Permission.objects.get(
@@ -518,6 +530,11 @@ class ReferenceDesignUploadTests(TestCase):
         manager = get_user_model().objects.create_user(username='ref_asset_manager')
         manager.user_permissions.add(permission)
         self.client.force_login(manager)
+        self.assertEqual(self.client.post(url2).status_code, 404)
+        self.assertTrue(PatternDesignImage.objects.filter(pk=image2.pk).exists())
+        manager.workflow_profile.role = WorkflowRoles.APPROVER
+        manager.workflow_profile.approval_role = ApprovalRoles.OM
+        manager.workflow_profile.save()
         with patch('management.views.default_storage.delete'):
             self.assertEqual(self.client.post(url2).status_code, 200)
         self.assertFalse(PatternDesignImage.objects.filter(pk=image2.pk).exists())
@@ -533,6 +550,7 @@ class ReferenceDesignUploadTests(TestCase):
             image='pattern_designs/protected.obj',
             title='protected.obj',
             uploaded_by=self.designer,
+            approval_status='pending',
         )
         url = reverse('delete_design_folder_api', args=[folder.pk])
 
