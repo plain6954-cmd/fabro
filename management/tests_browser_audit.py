@@ -2,6 +2,7 @@
 
 import io
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -33,6 +34,12 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # Keep live-server tracebacks in test output, including when DEBUG is off.
+        logger = logging.getLogger('django.request')
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.ERROR)
+        logger.addHandler(handler)
+        cls.addClassCleanup(logger.removeHandler, handler)
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
         cls.playwright = sync_playwright().start()
         cls.browser = cls.playwright.chromium.launch(channel='chrome', headless=True)
@@ -133,40 +140,43 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         designer = self.page_as('designer')
         dialogs = []
         designer.on('dialog', lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
-        designer.goto(f'{self.live_server_url}/car-details/?vehicle_id={self.vehicle.pk}#design-options')
-        designer.locator('#directVehicleImageFileInput').wait_for(state='attached')
+        designer.goto(f'{self.live_server_url}/car-details/?vehicle_id={self.vehicle.pk}#3d-design')
+        expect(designer.locator('#pattern3DDesignWorkspace')).to_be_visible()
+        designer.locator('#design3DUploadInput').wait_for(state='attached')
         upload_path = ARTIFACTS / 'rav4-audit.png'
         upload_path.write_bytes(PNG)
         with designer.expect_response(lambda response: '/design-images/upload/' in response.url) as upload:
-            designer.locator('#directVehicleImageFileInput').set_input_files(str(upload_path))
+            designer.locator('#design3DUploadInput').set_input_files(str(upload_path))
         self.assertEqual(upload.value.status, 200, upload.value.text())
-        designer.locator('#directImagesMatrixGrid .design-matrix-card:not(.is-uploading)').wait_for()
-        expect(designer.locator('#designDirectImagesCountBadge')).to_have_text('1')
-        self.assertEqual(designer.locator('#directUploadingSkeleton').count(), 0)
+        designer.locator('#design3DFilesGallery .fabro-design-tile:not(.is-upload-pending)').wait_for()
+        expect(designer.locator('#design3DFilesCountBadge')).to_have_text('1')
+        expect(designer.locator('#design3DUploadInput')).to_be_enabled()
         self.assertFalse(any('session has expired' in message.lower() for message in dialogs))
         image = PatternDesignImage.objects.get(uploaded_by=self.users['designer'])
         self.assertEqual(image.approval_status, 'pending')
         self.assertEqual(image.latest_approval.cad_status, 'pending')
         self.assertEqual(image.latest_approval.ed_status, 'pending')
         designer.screenshot(path=str(ARTIFACTS / 'designer-uploaded.png'))
-        # A retried upload of the same selected file returns the same row.
-        with designer.expect_response(lambda response: '/design-images/upload/' in response.url) as retry:
-            designer.locator('#directVehicleImageFileInput').set_input_files(str(upload_path))
-        self.assertEqual(retry.value.status, 200)
-        self.assertEqual(retry.value.json()['images'][0]['id'], image.pk)
+        # Replay the same upload operation, rather than selecting a new upload.
+        csrf = next(cookie['value'] for cookie in designer.context.cookies() if cookie['name'] == 'csrftoken')
+        retry = designer.request.post(upload.value.url,
+            headers={'X-Upload-Id': upload.value.request.headers['x-upload-id'], 'X-CSRFToken': csrf},
+            multipart={'is_reference': '0', 'images': {'name': upload_path.name, 'mimeType': 'image/png', 'buffer': PNG}})
+        self.assertEqual(retry.status, 200, retry.text())
+        self.assertEqual(retry.json()['images'][0]['id'], image.pk)
         self.assertEqual(PatternDesignImage.objects.filter(vehicle=self.vehicle).count(), 1)
-        expect(designer.locator('#directUploadingSkeleton')).to_have_count(0)
+        expect(designer.locator('#design3DFilesGallery .is-upload-pending')).to_have_count(0)
         invalid_path = ARTIFACTS / 'invalid-design.txt'
         invalid_path.write_text('not a design image')
         with designer.expect_response(lambda response: '/design-images/upload/' in response.url) as invalid:
-            designer.locator('#directVehicleImageFileInput').set_input_files(str(invalid_path))
+            designer.locator('#design3DUploadInput').set_input_files(str(invalid_path))
         self.assertEqual(invalid.value.status, 400)
-        expect(designer.locator('#directUploadingSkeleton')).to_have_count(0)
-        self.assertTrue(any('unsupported' in message.lower() for message in dialogs))
+        expect(designer.locator('#design3DFilesGallery .tile-upload-retry')).to_be_visible()
+        expect(designer.locator('#design3DFilesGallery .tile-upload-retry')).to_have_attribute('title', re.compile('Unsupported', re.I))
         self.assertFalse(any('session has expired' in message.lower() for message in dialogs))
         designer.reload()
-        expect(designer.locator('#designDirectImagesCountBadge')).to_have_text('1')
-        self.assertTrue(designer.locator('#directImagesMatrixGrid .design-matrix-card').first.is_visible())
+        expect(designer.locator('#design3DFilesCountBadge')).to_have_text('1')
+        expect(designer.locator(f'#design3DFilesGallery [data-file-id="{image.pk}"]')).to_be_visible()
 
         # Separate Chrome sessions exercise the independent reviewer forms.
         cad = self.page_as('cad')
@@ -183,6 +193,13 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         ed.locator('#edCommentInput').fill('ED material checked')
         ed.locator('#edReviewForm button[value="approved"]').click()
         image.refresh_from_db()
+        self.assertEqual(image.approval_status, 'pending')
+        self.assertEqual(image.latest_approval.md_status, 'pending')
+        md = self.page_as('md')
+        md.goto(url)
+        md.locator('#mdCommentInput').fill('MD final review checked')
+        md.locator('#mdReviewForm button[value="approved"]').click()
+        image.refresh_from_db()
         self.assertEqual(image.approval_status, 'approved')
         designer.goto(url)
         self.assertIn('CAD geometry checked', designer.content())
@@ -191,9 +208,9 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
 
         revised_path = ARTIFACTS / 'rav4-revision.png'
         revised_path.write_bytes(PNG)
-        designer.goto(f'{self.live_server_url}/car-details/?vehicle_id={self.vehicle.pk}#design-options')
+        designer.goto(f'{self.live_server_url}/car-details/?vehicle_id={self.vehicle.pk}#3d-design')
         with designer.expect_response(lambda response: '/design-images/upload/' in response.url) as second_upload:
-            designer.locator('#directVehicleImageFileInput').set_input_files(str(revised_path))
+            designer.locator('#design3DUploadInput').set_input_files(str(revised_path))
         self.assertEqual(second_upload.value.status, 200)
         second_id = second_upload.value.json()['images'][0]['id']
         second_url = f'{self.live_server_url}/design-approvals/{second_id}/'
@@ -227,6 +244,12 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         cad.goto(second_url)
         cad.locator('#cadCommentInput').fill('CAD revised pattern passes')
         cad.locator('#cadReviewForm button[value="approved"]').click()
+        second.refresh_from_db()
+        self.assertEqual(second.approval_status, 'pending')
+        self.assertEqual(second.latest_approval.md_status, 'pending')
+        md.goto(second_url)
+        md.locator('#mdCommentInput').fill('MD revised design passes')
+        md.locator('#mdReviewForm button[value="approved"]').click()
         second.refresh_from_db()
         self.assertEqual(second.approval_status, 'approved')
         designer.goto(second_url)
@@ -297,6 +320,19 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
         ed.locator('#modalDesignSubmitBtn').click()
         expect(ed.locator('#designReviewModalOverlay')).to_be_hidden()
         image.refresh_from_db()
+        self.assertEqual(image.latest_approval.ed_status, 'approved')
+        self.assertEqual(image.latest_approval.md_status, 'pending')
+        self.assertEqual(image.approval_status, 'pending')
+        md = self.page_as('md')
+        md.goto(f'{self.live_server_url}/approvals/?stage=designer&status=partially_approved')
+        card = md.locator(f'#card-design-{image.pk}')
+        expect(card).to_be_visible()
+        card.get_by_role('button', name='Approve Design').click()
+        expect(md.locator('#designReviewModalOverlay')).to_be_visible()
+        md.locator('#modalDesignSubmitBtn').click()
+        expect(md.locator('#designReviewModalOverlay')).to_be_hidden()
+        image.refresh_from_db()
+        self.assertEqual(image.latest_approval.md_status, 'approved')
         self.assertEqual(image.approval_status, 'approved')
         self.assertEqual(self.browser_errors, [])
 
@@ -316,19 +352,25 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
             page.locator('#patternActionsToggleBtn').click()
             page.locator('#actionBtnDesign').click()
             expect(page).to_have_url(re.compile(rf'[?&]vehicle_id={self.vehicle.pk}(?:[&#]|$)'))
-            page.wait_for_load_state('networkidle')
+            expect(page.locator('#tab-pane-design-options')).to_be_visible()
             page.goto(f'{self.live_server_url}/car-details/')
             response = page.goto(f'{self.live_server_url}/design-approvals/')
-            allowed = role in {'admin', 'designer', 'other_designer', 'cad', 'ed', 'pm'}
+            allowed = role in {'admin', 'designer', 'other_designer', 'cad', 'ed', 'pm', 'om', 'md'}
             self.assertEqual(response.status, 200 if allowed else 403,
                              (role, page.url, page.locator('body').inner_text()[:1200]))
             response = page.goto(f'{self.live_server_url}/approvals/')
-            complaint_allowed = role in {'admin', 'cad', 'ed', 'pm', 'om', 'md', 'country', 'factory'}
-            if complaint_allowed:
+            workspace_allowed = role in {'admin', 'designer', 'other_designer', 'cad', 'ed', 'pm', 'om', 'md', 'country', 'factory'}
+            if workspace_allowed:
                 self.assertEqual(response.status, 200,
                                  (role, page.url, page.locator('body').inner_text()[:1200]))
                 self.assertEqual(urlparse(page.url).path, '/approvals/',
                                  (role, response.url, page.locator('body').inner_text()[:1200]))
+                if role in {'designer', 'other_designer'}:
+                    expect(page.locator('.stage-selector-tabs a.active')).to_have_attribute('href', '?stage=designer&status=all')
+                    expect(page.locator('.stage-selector-tabs a[href*="stage=plan"]')).to_have_count(0)
+                    for stage in ('plan', 'verification'):
+                        denied = page.goto(f'{self.live_server_url}/approvals/?stage={stage}')
+                        self.assertEqual(denied.status, 403, (role, stage))
             else:
                 self.assertTrue(response.status == 403 or urlparse(page.url).path in {'/login/', '/'},
                                 (role, response.status, page.url))
@@ -387,9 +429,22 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
                 'transferMode': 'ReportEvents',
             })
             try:
-                response = page.goto(f'{self.live_server_url}{route}')
+                if role == 'designer':
+                    with page.expect_response(lambda response: urlparse(response.url).path == '/api/measurement-files/') as measurement:
+                        with page.expect_response(lambda response: urlparse(response.url).path == '/api/picked-colors/') as picked:
+                            response = page.goto(f'{self.live_server_url}{route}')
+                    self.assertEqual(measurement.value.status, 200, measurement.value.text())
+                    self.assertEqual(measurement.value.json()['status'], 'success')
+                    self.assertEqual(picked.value.status, 200, picked.value.text())
+                    expect(page.locator('#patternMeasurementsWorkspace')).to_be_visible()
+                else:
+                    response = page.goto(f'{self.live_server_url}{route}')
+                    if role == 'admin':
+                        expect(page.locator(f'#row-view-{self.vehicle.pk}')).to_be_visible()
+                    else:
+                        expect(page.locator('.stage-selector-tabs a.active[href*="stage=designer"]')).to_be_visible()
                 self.assertEqual(response.status, 200)
-                page.wait_for_load_state('networkidle')
+                # Background permission/gallery polling makes networkidle unreliable.
             finally:
                 cdp.send('Tracing.end')
             for _ in range(100):
@@ -420,6 +475,7 @@ class FabroChromeAuditTests(StaticLiveServerTestCase):
                 'trace_event_count': len(events),
                 'design_list_request_count': len(design_list_requests),
             })
+            page.context.close()
         (ARTIFACTS / 'chrome-performance-recording.json').write_text(json.dumps(summaries, indent=2))
         self.assertEqual(self.browser_errors, [])
 

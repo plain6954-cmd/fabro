@@ -200,8 +200,8 @@ class DriveDropdownLiveBrowserTests(StaticLiveServerTestCase):
         page.click("#vehicleGoogleDriveBtn")
         self.assertTrue(dropdown.is_visible())
 
-        # Close by clicking outside (on design section title)
-        page.locator(".design-section-title").first.click()
+        # Close outside the dropdown on the visible Measurements workspace heading.
+        page.locator("#patternMeasurementsWorkspace .measurements-banner-title").click()
         time.sleep(0.3)
         self.assertFalse(dropdown.is_visible())
 

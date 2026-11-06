@@ -251,11 +251,16 @@ WSGI_APPLICATION = 'fabro_leather.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
 USE_POSTGRES = env_bool('USE_POSTGRES', False) or bool(DATABASE_URL)
 if E2E_TESTING:
+    from tempfile import TemporaryDirectory
+    # LiveServerTestCase shares one connection across request threads for an
+    # in-memory DB. A private test file gives each thread its own connection.
+    _e2e_test_directory = TemporaryDirectory(prefix='fabro-e2e-tests-')
     DATABASE_CONNECTION_MODE = 'sqlite'
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / '.e2e.sqlite3',
+            'TEST': {'NAME': str(Path(_e2e_test_directory.name) / 'test.sqlite3')},
         }
     }
 elif USE_POSTGRES:

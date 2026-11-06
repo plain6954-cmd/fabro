@@ -15,7 +15,8 @@ INSTALLED_APPS = [
 ]
 DATABASES = {'default': {
     'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:',
-    'TEST': {'NAME': ':memory:'},
+    # Separate live-server request connections; never share an in-memory cursor.
+    'TEST': {'NAME': str(Path(_temporary_files.name) / 'test.sqlite3')},
 }}
 # Build disposable model tables only; never execute project migrations.
 MIGRATION_MODULES = {app: None for app in (

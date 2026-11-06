@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -38,6 +39,7 @@ class DatabaseConfigurationTests(SimpleTestCase):
             'db=settings.DATABASES["default"]; '
             'print(json.dumps({"engine":db["ENGINE"], '
             '"name":str(db["NAME"]), "port":db.get("PORT"), '
+            '"test_name":db.get("TEST", {}).get("NAME"), '
             '"mode":settings.DATABASE_CONNECTION_MODE, '
             '"age":db.get("CONN_MAX_AGE"), '
             '"health":db.get("CONN_HEALTH_CHECKS"), '
@@ -143,12 +145,18 @@ class DatabaseConfigurationTests(SimpleTestCase):
 
     def test_sqlite_and_e2e_sqlite_override(self):
         self.assert_config({'mode': 'sqlite', 'port': None, 'age': None})
-        self.assert_config(
+        config = self.assert_config(
             {'mode': 'sqlite', 'port': None, 'age': None},
             E2E_TESTING='True',
             DATABASE_URL='postgresql://fake:fake@localhost:6543/disposable',
             DB_CONNECTION_MODE='transaction',
         )
+        self.assertEqual(config['engine'], 'django.db.backends.sqlite3')
+        self.assertTrue(Path(config['test_name']).is_absolute())
+        self.assertNotEqual(config['test_name'], config['name'])
+        self.assertEqual(Path(config['test_name']).name, 'test.sqlite3')
+        second = self.assert_config({'mode': 'sqlite'}, E2E_TESTING='True')
+        self.assertNotEqual(config['test_name'], second['test_name'])
 
     def test_invalid_values_and_errors_never_expose_secrets(self):
         secret = 'never-print-this-test-secret'
