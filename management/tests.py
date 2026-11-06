@@ -4372,7 +4372,7 @@ class DesignOptionsFolderAndImageTests(TestCase):
         self.client.force_login(self.admin_user)
 
     def test_design_folder_lifecycle_and_image_upload(self):
-        from .models import PatternDesignFolder, PatternDesignImage
+        from .models import PatternDesignApproval, PatternDesignFolder, PatternDesignImage
         from django.core.files.uploadedfile import SimpleUploadedFile
 
         # 1. Create folder
@@ -4421,17 +4421,36 @@ class DesignOptionsFolderAndImageTests(TestCase):
             {image['id'] for image in upload_res.json()['images']},
         )
 
-        # 6. Delete single image
+        # 6. Upload submits each designer file into a protected review cycle.
+        approvals = PatternDesignApproval.objects.filter(design_image__folder_id=folder_id)
+        approval_ids = set(approvals.values_list('id', flat=True))
+        self.assertEqual(len(approval_ids), 2)
+        self.assertTrue(all(not image['can_delete'] for image in detail_data['images']))
         img_id = detail_data['images'][0]['id']
         del_img_res = self.client.post(reverse('delete_design_image_api', args=[img_id]))
-        self.assertEqual(del_img_res.status_code, 200)
-        self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 1)
+        self.assertEqual(del_img_res.status_code, 403)
+        self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 2)
+        self.assertFalse(ActivityLog.objects.filter(action='deleted', object_type='Design Image').exists())
 
-        # 7. Delete folder
+        # 7. Deleting the parent cannot bypass submitted-file protection.
         del_folder_res = self.client.post(reverse('delete_design_folder_api', args=[folder_id]))
+        self.assertEqual(del_folder_res.status_code, 403)
+        self.assertTrue(PatternDesignFolder.objects.filter(id=folder_id).exists())
+        self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 2)
+        self.assertEqual(set(approvals.values_list('id', flat=True)), approval_ids)
+        self.assertFalse(ActivityLog.objects.filter(action='deleted', object_type='Design Folder').exists())
+
+        # 8. An eligible empty folder still supports authorized, audited deletion.
+        empty_res = self.client.post(reverse('create_design_folder_api'), {'name': 'Empty Draft Folder'})
+        self.assertEqual(empty_res.status_code, 200)
+        empty_id = empty_res.json()['folder']['id']
+        del_folder_res = self.client.post(reverse('delete_design_folder_api', args=[empty_id]))
         self.assertEqual(del_folder_res.status_code, 200)
-        self.assertFalse(PatternDesignFolder.objects.filter(id=folder_id).exists())
-        self.assertEqual(PatternDesignImage.objects.filter(folder_id=folder_id).count(), 0)
+        self.assertFalse(PatternDesignFolder.objects.filter(id=empty_id).exists())
+        self.assertTrue(ActivityLog.objects.filter(
+            user=self.admin_user, action='deleted', object_type='Design Folder',
+            object_name='Empty Draft Folder',
+        ).exists())
 
 
 class FittingConfirmationDropdownTests(TestCase):
