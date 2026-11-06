@@ -7574,7 +7574,9 @@ def get_color_selection_details_api(request):
             return JsonResponse({'status': 'error', 'message': _('Selection not found.')}, status=404)
     elif vehicle_id:
         selection = PatternColorSelection.objects.filter(
-            vehicle_id=vehicle_id
+            vehicle_id=vehicle_id,
+            picked_color__isnull=False,
+            picked_color__deleted_at__isnull=True,
         ).select_related(
             'vehicle__sub_model__model__brand',
             'inner_existing_color',

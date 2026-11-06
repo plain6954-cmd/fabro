@@ -127,7 +127,7 @@ def save(user, vehicle_id, data, *, row_id=None, swatch_file=None):
     row = None
     if row_id:
         try:
-            row = PickedColorSelection.objects.select_for_update().select_related('source_selection').get(pk=row_id, vehicle=vehicle, deleted_at=None)
+            row = PickedColorSelection.objects.select_for_update(of=('self',)).select_related('source_selection').get(pk=row_id, vehicle=vehicle, deleted_at=None)
         except PickedColorSelection.DoesNotExist:
             raise Http404
         if not permitted(user, row, 'edit'):

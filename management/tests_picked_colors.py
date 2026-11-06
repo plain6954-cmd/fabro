@@ -139,12 +139,19 @@ class PickedColorsTests(TestCase):
     def test_soft_delete_retains_master_media_approval_subject_and_audit(self):
         row = self.add()
         proposal = row.source_selection
+        details_url = reverse('get_color_selection_details_api')
+        before = self.client.get(details_url, {'vehicle_id': self.vehicle.pk})
+        self.assertEqual(before.status_code, 200)
+        self.assertEqual(before.json()['selection']['id'], proposal.pk)
         proposal.swatch_image.save('shared.png', ContentFile(b'kept shared media'))
         filename, storage = proposal.swatch_image.name, proposal.swatch_image.storage
         self.addCleanup(storage.delete, filename)
         self.assertEqual(self.client.post(reverse('delete_picked_color', args=[row.pk]), {'vehicle_id': self.vehicle.pk}).status_code, 200)
         row.refresh_from_db()
         self.assertIsNotNone(row.deleted_at)
+        after = self.client.get(details_url, {'vehicle_id': self.vehicle.pk})
+        self.assertEqual(after.status_code, 200)
+        self.assertIsNone(after.json()['selection'])
         self.assertTrue(storage.exists(filename))
         self.assertTrue(PatternColorSelection.objects.filter(pk=proposal.pk).exists())
         self.assertTrue(ColorMaster.objects.filter(pk=self.red.pk).exists())

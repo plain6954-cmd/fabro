@@ -811,7 +811,7 @@
             const data=new FormData();data.set('vehicle_id',vehicleId);
             const response=await fetch(`/api/picked-colors/${id}/delete/`,{method:'POST',headers:{'X-CSRFToken':getCsrfToken()},body:data});
             if(!response.ok)throw Error('Deleting this selection is not permitted or unavailable.');
-            if(vehicleId===currentVehicleId)loadPickedColors(vehicleId);
+            if(vehicleId===currentVehicleId){loadPickedColors(vehicleId);loadPatternColorSelection(vehicleId);}
         }catch(error){pickerFeedback(error.message);}
     }
     accessScope.listen(document,'input',event=>{if(event.isTrusted && event.target.closest('#panelColorPicker') && !isSubmittingColor){colorSubmissionKey=null;colorDraftDirty=true;}});
