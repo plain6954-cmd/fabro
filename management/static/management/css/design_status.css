@@ -1,35 +1,636 @@
-/* 3D Status uses the existing Pattern Master palette and controls. */
-#patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) { max-width:100%; overflow-x:auto; }
-#patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) .pattern-subtaskbar-capsule { min-width:max-content; }
-.design-status-workspace { min-width:0; max-width:100%; padding:1rem; border:1px solid var(--border-color,#30343b); border-radius:12px; background:var(--dark-card,#191c21); color:var(--text-primary,#f5f5f7); box-sizing:border-box; }
-.design-status-toolbar { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
-.design-status-toolbar h2 { margin:0; font-size:1.15rem; }
-.design-status-toolbar h2 small { color:var(--text-secondary,#9da3ae); }
-.design-status-search { display:flex; align-items:center; flex:1; flex-wrap:wrap; gap:.5rem; min-width:0; }
-.design-status-search input[type=search] { flex:1 1 200px; min-width:0; margin:0; }
-.design-status-search label { display:flex; align-items:center; gap:.3rem; font-size:.8rem; }
-.design-status-search select { width:auto; color:inherit; border:1px solid var(--border-color,#30343b); border-radius:6px; background:var(--dark-bg,#15171b); padding:.5rem; }
-.design-status-scroll { overflow:auto; max-width:100%; max-height:72dvh; overscroll-behavior:contain; border:1px solid var(--border-color,#30343b); border-radius:8px; }
-.design-status-table { width:100%; min-width:1200px; border-collapse:collapse; font-size:.8rem; }
-.design-status-table th,.design-status-table td { padding:.7rem; text-align:left; vertical-align:top; border-bottom:1px solid var(--border-color,#30343b); max-width:220px; overflow-wrap:anywhere; }
-.design-status-table th { position:sticky; top:0; z-index:1; background:var(--dark-card,#191c21); }
-.design-status-table a { color:inherit; text-decoration:none; }
-.design-status-table a:hover { text-decoration:underline; }
-.design-status-table small { display:block; margin-top:.3rem; color:var(--text-secondary,#9da3ae); }
-.design-status-table .btn { display:block; width:fit-content; padding:.3rem .5rem; margin-top:.4rem; font-size:.75rem; }
-.design-status-badge { display:inline-block; padding:.2rem .4rem; margin:.15rem 0; border-radius:5px; font-size:.7rem; background:rgba(245,158,11,.14); color:#fbbf24; }
-.design-status-badge.approved { color:#4ade80; background:rgba(34,197,94,.14); }
-.design-status-badge.rejected { color:#f87171; background:rgba(239,68,68,.14); }
-.design-status-badge.skipped_uploader,.design-status-badge.not_required,.design-status-badge.not_submitted,.design-status-badge.restricted { color:var(--text-secondary,#9da3ae); background:rgba(128,128,128,.15); }
-.design-status-stage time { display:block; font-size:.7rem; white-space:nowrap; }
-.design-status-pagination { display:flex; justify-content:center; align-items:center; gap:1rem; padding:.8rem 0 0; font-size:.8rem; }
-.design-status-pagination a { color:var(--primary-color,#ed1724); }
-.design-status-empty { text-align:center !important; padding:2rem !important; }
-.design-status-feedback:empty { display:none; }
-.design-status-workspace :focus-visible { outline:2px solid var(--primary-color,#ed1724); outline-offset:2px; }
-#patternSubtaskbarContainer .pattern-subtaskbar-btn:focus-visible { outline:2px solid var(--primary-color,#ed1724) !important; outline-offset:2px; }
-@media(max-width:600px) { .design-status-workspace { padding:.6rem; } .design-status-search { width:100%; } }
-@media(max-width:480px) {
- #patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) .pattern-subtaskbar-capsule { min-width:0; width:100%; }
- #patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) .pattern-subtaskbar-btn { min-width:0; padding:.35rem .3rem !important; gap:.25rem !important; font-size:.7rem !important; }
+/* ========================================================
+   3D STATUS — COMPACT DESIGN & WORKSPACE STYLES
+   ======================================================== */
+
+/* Workspace Integration: full-height flex matching Pattern Master */
+#tab-pane-3d-status:not([style*="display: none"]) {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.design-status-workspace {
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-primary, #f5f5f7);
+    box-sizing: border-box;
+}
+
+/* Toolbar: Heading on left, search form aligned right */
+.design-status-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+    margin: 0.25rem 0 0.55rem 0;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.design-status-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.design-status-title-wrap .page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--dark-text, #f4f4f5);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.design-status-title-wrap .page-title i {
+    color: var(--primary-color, #ef4444);
+    font-size: 1.35rem;
+}
+
+body.light-mode .design-status-title-wrap .page-title {
+    color: var(--light-text, #18181b);
+}
+
+/* Toolbar Search Form */
+.design-status-search-form {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    margin: 0 !important;
+    flex-shrink: 0;
+}
+
+.design-status-search-picker {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.design-status-search-picker .search-options {
+    right: 0;
+    left: auto;
+}
+
+/* Table Scroll Container */
+.design-status-scroll {
+    overflow-y: auto;
+    overflow-x: auto;
+    max-width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overscroll-behavior: contain;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius, 8px);
+    background: var(--dark-surface, #1e1e20);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+body.light-mode .design-status-scroll {
+    background: var(--light-surface, #ffffff);
+    border-color: #e2e8f0;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.design-status-scroll::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+
+.design-status-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.design-status-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.design-status-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+body.light-mode .design-status-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .design-status-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+}
+
+/* Compact Table Layout */
+.design-status-table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8rem;
+}
+
+/* Header Row (~32–36px) */
+.design-status-table thead tr {
+    height: 34px;
+}
+
+.design-status-table th {
+    height: 34px;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--dark-text, #f4f4f5);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--dark-card) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+    white-space: nowrap;
+    user-select: none;
+}
+
+body.light-mode .design-status-table th {
+    background: var(--light-card) !important;
+    color: var(--light-text, #18181b);
+    border-bottom-color: #cbd5e1;
+    box-shadow: inset 0 -1px 0 #cbd5e1;
+}
+
+.design-status-table th a {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: color 0.15s ease;
+}
+
+.design-status-table th a:hover {
+    color: #ffffff;
+}
+
+body.light-mode .design-status-table th a:hover {
+    color: #0f172a;
+}
+
+.design-status-table th .col-sort-icon {
+    font-size: 0.65rem;
+    opacity: 0.35;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.design-status-table th a:hover .col-sort-icon {
+    opacity: 0.75;
+}
+
+.design-status-table th .col-sort-icon.is-sorted,
+.design-status-table th .sort-indicator {
+    opacity: 1;
+    color: var(--primary-color, #dc2626);
+}
+
+/* Table Body Rows (~36–42px) */
+.design-status-table tbody tr {
+    height: 38px;
+    transition: background-color 0.12s ease;
+}
+
+.design-status-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.015);
+}
+
+body.light-mode .design-status-table tbody tr:nth-child(even) td {
+    background: rgba(0, 0, 0, 0.015);
+}
+
+.design-status-table tbody tr:hover td {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+body.light-mode .design-status-table tbody tr:hover td {
+    background-color: rgba(0, 0, 0, 0.025) !important;
+}
+
+.design-status-table td {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.8rem;
+    line-height: 1.25;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--dark-text-secondary, #a1a1aa);
+    box-sizing: border-box;
+}
+
+body.light-mode .design-status-table td {
+    border-bottom-color: #f1f5f9;
+    color: var(--light-text-secondary, #71717a);
+}
+
+/* Specific Columns */
+.col-pattern,
+.design-status-table th.th-pattern {
+    text-align: center;
+    font-weight: 700;
+    white-space: nowrap;
+    width: 86px;
+    min-width: 80px;
+}
+
+.design-status-table th.th-pattern .col-sort-btn {
+    justify-content: center;
+    width: 100%;
+}
+
+.status-pattern-link {
+    color: var(--dark-text, #f4f4f5);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.status-pattern-link:hover {
+    color: var(--primary-color, #ef4444);
+    text-decoration: underline;
+}
+
+body.light-mode .status-pattern-link {
+    color: var(--light-text, #18181b);
+}
+
+body.light-mode .status-pattern-link:hover {
+    color: var(--primary-color, #dc2626);
+}
+
+.col-brand {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+    color: var(--dark-text, #f4f4f5);
+}
+
+.col-model {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+    color: var(--dark-text, #f4f4f5);
+}
+
+body.light-mode .col-brand,
+body.light-mode .col-model {
+    color: var(--light-text, #18181b);
+}
+
+.col-year,
+.design-status-table th.th-year {
+    white-space: nowrap;
+    text-align: center;
+    width: 86px;
+    min-width: 80px;
+    font-variant-numeric: tabular-nums;
+}
+
+.design-status-table th.th-year .col-sort-btn {
+    justify-content: center;
+    width: 100%;
+}
+
+.col-submodel {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    color: var(--dark-text, #f4f4f5);
+}
+
+.col-variant {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    color: var(--dark-text, #f4f4f5);
+}
+
+body.light-mode .col-submodel,
+body.light-mode .col-variant {
+    color: var(--light-text, #18181b);
+}
+
+.col-seats,
+.design-status-table th.th-seats,
+.col-doors,
+.design-status-table th.th-doors {
+    text-align: center;
+    width: 44px;
+    min-width: 42px;
+    padding-left: 0.2rem !important;
+    padding-right: 0.2rem !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.design-status-table th.th-seats .col-sort-btn,
+.design-status-table th.th-doors .col-sort-btn {
+    justify-content: center;
+    width: 100%;
+}
+
+/* Column: 3D Uploads Count */
+.col-uploads,
+.design-status-table th.th-uploads {
+    text-align: center;
+    width: 78px;
+    min-width: 72px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.design-status-table th.th-uploads .col-sort-btn {
+    justify-content: center;
+    width: 100%;
+}
+
+.col-uploads {
+    font-weight: 600;
+    color: var(--dark-text, #f4f4f5);
+}
+
+body.light-mode .col-uploads {
+    color: var(--light-text, #18181b);
+}
+
+/* Column 10: Two-line Upload Cell */
+.col-uploaded {
+    min-width: 165px;
+    max-width: 185px;
+    line-height: 1.15;
+}
+
+.status-upload-time {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--dark-text, #f4f4f5);
+    white-space: nowrap;
+}
+
+body.light-mode .status-upload-time {
+    color: var(--light-text, #18181b);
+}
+
+.status-upload-meta {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--dark-text-secondary, #a1a1aa);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
+body.light-mode .status-upload-meta {
+    color: var(--light-text-secondary, #71717a);
+}
+
+.status-upload-cycle {
+    color: var(--dark-text-secondary, #a1a1aa);
+}
+
+body.light-mode .status-upload-cycle {
+    color: var(--light-text-secondary, #71717a);
+}
+
+.col-uploader {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 110px;
+    color: var(--dark-text-secondary, #a1a1aa);
+}
+
+body.light-mode .col-uploader {
+    color: var(--light-text-secondary, #71717a);
+}
+
+/* Column 12: Compact Approval Group (CAD | ED | MD) */
+.col-approval,
+.design-status-table th.th-approval {
+    text-align: center;
+    width: 126px;
+    min-width: 122px;
+    white-space: nowrap;
+}
+
+.design-status-table th.th-approval .col-sort-btn {
+    justify-content: center;
+    width: 100%;
+}
+
+.design-status-approval-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+}
+
+.status-stage-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 20px;
+    padding: 0 0.35rem;
+    border-radius: 4px;
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: default;
+    line-height: 1;
+    user-select: none;
+    box-sizing: border-box;
+}
+
+/* Color States */
+.status-stage-pill.approved {
+    background: rgba(34, 197, 94, 0.16);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+body.light-mode .status-stage-pill.approved {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+}
+
+.status-stage-pill.pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+body.light-mode .status-stage-pill.pending {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+.status-stage-pill.rejected {
+    background: rgba(239, 68, 68, 0.16);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+body.light-mode .status-stage-pill.rejected {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
+.status-stage-pill.skipped_uploader,
+.status-stage-pill.not_required,
+.status-stage-pill.not_submitted,
+.status-stage-pill.restricted {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+body.light-mode .status-stage-pill.skipped_uploader,
+body.light-mode .status-stage-pill.not_required,
+body.light-mode .status-stage-pill.not_submitted,
+body.light-mode .status-stage-pill.restricted {
+    background: #f1f5f9;
+    color: #64748b;
+    border-color: #cbd5e1;
+}
+
+/* Column 13: View (Eye Icon) */
+.col-view,
+.design-status-table th.th-view {
+    text-align: center;
+    width: 38px;
+    min-width: 36px;
+    padding-left: 0.2rem !important;
+    padding-right: 0.2rem !important;
+    white-space: nowrap;
+}
+
+.status-view-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    transition: all 0.14s ease;
+    cursor: pointer;
+}
+
+.status-view-icon-btn:hover {
+    color: #ffffff;
+    background: var(--primary-color, #ef4444);
+    border-color: var(--primary-color, #ef4444);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
+}
+
+body.light-mode .status-view-icon-btn {
+    color: #475569;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+body.light-mode .status-view-icon-btn:hover {
+    color: #ffffff;
+    background: var(--primary-color, #ef4444);
+    border-color: var(--primary-color, #ef4444);
+}
+
+/* Empty State */
+.design-status-empty {
+    text-align: center !important;
+    padding: 3rem 1rem !important;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.status-empty-icon {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: rgba(255, 255, 255, 0.2);
+}
+
+body.light-mode .status-empty-icon {
+    color: rgba(0, 0, 0, 0.2);
+}
+
+/* Pagination: Pattern Master bubble style */
+.design-status-pagination {
+    margin: 0.5rem 0 0 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0;
+}
+
+/* Visually Hidden Helper for Screen Readers & Tests */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+/* Focus states */
+.design-status-workspace :focus-visible,
+.status-view-icon-btn:focus-visible,
+.status-stage-pill:focus-visible {
+    outline: 2px solid var(--primary-color, #ef4444);
+    outline-offset: 2px;
+}
+
+/* Responsive Rules */
+@media (max-width: 991px) {
+    .design-status-toolbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .design-status-search-form {
+        width: 100% !important;
+        justify-content: space-between;
+    }
+    .design-status-search-picker {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
 }

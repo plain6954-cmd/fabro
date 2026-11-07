@@ -1,39 +1,186 @@
 {% load i18n %}
 <div class="design-status-toolbar">
-  <h2>{% translate '3D Status' %} <small>({{ status_page.paginator.count }})</small></h2>
-  <form method="get" class="design-status-search" role="search">
+  <div class="design-status-title-wrap">
+    <h1 class="page-title">
+      <i class="fas fa-cube" aria-hidden="true"></i>
+      <span>{% translate "3D Status" %}</span>
+      <span class="subtaskbar-counter-pill" id="designStatusCountBadge">{{ status_page.paginator.count }}</span>
+    </h1>
+  </div>
+  <form method="get" class="header-search-form design-status-search design-status-search-form" id="design-status-search-form" role="search">
     <input type="hidden" name="subwindow" value="3d-status">
+    <input type="hidden" name="status_search_by" id="status-search-by" value="{{ status_search_by|default:'all' }}">
     {% if status_sort %}<input type="hidden" name="status_sort" value="{{ status_sort }}"><input type="hidden" name="status_direction" value="{{ status_direction }}">{% endif %}
-    <input type="search" class="form-input" name="status_search" value="{{ status_search }}" aria-label="{% translate 'Search 3D Status' %}" placeholder="{% translate 'Search patterns, vehicles or uploaders' %}">
-    <label>{% translate 'Rows' %}<select name="status_page_size" aria-label="{% translate '3D Status page size' %}">{% for size in status_page_sizes %}<option value="{{ size }}" {% if size == status_page_size %}selected{% endif %}>{{ size }}</option>{% endfor %}</select></label>
-    <button class="btn btn-primary" type="submit">{% translate 'Search' %}</button>
-    <a href="?subwindow=3d-status" class="btn btn-secondary">{% translate 'Reset' %}</a>
+
+    <div class="search-picker design-status-search-picker" id="status-search-picker">
+      <i class="fas fa-search search-leading-icon" title="{% translate 'Search' %}"></i>
+      <input type="text" name="status_search" id="status-search-input"
+             class="header-search-input"
+             value="{{ status_search }}"
+             placeholder="{% translate 'Search...' %}"
+             autocomplete="off"
+             aria-label="{% translate 'Search 3D Status' %}"
+             aria-haspopup="listbox" aria-expanded="false">
+      <span class="search-field-label" id="status-search-field-label">{% firstof status_search_by_label 'All Fields' %}</span>
+      <div class="search-options" id="status-search-options">
+        <p class="search-options-title">{% translate "Search this keyword in" %}</p>
+        <div class="search-option-grid" role="listbox" aria-label="{% translate 'Search field choices' %}">
+          <button type="button" class="search-option {% if status_search_by == 'pattern' or status_search_by == 'serial_number' %}is-active{% endif %}" data-search-by="pattern" role="option">
+            <i class="fas fa-hashtag"></i> {% translate "Pattern Number" %}
+          </button>
+          <button type="button" class="search-option {% if status_search_by == 'brand' %}is-active{% endif %}" data-search-by="brand" role="option">
+            <i class="fas fa-car-side"></i> {% translate "Brand" %}
+          </button>
+          <button type="button" class="search-option {% if status_search_by == 'model' %}is-active{% endif %}" data-search-by="model" role="option">
+            <i class="fas fa-car"></i> {% translate "Model" %}
+          </button>
+          <button type="button" class="search-option {% if status_search_by == 'sub_model' or status_search_by == 'br' %}is-active{% endif %}" data-search-by="sub_model" role="option">
+            <i class="fas fa-code-branch"></i> {% translate "Sub Model" %}
+          </button>
+          <button type="button" class="search-option {% if status_search_by == 'variant' %}is-active{% endif %}" data-search-by="variant" role="option">
+            <i class="fas fa-sliders-h"></i> {% translate "Variant" %}
+          </button>
+          <button type="button" class="search-option {% if status_search_by == 'uploader' %}is-active{% endif %}" data-search-by="uploader" role="option">
+            <i class="fas fa-user"></i> {% translate "Uploaded User" %}
+          </button>
+          <button type="button" class="search-option {% if status_search_by == 'filename' %}is-active{% endif %}" data-search-by="filename" role="option">
+            <i class="fas fa-file-image"></i> {% translate "File Name" %}
+          </button>
+          <button type="button" class="search-option {% if not status_search_by or status_search_by == 'all' %}is-active{% endif %}" data-search-by="all" role="option">
+            <i class="fas fa-layer-group"></i> {% translate "All Fields" %}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary icon-btn search-submit-btn" title="{% translate 'Search' %}" aria-label="{% translate 'Search' %}">
+      <i class="fas fa-arrow-right"></i>
+    </button>
+
+    {% if status_search or status_search_by and status_search_by != 'all' %}
+    <a href="?subwindow=3d-status" class="btn btn-danger icon-btn search-clear-btn" title="{% translate 'Clear Search' %}" aria-label="{% translate 'Clear Search' %}">
+      <i class="fas fa-times"></i>
+    </a>
+    {% endif %}
   </form>
 </div>
-<p class="design-status-feedback" role="status" data-status-feedback></p>
 <div class="design-status-scroll" tabindex="0" role="region" aria-label="{% translate '3D design status table' %}">
   <table class="design-status-table">
-    <thead><tr>{% for column in status_headers %}<th scope="col" aria-sort="{% if column.selected %}{% if column.direction == 'asc' %}ascending{% else %}descending{% endif %}{% else %}none{% endif %}"><a href="{{ column.url }}" data-status-sort="{{ column.key }}">{{ column.label }} {% if column.selected %}{% if column.direction == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th>{% endfor %}</tr></thead>
+    <thead>
+      <tr>
+        {% for column in status_headers %}
+          <th scope="col" class="th-{{ column.key }}" {% if column.sortable %}aria-sort="{% if column.selected %}{% if column.direction == 'asc' %}ascending{% else %}descending{% endif %}{% else %}none{% endif %}"{% endif %}>
+            {% if column.sortable %}
+              <a href="{{ column.url }}" data-status-sort="{{ column.key }}" class="col-sort-btn">
+                <span>{{ column.label }}</span>
+                {% if column.selected %}
+                  <i class="fas fa-sort-{% if column.direction == 'asc' %}up{% else %}down{% endif %} col-sort-icon is-sorted" aria-hidden="true"></i>
+                  <span class="sort-indicator sr-only">{% if column.direction == 'asc' %}↑{% else %}↓{% endif %}</span>
+                {% else %}
+                  <i class="fas fa-sort col-sort-icon" aria-hidden="true"></i>
+                {% endif %}
+              </a>
+            {% else %}
+              <span>{{ column.label }}</span>
+            {% endif %}
+          </th>
+        {% endfor %}
+      </tr>
+    </thead>
     <tbody>
     {% for row in status_rows %}
       <tr data-status-pattern="{{ row.vehicle.pk }}" data-status-upload="{{ row.image.pk }}" data-work-priority="{{ row.priority }}">
-        <td><a href="{% url 'car_details' %}?vehicle_id={{ row.vehicle.pk }}#3d-design" title="{{ row.identity.full }}">{{ row.identity.pattern }}</a><span class="design-status-badge {{ row.outcome }}">{% translate 'Overall' %}: {{ row.outcome_label }}</span><button type="button" class="btn btn-secondary" data-design-comparison="{{ row.image.pk }}" aria-label="{% translate 'Compare latest designer upload for' %} {{ row.identity.pattern }}">{% translate 'Compare' %}</button></td>
-        <td title="{{ row.identity.full }}">{% firstof row.vehicle.sub_model.model.brand.name '—' %}</td>
-        <td>{{ row.vehicle.sub_model.model.name|default:'—' }}</td>
-        <td>{% if row.vehicle.year_start or row.vehicle.year_end %}{{ row.vehicle.year_start|default_if_none:'' }}{% if row.vehicle.year_start and row.vehicle.year_end %}–{% endif %}{{ row.vehicle.year_end|default_if_none:'' }}{% else %}—{% endif %}</td>
-        <td>{{ row.vehicle.br|default:'—' }}</td><td>{{ row.vehicle.sub_model.name|default:'—' }}</td>
-        <td>{{ row.vehicle.number_of_seats|default_if_none:'—' }}</td><td>{{ row.vehicle.number_of_doors|default_if_none:'—' }}</td>
-        <td><time datetime="{{ row.image.uploaded_at|date:'c' }}">{{ row.image.uploaded_at|date:'M d, Y H:i'|default:'—' }}</time><small>{{ row.image.title|default:'3D Design' }}</small>{% if row.cycle %}<small>{% translate 'Cycle' %} {{ row.cycle }}</small>{% endif %}</td>
-        <td>{{ row.uploader|default:'—' }}</td>
-        <td>{% for stage in row.stages %}{% if stage.role == 'CAD' %}{% include 'management/includes/design_status_stage.html' %}{% endif %}{% endfor %}</td>
-        <td>{% for stage in row.stages %}{% if stage.role != 'CAD' %}{% include 'management/includes/design_status_stage.html' %}{% endif %}{% endfor %}</td>
+        <td class="col-pattern text-center">
+          <a href="{% url 'car_details' %}?vehicle_id={{ row.vehicle.pk }}#3d-design" class="status-pattern-link" title="{{ row.identity.full }}">
+            {{ row.identity.pattern }}
+          </a>
+          <span class="sr-only" data-outcome="{{ row.outcome }}">{% translate 'Overall' %}: {{ row.outcome_label }}</span>
+        </td>
+        <td class="col-brand" title="{{ row.identity.full }}">{% firstof row.vehicle.sub_model.model.brand.name '—' %}</td>
+        <td class="col-model">{{ row.vehicle.sub_model.model.name|default:'—' }}</td>
+        <td class="col-year text-center">{% if row.vehicle.year_start or row.vehicle.year_end %}{{ row.vehicle.year_start|default_if_none:'' }}{% if row.vehicle.year_start and row.vehicle.year_end %}–{% endif %}{{ row.vehicle.year_end|default_if_none:'' }}{% else %}—{% endif %}</td>
+        <td class="col-submodel">{{ row.vehicle.br|default:'—' }}</td>
+        <td class="col-variant">{{ row.vehicle.sub_model.name|default:'—' }}</td>
+        <td class="col-seats text-center">{{ row.vehicle.number_of_seats|default_if_none:'—' }}</td>
+        <td class="col-doors text-center">{{ row.vehicle.number_of_doors|default_if_none:'—' }}</td>
+        <td class="col-uploads text-center">{{ row.upload_count }}</td>
+        <td class="col-uploaded">
+          <time datetime="{{ row.image.uploaded_at|date:'c' }}" class="status-upload-time">
+            {{ row.image.uploaded_at|date:'M d, Y H:i'|default:'—' }}
+          </time>
+          <div class="status-upload-meta" title="{{ row.image.title }}{% if row.cycle %} (Cycle {{ row.cycle }}){% endif %}">
+            <span class="status-upload-filename">{{ row.image.title|default:'3D Design' }}</span>
+            {% if row.cycle %}<span class="status-upload-cycle"> · {% translate 'Rev' %} {{ row.cycle }}</span>{% endif %}
+          </div>
+        </td>
+        <td class="col-uploader">{{ row.uploader|default:'—' }}</td>
+        <td class="col-approval text-center">
+          <div class="design-status-approval-group" role="group" aria-label="{% translate 'Approval stages' %}">
+            {% for stage in row.stages %}
+              {% include 'management/includes/design_status_stage.html' %}
+            {% endfor %}
+          </div>
+        </td>
+        <td class="col-view text-center">
+          <a href="{% url 'car_details' %}?vehicle_id={{ row.vehicle.pk }}#3d-design"
+             class="status-view-icon-btn"
+             aria-label="{% blocktranslate with pattern=row.identity.pattern %}Open 3D Designer for pattern {{ pattern }}{% endblocktranslate %}"
+             title="{% blocktranslate with pattern=row.identity.pattern %}Open 3D Designer for pattern {{ pattern }}{% endblocktranslate %}">
+            <i class="fas fa-eye" aria-hidden="true"></i>
+          </a>
+        </td>
       </tr>
-    {% empty %}<tr><td colspan="12" class="design-status-empty">{% translate 'No authorized patterns with uploaded 3D designer files match this view.' %}</td></tr>{% endfor %}
+    {% empty %}
+      <tr>
+        <td colspan="13" class="design-status-empty">
+          <i class="fas fa-cube status-empty-icon" aria-hidden="true"></i>
+          <span>{% translate 'No authorized patterns with uploaded 3D designer files match this view.' %}</span>
+        </td>
+      </tr>
+    {% endfor %}
     </tbody>
   </table>
 </div>
-<nav class="design-status-pagination" aria-label="{% translate '3D Status pages' %}">
-  {% if status_page.has_previous %}<a href="?{{ status_pagination }}&amp;status_page={{ status_page.previous_page_number }}">{% translate 'Previous' %}</a>{% endif %}
-  <span>{% translate 'Page' %} {{ status_page.number }} / {{ status_page.paginator.num_pages }}</span>
-  {% if status_page.has_next %}<a href="?{{ status_pagination }}&amp;status_page={{ status_page.next_page_number }}">{% translate 'Next' %}</a>{% endif %}
+<nav class="pattern-pagination design-status-pagination" aria-label="{% translate '3D Status pages' %}">
+  {% if status_page.has_previous %}
+  <a class="pattern-pagination__control pattern-pagination__control--previous"
+     href="?{{ status_pagination }}&amp;status_page={{ status_page.previous_page_number }}"
+     aria-label="{% translate 'Prev' %}">
+    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+    <span>{% translate "Prev" %}</span>
+  </a>
+  {% else %}
+  <span class="pattern-pagination__control pattern-pagination__control--previous is-disabled" aria-disabled="true">
+    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+    <span>{% translate "Prev" %}</span>
+  </span>
+  {% endif %}
+
+  <div class="pattern-pagination__bubbles" role="navigation" aria-label="{% translate 'Page numbers' %}">
+    {% for p in status_pagination_bubbles %}
+      {% if p == '...' or p == '…' %}
+        <span class="pattern-pagination__ellipsis" aria-hidden="true">&hellip;</span>
+      {% elif p == status_page.number %}
+        <span class="pattern-pagination__bubble is-active" aria-current="page">{{ p }}</span>
+      {% else %}
+        <a class="pattern-pagination__bubble" href="?{{ status_pagination }}&amp;status_page={{ p }}" aria-label="{% translate 'Page' %} {{ p }}">{{ p }}</a>
+      {% endif %}
+    {% empty %}
+      <span class="pattern-pagination__bubble is-active" aria-current="page">{{ status_page.number }}</span>
+    {% endfor %}
+  </div>
+
+  {% if status_page.has_next %}
+  <a class="pattern-pagination__control pattern-pagination__control--next"
+     href="?{{ status_pagination }}&amp;status_page={{ status_page.next_page_number }}"
+     aria-label="{% translate 'Next' %}">
+    <span>{% translate "Next" %}</span>
+    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+  </a>
+  {% else %}
+  <span class="pattern-pagination__control pattern-pagination__control--next is-disabled" aria-disabled="true">
+    <span>{% translate "Next" %}</span>
+    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+  </span>
+  {% endif %}
 </nav>

@@ -223,7 +223,9 @@ class DesignStatusBrowserTests(StaticLiveServerTestCase):
         for role,first in [('CAD',partial['MD']),('ED',partial['MD']),('MD',partial['ED']),('OM',partial['MD'])]:
             self.login(self.users[role]);self.status()
             expect(self.page.locator('#subtaskbarBtn3DStatus')).to_have_attribute('aria-selected','true')
-            expect(self.page.locator('.design-status-table thead th')).to_have_count(12)
+            expect(self.page.locator('.design-status-table thead th')).to_have_count(13)
+            expect(self.page.locator('select[name="status_page_size"]')).to_have_count(0)
+            expect(self.page.locator('.status-rows-label')).to_have_count(0)
             rows=self.page.locator('.design-status-table tbody tr[data-status-upload]')
             expect(rows.first).to_have_attribute('data-status-upload',str(first.pk))
             expect(rows.last).to_have_attribute('data-status-upload',str(complete.pk))
@@ -231,6 +233,11 @@ class DesignStatusBrowserTests(StaticLiveServerTestCase):
             expect(current).to_have_attribute('data-status-upload',str(self.pending.pk))
             expect(current).to_contain_text('Version3.png');expect(current).to_contain_text('CAD: Pending')
             expect(current).to_contain_text('ED: Pending');expect(current).to_contain_text('MD: Pending')
+            expect(current.locator('td.col-uploads')).to_have_text('3')
+            expect(self.page.locator('.design-status-table thead th.th-pattern')).to_have_css('text-align','center')
+            expect(current.locator('td.col-pattern')).to_have_css('text-align','center')
+            expect(self.page.locator('.design-status-table thead th.th-uploads')).to_have_css('text-align','center')
+            expect(current.locator('td.col-uploads')).to_have_css('text-align','center')
             if role=='OM':
                 self.open();expect(self.page.locator('[data-approval-file] .review-decision-form')).to_have_count(0)
                 self.page.locator('[data-comparison-action="close"]').click()
@@ -246,11 +253,21 @@ class DesignStatusBrowserTests(StaticLiveServerTestCase):
         self.page.locator('#subtaskbarBtnPatterns').click()
         for title in ('X-Code','Vehicle Country','Measurement Country','Drive'):
             expect(self.page.locator('#tab-pane-pattern-list th').filter(has_text=title).first).to_be_visible()
+        self.page.screenshot(path='output/pattern-master-1440.png')
         self.page.locator('#subtaskbarBtnColors').click()
         expect(self.page.locator('#tab-pane-color-master')).to_be_visible()
-        for index in range(22):
-            PatternDesignImage.objects.create(vehicle=self.pattern(),uploaded_by=self.designer,image=self.pending.image.name,title=f'Page-{index}',approval_status='pending')
+        self.page.screenshot(path='output/color-master-1440.png')
+        for index in range(28):
+            PatternDesignImage.objects.create(vehicle=self.pattern(),uploaded_by=self.designer,image=self.pending.image.name,title=f'Page-33-{index}',approval_status='pending')
         self.status()
+        expect(self.page.locator('.design-status-table tbody tr[data-status-upload]')).to_have_count(33)
+        expect(self.page.locator('.design-status-pagination').get_by_role('link',name='Next',exact=True)).to_have_count(0)
+        for index in range(54):
+            PatternDesignImage.objects.create(vehicle=self.pattern(),uploaded_by=self.designer,image=self.pending.image.name,title=f'Page-80-{index}',approval_status='pending')
+        self.status()
+        expect(self.page.locator('.design-status-table tbody tr[data-status-upload]')).to_have_count(80)
+        scroll_state=self.page.locator('.design-status-scroll').evaluate('el=>({scrollHeight:el.scrollHeight,clientHeight:el.clientHeight})')
+        self.assertGreater(scroll_state['scrollHeight'],scroll_state['clientHeight'])
         first_page=set(self.page.locator('[data-status-upload]').evaluate_all('(rows)=>rows.map(row=>row.dataset.statusUpload)'))
         with self.page.expect_response(lambda response:'/car-details/' in response.url and 'status_page=2' in response.url and response.request.method=='GET') as page_response:
             self.page.locator('.design-status-pagination').get_by_role('link',name='Next',exact=True).click()
@@ -258,6 +275,7 @@ class DesignStatusBrowserTests(StaticLiveServerTestCase):
         expect(self.page.locator('[data-status-upload]')).to_have_count(7)
         next_page=set(self.page.locator('[data-status-upload]').evaluate_all('(rows)=>rows.map(row=>row.dataset.statusUpload)'))
         self.assertFalse(first_page & next_page)
+        self.status()
         for width,height in ((1440,900),(768,1024),(390,844)):
             self.page.set_viewport_size({'width':width,'height':height})
             self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth-innerWidth'),1)

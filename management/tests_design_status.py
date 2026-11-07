@@ -211,15 +211,21 @@ class DesignStatusTests(TestCase):
         now=timezone.now(); images=[]
         for index in range(23):
             images.append(self.design(self.pattern(),when=now,title=f'Needle-{index:02d}.png',submit=False))
-        result=self.context(status_search='Needle',status_page_size='20')
+        result=self.context(status_search='Needle')
         self.assertEqual(result['status_page'].paginator.count,23)
-        self.assertEqual([row['image'].pk for row in result['status_rows']],[image.pk for image in reversed(images[-20:])])
-        self.assertEqual(len(self.context(status_search='Needle',status_page='2')['status_rows']),3)
-        manual=self.context(status_sort='pattern',status_direction='asc',status_search='Needle',status_page_size='50')
+        self.assertEqual(len(result['status_rows']),23)
+        self.assertEqual([row['image'].pk for row in result['status_rows']],[image.pk for image in reversed(images)])
+        manual=self.context(status_sort='pattern',status_direction='asc',status_search='Needle')
         serials=[row['vehicle'].serial_number for row in manual['status_rows']]
         self.assertEqual(serials,sorted(serials));self.assertEqual(len(serials),23)
         self.assertEqual(self.context(status_search='No match')['status_rows'],[])
-        self.assertEqual(self.context(status_page_size='invalid')['status_page_size'],20)
+        self.assertEqual(self.context(status_page_size='invalid')['status_page_size'],80)
+        self.assertEqual(len(self.context(status_search='Needle',status_search_by='filename')['status_rows']),23)
+        self.assertEqual(len(self.context(status_search='Needle',status_search_by='brand')['status_rows']),0)
+        self.assertEqual(self.context()['status_headers'][-2]['key'],'approval')
+        self.assertEqual(self.context()['status_headers'][-1]['key'],'view')
+        self.assertFalse(self.context()['status_headers'][-1]['sortable'])
+        self.assertIn(1,self.context()['status_pagination_bubbles'])
 
     def test_no_fallback_to_older_visible_upload_and_no_cross_country_leak(self):
         vehicle=self.pattern();old=self.design(vehicle,owner=self.other,submit=False)
@@ -276,3 +282,113 @@ class DesignStatusTests(TestCase):
         response=self.client.post(url,{'images':SimpleUploadedFile('Bad.png',b'invalid','image/png')})
         self.assertEqual(response.status_code,400)
         self.assertEqual(self.client.get(reverse('design_comparison_manifest',args=[old.pk])).json()['latest_upload_id'],latest)
+
+    def test_upload_count_single_pattern_single_upload(self):
+        vehicle = self.pattern()
+        self.design(vehicle, title='Single.png')
+        context = self.context()
+        self.assertEqual(len(context['status_rows']), 1)
+        self.assertEqual(context['status_rows'][0]['upload_count'], 1)
+        header_keys = [h['key'] for h in context['status_headers']]
+        self.assertEqual(header_keys, [
+            'pattern', 'brand', 'model', 'year', 'sub_model', 'variant', 'seats', 'doors',
+            'uploads', 'uploaded', 'uploader', 'approval', 'view'
+        ])
+        uploads_header = next(h for h in context['status_headers'] if h['key'] == 'uploads')
+        self.assertEqual(uploads_header['label'], '3D Uploads')
+        self.assertTrue(uploads_header['sortable'])
+
+    def test_upload_count_multiple_versions_and_independent_patterns(self):
+        v1 = self.pattern(serial_number='PAT-COUNT-1')
+        v2 = self.pattern(serial_number='PAT-COUNT-2')
+        now = timezone.now()
+        for i in range(4):
+            self.design(v1, when=now + timedelta(minutes=i), title=f'V1-{i}.png')
+        for i in range(2):
+            self.design(v2, when=now + timedelta(minutes=10 + i), title=f'V2-{i}.png')
+        self.design(v1, reference=True, title='Ref1.png')
+        self.design(v2, reference=True, title='Ref2.png')
+
+        context = self.context()
+        row_map = {r['vehicle'].pk: r['upload_count'] for r in context['status_rows']}
+        self.assertEqual(row_map[v1.pk], 4)
+        self.assertEqual(row_map[v2.pk], 2)
+
+    def test_upload_counts_unaffected_by_approval_actions_and_cycles(self):
+        vehicle = self.pattern()
+        img = self.design(vehicle, title='CycleTest.png')
+        row = self.context()['status_rows'][0]
+        self.assertEqual(row['upload_count'], 1)
+        self.decide(img, 'CAD', 'approved')
+        self.decide(img, 'ED', 'approved')
+        self.decide(img, 'MD', 'rejected')
+        row = self.context()['status_rows'][0]
+        self.assertEqual(row['upload_count'], 1)
+
+    def test_upload_counts_respect_authorization_and_visibility_boundaries(self):
+        vehicle = self.pattern()
+        self.design(vehicle, owner=self.designer, title='DesignerPending.png')
+        self.design(vehicle, owner=self.other, title='OtherPending.png', when=timezone.now() + timedelta(minutes=1))
+        approver_row = self.context(user=self.reviewers['CAD'])['status_rows'][0]
+        self.assertEqual(approver_row['upload_count'], 2)
+        other_context = self.context(user=self.other)
+        other_row = other_context['status_rows'][0]
+        self.assertEqual(other_row['upload_count'], 1)
+
+    def test_upload_count_query_efficiency(self):
+        vehicle = self.pattern()
+        self.design(vehicle)
+        request = RequestFactory().get('/car-details/?subwindow=3d-status')
+        request.user = self.reviewers['CAD']
+        with CaptureQueriesContext(connection) as queries:
+            ctx = status_context(request)
+            _ = len(ctx['status_rows'])
+        self.assertLessEqual(len(queries), 7)
+
+    def test_fixed_page_size_is_80_and_ignores_query_param(self):
+        self.design(self.pattern())
+        self.assertEqual(self.context()['status_page_size'], 80)
+        self.assertEqual(self.context(status_page_size='20')['status_page_size'], 80)
+        self.assertEqual(self.context(status_page_size='50')['status_page_size'], 80)
+        self.assertEqual(self.context(status_page_size='100')['status_page_size'], 80)
+        self.assertEqual(self.context(status_page_size='invalid')['status_page_size'], 80)
+        self.assertNotIn('status_page_size', self.context()['status_pagination'])
+
+    def test_one_page_behavior_for_33_records(self):
+        for index in range(33):
+            self.design(self.pattern(serial_number=f'PAT-33-{index:02d}'), title=f'Upload-33-{index:02d}.png')
+        result = self.context()
+        self.assertEqual(result['status_page'].paginator.count, 33)
+        self.assertEqual(result['status_page'].paginator.num_pages, 1)
+        self.assertEqual(len(result['status_rows']), 33)
+        self.assertFalse(result['status_page'].has_next())
+        self.assertFalse(result['status_page'].has_previous())
+        self.assertEqual(result['status_page_size'], 80)
+
+    def test_pagination_beyond_80_records(self):
+        for index in range(85):
+            self.design(self.pattern(serial_number=f'PAT-85-{index:02d}'), title=f'Upload-85-{index:02d}.png')
+        page1 = self.context()
+        self.assertEqual(page1['status_page'].paginator.count, 85)
+        self.assertEqual(page1['status_page'].paginator.num_pages, 2)
+        self.assertEqual(len(page1['status_rows']), 80)
+        self.assertTrue(page1['status_page'].has_next())
+        self.assertFalse(page1['status_page'].has_previous())
+
+        page2 = self.context(status_page='2')
+        self.assertEqual(len(page2['status_rows']), 5)
+        self.assertFalse(page2['status_page'].has_next())
+        self.assertTrue(page2['status_page'].has_previous())
+
+    def test_search_and_sort_preservation_with_fixed_page_size(self):
+        now = timezone.now()
+        for index in range(85):
+            self.design(self.pattern(serial_number=f'PAT-SRT-{index:02d}'), when=now + timedelta(minutes=index), title=f'SortTest-{index:02d}.png')
+        sorted_result = self.context(status_sort='pattern', status_direction='asc')
+        self.assertEqual(len(sorted_result['status_rows']), 80)
+        serials = [row['vehicle'].serial_number for row in sorted_result['status_rows']]
+        self.assertEqual(serials, sorted(serials))
+        search_result = self.context(status_search='SortTest-0', status_page='1')
+        self.assertEqual(search_result['status_page'].number, 1)
+        self.assertTrue(len(search_result['status_rows']) > 0)
+        self.assertEqual(search_result['status_page_size'], 80)

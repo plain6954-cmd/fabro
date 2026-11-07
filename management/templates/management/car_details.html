@@ -1119,7 +1119,7 @@
                     <span>{% translate "Color Master" %}</span>
                     <span class="subtaskbar-counter-pill" id="subtaskbarColorCount">{{ total_colors_count }}</span>
                 </button>
-                {% if can_view_3d_status %}<button type="button" class="pattern-subtaskbar-btn {% if active_subwindow == '3d-status' %}is-active{% endif %}" id="subtaskbarBtn3DStatus" data-activity-any="design.view_own design.view_all" role="tab" aria-selected="{% if active_subwindow == '3d-status' %}true{% else %}false{% endif %}" aria-controls="tab-pane-3d-status" onclick="location.href='{% url 'car_details' %}?subwindow=3d-status'"><i class="fas fa-cube" aria-hidden="true"></i><span>{% translate '3D Status' %}</span></button>{% endif %}
+                {% if can_view_3d_status %}<button type="button" class="pattern-subtaskbar-btn {% if active_subwindow == '3d-status' %}is-active{% endif %}" id="subtaskbarBtn3DStatus" data-activity-any="design.view_own design.view_all" role="tab" aria-selected="{% if active_subwindow == '3d-status' %}true{% else %}false{% endif %}" aria-controls="tab-pane-3d-status" onclick="switchSubwindow('3d-status')"><i class="fas fa-cube" aria-hidden="true"></i><span>{% translate '3D Status' %}</span>{% if status_total_count or status_page.paginator.count %}<span class="subtaskbar-counter-pill" id="subtaskbar3DStatusCount">{{ status_total_count|default:status_page.paginator.count }}</span>{% endif %}</button>{% endif %}
             </div>
         </div>
 
@@ -3824,9 +3824,8 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
         }
 
         function switchSubwindow(subwindow) {
-            const paneStatus = document.getElementById('tab-pane-3d-status'), btnStatus = document.getElementById('subtaskbarBtn3DStatus');
-            if (paneStatus) paneStatus.style.display = subwindow === '3d-status' ? 'block' : 'none';
-            if (btnStatus) { btnStatus.classList.toggle('is-active',subwindow === '3d-status'); btnStatus.setAttribute('aria-selected',String(subwindow === '3d-status')); }
+            const paneStatus = document.getElementById('tab-pane-3d-status');
+            const btnStatus = document.getElementById('subtaskbarBtn3DStatus');
             const btnPatterns = document.getElementById('subtaskbarBtnPatterns');
             const btnColors = document.getElementById('subtaskbarBtnColors');
             const panePatterns = document.getElementById('tab-pane-pattern-list');
@@ -3835,10 +3834,32 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             const pageContainer = document.querySelector('.page-container');
 
             if (subwindow === '3d-status') {
-                pageContainer?.classList.remove('is-color-subwindow'); document.body.classList.remove('is-color-subwindow'); document.documentElement.classList.remove('is-color-subwindow');
-                for (const button of [btnPatterns,btnColors]) { button?.classList.remove('is-active'); button?.setAttribute('aria-selected','false'); }
-                for (const pane of [panePatterns,paneColors,paneDesign]) if(pane)pane.style.display='none';
-                updateSubtaskbarGlider(btnStatus); return;
+                if (!paneStatus || !paneStatus.children.length) {
+                    window.location.href = '{% url "car_details" %}?subwindow=3d-status';
+                    return;
+                }
+                if (pageContainer) pageContainer.classList.remove('is-color-subwindow');
+                document.body.classList.remove('is-color-subwindow');
+                document.documentElement.classList.remove('is-color-subwindow');
+
+                if (btnPatterns) { btnPatterns.classList.remove('is-active'); btnPatterns.setAttribute('aria-selected', 'false'); }
+                if (btnColors) { btnColors.classList.remove('is-active'); btnColors.setAttribute('aria-selected', 'false'); }
+                if (btnStatus) { btnStatus.classList.add('is-active'); btnStatus.setAttribute('aria-selected', 'true'); updateSubtaskbarGlider(btnStatus); }
+
+                if (panePatterns) panePatterns.style.display = 'none';
+                if (paneColors) paneColors.style.display = 'none';
+                if (paneDesign) paneDesign.style.display = 'none';
+                if (paneStatus) { paneStatus.style.display = 'flex'; paneStatus.style.flexDirection = 'column'; }
+
+                try {
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('subwindow', '3d-status');
+                    newUrl.searchParams.delete('vehicle_id');
+                    newUrl.hash = '';
+                    history.replaceState(null, '', newUrl.toString());
+                } catch(e) {}
+                window.scrollTo({ top: 0, behavior: 'instant' });
+                return;
             }
 
             if (subwindow === 'colors') {
@@ -3850,6 +3871,10 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                     btnPatterns.classList.remove('is-active');
                     btnPatterns.setAttribute('aria-selected', 'false');
                 }
+                if (btnStatus) {
+                    btnStatus.classList.remove('is-active');
+                    btnStatus.setAttribute('aria-selected', 'false');
+                }
                 if (btnColors) {
                     btnColors.classList.add('is-active');
                     btnColors.setAttribute('aria-selected', 'true');
@@ -3857,6 +3882,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                 }
                 if (panePatterns) panePatterns.style.display = 'none';
                 if (paneDesign) paneDesign.style.display = 'none';
+                if (paneStatus) paneStatus.style.display = 'none';
                 if (paneColors) {
                     paneColors.style.display = 'flex';
                 }
@@ -3876,6 +3902,10 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                     btnColors.classList.remove('is-active');
                     btnColors.setAttribute('aria-selected', 'false');
                 }
+                if (btnStatus) {
+                    btnStatus.classList.remove('is-active');
+                    btnStatus.setAttribute('aria-selected', 'false');
+                }
                 if (btnPatterns) {
                     btnPatterns.classList.add('is-active');
                     btnPatterns.setAttribute('aria-selected', 'true');
@@ -3883,6 +3913,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                 }
                 if (paneColors) paneColors.style.display = 'none';
                 if (paneDesign) paneDesign.style.display = 'none';
+                if (paneStatus) paneStatus.style.display = 'none';
                 if (panePatterns) {
                     panePatterns.style.display = 'flex';
                     panePatterns.style.flexDirection = 'column';
@@ -9741,6 +9772,8 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             const initialSub = (urlParams.get('subwindow') || '{{ active_subwindow }}' || 'patterns').toLowerCase();
             if (initialSub === 'colors') {
                 switchSubwindow('colors');
+            } else if (initialSub === '3d-status') {
+                switchSubwindow('3d-status');
             } else {
                 updateSubtaskbarGlider();
             }
