@@ -1010,12 +1010,22 @@ class PatternDesignImage(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     designer_remarks = models.TextField(blank=True, default='')
     is_reference = models.BooleanField(default=False, db_index=True)
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_design_images',
+    )
 
     class Meta:
         ordering = ['-uploaded_at']
         indexes = [
             models.Index(fields=['vehicle', 'folder', '-uploaded_at'], name='idx_design_image_vehicle'),
             models.Index(fields=['approval_status', '-uploaded_at'], name='idx_design_img_approval'),
+            models.Index(fields=['is_deleted', '-uploaded_at'], name='idx_design_img_deleted'),
         ]
 
     def __str__(self):

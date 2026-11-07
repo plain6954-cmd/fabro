@@ -40,7 +40,7 @@ def final_outcome(image):
 
 
 def latest_designer_upload(images):
-    return max((image for image in images if not image.is_reference and image.image),
+    return max((image for image in images if not image.is_reference and image.image and not getattr(image, 'is_deleted', False)),
         key=lambda image:(image.uploaded_at is not None,image.uploaded_at,image.pk), default=None)
 
 
@@ -56,13 +56,13 @@ def status_context(request):
         raise PermissionDenied(_('3D design access is disabled.'))
     from management.views import _comparison_visible_files
 
-    genuine = PatternDesignImage.objects.filter(is_reference=False).exclude(image='').annotate(
+    genuine = PatternDesignImage.objects.filter(is_reference=False, is_deleted=False).exclude(image='').annotate(
         pattern_id=Coalesce('vehicle_id', 'folder__vehicle_id'))
     # Select the actual latest version first, not the latest *visible* older
     # version. If that current file is unauthorized, omit the pattern entirely.
     latest = genuine.filter(Q(vehicle_id=OuterRef('pattern_id')) |
         Q(vehicle__isnull=True,folder__vehicle_id=OuterRef('pattern_id'))).order_by('-uploaded_at', '-pk')
-    visible_genuine = _comparison_visible_files(request.user).filter(is_reference=False).exclude(image='').annotate(
+    visible_genuine = _comparison_visible_files(request.user).filter(is_reference=False, is_deleted=False).exclude(image='').annotate(
         pattern_id=Coalesce('vehicle_id', 'folder__vehicle_id')).filter(pattern_id__isnull=False)
     if not granted(request.user, 'folder.view'):
         visible_genuine = visible_genuine.filter(folder__isnull=True)

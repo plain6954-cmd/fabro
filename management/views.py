@@ -303,18 +303,17 @@ def _can_delete_design_assets(user):
 def _can_delete_design_image(user, img):
     if not user or not user.is_authenticated or not user.is_active:
         return False
-    resource = 'reference' if img.is_reference else 'design'
-    if not activity_scoped(user, resource, 'delete', img.uploaded_by_id) or not activity_deletable(img):
+    if getattr(img, 'is_deleted', False):
         return False
-    if is_active_superuser(user) or user.has_perm('management.delete_patterndesignimage'):
-        return True
-    prof = getattr(user, 'workflow_profile', None)
-    is_designer = bool(prof and prof.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
-    # Freelance 3D Designers can delete their own uploaded 3D design files
-    if is_designer and not getattr(img, 'is_reference', False):
-        if img.uploaded_by_id == user.id:
+    if getattr(img, 'is_reference', False):
+        if not activity_scoped(user, 'reference', 'delete', img.uploaded_by_id) or not activity_deletable(img):
+            return False
+        if is_active_superuser(user) or user.has_perm('management.delete_patterndesignimage'):
             return True
-    return False
+        return False
+    # Uploaded 3D Design files (is_reference=False):
+    # Controlled strictly and independently by the 'design.delete_uploaded' activity permission.
+    return activity_granted(user, 'design.delete_uploaded')
 
 
 def _can_approve_design_assets(user):
@@ -385,6 +384,7 @@ def _can_user_review_design_image(user, img):
 def _visible_design_images_qs(user, base_qs):
     if not user or not user.is_authenticated:
         return base_qs.none()
+    base_qs = base_qs.filter(is_deleted=False)
     base_qs = activity_visible_files(user, base_qs)
     if _can_approve_design_assets(user) or _is_design_readonly_viewer(user):
         return base_qs
@@ -2339,6 +2339,28 @@ def _serialize_design_image_details(img, user=None):
             'voice_notes': [serialize_voice_note(note, req) for note in req.voice_notes.all()] if can_see_voice else [],
         })
 
+    has_approval_history = bool(
+        len(history) > 1
+        or img.approved_at
+        or img.rejected_at
+        or any(
+            req.get('cad_status') in ('approved', 'rejected')
+            or req.get('ed_status') in ('approved', 'rejected')
+            or req.get('md_status') in ('approved', 'rejected')
+            or req.get('cad_reviewer')
+            or req.get('ed_reviewer')
+            or req.get('md_reviewer')
+            for req in history
+        )
+        or (appr and (appr.cad_status != 'pending' or appr.ed_status != 'pending' or appr.md_status != 'pending' or appr.cad_reviewer_id or appr.ed_reviewer_id or appr.md_reviewer_id))
+        or getattr(img, 'approval_status', 'pending') in ('approved', 'rejected')
+    )
+    pattern_number = ''
+    if img.vehicle:
+        pattern_number = img.vehicle.serial_number or ''
+    elif img.folder and img.folder.vehicle:
+        pattern_number = img.folder.vehicle.serial_number or ''
+
     return {
         'id': img.id,
         'url': reverse('pattern_design_image_download', args=[img.pk]) if f_type == 'pdf' else t_url or reverse('design_comparison_file', args=[img.pk]),
@@ -2354,6 +2376,9 @@ def _serialize_design_image_details(img, user=None):
         'completed_at': completed_display,
         'approved_at': approved_display,
         'approval_status': getattr(img, 'approval_status', 'pending'),
+        'has_approval_history': has_approval_history,
+        'pattern_number': pattern_number,
+        'vehicle_id': img.vehicle_id or (img.folder.vehicle_id if img.folder else None),
         'rejection_reason': (getattr(img, 'rejection_reason', '') or '') if can_see_voice else '',
         'designer_remarks': getattr(img, 'designer_remarks', '') or '',
         'uploaded_by': img.uploaded_by.username if img.uploaded_by else '',
@@ -2740,8 +2765,14 @@ def _unique_design_storage_name(file_name):
     return f'{stem[:80]}-{uuid.uuid4().hex}{extension.lower()}'
 
 
-def _serialize_uploaded_design(image):
+def _serialize_uploaded_design(image, user=None):
     file_type, file_ext = _get_design_file_info(image.image.name)
+    actor = user or image.uploaded_by
+    pattern_number = ''
+    if image.vehicle:
+        pattern_number = image.vehicle.serial_number or ''
+    elif image.folder and image.folder.vehicle:
+        pattern_number = image.folder.vehicle.serial_number or ''
     return {
         'id': image.pk,
         'url': reverse('design_comparison_file', args=[image.pk]) + ('?thumbnail=1' if image.thumbnail and file_type == 'image' else ''),
@@ -2754,7 +2785,10 @@ def _serialize_uploaded_design(image):
         'approval_status': image.approval_status,
         'rejection_reason': image.rejection_reason,
         'can_approve': False,
-        'can_delete': _can_delete_design_image(image.uploaded_by, image),
+        'can_delete': _can_delete_design_image(actor, image),
+        'has_approval_history': False,
+        'pattern_number': pattern_number,
+        'vehicle_id': image.vehicle_id or (image.folder.vehicle_id if image.folder else None),
         'uploaded_by': image.uploaded_by.username if image.uploaded_by else '',
     }
 
@@ -2796,7 +2830,7 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
         return JsonResponse({'status': 'error', 'message': _('Invalid upload ID.')}, status=400)
     scope = f'f{folder.pk}' if folder else f'v{vehicle.pk}'
     keys = [f'{request.user.pk}-{scope}-{upload_id}-{index}' for index in range(len(files))] if upload_id else []
-    count_qs = folder.images if folder else PatternDesignImage.objects.filter(vehicle=vehicle, folder__isnull=True)
+    count_qs = folder.images.filter(is_deleted=False) if folder else PatternDesignImage.objects.filter(vehicle=vehicle, folder__isnull=True, is_deleted=False)
 
     def existing_response():
         if not keys:
@@ -2817,7 +2851,7 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
         return JsonResponse({
             'status': 'success', 'uploaded_count': len(ordered),
             'latest_uploaded_id': latest.pk if latest else None,
-            'images': [_serialize_uploaded_design(image) for image in ordered],
+            'images': [_serialize_uploaded_design(image, request.user) for image in ordered],
             'total_count': count_qs.count(),
         })
 
@@ -2892,7 +2926,7 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
             response = JsonResponse({
                 'status': 'success', 'uploaded_count': len(created),
                 'latest_uploaded_id': latest.pk if latest else None,
-                'images': [_serialize_uploaded_design(image) for image in created],
+                'images': [_serialize_uploaded_design(image, request.user) for image in created],
                 'total_count': count_qs.count(),
             })
         return response
@@ -3030,33 +3064,67 @@ def update_vehicle_google_drive_api(request, vehicle_id):
 @require_POST
 @transaction.atomic
 def delete_design_image_api(request, image_id):
-    img = get_object_or_404(_visible_design_images_qs(request.user, PatternDesignImage.objects.select_for_update()), id=image_id)
+    img = get_object_or_404(
+        _visible_design_images_qs(request.user, PatternDesignImage.objects.select_for_update()),
+        id=image_id,
+    )
     if not _can_delete_design_image(request.user, img):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+
     folder_id = img.folder_id
-    vehicle_id = img.vehicle_id
+    img_vehicle_id = img.vehicle_id or (img.folder.vehicle_id if img.folder else None)
+
+    req_vehicle_id = request.POST.get('vehicle_id') or request.GET.get('vehicle_id')
+    if req_vehicle_id:
+        try:
+            req_vid = int(req_vehicle_id)
+            if img_vehicle_id and img_vehicle_id != req_vid:
+                return JsonResponse({'status': 'error', 'message': _('Cross-pattern deletion mismatch.')}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'status': 'error', 'message': _('Invalid vehicle ID.')}, status=400)
+
     img_title = img.title or (img.image.name if img.image else f'Image {img.id}')
-    if img.image:
-        try:
-            design_file_storage(img.image.name).delete(img.image.name)
-        except Exception:
-            pass
-    if img.thumbnail:
-        try:
-            default_storage.delete(img.thumbnail.name)
-        except Exception:
-            pass
-    img.delete()
+    pattern_serial = ''
+    if img.vehicle:
+        pattern_serial = img.vehicle.serial_number or str(img.vehicle.id)
+    elif img.folder and img.folder.vehicle:
+        pattern_serial = img.folder.vehicle.serial_number or str(img.folder.vehicle.id)
+
+    if img.is_reference:
+        if img.image:
+            try:
+                design_file_storage(img.image.name).delete(img.image.name)
+            except Exception:
+                pass
+        if img.thumbnail:
+            try:
+                default_storage.delete(img.thumbnail.name)
+            except Exception:
+                pass
+        img.delete()
+    else:
+        img.is_deleted = True
+        img.deleted_at = timezone.now()
+        img.deleted_by = request.user
+        img.save(update_fields=['is_deleted', 'deleted_at', 'deleted_by'])
+
+    object_name = f"{img_title} (Pattern: {pattern_serial})" if pattern_serial else img_title
     ActivityLog.objects.create(
         user=request.user,
         action='deleted',
         object_type='Design Image',
-        object_name=img_title,
+        object_name=object_name,
     )
-    remaining = PatternDesignImage.objects.filter(folder_id=folder_id).count() if folder_id else PatternDesignImage.objects.filter(vehicle_id=vehicle_id, folder__isnull=True).count()
+    remaining = (
+        PatternDesignImage.objects.filter(folder_id=folder_id, is_deleted=False).count()
+        if folder_id
+        else PatternDesignImage.objects.filter(vehicle_id=img_vehicle_id, folder__isnull=True, is_deleted=False).count()
+    )
     return JsonResponse({
         'status': 'success',
-        'remaining_count': remaining
+        'remaining_count': remaining,
+        'file_id': image_id,
+        'message': _('Design file deleted successfully.')
     })
 
 
@@ -4888,7 +4956,7 @@ def approvals_list_view(request):
             PatternDesignApproval.objects.filter(design_image=OuterRef('pk')).order_by('-cycle').values('status')[:1]
         )
 
-        base_count_qs = activity_visible_files(request.user, PatternDesignImage.objects.filter(approval_requests__isnull=False)).annotate(
+        base_count_qs = activity_visible_files(request.user, PatternDesignImage.objects.filter(is_deleted=False, approval_requests__isnull=False)).annotate(
             latest_cad_status=latest_appr_cad,
             latest_ed_status=latest_appr_ed,
             latest_md_status=latest_appr_md,
@@ -4914,7 +4982,7 @@ def approvals_list_view(request):
         rejection_count = base_count_qs.filter(approval_status='rejected').distinct().count()
         approved_count = base_count_qs.filter(approval_status='approved').distinct().count()
 
-        qs = PatternDesignImage.objects.filter(approval_requests__isnull=False).select_related(
+        qs = PatternDesignImage.objects.filter(is_deleted=False, approval_requests__isnull=False).select_related(
             'uploaded_by', 'vehicle__sub_model__model__brand', 'folder'
         ).annotate(
             latest_cad_status=latest_appr_cad,

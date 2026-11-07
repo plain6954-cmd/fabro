@@ -3305,6 +3305,68 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
         </div>
     </div>
 
+    <!-- Delete Uploaded 3D Design File Modal -->
+    <div id="delete3DDesignModal" class="modal" role="dialog" aria-labelledby="delete3DDesignModalTitle" aria-modal="true" style="display: none; z-index: 99999;" onclick="if(event.target === this) window.closeDelete3DDesignModal();">
+        <div class="modal-content" style="max-width: 490px; border: 1px solid rgba(239, 68, 68, 0.4); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55); background: var(--fabro-card-bg, #181b22);">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 1rem 1.25rem;">
+                <h2 id="delete3DDesignModalTitle" class="modal-title" style="color: var(--dark-text); font-size: 1.15rem; display: flex; align-items: center; gap: 0.6rem; margin: 0;">
+                    <i class="fas fa-trash-alt" style="color: #ef4444; font-size: 1.2rem;"></i>
+                    <span>{% translate "Delete Uploaded 3D Design File" %}</span>
+                </h2>
+                <button type="button" class="close-btn" onclick="window.closeDelete3DDesignModal()" aria-label="{% translate 'Close' %}"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 1.25rem; margin-bottom: 0;">
+                <p style="font-size: 0.86rem; color: var(--dark-text-secondary, #94a3b8); margin-bottom: 1rem; line-height: 1.45;">
+                    {% translate "Are you sure you want to delete this 3D design file? Review the file details below before confirming." %}
+                </p>
+
+                <!-- File Details Summary Card -->
+                <div class="delete-design-details-card" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.84rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #94a3b8;">{% translate "Pattern Number:" %}</span>
+                        <strong id="deleteModalPatternNumber" style="color: #cbd5e1; font-family: monospace; font-size: 0.9rem;">—</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem;">
+                        <span style="color: #94a3b8; flex-shrink: 0;">{% translate "Filename:" %}</span>
+                        <strong id="deleteModalFilename" style="color: #f1f5f9; word-break: break-all; text-align: right;">—</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #94a3b8;">{% translate "Upload Date / Time:" %}</span>
+                        <span id="deleteModalUploadedAt" style="color: #cbd5e1;">—</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #94a3b8;">{% translate "Approval Status:" %}</span>
+                        <span id="deleteModalApprovalStatus" style="font-weight: 600;">—</span>
+                    </div>
+                </div>
+
+                <!-- Historical Review Warning Banner (Shown only if file has CAD/ED/MD approval or rejection history) -->
+                <div id="deleteModalHistoryWarning" class="delete-history-warning" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem; color: #fbbf24; font-size: 0.82rem; line-height: 1.45;">
+                    <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 1.05rem; margin-top: 0.1rem; flex-shrink: 0; color: #f59e0b;"></i>
+                        <div>
+                            <strong style="display: block; margin-bottom: 0.2rem; color: #fef3c7;">{% translate "Review History Preserved" %}</strong>
+                            <span>{% translate "This file has CAD, ED, or MD review history. Deleting this file will soft-delete it: it will no longer be active or visible, but its review and approval history will remain safely preserved in the audit log." %}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error feedback -->
+                <div id="deleteModalErrorFeedback" style="display: none; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 0.65rem 0.85rem; color: #fca5a5; font-size: 0.82rem; margin-bottom: 0.75rem;"></div>
+
+                <!-- Success feedback -->
+                <div id="deleteModalSuccessFeedback" style="display: none; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.65rem 0.85rem; color: #6ee7b7; font-size: 0.82rem; margin-bottom: 0.75rem;"></div>
+            </div>
+            <div class="modal-actions" style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 0.9rem 1.25rem; display: flex; justify-content: flex-end; gap: 0.65rem;">
+                <button type="button" class="btn btn-secondary" id="btnCancelDelete3DDesign" onclick="window.closeDelete3DDesignModal()">{% translate "Cancel" %}</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete3DDesign" onclick="window.confirmDelete3DDesignFile()" style="background-color: #dc2626; border-color: #ef4444; color: #ffffff; display: inline-flex; align-items: center; gap: 0.45rem;">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>{% translate "Confirm Delete" %}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Lightbox Enlarged View Modal -->
     <div id="designEnlargedModal" class="enlarged-view-modal" onclick="if(event.target === this) closeEnlargedView();">
         <button type="button" class="enlarged-close-btn" onclick="closeEnlargedView()" title="{% translate "Close (Esc)" %}">

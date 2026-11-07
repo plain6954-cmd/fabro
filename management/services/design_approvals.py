@@ -83,6 +83,8 @@ def submit_design_for_approval(design_image, designer, is_resubmission=False, co
         # Serialize review-cycle changes on the design row. The caller's copy
         # may be stale after another tab has already resubmitted it.
         design_image = PatternDesignImage.objects.select_for_update().get(pk=design_image.pk)
+        if getattr(design_image, 'is_deleted', False):
+            raise ValidationError(_("A deleted design file cannot be submitted for approval."))
         if is_resubmission:
             latest = get_latest_approval_request(design_image)
             if not latest or latest.status != 'rejected' or design_image.approval_status != 'rejected':
@@ -200,6 +202,9 @@ def record_design_review_decision(design_image, reviewer_user, decision, comment
     """
     if not reviewer_user or not reviewer_user.is_authenticated:
         raise PermissionDenied(_("Authentication required."))
+
+    if getattr(design_image, 'is_deleted', False):
+        raise PermissionDenied(_("A deleted design file cannot be reviewed."))
 
     # Designer cannot approve their own design
     if design_image.uploaded_by_id == reviewer_user.id:

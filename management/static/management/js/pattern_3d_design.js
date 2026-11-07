@@ -40,6 +40,8 @@
         galleryManifest: {},
         galleryRevision: null,
         galleryLoading: false,
+        pendingDeleteFileId: null,
+        isDeletingFile: false,
     };
     let gallerySync = null;
     let accessRefreshPending = false;
@@ -51,7 +53,7 @@
         if (!state.vehicleId) return;
         // Reuse authorized manifests for own/all and protected-workflow state.
         // Existing loader retains open review drafts and guards stale responses.
-        document.querySelectorAll('.tiny-pic-delete-btn, .tile-delete-x-btn, .btn-tile-delete').forEach(node => { node.hidden = true; });
+        document.querySelectorAll('.tiny-pic-delete-btn, .tile-delete-x-btn, .btn-tile-delete, .tile-delete-btn').forEach(node => { node.hidden = true; });
         accessRefreshPending = true;
         refreshAccess(true);
     }, {signal: eventController.signal});
@@ -83,23 +85,138 @@
         return item?.can_delete === true;
     }
 
-    async function delete3DDesignFile(fileId, fileTitle) {
+    function openDelete3DDesignModal(fileId) {
         if (!fileId) return;
-        const entry = [...state.referenceImages, ...state.designFiles].find(f => f.id === fileId);
-        const displayName = fileTitle || (entry && entry.title) || 'this file';
-        if (!confirm(`Are you sure you want to delete "${displayName}"? This action cannot be undone.`)) {
-            return;
+        const file = [...state.referenceImages, ...state.designFiles].find(f => f.id === fileId);
+        if (!file) return;
+
+        state.pendingDeleteFileId = fileId;
+        state.isDeletingFile = false;
+
+        const modal = document.getElementById('delete3DDesignModal');
+        if (!modal) return;
+
+        // Populate Pattern Number
+        const patternEl = document.getElementById('deleteModalPatternNumber');
+        if (patternEl) {
+            const patternNum = file.pattern_number
+                || (state.vehicleData && (state.vehicleData.serial_number || state.vehicleData.heading))
+                || (document.getElementById('patternHeadingSerial')?.textContent?.trim())
+                || (state.vehicleId ? `Vehicle #${state.vehicleId}` : '—');
+            patternEl.textContent = patternNum;
         }
 
+        // Populate Filename
+        const filenameEl = document.getElementById('deleteModalFilename');
+        if (filenameEl) {
+            filenameEl.textContent = file.title || 'Untitled';
+        }
+
+        // Populate Upload Date
+        const uploadedEl = document.getElementById('deleteModalUploadedAt');
+        if (uploadedEl) {
+            uploadedEl.textContent = file.uploaded_at || '—';
+        }
+
+        // Populate Approval Status
+        const statusEl = document.getElementById('deleteModalApprovalStatus');
+        if (statusEl) {
+            const status = (file.approval_status || 'pending').toLowerCase();
+            if (status === 'approved') {
+                statusEl.innerHTML = '<span style="color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 0.2rem 0.55rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.35rem;"><i class="fas fa-check-circle"></i> Approved</span>';
+            } else if (status === 'rejected') {
+                statusEl.innerHTML = '<span style="color: #f87171; background: rgba(239, 68, 68, 0.15); padding: 0.2rem 0.55rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.35rem;"><i class="fas fa-times-circle"></i> Rejected</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color: #fbbf24; background: rgba(245, 158, 11, 0.15); padding: 0.2rem 0.55rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.35rem;"><i class="far fa-clock"></i> Pending</span>';
+            }
+        }
+
+        // Toggle History Warning
+        const warningEl = document.getElementById('deleteModalHistoryWarning');
+        if (warningEl) {
+            const hasHistory = file.has_approval_history === true
+                || file.approval_status === 'approved'
+                || file.approval_status === 'rejected'
+                || (Array.isArray(file.history) && (file.history.length > 1 || file.history.some(h => (h.cad_status && h.cad_status !== 'pending') || (h.ed_status && h.ed_status !== 'pending') || (h.md_status && h.md_status !== 'pending') || h.cad_reviewer || h.ed_reviewer || h.md_reviewer)))
+                || (file.cad && file.cad.status && file.cad.status !== 'pending')
+                || (file.ed && file.ed.status && file.ed.status !== 'pending')
+                || (file.md && file.md.status && file.md.status !== 'pending');
+            warningEl.style.display = hasHistory ? 'block' : 'none';
+        }
+
+        // Reset Feedback
+        const errEl = document.getElementById('deleteModalErrorFeedback');
+        if (errEl) {
+            errEl.textContent = '';
+            errEl.style.display = 'none';
+        }
+        const succEl = document.getElementById('deleteModalSuccessFeedback');
+        if (succEl) {
+            succEl.textContent = '';
+            succEl.style.display = 'none';
+        }
+
+        // Reset Actions
+        const confirmBtn = document.getElementById('btnConfirmDelete3DDesign');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Confirm Delete</span>';
+        }
+        const cancelBtn = document.getElementById('btnCancelDelete3DDesign');
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+        }
+
+        modal.style.display = 'flex';
+        cancelBtn?.focus();
+    }
+
+    function closeDelete3DDesignModal() {
+        const modal = document.getElementById('delete3DDesignModal');
+        if (modal) modal.style.display = 'none';
+        state.pendingDeleteFileId = null;
+        state.isDeletingFile = false;
+    }
+
+    async function confirmDelete3DDesignFile() {
+        const fileId = state.pendingDeleteFileId;
+        if (!fileId || state.isDeletingFile) return;
+
+        state.isDeletingFile = true;
+        const confirmBtn = document.getElementById('btnConfirmDelete3DDesign');
+        const cancelBtn = document.getElementById('btnCancelDelete3DDesign');
+        const errEl = document.getElementById('deleteModalErrorFeedback');
+        const succEl = document.getElementById('deleteModalSuccessFeedback');
+
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Deleting...</span>';
+        }
+        if (cancelBtn) cancelBtn.disabled = true;
+        if (errEl) errEl.style.display = 'none';
+        if (succEl) succEl.style.display = 'none';
+
         try {
+            const formData = new FormData();
+            if (state.vehicleId) {
+                formData.append('vehicle_id', state.vehicleId);
+            }
+
             const resp = await fetch(`/api/design-images/${fileId}/delete/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCsrfToken(),
                 },
+                body: formData,
             });
-            const data = await resp.json();
-            if (data.status === 'success') {
+
+            const data = await resp.json().catch(() => ({}));
+            if (resp.ok && data.status === 'success') {
+                if (succEl) {
+                    succEl.textContent = data.message || 'File deleted successfully.';
+                    succEl.style.display = 'block';
+                }
+
                 // Remove from state
                 state.referenceImages = state.referenceImages.filter(f => f.id !== fileId);
                 state.designFiles = state.designFiles.filter(f => f.id !== fileId);
@@ -124,14 +241,47 @@
                         closeApprovalDrawer();
                     }
                 }
+
+                document.dispatchEvent(new CustomEvent('fabro:design-file-deleted', {
+                    detail: { fileId, vehicleId: state.vehicleId }
+                }));
+
+                setTimeout(() => {
+                    closeDelete3DDesignModal();
+                }, 350);
             } else {
-                alert(data.message || 'Error deleting file.');
+                state.isDeletingFile = false;
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Confirm Delete</span>';
+                }
+                if (cancelBtn) cancelBtn.disabled = false;
+                if (errEl) {
+                    errEl.textContent = data.message || `Error deleting file (Status ${resp.status}).`;
+                    errEl.style.display = 'block';
+                }
             }
         } catch (err) {
             console.error('[3D Design] Error deleting file:', err);
-            alert('An error occurred while deleting the file.');
+            state.isDeletingFile = false;
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Confirm Delete</span>';
+            }
+            if (cancelBtn) cancelBtn.disabled = false;
+            if (errEl) {
+                errEl.textContent = 'A network error occurred while deleting the file. Please try again.';
+                errEl.style.display = 'block';
+            }
         }
     }
+
+    function delete3DDesignFile(fileId, fileTitle) {
+        openDelete3DDesignModal(fileId);
+    }
+    window.openDelete3DDesignModal = openDelete3DDesignModal;
+    window.closeDelete3DDesignModal = closeDelete3DDesignModal;
+    window.confirmDelete3DDesignFile = confirmDelete3DDesignFile;
     window.delete3DDesignFile = delete3DDesignFile;
 
     async function load3DDesignWorkspace(vehicleId) {
@@ -708,8 +858,8 @@
                 <div class="${tileClass}" data-file-id="${file.id}" ${upload ? `data-upload-id="${upload.id}"` : ''}>
                     <div class="tile-top-actions-overlay">
                         ${!uploadPending && canCurrentUserDelete(file) ? `
-                            <button type="button" class="tile-delete-x-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file" aria-label="Delete this file">
-                                <i class="fas fa-times"></i>
+                            <button type="button" class="tile-delete-btn btn-danger" onclick="event.stopPropagation(); window.openDelete3DDesignModal(${file.id})" title="Delete uploaded 3D design file" aria-label="Delete ${escapeHtml(file.title)}">
+                                <i class="fas fa-trash-alt"></i>
                             </button>
                         ` : ''}
                     </div>
@@ -764,7 +914,7 @@
                                 <i class="fas fa-clipboard-check"></i>
                                 <span>Approval Workflow</span>
                             </button>
-                            ${!uploadPending && canCurrentUserDelete(file) ? `<button type="button" class="btn-tile-delete" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file"><i class="fas fa-times"></i></button>` : ''}
+                            ${!uploadPending && canCurrentUserDelete(file) ? `<button type="button" class="btn-tile-delete" onclick="event.stopPropagation(); window.openDelete3DDesignModal(${file.id})" title="Delete uploaded 3D design file" aria-label="Delete ${escapeHtml(file.title)}"><i class="fas fa-trash-alt"></i></button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -777,7 +927,7 @@
         const nodes = tiles.map(({ key, html }) => {
             const previous = state.renderedTiles.get(key);
             let node = previous?.node;
-            if (node && previous.html === html) node.querySelectorAll('.tile-delete-x-btn, .btn-tile-delete').forEach(button => { button.hidden = false; });
+            if (node && previous.html === html) node.querySelectorAll('.tile-delete-x-btn, .btn-tile-delete, .tile-delete-btn').forEach(button => { button.hidden = false; });
             if (!node || previous.html !== html) {
                 const template = document.createElement('template');
                 template.innerHTML = html.trim();
@@ -1010,7 +1160,7 @@
             const isImg = !is3DModel && (file.file_type === 'image' || /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.title || ''));
             const thumbSrc = file.url || file.preview_url;
             const drawerDelBtn = canCurrentUserDelete(file)
-                ? `<button type="button" class="tile-delete-x-btn" onclick="event.stopPropagation(); window.delete3DDesignFile(${file.id}, '${escapeHtml(file.title)}')" title="Delete this file" style="position:absolute;top:6px;right:6px;"><i class="fas fa-times"></i></button>`
+                ? `<button type="button" class="tile-delete-btn btn-danger" onclick="event.stopPropagation(); window.openDelete3DDesignModal(${file.id})" title="Delete uploaded 3D design file" aria-label="Delete ${escapeHtml(file.title)}" style="position:absolute;top:6px;right:6px;"><i class="fas fa-trash-alt"></i></button>`
                 : '';
             thumbBox.innerHTML = (isImg
                 ? `<img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(file.title)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-cube\' style=\'font-size:1.8rem;color:#c084fc;\'></i>';">`
@@ -1321,11 +1471,16 @@
     window.toggleLegacyFoldersView = toggleLegacyFoldersView;
     window.previewImageLightbox = previewImageLightbox;
     window.load3DDesignWorkspace = load3DDesignWorkspace;
+    window.openDelete3DDesignModal = openDelete3DDesignModal;
+    window.closeDelete3DDesignModal = closeDelete3DDesignModal;
+    window.confirmDelete3DDesignFile = confirmDelete3DDesignFile;
+    window.delete3DDesignFile = delete3DDesignFile;
 
     // Global listeners are replaced when this page asset is loaded again by HTMX.
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeApprovalDrawer();
+            closeDelete3DDesignModal();
         }
     }, { signal: eventController.signal });
 
@@ -1360,6 +1515,7 @@
         state.loadRequestId++;
         referenceTrack = null;
         closeApprovalDrawer();
+        closeDelete3DDesignModal();
     }, { signal: eventController.signal });
     if (document.readyState !== 'loading') initialize3DWorkspace();
     window.__fabro3DDispose = () => eventController.abort();

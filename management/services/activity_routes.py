@@ -234,7 +234,10 @@ def enforce_request(request):
         from management.services.activity_permissions import protected_files
         images = PatternDesignImage.objects.none()
         if name == 'delete_design_image_api':
-            images = PatternDesignImage.objects.filter(pk=kwargs.get('image_id'))
+            if granted(request.user, 'design.delete_uploaded'):
+                images = PatternDesignImage.objects.filter(pk=kwargs.get('image_id'), is_reference=True)
+            else:
+                images = PatternDesignImage.objects.filter(pk=kwargs.get('image_id'))
         elif name == 'delete_design_folder_api':
             folder = PatternDesignFolder.objects.filter(pk=kwargs.get('folder_id')).first()
             if folder and not scoped(request.user, 'folder', 'delete', folder.created_by_id):

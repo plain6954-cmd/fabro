@@ -511,11 +511,18 @@ class ReferenceDesignUploadTests(TestCase):
                 self.assertEqual(self.client.post(url).status_code, 403)
                 self.assertTrue(PatternDesignImage.objects.filter(pk=image.pk).exists())
 
-        # The designer who uploaded it can delete their own uploaded design image
+        # Deleting 3D design files requires the explicit 'design.delete_uploaded' permission;
+        # users without this permission (including the uploading designer) receive 403.
         self.client.force_login(self.designer)
-        with patch('management.views.default_storage.delete'):
-            self.assertEqual(self.client.post(url).status_code, 200)
-        self.assertFalse(PatternDesignImage.objects.filter(pk=image.pk).exists())
+        self.assertEqual(self.client.post(url).status_code, 403)
+
+        # When granted 'design.delete_uploaded', the designer can delete (soft-delete) the file.
+        self.designer.workflow_profile.activity_permissions = {'design.delete_uploaded': 'allow'}
+        self.designer.workflow_profile.save()
+        self.designer.__dict__.pop('_activity_grants', None)
+        self.assertEqual(self.client.post(url).status_code, 200)
+        self.assertTrue(PatternDesignImage.objects.filter(pk=image.pk, is_deleted=True).exists())
+        self.assertFalse(PatternDesignImage.objects.filter(pk=image.pk, is_deleted=False).exists())
 
         # Explicit delete permission still requires business-record visibility.
         image2 = PatternDesignImage.objects.create(
@@ -529,15 +536,18 @@ class ReferenceDesignUploadTests(TestCase):
         )
         manager = get_user_model().objects.create_user(username='ref_asset_manager')
         manager.user_permissions.add(permission)
+        manager.workflow_profile.activity_permissions = {'design.delete_uploaded': 'allow'}
+        manager.workflow_profile.save()
         self.client.force_login(manager)
         self.assertEqual(self.client.post(url2).status_code, 404)
         self.assertTrue(PatternDesignImage.objects.filter(pk=image2.pk).exists())
         manager.workflow_profile.role = WorkflowRoles.APPROVER
         manager.workflow_profile.approval_role = ApprovalRoles.OM
         manager.workflow_profile.save()
-        with patch('management.views.default_storage.delete'):
-            self.assertEqual(self.client.post(url2).status_code, 200)
-        self.assertFalse(PatternDesignImage.objects.filter(pk=image2.pk).exists())
+        manager.__dict__.pop('_activity_grants', None)
+        self.assertEqual(self.client.post(url2).status_code, 200)
+        self.assertTrue(PatternDesignImage.objects.filter(pk=image2.pk, is_deleted=True).exists())
+        self.assertFalse(PatternDesignImage.objects.filter(pk=image2.pk, is_deleted=False).exists())
 
     def test_folder_deletion_requires_explicit_permission(self):
         folder = PatternDesignFolder.objects.create(

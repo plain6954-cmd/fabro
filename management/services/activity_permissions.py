@@ -54,7 +54,12 @@ for category, noun in [('reference', 'references'), ('design', 'designs'), ('mea
         ('upload', 'Upload ' + noun, 'reference_upload' if category == 'reference' else 'design_upload' if category == 'design' else 'authenticated'),
         ('download_own', 'Download own ' + noun), ('download_all', 'Download all authorized ' + noun),
         ('delete_own', 'Delete own eligible ' + noun, 'design_delete_own' if category == 'design' else 'file_delete' if category == 'reference' else 'authenticated'), ('delete_all', 'Delete all authorized eligible ' + noun, 'catalog' if category == 'measurement' else 'file_delete')])
-activities('design', [('resubmit_own', 'Resubmit own rejected designs', 'design_upload'), ('resubmit_all', 'Resubmit authorized rejected designs', 'superuser'), ('history', 'View design review/revision history', 'design_view', ('design_approval.view',))])
+activities('design', [
+    ('delete_uploaded', 'Delete Uploaded 3D Design Files', 'design_delete'),
+    ('resubmit_own', 'Resubmit own rejected designs', 'design_upload'),
+    ('resubmit_all', 'Resubmit authorized rejected designs', 'superuser'),
+    ('history', 'View design review/revision history', 'design_view', ('design_approval.view',))
+])
 activities('folder', [('view', 'View design folders'), ('create', 'Create design folders', 'assets'),
     ('rename', 'Rename design folders', 'assets'), ('delete_own', 'Delete own eligible folders', 'file_delete'), ('delete_all', 'Delete all authorized eligible folders', 'file_delete')])
 activities('design_approval', [('view', 'View authorized design review queue', 'design_view'),
@@ -142,18 +147,20 @@ def eligible(policy, identity):
         'complaint_review': erp or role == R.APPROVER,
         'pattern_review': su or role == R.APPROVER or stage in ('CAD', 'ED', 'MD', 'PM', 'OM'),
         'factory': erp or role == R.FACTORY_EXECUTIVE,
+        'design_delete': True,
     }
     return bool(policies[policy])
 
 def role_defaults(info):
     """Compatibility defaults; optional policy configuration never mutates overrides."""
-    defaults = {key: eligible(item.policy, info) for key, item in REGISTRY.items()}
+    defaults = {key: (False if key == 'design.delete_uploaded' else eligible(item.policy, info)) for key, item in REGISTRY.items()}
     role_key = info.get('approval_role') if info.get('role') == R.APPROVER else info.get('role')
     changes = getattr(settings, 'ACTIVITY_ROLE_DEFAULTS', {}).get(role_key, {})
     defaults.update({key: value and eligible(REGISTRY[key].policy, info)
                      for key, value in changes.items() if key in REGISTRY and type(value) is bool})
     if info.get('is_superuser') or info.get('role') == R.ADMIN:
         defaults.update({key: True for key in ADMIN_KEYS})
+    defaults['design.delete_uploaded'] = False
     for item in REGISTRY.values():
         if any(not defaults[dep] for dep in item.requires):
             defaults[item.key] = False
@@ -182,6 +189,8 @@ def scoped(user, resource, action, owner_id):
         return False
     if resource == 'folder' and not granted(user, 'folder.view'):
         return False
+    if resource == 'design' and action == 'delete':
+        return granted(user, 'design.delete_uploaded') or granted(user, 'design.delete_all') or (own and granted(user, 'design.delete_own'))
     return granted(user, f'{resource}.{action}_all') or (own and granted(user, f'{resource}.{action}_own'))
 
 def visible_files(user, queryset):

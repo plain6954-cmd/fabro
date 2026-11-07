@@ -309,3 +309,63 @@ class DesignStatusBrowserTests(StaticLiveServerTestCase):
         self.page.locator('[data-comparison-action="close"]').click()
         expect(self.page.locator(f'[data-status-upload="{self.pending.pk}"]')).to_contain_text('Overall: Approved')
         self.assertEqual(self.rejected.latest_approval.md_status,'rejected')
+
+    def test_delete_button_visibility_modal_cancel_and_confirm_soft_delete(self):
+        # 1. By default, CAD user lacks 'design.delete_uploaded' -> delete button is not visible
+        self.workspace()
+        card = self.page.locator(f'#design3DFilesGallery [data-file-id="{self.pending.pk}"]')
+        expect(card).to_be_visible()
+        expect(card.locator('.tile-delete-btn')).not_to_be_visible()
+
+        # 2. Grant 'design.delete_uploaded' to CAD user
+        profile = self.users['CAD'].workflow_profile
+        profile.activity_permissions = {'design.delete_uploaded': 'allow'}
+        profile.save()
+        self.users['CAD'].__dict__.pop('_activity_grants', None)
+        self.login(self.users['CAD'])
+        self.workspace()
+
+        card = self.page.locator(f'#design3DFilesGallery [data-file-id="{self.pending.pk}"]')
+        delete_btn = card.locator('.tile-delete-btn')
+        expect(delete_btn).to_be_visible()
+        try:
+            self.page.screenshot(path="C:/Users/POWER-13/.gemini/antigravity/brain/a3834655-7097-45f2-9706-06b7662d4700/delete-button-card-1440.png")
+        except Exception:
+            pass
+
+        # 3. Click delete button -> opens modal with pending file (no review history warning)
+        delete_btn.click()
+        modal = self.page.locator('#delete3DDesignModal')
+        expect(modal).to_be_visible()
+        expect(self.page.locator('#deleteModalFilename')).to_have_text('Version3.png')
+        expect(self.page.locator('#deleteModalHistoryWarning')).not_to_be_visible()
+
+        # 4. Cancel action -> modal closes, card preserved
+        self.page.locator('#btnCancelDelete3DDesign').click()
+        expect(modal).not_to_be_visible()
+        expect(card).to_be_visible()
+        self.pending.refresh_from_db()
+        self.assertFalse(self.pending.is_deleted)
+
+        # 5. Open modal for a file WITH review history (Version2.png is rejected)
+        card_v2 = self.page.locator(f'#design3DFilesGallery [data-file-id="{self.rejected.pk}"]')
+        expect(card_v2).to_be_visible()
+        card_v2.locator('.tile-delete-btn').click()
+        expect(modal).to_be_visible()
+        expect(self.page.locator('#deleteModalFilename')).to_have_text('Version2.png')
+        expect(self.page.locator('#deleteModalHistoryWarning')).to_be_visible()
+        try:
+            self.page.screenshot(path="C:/Users/POWER-13/.gemini/antigravity/brain/a3834655-7097-45f2-9706-06b7662d4700/delete-modal-warning-1440.png")
+        except Exception:
+            pass
+
+        # 6. Confirm Delete -> modal closes, card removed, record soft-deleted
+        self.page.locator('#btnConfirmDelete3DDesign').click()
+        expect(modal).not_to_be_visible()
+        expect(card_v2).not_to_be_visible()
+        self.rejected.refresh_from_db()
+        self.assertTrue(self.rejected.is_deleted)
+        self.assertEqual(self.rejected.deleted_by, self.users['CAD'])
+        self.assertIsNotNone(self.rejected.deleted_at)
+        # Approval/rejection record remains preserved in database
+        self.assertEqual(PatternDesignApproval.objects.filter(design_image=self.rejected).count(), 1)
