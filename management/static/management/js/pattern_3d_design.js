@@ -173,6 +173,7 @@
                 state.canDelete = data.user_info?.can_delete === true;
                 state.galleryManifest = data.gallery_manifest || {};
                 state.galleryRevision = data.gallery_revision || null;
+                document.dispatchEvent(new CustomEvent('fabro:design-data-refreshed',{detail:{vehicleId}}));
 
                 // Update Badges
                 const refBadge = document.getElementById('refImagesCountBadge');
@@ -552,6 +553,7 @@
                         if (!current) throw new Error('The saved file is no longer available in this gallery.');
                         entry.serverFile = current;
                     }
+                    document.dispatchEvent(new CustomEvent('fabro:designer-uploaded', {detail:{vehicleId:entry.vehicleId,imageId:entry.serverFile.id}}));
                     if (isDesignImage(entry.serverFile)) {
                         await loadUploadedImage(entry.serverFile.url || entry.serverFile.original_url);
                     }

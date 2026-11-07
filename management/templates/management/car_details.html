@@ -13,7 +13,8 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261106-picked-colors" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/design_status.css' %}?v=20261107" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261107-color-categories" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_review_voice.css' %}?v=20261031" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_review_drawer.css' %}?v=20261101" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_approval_preview.css' %}?v=20261021-gallery-viewer" data-fabro-page-asset>
@@ -1097,10 +1098,10 @@
         <div class="pattern-subtaskbar-container" id="patternSubtaskbarContainer">
             <div class="pattern-subtaskbar-capsule" role="tablist" aria-label="{% translate 'Pattern Workspace' %}">
                 <button type="button"
-                        class="pattern-subtaskbar-btn {% if active_subwindow != 'colors' %}is-active{% endif %}"
+                        class="pattern-subtaskbar-btn {% if active_subwindow == 'patterns' %}is-active{% endif %}"
                         id="subtaskbarBtnPatterns"
                         role="tab"
-                        aria-selected="{% if active_subwindow != 'colors' %}true{% else %}false{% endif %}"
+                        aria-selected="{% if active_subwindow == 'patterns' %}true{% else %}false{% endif %}"
                         aria-controls="tab-pane-pattern-list"
                         onclick="switchSubwindow('patterns')">
                     <i class="fas fa-layer-group"></i>
@@ -1118,11 +1119,12 @@
                     <span>{% translate "Color Master" %}</span>
                     <span class="subtaskbar-counter-pill" id="subtaskbarColorCount">{{ total_colors_count }}</span>
                 </button>
+                {% if can_view_3d_status %}<button type="button" class="pattern-subtaskbar-btn {% if active_subwindow == '3d-status' %}is-active{% endif %}" id="subtaskbarBtn3DStatus" data-activity-any="design.view_own design.view_all" role="tab" aria-selected="{% if active_subwindow == '3d-status' %}true{% else %}false{% endif %}" aria-controls="tab-pane-3d-status" onclick="location.href='{% url 'car_details' %}?subwindow=3d-status'"><i class="fas fa-cube" aria-hidden="true"></i><span>{% translate '3D Status' %}</span></button>{% endif %}
             </div>
         </div>
 
         <!-- Tab 1: Pattern list (All existing tools, filters, search, table) -->
-        <div id="tab-pane-pattern-list" class="pattern-tab-pane" style="{% if active_subwindow == 'colors' %}display: none;{% endif %}">
+        <div id="tab-pane-pattern-list" class="pattern-tab-pane" style="{% if active_subwindow != 'patterns' %}display: none;{% endif %}">
             <!-- Pattern Toolbar: Title on left, controls on right on the same horizontal row -->
             <div class="pattern-toolbar">
                 <div class="pattern-toolbar__header">
@@ -1594,7 +1596,7 @@
                                                    data-submodel-name="{{ car.sub_model|default:''|escapejs }}" 
                                                    data-year-id="{{ car.id }}" 
                                                    data-year-range="{% if car.year_start or car.year_end %}{{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}-{% endif %}{{ car.year_end|default:'' }}{% endif %}" 
-                                                   data-design-title="{{ car.brand|escapejs }} {{ car.model|escapejs }}{% if car.year_start or car.year_end %} {{ car.year_start|default:'' }}{% if car.year_start and car.year_end %}-{% endif %}{{ car.year_end|default:'' }}{% endif %}{% if car.sub_model and car.sub_model != '-' %} {{ car.sub_model|escapejs }}{% endif %}"
+                                                   data-design-title="{{ car.design_heading }}"
                                                    aria-label="Select {{ car.brand }} {{ car.model }}">
                                         </td>
                                         <td class="col-num" title="{{ car.serial_number }}"><div class="col-num-inner"><strong>{{ car.serial_number }}</strong>{% if car.has_pending_designs %}<span class="pending-design-dot" title="{% translate "New 3D design upload pending review" %}"></span>{% endif %}</div></td>
@@ -2348,6 +2350,7 @@
         </div>
 
         <!-- Design options (Folders & 2x2 Matrix Image Gallery) -->
+        <section id="tab-pane-3d-status" class="pattern-tab-pane design-status-workspace" data-activity-any="design.view_own design.view_all" style="{% if active_subwindow != '3d-status' %}display:none;{% endif %}" aria-labelledby="subtaskbarBtn3DStatus">{% if active_subwindow == '3d-status' %}{% include 'management/includes/design_status_table.html' %}{% endif %}</section>
         <div id="tab-pane-design-options" class="pattern-tab-pane" style="display: none;">
             <form id="designOptionsGlobalCsrf" style="display: none;" aria-hidden="true">
                 {% csrf_token %}
@@ -2484,6 +2487,16 @@
                                     </div>
                                     <div class="measurement-panel-body">
                                         <!-- Top Segmented Controls: Existing vs Pantone/New -->
+                                        <div class="picked-category-row">
+                                            <div class="picked-category-field">
+                                                <span id="pickedCategoryLabel" class="form-label">{% translate 'Save Color Under' %}</span>
+                                                <div id="pickedCategoryToggle" class="picked-category-control" role="radiogroup" aria-labelledby="pickedCategoryLabel" data-category="interior_match">
+                                                    <button type="button" role="radio" aria-checked="true" tabindex="0" data-color-category="interior_match">{% translate 'Interior Match' %}</button>
+                                                    <button type="button" role="radio" aria-checked="false" tabindex="-1" data-color-category="fabro_color">{% translate 'Fabro Color' %}</button>
+                                                </div>
+                                            </div>
+                                            <div id="pickedColorLivePreview" class="picked-color-swatch" role="img" aria-label="{% translate 'Color preview unavailable' %}"></div>
+                                        </div>
                                         <div class="color-top-segmented-control">
                                             <button type="button" class="color-segmented-tab color-top-tab-btn is-active" id="colorTopTabExisting" data-mode="existing" onclick="window.switchColorTopTab('existing')">
                                                 <span>{% translate "Existing Colors" %}</span>
@@ -2652,25 +2665,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Matching Swatch Photo (Optional) -->
-                                        <div class="matching-swatch-box">
-                                            <label class="swatch-label">{% translate "Matching Swatch Photo (Optional)" %}</label>
-                                            <input type="file" id="matchingSwatchPhotoInput" accept="image/*" style="display: none;" onchange="window.handleSwatchPhotoSelected(this)">
-                                            <div class="swatch-upload-dropzone" onclick="document.getElementById('matchingSwatchPhotoInput').click()">
-                                                <i class="fas fa-cloud-arrow-up swatch-dropzone-icon"></i>
-                                                <div class="swatch-dropzone-text">
-                                                    <strong class="swatch-title">{% translate "Upload Image" %}</strong>
-                                                    <span class="swatch-subtitle">{% translate "Matching swatch photo" %}</span>
-                                                    <span class="swatch-format">{% translate "JPG, PNG, HEIC (Max 10 MB)" %}</span>
-                                                </div>
-                                            </div>
-                                            <div id="matchingSwatchPreview" style="display: none; margin-top: 0.45rem; position: relative;">
-                                                <img id="matchingSwatchImg" src="" alt="Swatch Preview" style="width: 100%; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);">
-                                                <button type="button" onclick="window.clearSwatchPhoto()" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 4px; background: rgba(0,0,0,0.7); border: none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </div>
-                                        </div>
+                                        {% include 'management/includes/matching_swatch_gallery.html' %}
 
                                         <label class="form-label" for="pickedColorRemarks">{% translate 'Remarks (optional)' %}</label>
                                         <textarea id="pickedColorRemarks" class="form-input" rows="3" maxlength="2000"></textarea>
@@ -3166,8 +3161,9 @@
     {% endfor %}
 ]
 </script>
-<script src="{% static 'management/js/color_approval_drawer.js' %}?v=20261017" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_measurements.js' %}?v=20261106-picked-colors" data-fabro-page-asset></script>
+<script src="{% static 'management/js/color_approval_drawer.js' %}?v=20261107-swatch-photos" data-fabro-page-asset></script>
+<script src="{% static 'management/js/matching_swatch_gallery.js' %}?v=20261107-swatch-photos" data-fabro-page-asset></script>
+<script src="{% static 'management/js/pattern_measurements.js' %}?v=20261107-color-categories" data-fabro-page-asset></script>
 <script>
 window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}false{% endif %};
 </script>
@@ -3177,8 +3173,9 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
 <script src="{% static 'management/js/design_pdf_viewer.js' %}?v=20261103-comparison" data-fabro-page-asset></script>
 <script src="{% static 'management/js/gallery_sync.js' %}?v=20261031" data-fabro-page-asset></script>
 <script src="{% static 'management/js/design_review_voice.js' %}?v=20261104-live" data-fabro-page-asset></script>
-<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261106-universal-badge" data-fabro-page-asset></script>
-{% include 'management/includes/design_comparison_assets.html' %}
+<script src="{% static 'management/js/pattern_3d_design.js' %}?v=20261107-latest-version" data-fabro-page-asset></script>
+<script src="{% static 'management/js/design_status.js' %}?v=20261107" data-fabro-page-asset></script>
+{% include 'management/includes/design_comparison_assets.html' with comparison_gallery_sync_loaded=True %}
         </div><!-- /page-container -->
 
     <!-- Add Folder Modal -->
@@ -3827,12 +3824,22 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
         }
 
         function switchSubwindow(subwindow) {
+            const paneStatus = document.getElementById('tab-pane-3d-status'), btnStatus = document.getElementById('subtaskbarBtn3DStatus');
+            if (paneStatus) paneStatus.style.display = subwindow === '3d-status' ? 'block' : 'none';
+            if (btnStatus) { btnStatus.classList.toggle('is-active',subwindow === '3d-status'); btnStatus.setAttribute('aria-selected',String(subwindow === '3d-status')); }
             const btnPatterns = document.getElementById('subtaskbarBtnPatterns');
             const btnColors = document.getElementById('subtaskbarBtnColors');
             const panePatterns = document.getElementById('tab-pane-pattern-list');
             const paneColors = document.getElementById('tab-pane-color-master');
             const paneDesign = document.getElementById('tab-pane-design-options');
             const pageContainer = document.querySelector('.page-container');
+
+            if (subwindow === '3d-status') {
+                pageContainer?.classList.remove('is-color-subwindow'); document.body.classList.remove('is-color-subwindow'); document.documentElement.classList.remove('is-color-subwindow');
+                for (const button of [btnPatterns,btnColors]) { button?.classList.remove('is-active'); button?.setAttribute('aria-selected','false'); }
+                for (const pane of [panePatterns,paneColors,paneDesign]) if(pane)pane.style.display='none';
+                updateSubtaskbarGlider(btnStatus); return;
+            }
 
             if (subwindow === 'colors') {
                 if (pageContainer) pageContainer.classList.add('is-color-subwindow');
@@ -7754,6 +7761,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
         function handleDesignImageSelected(files) {
             if (!files || !files.length || !activeDesignFolder) return;
             const uploadScope = `folder-${activeDesignFolder.id}`;
+            const uploadContext = {vehicleId:activeDesignFolder.vehicle_id || null,folderId:activeDesignFolder.id};
             if (designUploadsInFlight.has(uploadScope)) return;
             designUploadsInFlight.add(uploadScope);
             const uploadId = designUploadId(uploadScope, files);
@@ -7827,6 +7835,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                         data.images.forEach(img => { img.is_new = true; });
                         matrixCurrentPage = 0;
                         activeFolderImages = [...data.images, ...activeFolderImages.filter(existing => !data.images.some(img => img.id === existing.id))].slice(0, MATRIX_PAGE_SIZE);
+                        if(data.latest_uploaded_id)document.dispatchEvent(new CustomEvent('fabro:designer-uploaded',{detail:{...uploadContext,imageId:data.latest_uploaded_id}}));
                         activeFolderTotalImages = data.total_count ?? ((activeFolderTotalImages || 0) + data.images.length);
                         matrixTotalPages = Math.max(1, Math.ceil(activeFolderTotalImages / MATRIX_PAGE_SIZE));
                         renderDesignMatrix();
@@ -8138,6 +8147,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
         function handleDirectVehicleImageSelected(files) {
             if (!files || !files.length || !currentVehicleId) return;
             const uploadScope = `vehicle-${currentVehicleId}`;
+            const uploadVehicleId = currentVehicleId;
             if (designUploadsInFlight.has(uploadScope)) return;
             designUploadsInFlight.add(uploadScope);
             const uploadId = designUploadId(uploadScope, files);
@@ -8209,6 +8219,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                         data.images.forEach(img => { img.is_new = true; });
                         directMatrixCurrentPage = 0;
                         directImagesState = [...data.images, ...directImagesState.filter(existing => !data.images.some(img => img.id === existing.id))].slice(0, MATRIX_PAGE_SIZE);
+                        if(data.latest_uploaded_id)document.dispatchEvent(new CustomEvent('fabro:designer-uploaded',{detail:{vehicleId:uploadVehicleId,imageId:data.latest_uploaded_id}}));
                         directImagesTotalCount = data.total_count ?? ((directImagesTotalCount || 0) + data.images.length);
                         directMatrixTotalPages = Math.max(1, Math.ceil(directImagesTotalCount / MATRIX_PAGE_SIZE));
                         renderDirectImagesMatrix();

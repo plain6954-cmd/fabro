@@ -44,12 +44,14 @@ def snapshot_of(selection):
 
 
 def serialize(row, user):
-    return {'id': row.pk, 'vehicle_id': row.vehicle_id, 'snapshot': row.snapshot, 'remarks': row.remarks,
+    from management.services.swatch_photos import gallery
+    photos = gallery(row, user)
+    return {'id': row.pk, 'vehicle_id': row.vehicle_id, 'category': row.category, 'snapshot': row.snapshot, 'remarks': row.remarks,
         'created_by': row.created_by_id, 'creator_name': row.creator_name,
         'created_at': row.created_at.isoformat(), 'updated_at': row.updated_at.isoformat(),
         'can_edit': permitted(user, row, 'edit'), 'can_delete': permitted(user, row, 'delete'),
-        'swatch_url': f'/picked-colors/{row.pk}/swatch/?vehicle_id={row.vehicle_id}'
-            if row.source_selection and row.source_selection.swatch_image else None}
+        'swatch_photos': photos,
+        'swatch_url': photos[0]['url'] if photos else None}
 
 
 def validated_data(user, data):
@@ -108,12 +110,14 @@ def audit(row, user, action, before=None, operation_key=None):
     row.audit_events = [*row.audit_events, {'action': action, 'actor_id': user.pk,
         'actor_name': user.get_full_name() or user.username, 'at': timezone.now().isoformat(),
         'vehicle_id': row.vehicle_id, 'operation_key': operation_key, 'before': before,
-        'after': {'snapshot': row.snapshot, 'remarks': row.remarks, 'source_selection_id': row.source_selection_id}}]
+        'after': {'category': row.category, 'snapshot': row.snapshot, 'remarks': row.remarks, 'source_selection_id': row.source_selection_id}}]
     ActivityLog.objects.create(user=user, action=action, object_type='Picked Color', object_name=f'{row.pk} / vehicle {row.vehicle_id}')
 
 
 @transaction.atomic
 def save(user, vehicle_id, data, *, row_id=None, swatch_file=None):
+    from management.services import swatch_photos
+    prepared_photos = swatch_photos.plans(data)
     vehicle = vehicle_for_user(user, vehicle_id)
     require(user, 'picked_colors.view')
     if not row_id:
@@ -141,6 +145,9 @@ def save(user, vehicle_id, data, *, row_id=None, swatch_file=None):
                 raise ValidationError('This submission key was already used.')
             return row, False
     clean = validated_data(user, data)
+    category = data.get('category', row.category if row else PickedColorSelection.CATEGORY_INTERIOR_MATCH)
+    if category not in [value for value, _ in PickedColorSelection.CATEGORY_CHOICES]:
+        raise ValidationError('Choose Interior Match or Fabro Color.')
     if swatch_file:
         from management.services.measurement_files import validate_measurement_file
         from management.models import PatternMeasurementFile
@@ -151,7 +158,7 @@ def save(user, vehicle_id, data, *, row_id=None, swatch_file=None):
         if extension not in ('.heic', '.heif'):
             forms.ImageField().clean(swatch_file)
         swatch_file.seek(0)
-    before = {'snapshot': row.snapshot, 'remarks': row.remarks, 'source_selection_id': row.source_selection_id} if row else None
+    before = {'category': row.category, 'snapshot': row.snapshot, 'remarks': row.remarks, 'source_selection_id': row.source_selection_id} if row else None
     if not row or not same_colors(row.snapshot, clean) or swatch_file:
         for side in ('inner', 'outer') if clean['tone_type'] == 'dual' else ('inner',):
             if clean[side + '_source'] == 'existing':
@@ -164,7 +171,8 @@ def save(user, vehicle_id, data, *, row_id=None, swatch_file=None):
         if PatternColorSelection.objects.filter(client_submission_key=key).exists():
             raise ValidationError('This submission key was already used.')
         proposal, _ = save_color_selection(vehicle, user, clean, swatch_file=swatch_file, client_key=key)
-        if row and not swatch_file and row.source_selection and row.source_selection.swatch_image:
+        if (row and not swatch_file and row.source_selection and row.source_selection.swatch_image
+                and row.swatch_photos.filter(image=row.source_selection.swatch_image.name, removed_at=None).exists()):
             proposal.swatch_image = row.source_selection.swatch_image.name
             proposal.save(update_fields=['swatch_image'])
         if row is None:
@@ -172,10 +180,14 @@ def save(user, vehicle_id, data, *, row_id=None, swatch_file=None):
                 creator_name=user.get_full_name() or user.username, client_submission_key=key)
         row.source_selection = proposal
         row.snapshot = snapshot_of(proposal)
+    row.category = category
     row.remarks = clean['remarks']
     if row.pk:
         row.edited_by = user
     row.save()
+    swatch_photos.import_legacy(row)
+    swatch_photos.reserve(row, user, prepared_photos, initial=before is None)
+    swatch_photos.bind_history(row)
     audit(row, user, 'edited' if before else 'created', before, key)
     row.save(update_fields=['audit_events'])
     return row, True

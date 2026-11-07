@@ -1412,6 +1412,10 @@ class PatternColorSelection(models.Model):
 
 class PickedColorSelection(models.Model):
     """Editable vehicle snapshots; approval subjects and shared media stay intact."""
+    CATEGORY_INTERIOR_MATCH = 'interior_match'
+    CATEGORY_FABRO_COLOR = 'fabro_color'
+    CATEGORY_CHOICES = [(CATEGORY_INTERIOR_MATCH, 'Interior Match'), (CATEGORY_FABRO_COLOR, 'Fabro Color')]
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default=CATEGORY_INTERIOR_MATCH)
     vehicle = models.ForeignKey(YearRange, null=True, on_delete=models.SET_NULL, related_name='picked_colors')
     source_selection = models.OneToOneField(PatternColorSelection, null=True, on_delete=models.SET_NULL, related_name='picked_color')
     created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='picked_colors')
@@ -1428,6 +1432,34 @@ class PickedColorSelection(models.Model):
     class Meta:
         ordering = ['-created_at', '-pk']
         indexes = [models.Index(fields=['vehicle', 'deleted_at', '-created_at'], name='picked_vehicle_active_idx')]
+        constraints = [models.CheckConstraint(condition=models.Q(category__in=['interior_match', 'fabro_color']),
+                                              name='picked_color_category_valid')]
+
+
+class PickedColorPhoto(models.Model):
+    """Private gallery assets; removal never erases an approval's media."""
+    selection = models.ForeignKey(PickedColorSelection, null=True, on_delete=models.SET_NULL, related_name='swatch_photos')
+    approval_selections = models.ManyToManyField(PatternColorSelection, related_name='swatch_photos', blank=True)
+    legacy_source = models.OneToOneField(PatternColorSelection, null=True, blank=True, on_delete=models.SET_NULL, related_name='imported_swatch_photo')
+    image = models.FileField(upload_to='picked_color_photos/%Y/%m/', blank=True, default='')
+    pending_storage_key = models.CharField(max_length=255, blank=True, default='')
+    filename = models.CharField(max_length=255, blank=True, default='')
+    content_type = models.CharField(max_length=100, blank=True, default='')
+    file_size = models.PositiveBigIntegerField(default=0)
+    sha256 = models.CharField(max_length=64, blank=True, default='')
+    upload_key = models.CharField(max_length=160, unique=True)
+    uploaded_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='picked_color_photos')
+    uploader_name = models.CharField(max_length=320, blank=True, default='')
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    uploaded_at = models.DateTimeField(null=True, blank=True)
+    initial_upload_expires_at = models.DateTimeField(null=True, blank=True)
+    removed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        indexes = [models.Index(fields=['selection', 'removed_at', 'created_at'], name='picked_photo_gallery_idx')]
+        constraints = [models.UniqueConstraint(fields=['selection', 'sha256'],
+            condition=models.Q(removed_at__isnull=True) & ~models.Q(sha256=''), name='picked_photo_live_content')]
 
 
 class PatternColorApprovalDecision(models.Model):

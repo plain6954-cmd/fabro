@@ -618,6 +618,7 @@ def _comparison_approval_heading(user):
 @never_cache
 @require_GET
 def design_comparison_manifest(request, image_id):
+    from management.services.design_status import final_outcome, latest_designer_upload, vehicle_identity
     selected = get_object_or_404(_comparison_visible_files(request.user).select_related(
         'vehicle__sub_model__model__brand', 'folder__vehicle__sub_model__model__brand'), pk=image_id)
     vehicle = selected.vehicle or (selected.folder.vehicle if selected.folder else None)
@@ -650,23 +651,26 @@ def design_comparison_manifest(request, image_id):
                         'classification': getattr(approval, role + '_change_type'), 'comment': getattr(approval, role + '_comment'),
                         'voice_notes': [serialize_voice_note(note, approval) for note in approval.voice_notes.all() if note.stage == role.upper()]})
                 history.append({'cycle': approval.cycle, 'stages': stages})
+        outcome = final_outcome(image)
         return {'id': image.pk, 'title': image.title or os.path.basename(image.image.name), 'type': kind, 'extension': extension,
                 'url': url, 'download': url + '?download=1' if activity_scoped(request.user, 'reference' if image.is_reference else 'design', 'download', image.uploaded_by_id) else None,
                 'thumbnail': url + '?thumbnail=1' if kind == 'image' and image.thumbnail else None,
                 'size': image.file_size or None, 'uploader': image.uploaded_by.username if image.uploaded_by else '',
-                'date': timezone.localtime(image.uploaded_at).strftime('%b %d, %Y %H:%M'),
+                'date': timezone.localtime(image.uploaded_at).strftime('%b %d, %Y %H:%M') if image.uploaded_at else '',
+                'uploaded_at': image.uploaded_at.isoformat() if image.uploaded_at else None,
                 'cycle': approvals[0].cycle if approvals else None, 'remarks_allowed': can_read_remarks, 'history': history,
-                'approval_status': image.approval_status, 'approval_label': image.get_approval_status_display(),
+                'approval_status': outcome, 'approval_label': dict(PatternDesignImage.APPROVAL_CHOICES)[outcome],
                 'workspace_url': reverse('design_approval_detail', args=[image.pk]) + '?workspace=comparison' if activity_granted(request.user, 'design_approval.view') and _can_user_access_designer_approvals(request.user) and not (profile and profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER and image.uploaded_by_id != request.user.pk) else None}
     references, uploads = [], []
+    files = list(files)
     for image in files:
         (references if image.is_reference else uploads).append(serialize(image))
-    name = ''
-    if vehicle:
-        sub = vehicle.sub_model
-        years = '–'.join(str(value) for value in (vehicle.year_start, vehicle.year_end) if value is not None)
-        name = ' '.join(value for value in (sub.model.brand.name, sub.model.name, sub.name if sub.name != '-' else '', '(' + years + ')' if years else '') if value)
-    return JsonResponse({'selected_id': selected.pk, 'vehicle': name, 'pattern': vehicle.serial_number if vehicle else '',
+    latest_upload = latest_designer_upload(files)
+    identity = vehicle_identity(vehicle)
+    return JsonResponse({'selected_id': selected.pk, 'vehicle': identity['label'], 'pattern': identity['pattern'],
+                         'identity': identity['full'], 'vehicle_id': vehicle.pk if vehicle else None,
+                         'folder_id': selected.folder_id if not vehicle else None,
+                         'latest_upload_id': latest_upload.pk if latest_upload else None,
                          'references': references, 'uploads': uploads, 'approval_heading': _comparison_approval_heading(request.user)})
 
 
@@ -913,6 +917,11 @@ def _get_pagination_bubbles(current_page, total_pages, on_each_side=2, on_ends=1
 @ensure_csrf_cookie
 @gzip_page
 def car_details(request):
+    from management.services.design_status import can_view_status, status_context, vehicle_identity
+    if request.method == 'GET' and request.GET.get('status_fragment') == '1':
+        response = render(request, 'management/includes/design_status_table.html', status_context(request))
+        response['Cache-Control'] = 'private, no-store'
+        return response
     search_query = request.GET.get('search', '').strip()
     search_column = (request.GET.get('search_by') or request.GET.get('column', 'all')).strip()
     show_duplicate_modal = False
@@ -1087,6 +1096,7 @@ def car_details(request):
     for yr in vehicle_page.object_list:
         display_serial = yr.serial_number or f"S{yr.id:04d}"
         car_data.append({
+            'design_heading': vehicle_identity(yr)['heading'],
             "serial_number": display_serial,
             "stored_serial_number": yr.serial_number or '',
             "layout_code": yr.layout_code,
@@ -1132,7 +1142,7 @@ def car_details(request):
     )
 
     active_subwindow = (request.GET.get('subwindow') or request.GET.get('view') or 'patterns').strip().lower()
-    if active_subwindow not in ('patterns', 'colors'):
+    if active_subwindow not in ('patterns', 'colors', '3d-status'):
         active_subwindow = 'patterns'
 
     color_search = (request.GET.get('color_search') or '').strip()
@@ -1243,7 +1253,9 @@ def car_details(request):
     is_designer_user = bool(user_profile and user_profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
     user_approval_role = getattr(user_profile, 'approval_role', '')
 
-    return render(request, 'management/car_details.html', {
+    response = render(request, 'management/car_details.html', {
+        **(status_context(request) if active_subwindow == '3d-status' else {}),
+        'can_view_3d_status': can_view_status(request.user),
         'form': form,
         'car_data': car_data,
         'countries': countries,
@@ -1277,6 +1289,9 @@ def car_details(request):
         'materials_catalog': materials_catalog,
         'materials_catalog_json': json.dumps(materials_catalog),
     })
+    if active_subwindow == '3d-status':
+        response['Cache-Control'] = 'private, no-store'
+    return response
 
 
 @login_required
@@ -2433,6 +2448,7 @@ def _design_gallery_sync_response(request, vehicle_id):
 @login_required
 @never_cache
 def get_design_folders_api(request):
+    from management.services.design_status import vehicle_identity
     vehicle_id = request.GET.get('vehicle_id')
     if request.GET.get('gallery_sync') == '1':
         if not vehicle_id or not vehicle_id.isdecimal() or len(vehicle_id) > 19 or not 0 < int(vehicle_id) <= 2 ** 63 - 1:
@@ -2450,7 +2466,7 @@ def get_design_folders_api(request):
             model_name = yr.sub_model.model.name if yr.sub_model and yr.sub_model.model else ''
             sub_name = yr.sub_model.name if yr.sub_model and yr.sub_model.name != '-' else ''
             years = f"{yr.year_start}-{yr.year_end}" if yr.year_start and yr.year_end else ''
-            formatted_name = f"{brand_name} {model_name} {years} {sub_name}".strip()
+            formatted_name = vehicle_identity(yr)['heading']
             vehicle_info = {
                 'id': yr.id,
                 'name': formatted_name,
@@ -2626,12 +2642,9 @@ def get_design_folder_detail_api(request, folder_id):
 
     vehicle_info = None
     if folder.vehicle:
+        from management.services.design_status import vehicle_identity
         yr = folder.vehicle
-        brand_name = yr.sub_model.model.brand.name if yr.sub_model and yr.sub_model.model and yr.sub_model.model.brand else ''
-        model_name = yr.sub_model.model.name if yr.sub_model and yr.sub_model.model else ''
-        sub_name = yr.sub_model.name if yr.sub_model and yr.sub_model.name != '-' else ''
-        years = f"{yr.year_start}-{yr.year_end}" if yr.year_start and yr.year_end else ''
-        formatted_name = f"{brand_name} {model_name} {years} {sub_name}".strip()
+        formatted_name = vehicle_identity(yr)['heading']
         vehicle_info = {
             'id': yr.id,
             'name': formatted_name,
@@ -2748,6 +2761,7 @@ def _serialize_uploaded_design(image):
 
 def _upload_design_files(request, *, folder=None, vehicle=None):
     """Validate and store one upload batch, with retry identity and rollback."""
+    from management.services.design_status import latest_designer_upload
     is_ref_upload = (
         request.POST.get('is_reference') in ('1', 'true', 'True')
         or request.POST.get('upload_category') == 'reference'
@@ -2799,8 +2813,10 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
         ):
             return JsonResponse({'status': 'error', 'message': _('Upload ID already used for different files.')}, status=409)
         ordered = sorted(existing, key=lambda image: keys.index(image.client_upload_key))
+        latest = latest_designer_upload(ordered)
         return JsonResponse({
             'status': 'success', 'uploaded_count': len(ordered),
+            'latest_uploaded_id': latest.pk if latest else None,
             'images': [_serialize_uploaded_design(image) for image in ordered],
             'total_count': count_qs.count(),
         })
@@ -2872,8 +2888,10 @@ def _upload_design_files(request, *, folder=None, vehicle=None):
                 image.save()
                 if not is_ref_upload:
                     submit_design_for_approval(image, actor)
+            latest = latest_designer_upload(created)
             response = JsonResponse({
                 'status': 'success', 'uploaded_count': len(created),
+                'latest_uploaded_id': latest.pk if latest else None,
                 'images': [_serialize_uploaded_design(image) for image in created],
                 'total_count': count_qs.count(),
             })

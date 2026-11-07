@@ -1,0 +1,39 @@
+{% load i18n %}
+<div class="design-status-toolbar">
+  <h2>{% translate '3D Status' %} <small>({{ status_page.paginator.count }})</small></h2>
+  <form method="get" class="design-status-search" role="search">
+    <input type="hidden" name="subwindow" value="3d-status">
+    {% if status_sort %}<input type="hidden" name="status_sort" value="{{ status_sort }}"><input type="hidden" name="status_direction" value="{{ status_direction }}">{% endif %}
+    <input type="search" class="form-input" name="status_search" value="{{ status_search }}" aria-label="{% translate 'Search 3D Status' %}" placeholder="{% translate 'Search patterns, vehicles or uploaders' %}">
+    <label>{% translate 'Rows' %}<select name="status_page_size" aria-label="{% translate '3D Status page size' %}">{% for size in status_page_sizes %}<option value="{{ size }}" {% if size == status_page_size %}selected{% endif %}>{{ size }}</option>{% endfor %}</select></label>
+    <button class="btn btn-primary" type="submit">{% translate 'Search' %}</button>
+    <a href="?subwindow=3d-status" class="btn btn-secondary">{% translate 'Reset' %}</a>
+  </form>
+</div>
+<p class="design-status-feedback" role="status" data-status-feedback></p>
+<div class="design-status-scroll" tabindex="0" role="region" aria-label="{% translate '3D design status table' %}">
+  <table class="design-status-table">
+    <thead><tr>{% for column in status_headers %}<th scope="col" aria-sort="{% if column.selected %}{% if column.direction == 'asc' %}ascending{% else %}descending{% endif %}{% else %}none{% endif %}"><a href="{{ column.url }}" data-status-sort="{{ column.key }}">{{ column.label }} {% if column.selected %}{% if column.direction == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in status_rows %}
+      <tr data-status-pattern="{{ row.vehicle.pk }}" data-status-upload="{{ row.image.pk }}" data-work-priority="{{ row.priority }}">
+        <td><a href="{% url 'car_details' %}?vehicle_id={{ row.vehicle.pk }}#3d-design" title="{{ row.identity.full }}">{{ row.identity.pattern }}</a><span class="design-status-badge {{ row.outcome }}">{% translate 'Overall' %}: {{ row.outcome_label }}</span><button type="button" class="btn btn-secondary" data-design-comparison="{{ row.image.pk }}" aria-label="{% translate 'Compare latest designer upload for' %} {{ row.identity.pattern }}">{% translate 'Compare' %}</button></td>
+        <td title="{{ row.identity.full }}">{% firstof row.vehicle.sub_model.model.brand.name '—' %}</td>
+        <td>{{ row.vehicle.sub_model.model.name|default:'—' }}</td>
+        <td>{% if row.vehicle.year_start or row.vehicle.year_end %}{{ row.vehicle.year_start|default_if_none:'' }}{% if row.vehicle.year_start and row.vehicle.year_end %}–{% endif %}{{ row.vehicle.year_end|default_if_none:'' }}{% else %}—{% endif %}</td>
+        <td>{{ row.vehicle.br|default:'—' }}</td><td>{{ row.vehicle.sub_model.name|default:'—' }}</td>
+        <td>{{ row.vehicle.number_of_seats|default_if_none:'—' }}</td><td>{{ row.vehicle.number_of_doors|default_if_none:'—' }}</td>
+        <td><time datetime="{{ row.image.uploaded_at|date:'c' }}">{{ row.image.uploaded_at|date:'M d, Y H:i'|default:'—' }}</time><small>{{ row.image.title|default:'3D Design' }}</small>{% if row.cycle %}<small>{% translate 'Cycle' %} {{ row.cycle }}</small>{% endif %}</td>
+        <td>{{ row.uploader|default:'—' }}</td>
+        <td>{% for stage in row.stages %}{% if stage.role == 'CAD' %}{% include 'management/includes/design_status_stage.html' %}{% endif %}{% endfor %}</td>
+        <td>{% for stage in row.stages %}{% if stage.role != 'CAD' %}{% include 'management/includes/design_status_stage.html' %}{% endif %}{% endfor %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="12" class="design-status-empty">{% translate 'No authorized patterns with uploaded 3D designer files match this view.' %}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<nav class="design-status-pagination" aria-label="{% translate '3D Status pages' %}">
+  {% if status_page.has_previous %}<a href="?{{ status_pagination }}&amp;status_page={{ status_page.previous_page_number }}">{% translate 'Previous' %}</a>{% endif %}
+  <span>{% translate 'Page' %} {{ status_page.number }} / {{ status_page.paginator.num_pages }}</span>
+  {% if status_page.has_next %}<a href="?{{ status_pagination }}&amp;status_page={{ status_page.next_page_number }}">{% translate 'Next' %}</a>{% endif %}
+</nav>

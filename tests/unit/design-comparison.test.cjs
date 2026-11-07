@@ -1,11 +1,17 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {ComparisonPanelState,clampPan,comparisonSelection}=require('../../management/static/management/js/design_comparison.js');
-test('reference entry selects the exact image/PDF and latest chronological upload',()=>{
- const data={references:[{id:1,type:'image'},{id:2,type:'pdf'}],uploads:[{id:9},{id:3}]};
+test('every entry selects the server-resolved latest upload and preserves the clicked reference',()=>{
+ const data={references:[{id:1,type:'image'},{id:2,type:'pdf'}],uploads:[{id:9},{id:3}],latest_upload_id:3};
  assert.deepEqual(comparisonSelection(data,'2'),{reference:1,upload:1,side:'reference'});
  assert.deepEqual(comparisonSelection(data,1),{reference:0,upload:1,side:'reference'});
+ assert.deepEqual(comparisonSelection(data,9),{reference:0,upload:1,side:'upload'});
+ data.uploads.reverse();
  assert.deepEqual(comparisonSelection(data,9),{reference:0,upload:0,side:'upload'});
+});
+test('nonempty designer sets require a valid authorized latest upload',()=>{
+ assert.throws(()=>comparisonSelection({references:[{id:2}],uploads:[{id:9}],latest_upload_id:99},2),/Invalid comparison/);
+ assert.throws(()=>comparisonSelection({references:[{id:2}],uploads:[{id:9}]},2),/Invalid comparison/);
 });
 test('reference entry permits an empty designer set but rejects missing or invalid anchors',()=>{
  assert.deepEqual(comparisonSelection({references:[{id:2}],uploads:[]},2),{reference:0,upload:-1,side:'reference'});

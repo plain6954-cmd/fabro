@@ -17,10 +17,11 @@
     function comparisonSelection(data, id) {
         if (!Array.isArray(data.references) || !Array.isArray(data.uploads)) throw new Error('Invalid comparison');
         const reference = data.references.findIndex(file => file.id === Number(id));
-        const upload = data.uploads.findIndex(file => file.id === Number(id));
-        if (reference < 0 && upload < 0) throw new Error('Invalid comparison');
-        // The manifest orders files by upload time, then ID; the final upload is the latest revision.
-        return { reference: reference < 0 ? 0 : reference, upload: upload < 0 ? data.uploads.length - 1 : upload,
+        const anchor = data.uploads.findIndex(file => file.id === Number(id));
+        const upload = data.uploads.findIndex(file => file.id === data.latest_upload_id);
+        if (reference < 0 && anchor < 0 || data.uploads.length && upload < 0) throw new Error('Invalid comparison');
+        // The server resolves the latest timestamp/PK; array order has no authority.
+        return { reference: reference < 0 ? 0 : reference, upload,
             side: reference < 0 ? 'upload' : 'reference' };
     }
     if (typeof module !== 'undefined' && module.exports) module.exports = { ComparisonPanelState, clampPan, comparisonSelection };
@@ -38,8 +39,25 @@
         const approvalEntries = new Map();
         let currentApproval = null;
         let manifest = null, request = null, openToken = 0, restore = null, opener = null, activeSide = 'upload';
+        let manifestRequest = 0, selectionRevision = 0, manifestReadAt=0, pendingUpload=null;
+        const sync = window.fabroCreateGallerySync({root:dialog, signal:scope.signal,
+            canCheck:()=>dialog.open && !!manifest && !currentApproval?.submitting,
+            check:signal=>Date.now()-manifestReadAt<1000 ? true : refreshManifest({signal})});
+        scope.listen(document, 'fabro:design-data-refreshed', event => {
+            if(dialog.open && manifest?.vehicle_id===Number(event.detail.vehicleId))refreshManifest().catch(()=>{});
+        });
+        scope.listen(document, 'fabro:designer-uploaded', event => {
+            if (!dialog.open) return;
+            if (!manifest) { pendingUpload={...event.detail}; return; }
+            if (!uploadInContext(event.detail,manifest)) return;
+            refreshManifest({uploadedId:Number(event.detail.imageId)}).catch(()=>{});
+        });
+        function uploadInContext(detail,data) {
+            return data.vehicle_id ? Number(detail.vehicleId)===data.vehicle_id : data.folder_id && Number(detail.folderId)===data.folder_id;
+        }
         scope.listen(document, 'fabro:access-changed', async event => {
             if (!dialog.open || !manifest) return;
+            manifestRequest++;
             const token = openToken, id = manifest.selected_id;
             try {
                 const response = await fetch(`/api/design-images/${id}/comparison/`, {credentials: 'same-origin', cache: 'no-store', signal: scope.signal});
@@ -55,8 +73,8 @@
                 for (const [side, files] of [['reference', fresh.references], ['upload', fresh.uploads]]) {
                     const p = panels[side], selected = p.model.current()?.id;
                     p.model.files = files; p.model.index = files.findIndex(file => file.id === selected);
-                    if (p.model.index < 0) { p.model.select(0); loadPanel(p); }
-                    carousel(p);
+                    if (p.model.index < 0) { p.model.select(side==='upload' ? files.findIndex(file=>file.id===fresh.latest_upload_id) : 0); loadPanel(p); }
+                    carousel(p); updateControls(p);
                 }
                 // Unsaved text and voice drafts remain mounted. Declarative gates
                 // revoke their actions; clean forms can be safely reauthorized.
@@ -164,6 +182,7 @@
         async function loadPanel(p) {
             clearPanel(p);
             const file = p.model.current(), token = p.token;
+            if(p.side==='upload')updateStamp();
             p.root.querySelector('[data-panel-title]').textContent = p.side === 'upload' ? `Designer Upload${file?.cycle ? ' · Rev ' + file.cycle : ''}` : file?.type === 'pdf' ? 'Reference PDF' : file?.type === 'image' ? 'Reference Image' : 'Reference Viewer';
             p.root.querySelector('[data-panel-file]').textContent = file?.title || '';
             p.stage.dataset.type = file?.type || 'empty';
@@ -192,6 +211,8 @@
         }
         function metadata() {
             if (!manifest) return;
+            dialog.querySelector('[data-comparison-identity]').textContent = manifest.identity || '';
+            updateStamp();
             const reference = panels.reference.model.current(), upload = panels.upload.model.current();
             information.replaceChildren();
             const fields = [['Vehicle', manifest.vehicle || 'Unassigned'], ['Pattern', manifest.pattern], ['Revision', upload?.cycle],
@@ -201,6 +222,57 @@
             for (const [label, value] of fields) if (value !== undefined && value !== null && value !== '') {
                 const field = node('span', '', label + ': '); field.append(node('strong', '', String(value))); information.append(field);
             }
+        }
+        function updateStamp() {
+            const file = panels.upload.model.current(), stamp = dialog.querySelector('[data-comparison-stamp]');
+            const final = ['approved','rejected'].includes(file?.approval_status) ? file.approval_status : '';
+            stamp.hidden = !final; stamp.dataset.outcome = final;
+            stamp.textContent = final.toUpperCase();
+            stamp.setAttribute('aria-label',final ? `Final outcome for ${file.title}: ${final}` : 'Pending review');
+        }
+        function signature(file) { return JSON.stringify([file?.cycle,file?.approval_status,file?.history]); }
+        async function refreshManifest({uploadedId=null, signal=scope.signal}={}) {
+            if (!manifest || !dialog.open) return;
+            const token = openToken, sequence = ++manifestRequest, revision = selectionRevision, accessVersion=window.fabroActivityAccess?.version;
+            const response = await fetch(`/api/design-images/${manifest.selected_id}/comparison/`, {credentials:'same-origin',cache:'no-store',signal});
+            if (token !== openToken || sequence !== manifestRequest || !dialog.open || accessVersion!==window.fabroActivityAccess?.version) return;
+            if (!response.ok || response.redirected) {
+                for (const p of Object.values(panels)) { clearPanel(p); p.model = new ComparisonPanelState(); carousel(p); loadPanel(p); }
+                for (const entry of approvalEntries.values()) entry.host.hidden=true;
+                manifest=null; updateStamp(); dialog.querySelector('[data-comparison-identity]').textContent='';
+                information.replaceChildren(); notice.textContent='Comparison access changed. Select an authorized file to continue.'; notice.hidden=false; return;
+            }
+            const fresh = await response.json();
+            if (token !== openToken || sequence !== manifestRequest || !dialog.open || accessVersion!==window.fabroActivityAccess?.version) return;
+            comparisonSelection(fresh,fresh.selected_id);
+            manifest=fresh;
+            manifestReadAt=Date.now();
+            for (const [side,files] of [['reference',fresh.references],['upload',fresh.uploads]]) {
+                const p=panels[side], oldId=p.model.current()?.id;
+                const focused=p.carousel.contains(document.activeElement);
+                let id=oldId;
+                if (side==='upload' && uploadedId && revision===selectionRevision && files.some(file=>file.id===uploadedId)) id=fresh.latest_upload_id;
+                p.model.files=files;
+                const index=files.findIndex(file=>file.id===id);
+                if (index<0 || id!==oldId) {
+                    const fallback=side==='upload' ? files.findIndex(file=>file.id===fresh.latest_upload_id) : 0;
+                    p.model.select(index<0 ? fallback : index); loadPanel(p);
+                } else {
+                    p.model.index=index;
+                    p.root.querySelector('[data-panel-file]').textContent=p.model.current()?.title || '';
+                    if(side==='upload')p.root.querySelector('[data-panel-title]').textContent=`Designer Upload${p.model.current()?.cycle ? ' · Rev '+p.model.current().cycle : ''}`;
+                }
+                carousel(p); updateControls(p);
+                if (focused) p.carousel.querySelector(`[data-file-index="${p.model.index}"]`)?.focus({preventScroll:true});
+            }
+            for (const [id,entry] of approvalEntries) {
+                const file=fresh.uploads.find(file=>file.id===id);
+                if (!dirty(entry) && !entry.submitting && entry.signature!==signature(file)) {
+                    entry.scope.dispose(); entry.host.remove(); approvalEntries.delete(id);
+                    if(currentApproval===entry)currentApproval=null;
+                }
+            }
+            metadata(); updateApproval(); active(activeSide);
         }
         function workspaceScope() {
             const controller = new AbortController(), cleanups = [];
@@ -252,6 +324,7 @@
                 const response = await fetch(entry.url, {method: 'POST', body, credentials: 'same-origin', cache: 'no-store', signal: entry.scope.signal});
                 if (!response.ok || new URL(response.url).pathname !== `/design-approvals/${entry.id}/`) throw new Error('Review unavailable. Check your access and try again.');
                 const html = await response.text(), fresh = new DOMParser().parseFromString(html, 'text/html');
+                if(entry.scope.signal.aborted)return;
                 const error = fresh.querySelector('[data-review-feedback*="error"]');
                 if (error) throw new Error(error.textContent);
                 const freshRoot = fresh.querySelector('.comparison-approval-document');
@@ -279,18 +352,9 @@
                 entry.root.querySelector('#design-review-voice-notes').textContent = fresh.querySelector('#design-review-voice-notes').textContent;
                 feedback(entry, fresh.querySelector('[data-review-feedback*="success"]')?.textContent || 'Your review decision has been recorded.', 'success');
                 approvalPanel.scrollTop = 0;
-                // Refresh metadata through the same authorized manifest; retain both panels' view state.
-                try {
-                    const updated = await fetch(`/api/design-images/${manifest.selected_id}/comparison/`, {credentials: 'same-origin', cache: 'no-store', signal: entry.scope.signal});
-                    if (updated.ok && !updated.redirected) {
-                        const data = await updated.json(), selectedId = panels.upload.model.current()?.id;
-                        if (Array.isArray(data.uploads) && data.uploads.some(file => file.id === selectedId)) {
-                            manifest.uploads = data.uploads; panels.upload.model.files = data.uploads;
-                            panels.upload.model.index = data.uploads.findIndex(file => file.id === selectedId);
-                            carousel(panels.upload); updateControls(panels.upload); metadata();
-                        }
-                    }
-                } catch (_refreshFailure) { /* The saved review remains authoritative if metadata refresh fails. */ }
+                document.dispatchEvent(new CustomEvent('fabro:design-review-saved',{detail:{imageId:entry.id,vehicleId:manifest?.vehicle_id}}));
+                try { await refreshManifest({signal:entry.scope.signal}); }
+                catch (_refreshFailure) { /* The saved review remains authoritative if metadata refresh fails. */ }
             } catch (failure) {
                 if (!entry.scope.signal.aborted) feedback(entry, failure.message || 'Review could not be saved. Please retry.');
             } finally {
@@ -314,7 +378,7 @@
             let entry = approvalEntries.get(file.id);
             if (entry) { entry.host.hidden = false; currentApproval = entry; approvalPanel.scrollTop = entry.scroll || 0; return; }
             const host = node('div'); host.dataset.approvalFile = file.id; reviewHost.append(host);
-            entry = {id: file.id, url: workspaceUrl(file), host, root: host.attachShadow({mode: 'open'}), scope: workspaceScope(), scroll: 0, submitting: false};
+            entry = {id: file.id, url: workspaceUrl(file), host, root: host.attachShadow({mode: 'open'}), scope: workspaceScope(), scroll: 0, submitting: false, signature:signature(file)};
             approvalEntries.set(file.id, entry); currentApproval = entry; approvalPanel.scrollTop = 0;
             entry.root.append(node('p', 'comparison-approval-empty', 'Loading approval workspace…'));
             try {
@@ -334,8 +398,9 @@
             for (const entry of approvalEntries.values()) entry.scope.dispose();
             approvalEntries.clear(); currentApproval = null; reviewHost.replaceChildren();
         }
-        function selectFile(p, index) {
+        function selectFile(p, index, manual=true) {
             if (p.side === 'upload' && currentApproval?.submitting) return;
+            if (p.side === 'upload' && manual) selectionRevision++;
             p.model.select(index); loadPanel(p);
             if (innerWidth <= 900) setMobile(p.side); else active(p.side);
             metadata();
@@ -377,7 +442,7 @@
             restore = { x: scrollX, y: scrollY, style: { position: document.body.style.position, top: document.body.style.top, left: document.body.style.left, width: document.body.style.width, overflow: document.body.style.overflow } };
             document.body.append(dialog); Object.assign(document.body.style, { position: 'fixed', top: `-${scrollY}px`, left: '0', width: '100%', overflow: 'hidden' });
             document.querySelectorAll('audio[data-review-voice-audio]').forEach(audio => audio.pause());
-            dialog.showModal(); dialog.dataset.panelFocus = ''; manifest = null; information.replaceChildren();
+            dialog.showModal(); dialog.dataset.panelFocus = ''; manifest = null; pendingUpload=null; information.replaceChildren(); dialog.querySelector('[data-comparison-identity]').textContent=''; selectionRevision++;
             notice.textContent = 'Loading comparison…'; notice.hidden = false;
             setMobile('upload'); viewportHeight();
             for (const p of Object.values(panels)) { clearPanel(p); p.model = new ComparisonPanelState(); carousel(p); loadPanel(p); }
@@ -389,11 +454,14 @@
                 const data = await response.json();
                 if (token !== openToken || !dialog.open) return;
                 const selection = comparisonSelection(data, id);
-                manifest = data; notice.hidden = true;
+                manifest = data; manifestReadAt=Date.now(); notice.hidden = true;
                 panels.reference.model = new ComparisonPanelState(data.references); panels.upload.model = new ComparisonPanelState(data.uploads);
                 carousel(panels.reference); carousel(panels.upload);
-                selectFile(panels.reference, selection.reference); selectFile(panels.upload, selection.upload);
+                selectFile(panels.reference, selection.reference, false); selectFile(panels.upload, selection.upload, false);
                 setMobile(selection.side);
+                sync.wake();
+                const upload=pendingUpload;pendingUpload=null;
+                if(upload && uploadInContext(upload,data))await refreshManifest({uploadedId:Number(upload.imageId)});
             } catch (failure) {
                 if (token === openToken && dialog.open && failure.name !== 'AbortError') { notice.textContent = 'Comparison unavailable. The file may be missing or your access may have changed.'; notice.hidden = false; }
             }
@@ -409,7 +477,8 @@
             if (restore) { Object.assign(document.body.style, restore.style); window.scrollTo({ left: restore.x, top: restore.y, behavior: 'instant' }); restore = null; }
             if (home.isConnected) home.after(dialog); else dialog.remove();
             if (opener?.isConnected) opener.focus({preventScroll: true}); manifest = null;
-            dialog.style.removeProperty('--comparison-height'); return true;
+            dialog.style.removeProperty('--comparison-height'); sync.wake();
+            document.dispatchEvent(new CustomEvent('fabro:comparison-closed')); return true;
         }
         function escape() { if (document.fullscreenElement === dialog) document.exitFullscreen().catch(() => {}); else if (dialog.dataset.panelFocus) split(); else close(); }
         scope.listen(dialog, 'cancel', event => { event.preventDefault(); escape(); });

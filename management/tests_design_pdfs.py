@@ -124,10 +124,9 @@ class DesignPdfTests(TestCase):
         self.assertEqual(response['Cache-Control'], 'private, no-store')
         self.assertNotIn('Location', response)
         self.assertEqual(b''.join(response.streaming_content), make_pdf())
-        response.close()
         download = self.client.get(url + '?download=1')
         self.assertTrue(download['Content-Disposition'].startswith('attachment;'))
-        download.close()
+        self.assertEqual(b''.join(download.streaming_content), make_pdf())
         self.client.logout()
         self.assertEqual(self.client.get(url).status_code, 302)
         for user in (self.other, self.factory):
@@ -136,12 +135,12 @@ class DesignPdfTests(TestCase):
         self.client.force_login(User.objects.get(username='pdf_cad'))
         allowed = self.client.get(url)
         self.assertEqual(allowed.status_code, 200)
-        allowed.close()
+        self.assertEqual(b''.join(allowed.streaming_content), make_pdf())
         for role in ('om', 'pm'):
             self.client.force_login(User.objects.get(username='pdf_' + role))
             allowed = self.client.get(url)
             self.assertEqual(allowed.status_code, 200)
-            allowed.close()
+            self.assertEqual(b''.join(allowed.streaming_content), make_pdf())
             self.assertEqual(self.client.post(reverse('approve_design_image_api', args=[image.pk]), {'change_type': 'minor'}).status_code, 403)
 
     @override_settings(USE_S3_STORAGE=True)
@@ -153,7 +152,6 @@ class DesignPdfTests(TestCase):
             response = self.client.get(reverse('pattern_design_image_download', args=[image.pk]))
             self.assertEqual(response.status_code, 200)
             self.assertEqual(b''.join(response.streaming_content), make_pdf())
-            response.close()
         opened.assert_called_once_with(image.image.name, 'rb')
 
     def test_retry_reuses_record_approval_and_notifications(self):

@@ -1,0 +1,14 @@
+{% load i18n activity_access %}
+<section id="matchingSwatchGallery" class="matching-swatch-gallery" aria-labelledby="matchingSwatchHeading" {% activity_attrs 'picked_colors.view' %}>
+  <header class="matching-swatch-header">
+    <div><h4 id="matchingSwatchHeading" class="swatch-label">{% translate 'Matching Swatch Photos (Optional)' %}</h4><p data-swatch-status role="status" aria-live="polite">{% translate 'JPG, PNG, WebP, HEIC, HEIF · 10 MB each' %}</p></div>
+    <button type="button" class="design-upload-icon" data-swatch-add aria-label="{% translate 'Add matching swatch photos' %}" title="{% translate 'Add matching swatch photos' %}" {% activity_any_attrs 'picked_colors.add' 'picked_colors.edit_own' 'picked_colors.edit_all' %}><i class="fas fa-plus" aria-hidden="true"></i></button>
+  </header>
+  <input type="file" id="matchingSwatchPhotoInput" multiple accept=".jpg,.jpeg,.png,.webp,.heic,.heif" hidden>
+  <div class="matching-swatch-grid" data-swatch-grid aria-label="{% translate 'Matching swatch photos' %}"></div>
+</section>
+<dialog id="matchingSwatchViewer" class="measurement-file-viewer matching-swatch-viewer" aria-label="{% translate 'Matching swatch photo preview' %}">
+  <header><h2>{% translate 'Matching Swatch Photos' %}</h2><button type="button" data-swatch-close aria-label="{% translate 'Close photo preview' %}">{% translate 'Close' %} ×</button></header>
+  <div class="measurement-preview-content" data-swatch-media></div>
+  <footer><button type="button" data-swatch-prev aria-label="{% translate 'Previous matching photo' %}">‹</button><span data-swatch-caption></span><button type="button" data-swatch-next aria-label="{% translate 'Next matching photo' %}">›</button></footer>
+</dialog>

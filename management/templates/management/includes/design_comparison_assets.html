@@ -1,5 +1,6 @@
 {% load static %}
-<link rel="stylesheet" href="{% static 'management/css/design_comparison.css' %}?v=20261104-workspace" data-fabro-page-asset>
+<link rel="stylesheet" href="{% static 'management/css/design_comparison.css' %}?v=20261107-version-status" data-fabro-page-asset>
+{% if not comparison_gallery_sync_loaded %}<script src="{% static 'management/js/gallery_sync.js' %}?v=20261031" data-fabro-page-asset></script>{% endif %}
 {% if comparison_shared_assets %}
 <link rel="stylesheet" href="{% static 'management/css/design_review_voice.css' %}?v=20261104-workspace" data-fabro-page-asset>
 {% include 'management/includes/design_pdf_viewer.html' %}
@@ -8,4 +9,4 @@
 {% include 'management/includes/design_comparison_viewer.html' %}
 {% if comparison_shared_assets %}<script src="{% static 'management/js/design_review_voice.js' %}?v=20261104-live" data-fabro-page-asset></script>{% endif %}
 <script src="{% static 'management/js/design_review.js' %}?v=20261104-live" data-fabro-page-asset></script>
-<script src="{% static 'management/js/design_comparison.js' %}?v=20261104-live" data-fabro-page-asset></script>
+<script src="{% static 'management/js/design_comparison.js' %}?v=20261107-version-status" data-fabro-page-asset></script>

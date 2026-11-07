@@ -8,6 +8,7 @@
         accessGeneration++;
         if (['measurement.view_own', 'measurement.view_all'].some(key => event.detail.previous[key] !== event.detail.permissions[key])) closeInteriorMediaPreview();
         if (editingPicked) editingPicked.can_edit = false;
+        swatchGallery?.refreshAccess(editingPicked);
         updatePickerSaveState();
         loadPickedColors(currentVehicleId);
         // Never retain stale view/action grants while the server reauthorizes.
@@ -474,11 +475,76 @@
     // --------------------------------------------------------------------------
     // Color Picker UI Controller
     // --------------------------------------------------------------------------
-    let editingPicked = null, pickedRows = [], pickedRequest = 0, colorSubmissionKey = null, colorDraftDirty = false;
+    let editingPicked = null, pickedRows = [], pickedRequest = 0, colorSubmissionKey = null, colorDraftDirty = false, swatchGallery = null;
     let currentMode = 'existing'; // 'existing' or 'new'
     let currentTone = 'single';   // 'single' or 'dual'
     let dualInnerSource = 'new';  // 'new' or 'existing'
     let dualOuterSource = 'new';  // 'new' or 'existing'
+    let currentCategory = 'interior_match';
+
+    function setColorCategory(category, dirty = false) {
+        currentCategory = category === 'fabro_color' ? 'fabro_color' : 'interior_match';
+        const toggle = document.getElementById('pickedCategoryToggle');
+        if (!toggle) return;
+        toggle.dataset.category = currentCategory;
+        toggle.querySelectorAll('[data-color-category]').forEach(button => {
+            const selected = button.dataset.colorCategory === currentCategory;
+            button.setAttribute('aria-checked', String(selected)); button.tabIndex = selected ? 0 : -1;
+        });
+        if (dirty) { colorSubmissionKey = null; colorDraftDirty = true; }
+    }
+    accessScope.listen(document, 'click', event => {
+        const button = event.target.closest('#pickedCategoryToggle [data-color-category]');
+        if (button && !isSubmittingColor) setColorCategory(button.dataset.colorCategory, true);
+    });
+    accessScope.listen(document, 'keydown', event => {
+        const button = event.target.closest('#pickedCategoryToggle [data-color-category]');
+        if (!button || isSubmittingColor || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+        event.preventDefault();
+        const category = event.key === 'Home' ? 'interior_match' : event.key === 'End' ? 'fabro_color' : currentCategory === 'interior_match' ? 'fabro_color' : 'interior_match';
+        setColorCategory(category, true);
+        document.querySelector(`#pickedCategoryToggle [data-color-category="${category}"]`).focus();
+    });
+
+    function paintColorPreview(host, colors) {
+        if (!host) return;
+        const dual = colors.tone_type === 'dual';
+        const valid = color => /^#[a-fA-F0-9]{6}$/.test(color?.hex);
+        const outer = dual ? colors.outer : colors.inner;
+        host.replaceChildren(); host.classList.toggle('is-dual', dual);
+        host.classList.toggle('is-unavailable', !valid(outer));
+        host.style.backgroundColor = valid(outer) ? outer.hex : 'transparent';
+        const description = color => valid(color) ? (color.name || color.hex) : 'preview unavailable';
+        host.setAttribute('role', 'img');
+        host.setAttribute('aria-label', dual ? `Outer: ${description(outer)}; Inner: ${description(colors.inner)}` : `Single tone: ${description(colors.inner)}`);
+        host.title = host.getAttribute('aria-label');
+        if (!valid(outer)) host.append(element('span','color-preview-missing','?'));
+        if (dual) {
+            const inner = element('span','color-preview-inner');
+            inner.classList.toggle('is-unavailable', !valid(colors.inner));
+            inner.style.backgroundColor = valid(colors.inner) ? colors.inner.hex : 'transparent';
+            if (!valid(colors.inner)) inner.textContent = '?';
+            host.append(inner);
+        }
+    }
+    function updatePickerPreview() {
+        const existing = id => {
+            const select = document.getElementById(id), option = select?.selectedOptions[0];
+            return {hex: select?.value ? option?.dataset.hex : '', name:select?.value ? option?.textContent : ''};
+        };
+        const fresh = prefix => {
+            const value = document.getElementById(prefix+'HexInput')?.value.trim() || '';
+            // The existing backend also accepts six digits without a leading #.
+            return {hex:/^[a-fA-F0-9]{6}$/.test(value) ? '#'+value : value, name:document.getElementById(prefix+'NameInput')?.value};
+        };
+        const inner = currentMode === 'existing' ? existing(currentTone === 'single' ? 'selectExistingSingleColor' : 'selectExistingDualInnerColor')
+            : currentTone === 'single' ? fresh('newSingle') : dualInnerSource === 'new' ? fresh('dualInnerNew') : existing('selectDualInnerFromExisting');
+        const outer = currentMode === 'existing' ? existing('selectExistingDualOuterColor') : dualOuterSource === 'new' ? fresh('dualOuterNew') : existing('selectDualOuterFromExisting');
+        paintColorPreview(document.getElementById('pickedColorLivePreview'), {tone_type:currentTone, inner, outer});
+    }
+    for (const name of ['input','change']) accessScope.listen(document, name, event => {
+        if (event.target.closest('#panelColorPicker')) updatePickerPreview();
+    });
 
     function switchColorTopTab(mode) {
         currentMode = mode;
@@ -500,6 +566,7 @@
                 if (dualOuterNewPicker) dualOuterNewPicker.updateHandle();
             }, 60);
         }
+        updatePickerPreview();
     }
 
     function switchToneTab(tone) {
@@ -528,6 +595,7 @@
                 if (dualOuterNewPicker) dualOuterNewPicker.updateHandle();
             }, 60);
         }
+        updatePickerPreview();
     }
 
     function switchDualInnerSource(source) {
@@ -539,6 +607,7 @@
         const exBox = document.getElementById('dualInnerExistingColorBox');
         if (newBox) newBox.style.display = (source === 'new') ? 'block' : 'none';
         if (exBox) exBox.style.display = (source === 'existing') ? 'block' : 'none';
+        updatePickerPreview();
     }
 
     function switchDualOuterSource(source) {
@@ -550,6 +619,7 @@
         const exBox = document.getElementById('dualOuterExistingColorBox');
         if (newBox) newBox.style.display = (source === 'new') ? 'block' : 'none';
         if (exBox) exBox.style.display = (source === 'existing') ? 'block' : 'none';
+        updatePickerPreview();
     }
 
     function populateColorDropdowns() {
@@ -584,46 +654,28 @@
     }
 
     function handleSwatchPhotoSelected(input) {
-        const preview = document.getElementById('matchingSwatchPreview');
-        const img = document.getElementById('matchingSwatchImg');
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (img) img.src = e.target.result;
-                if (preview) preview.style.display = 'block';
-            };
-            reader.readAsDataURL(input.files[0]);
-        } else {
-            if (preview) preview.style.display = 'none';
-        }
+        swatchGallery?.enqueue(input.files);
     }
 
     function clearSwatchPhoto() {
-        const input = document.getElementById('matchingSwatchPhotoInput');
-        const preview = document.getElementById('matchingSwatchPreview');
-        if (input) input.value = '';
-        if (preview) preview.style.display = 'none';
+        swatchGallery?.discard();
     }
 
     // Save Color Selection
-    function saveColorSelection() {
+    async function saveColorSelection() {
         if (!currentVehicleId) {
             alert('No vehicle selected.');
             return;
         }
 
-        if (isSubmittingColor) return;
+        if (isSubmittingColor || swatchGallery?.busy) return;
 
         const formData = new FormData();
         formData.append('vehicle_id', currentVehicleId);
         formData.append('tone_type', currentTone);
+        formData.append('category', currentCategory);
         formData.append('client_submission_key', colorSubmissionKey || (colorSubmissionKey = crypto.randomUUID()));
         formData.append('remarks', document.getElementById('pickedColorRemarks')?.value || '');
-
-        const swatchInput = document.getElementById('matchingSwatchPhotoInput');
-        if (swatchInput && swatchInput.files && swatchInput.files[0]) {
-            formData.append('swatch_image', swatchInput.files[0]);
-        }
 
         if (currentMode === 'existing') {
             if (currentTone === 'single') {
@@ -700,32 +752,38 @@
         if (editingPicked && !editingPicked.can_edit) { pickerFeedback('Editing access changed. Your draft is preserved.'); return; }
         isSubmittingColor = true; updatePickerSaveState();
         const url = editingId ? `/api/picked-colors/${editingId}/edit/` : '/api/pattern-color-selection/save/';
-        fetch(url, {method:'POST', headers:{'X-CSRFToken':getCsrfToken()}, body:formData, signal:accessScope.signal})
-            .then(async response => {
-                if (!response.ok) { const error = await response.json().catch(() => ({})); throw Error(error.message || 'Saving is not permitted or unavailable.'); }
-                return response.json();
-            }).then(res => {
-                if (vehicleId !== currentVehicleId) return;
-                if (res.status !== 'success') throw Error(res.message || 'Unable to save this color selection.');
-                editingPicked = null; colorSubmissionKey = null; colorDraftDirty = false;
-                document.getElementById('pickedColorRemarks').value = ''; clearSwatchPhoto();
-                pickerFeedback('Color selection saved.');
-                loadPickedColors(vehicleId); loadPatternColorSelection(vehicleId);
-            }).catch(error => { if (!accessScope.signal.aborted && vehicleId === currentVehicleId) pickerFeedback(error.message); })
-            .finally(() => { isSubmittingColor = false; if (!accessScope.signal.aborted) updatePickerSaveState(); });
+        try {
+            formData.set('swatch_photos', JSON.stringify(await swatchGallery.plans()));
+            const response = await fetch(url, {method:'POST', headers:{'X-CSRFToken':getCsrfToken()}, body:formData, signal:accessScope.signal});
+            const res = await response.json().catch(() => ({}));
+            if (!response.ok || res.status !== 'success') throw Error(res.message || 'Saving is not permitted or unavailable.');
+            if (vehicleId !== currentVehicleId) return;
+            const savedItem = res.picked_selection || res.selection;
+            setColorCategory(savedItem.category);
+            colorDraftDirty = false;
+            swatchGallery.adopt(savedItem);
+            await swatchGallery.run();
+            await loadPickedColors(vehicleId);
+            loadPatternColorSelection(vehicleId);
+            editingPicked = savedItem;
+            pickerFeedback(swatchGallery.hasPending() ? 'Color selection saved. Retry or remove the failed photos.' : (editingId ? 'Color changes saved.' : 'Color selection saved.'));
+        } catch (error) {
+            if (!accessScope.signal.aborted && vehicleId === currentVehicleId) pickerFeedback(error.message);
+        } finally { isSubmittingColor = false; if (!accessScope.signal.aborted) updatePickerSaveState(); }
     }
 
     function pickerFeedback(message) { const host = document.getElementById('pickedEditNotice'); if (host) host.textContent = message; }
     function updatePickerSaveState() {
         const button = document.getElementById('btnSaveColorSelection'); if (!button) return;
         const allowed = key => window.fabroActivityAllowed?.(key) === true;
-        button.disabled = isSubmittingColor || (editingPicked
+        button.disabled = isSubmittingColor || swatchGallery?.busy || (editingPicked
             ? !editingPicked.can_edit || !(allowed('picked_colors.edit_own') || allowed('picked_colors.edit_all'))
             : !allowed('picked_colors.add'));
         button.textContent = isSubmittingColor ? 'Saving…' : editingPicked ? 'Save Changes' : 'Save Color Selection';
+        document.querySelectorAll('#pickedCategoryToggle button').forEach(button => { button.disabled = isSubmittingColor; });
         const cancel = document.getElementById('btnCancelPickedEdit');
-        if (cancel) { cancel.hidden = !editingPicked; cancel.disabled = isSubmittingColor; }
-        if (editingPicked && button.disabled && !isSubmittingColor) pickerFeedback('Editing access changed. Your draft is preserved.');
+        if (cancel) { cancel.hidden = !editingPicked; cancel.disabled = isSubmittingColor || swatchGallery?.busy; cancel.textContent = 'New selection'; }
+        if (editingPicked && !editingPicked.can_edit && !isSubmittingColor) pickerFeedback('Editing access changed. Your draft is preserved.');
     }
     async function loadPickedColors(vehicleId) {
         if (!vehicleId) return;
@@ -737,24 +795,34 @@
             const data = await response.json();
             if (token !== pickedRequest || generation !== accessGeneration || vehicleId !== currentVehicleId) return;
             pickedRows = data.selections || []; renderPickedColors();
-            if (editingPicked) editingPicked.can_edit = pickedRows.find(row => row.id === editingPicked.id)?.can_edit === true;
+            swatchGallery?.setReadAccess(!editingPicked || pickedRows.some(row=>row.id===editingPicked.id));
+            if (editingPicked) {
+                const refreshed = pickedRows.find(row => row.id === editingPicked.id);
+                editingPicked = refreshed || {...editingPicked, can_edit:false};
+            }
+            swatchGallery?.refreshAccess(editingPicked);
         } catch (error) {
             if (token !== pickedRequest || generation !== accessGeneration || vehicleId !== currentVehicleId) return;
-            pickedRows = []; host.replaceChildren(element('p','',error.message));
+            pickedRows = []; renderPickedColors();
+            for (const id of ['pickedColorsList','fabroColorsList']) document.getElementById(id)?.replaceChildren(element('p','',error.message));
             if (editingPicked) editingPicked.can_edit = false;
+            swatchGallery?.setReadAccess(false);
         }
         updatePickerSaveState();
     }
     function renderPickedColors() {
         const host = document.getElementById('pickedColorsList'); if (!host) return;
-        host.replaceChildren(); document.getElementById('pickedColorsCount').textContent = pickedRows.length;
-        if (!pickedRows.length) host.append(element('p','','No saved color selections yet.'));
+        const sections = {interior_match:host, fabro_color:document.getElementById('fabroColorsList')};
+        for (const [category, list] of Object.entries(sections)) {
+            if (!list) continue;
+            const count = pickedRows.filter(row => (row.category || 'interior_match') === category).length;
+            list.replaceChildren(); document.getElementById(category === 'interior_match' ? 'pickedColorsCount' : 'fabroColorsCount').textContent = count;
+            if (!count) list.append(element('p','',category === 'interior_match' ? 'No Interior Match colors saved yet.' : 'No Fabro Color options saved yet.'));
+        }
         for (const row of pickedRows) {
             const tile = element('article','picked-color-tile'); tile.dataset.pickedId = row.id;
             const swatch = element('div','picked-color-swatch'), colors = row.snapshot;
-            const safeHex = color => /^#[a-fA-F0-9]{6}$/.test(color?.hex) ? color.hex : 'transparent';
-            swatch.style.background = colors.tone_type === 'dual' ? `linear-gradient(135deg, ${safeHex(colors.outer)} 0 50%, ${safeHex(colors.inner)} 50% 100%)` : safeHex(colors.inner);
-            swatch.setAttribute('aria-label', colors.tone_type === 'dual' ? 'Outer and inner colors' : 'Single tone color');
+            paintColorPreview(swatch, colors);
             const details = element('div','picked-color-details');
             for (const side of colors.tone_type === 'dual' ? ['outer','inner'] : ['inner']) {
                 const color = colors[side];
@@ -763,11 +831,26 @@
             }
             details.append(element('small','',new Date(row.created_at).toLocaleString() + ' · ' + row.creator_name));
             if (row.remarks) details.append(element('p','',row.remarks));
-            if (row.swatch_url) { const photo = element('a','','Matching swatch'); photo.href = authorizedUrl(row.swatch_url); photo.target = '_blank'; photo.rel = 'noopener'; details.append(photo); }
+            if (row.swatch_photos?.length) {
+                const photos = element('div','picked-color-photo-strip');
+                for (const photo of row.swatch_photos) {
+                    const open=element('button');open.type='button';open.title=photo.filename;open.setAttribute('aria-label','View matching photos for this selection');
+                    const image=element('img');image.src=photo.url;image.alt=photo.filename;image.loading='lazy';image.onerror=()=>{image.hidden=true;open.textContent='Photo';};open.append(image);
+                    open.onclick=()=>{ if(editPickedColor(row.id, true) === false)return; const entry=swatchGallery.entries.find(item=>item.photo?.id===photo.id);if(entry)swatchGallery.openPreview(entry,open); };
+                    photos.append(open);
+                }
+                details.append(photos);
+            }
             const actions = element('div','picked-color-actions');
-            if (row.can_edit) { const edit = element('button','btn btn-secondary','Edit'); edit.type='button'; edit.dataset.pickedAction='edit'; edit.onclick=()=>editPickedColor(row.id); actions.append(edit); }
-            if (row.can_delete) { const remove = element('button','btn btn-danger','Delete'); remove.type='button'; remove.dataset.pickedAction='delete'; remove.onclick=()=>deletePickedColor(row.id); actions.append(remove); }
-            details.append(actions); tile.append(swatch,details); host.append(tile);
+            const action = (name, label, icon, handler) => {
+                const button = element('button',name === 'delete' ? 'btn btn-danger' : 'btn btn-secondary');
+                button.type='button'; button.dataset.pickedAction=name; button.title=label; button.setAttribute('aria-label',label);
+                const glyph=element('i',`fas ${icon}`);glyph.setAttribute('aria-hidden','true');button.append(glyph);
+                button.onclick=event=>{event.stopPropagation();handler();};actions.append(button);
+            };
+            if (row.can_edit) action('edit','Edit Color','fa-pen',()=>editPickedColor(row.id));
+            if (row.can_delete) action('delete','Delete Color','fa-trash',()=>deletePickedColor(row.id));
+            tile.append(swatch,details,actions); sections[row.category || 'interior_match']?.append(tile);
         }
     }
     function setPickerValue(id,value) { const input=document.getElementById(id); if(input){input.value=value || '';input.dispatchEvent(new Event('input',{bubbles:true}));} }
@@ -778,10 +861,11 @@
         option.textContent=`${color.name} (${color.code}) — saved`;option.dataset.hex=color.hex;
         select.value=String(color.master_id);select.dispatchEvent(new Event('change',{bubbles:true}));
     }
-    function editPickedColor(id) {
-        const row=pickedRows.find(item=>item.id===id); if(!row?.can_edit)return;
-        if(colorDraftDirty && !confirm('Replace the current unsaved color draft?'))return;
-        editingPicked=row; const colors=row.snapshot;
+    function editPickedColor(id, viewOnly=false) {
+        const row=pickedRows.find(item=>item.id===id); if(!row || !row.can_edit && !viewOnly)return false;
+        if(swatchGallery?.busy){pickerFeedback('Wait for or cancel the current photo upload first.');return false;}
+        if(colorDraftDirty && !confirm('Replace the current unsaved color draft?'))return false;
+        editingPicked=row; setColorCategory(row.category); const colors=row.snapshot;
         switchToneTab(colors.tone_type);
         switchColorTopTab(colors.inner.source==='existing' && (!colors.outer || colors.outer.source==='existing') ? 'existing' : 'new');
         for(const side of colors.tone_type==='dual'?['inner','outer']:['inner']) {
@@ -796,22 +880,24 @@
                 else {const prefix=side==='inner'?'dualInnerNew':'dualOuterNew';setPickerValue(prefix+'HexInput',color.hex);setPickerValue(prefix+'PantoneInput',color.pantone);setPickerValue(prefix+'NameInput',color.name);}
             }
         }
-        setPickerValue('pickedColorRemarks',row.remarks);clearSwatchPhoto(); colorSubmissionKey=null;colorDraftDirty=false;
+        setPickerValue('pickedColorRemarks',row.remarks);swatchGallery?.setContext(currentVehicleId,row); colorSubmissionKey=null;colorDraftDirty=false;
         pickerFeedback('Editing saved selection. Original creator and date will be preserved.');updatePickerSaveState();
         document.getElementById('panelColorPicker').scrollIntoView({block:'nearest',behavior:'smooth'});
+        return true;
     }
     function cancelPickedColorEdit() {
-        if(isSubmittingColor || colorDraftDirty && !confirm('Discard the unsaved color edit?'))return;
-        editingPicked=null;colorSubmissionKey=null;colorDraftDirty=false;document.getElementById('pickedColorRemarks').value='';clearSwatchPhoto();pickerFeedback('');updatePickerSaveState();
+        if(isSubmittingColor || swatchGallery?.busy || (colorDraftDirty || swatchGallery?.hasPending()) && !confirm('Discard the unsaved color edit and local photos?'))return;
+        editingPicked=null;setColorCategory('interior_match');colorSubmissionKey=null;colorDraftDirty=false;document.getElementById('pickedColorRemarks').value='';clearSwatchPhoto();pickerFeedback('');updatePickerSaveState();
     }
     async function deletePickedColor(id) {
+        if(swatchGallery?.busy && editingPicked?.id===id){pickerFeedback('Wait for or cancel the photo upload before deleting this selection.');return;}
         if(!pickedRows.find(row=>row.id===id)?.can_delete || !confirm('Delete this saved color selection? Approval history and shared media will be retained.'))return;
         const vehicleId=currentVehicleId;
         try {
             const data=new FormData();data.set('vehicle_id',vehicleId);
             const response=await fetch(`/api/picked-colors/${id}/delete/`,{method:'POST',headers:{'X-CSRFToken':getCsrfToken()},body:data});
             if(!response.ok)throw Error('Deleting this selection is not permitted or unavailable.');
-            if(vehicleId===currentVehicleId){loadPickedColors(vehicleId);loadPatternColorSelection(vehicleId);}
+            if(vehicleId===currentVehicleId){if(editingPicked?.id===id){editingPicked=null;setColorCategory('interior_match');colorSubmissionKey=null;colorDraftDirty=false;clearSwatchPhoto();updatePickerSaveState();}loadPickedColors(vehicleId);loadPatternColorSelection(vehicleId);}
         }catch(error){pickerFeedback(error.message);}
     }
     accessScope.listen(document,'input',event=>{if(event.isTrusted && event.target.closest('#panelColorPicker') && !isSubmittingColor){colorSubmissionKey=null;colorDraftDirty=true;}});
@@ -903,8 +989,16 @@
     }
 
     function initWorkspace(vehicleId, vehicleData) {
-        if (currentVehicleId !== vehicleId) { closeInteriorMediaPreview(); editingPicked=null;colorSubmissionKey=null;colorDraftDirty=false;const remarks=document.getElementById('pickedColorRemarks');if(remarks)remarks.value=''; }
+        if (currentVehicleId !== vehicleId) { closeInteriorMediaPreview(); editingPicked=null;setColorCategory('interior_match');colorSubmissionKey=null;colorDraftDirty=false;const remarks=document.getElementById('pickedColorRemarks');if(remarks)remarks.value=''; }
         currentVehicleId = vehicleId;
+        if (!swatchGallery && window.FabroMatchingSwatchGallery) {
+            swatchGallery = new window.FabroMatchingSwatchGallery(document.getElementById('matchingSwatchGallery'), {
+                scope:accessScope, csrf:getCsrfToken, feedback:pickerFeedback,
+                dirty:()=>{colorSubmissionKey=null;colorDraftDirty=true;}, state:updatePickerSaveState,
+                complete:()=>{if(currentVehicleId){loadPickedColors(currentVehicleId);loadPatternColorSelection(currentVehicleId);}}
+            });
+        }
+        if(swatchGallery?.vehicleId !== vehicleId) swatchGallery?.setContext(vehicleId);
 
         // Parse available colors from template JSON script
         const colorsScript = document.getElementById('carDetailsColorsData');
@@ -919,9 +1013,9 @@
         setupSupportedFormatsPopovers();
 
         // Initialize Visual Pickers
-        singleNewPicker = new VisualColorPicker('newSingleCanvas', 'newSingleHueSlider', 'newSingleHexInput', 'newSingleSwatch');
-        dualInnerNewPicker = new VisualColorPicker('dualInnerNewCanvas', 'dualInnerNewHueSlider', 'dualInnerNewHexInput', 'dualInnerNewSwatch');
-        dualOuterNewPicker = new VisualColorPicker('dualOuterNewCanvas', 'dualOuterNewHueSlider', 'dualOuterNewHexInput', 'dualOuterNewSwatch');
+        singleNewPicker = new VisualColorPicker('newSingleCanvas', 'newSingleHueSlider', 'newSingleHexInput', 'newSingleSwatch', updatePickerPreview);
+        dualInnerNewPicker = new VisualColorPicker('dualInnerNewCanvas', 'dualInnerNewHueSlider', 'dualInnerNewHexInput', 'dualInnerNewSwatch', updatePickerPreview);
+        dualOuterNewPicker = new VisualColorPicker('dualOuterNewCanvas', 'dualOuterNewHueSlider', 'dualOuterNewHexInput', 'dualOuterNewSwatch', updatePickerPreview);
 
         // Update photo and heading
         if (vehicleData) {

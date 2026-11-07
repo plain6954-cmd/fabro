@@ -219,7 +219,8 @@ class DesignReviewVoiceTests(TestCase):
             self.client.force_login(user)
             response = self.client.get(url)
             self.assertEqual(response.status_code, status)
-            response.close()
+            if getattr(response,'streaming',False):
+                b''.join(response.streaming_content)
         PatternDesignImage.objects.filter(pk=self.image.pk).update(approval_status='approved')
         self.client.force_login(self.other)
         self.assertEqual(self.client.get(url).status_code, 404)

@@ -197,7 +197,7 @@ test('rapid PDF switching, failures, repeated close cleanup and drawer entry pre
  await page.keyboard.press('Escape');await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.upload2}"]`)).toBeAttached();await page.evaluate(id=>(window as any).openApprovalDrawer(id),ids.upload2);
  await page.locator('#designDrawerDecisionRemarks').fill('Preserve unsent drawer remarks');await page.getByRole('button',{name:'Compare files',exact:true}).scrollIntoViewIfNeeded();
  const scroll=await page.locator('#designApprovalDrawer .drawer-body').evaluate(el=>el.scrollTop);
- await page.getByRole('button',{name:'Compare files',exact:true}).click();await expect(dialog).toBeVisible();await expect(panel(page,'upload').locator('[data-panel-file]')).toHaveText('Designer variant.png');await page.evaluate(id=>(window as any).load3DDesignWorkspace(id),ids.vehicle);await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Compare files',exact:true}).click();await expect(dialog).toBeVisible();await expect(panel(page,'upload').locator('[data-panel-file]')).toHaveText('Designer seat.png');await choose(page,'upload','Designer variant.png');await expect(panel(page,'upload').locator('[data-panel-file]')).toHaveText('Designer variant.png');await page.evaluate(id=>(window as any).load3DDesignWorkspace(id),ids.vehicle);await page.keyboard.press('Escape');
  await expect(page.locator('#designApprovalDrawer')).toHaveClass(/is-open/);await expect(page.locator('#designDrawerDecisionRemarks')).toHaveValue('Preserve unsent drawer remarks');expect(await page.locator('#designApprovalDrawer .drawer-body').evaluate(el=>el.scrollTop)).toBe(scroll);expect(errors).toEqual([]);
 });
 test('another designer cannot open pending context, or obtain hidden references/remarks by changing IDs',async({page})=>{
@@ -251,7 +251,7 @@ test('actual Pattern Master designer thumbnails open comparison in grid and list
  await page.goto(`/car-details/?vehicle_id=${ids.vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
  await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.upload}"]`)).toBeAttached();
  expect(await page.evaluate(()=>typeof (window as any).openDesignComparison)).toBe('function');
- await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/\?v=20261104-live/);
+ await expect(page.locator('script[src*="pattern_3d_design.js"]')).toHaveAttribute('src',/\?v=20261107-latest-version/);
  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  await page.locator('#design3DFilesSearch').fill('Designer');
  for(const mode of ['grid','list']){
@@ -271,7 +271,7 @@ test('actual Pattern Master designer thumbnails open comparison in grid and list
   await dialog.getByRole('button',{name:'Close comparison viewer',exact:true}).click();await expect(dialog).not.toBeVisible();await expect(thumb).toBeFocused();
   await expect(page.locator('#design3DFilesSearch')).toHaveValue('Designer');await expect(page.locator('#design3DListBtn')).toHaveClass(mode==='list'?/active/:/^(?!.*active)/);
   const pdfThumb=page.locator(`.fabro-design-tile[data-file-id="${ids.uploadpdf}"] [data-design-pdf-id]`);
-  await pdfThumb.click();await expect(dialog).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Designer dimension.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();
+  await pdfThumb.click();await expect(dialog).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Designer seat.png');await choose(page,'upload','Designer dimension.pdf');await expect(right.locator('[data-panel-file]')).toHaveText('Designer dimension.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();
   await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
  }
  expect(errors).toEqual([]);
@@ -281,7 +281,7 @@ test('actual gallery thumbnail with no reference files keeps comparison and imag
  const dialog=viewer(page),left=panel(page,'reference'),right=panel(page,'upload');
  await page.locator(`.fabro-design-tile[data-file-id="${ids.empty}"] [data-design-image-id]`).click();
  await expect(dialog).toBeVisible();await expect(dialog.locator('[data-comparison-carousel="reference"] [data-carousel-count]')).toHaveText('(0)');
- await expect(left.locator('[data-panel-message]')).toHaveText('No authorized reference files in this context.');await expect(right.locator('[data-panel-image]')).toBeVisible();
+ await expect(left.locator('[data-panel-message]')).toHaveText('No authorized reference files in this context.');await expect(right.locator('[data-panel-file]')).toHaveText('Empty reference upload.pdf');await expect(right.locator('canvas')).toBeVisible();await choose(page,'upload','Empty reference upload.png');await expect(right.locator('[data-panel-image]')).toBeVisible();
  await expect(page.locator('#designImageViewer')).not.toBeVisible();await expect(page.locator('#designPdfViewer')).not.toBeVisible();
  await choose(page,'upload','Empty reference upload.pdf');await expect(right.locator('canvas')).toBeVisible();await expect(right.locator('[data-pdf-counter]')).toHaveText('1 / 4');
  await expect(left.locator('[data-panel-counter]')).toHaveText('0 / 0');await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
@@ -349,6 +349,8 @@ test('PNG JPEG and WebP reference/designer thumbnails reuse comparison in both g
   for(const ext of ['png','jpg','webp'])for(const reference of [true,false]){
    const source=reference?page.locator('#refImagesScrollTrack').getByRole('button',{name:`Preview Reference format.${ext}`,exact:true}):page.locator(`.fabro-design-tile[data-file-id="${ids['formatupload_'+ext]}"] [data-design-image-id]`);
    await source.click();await expect(dialog).toBeVisible();
+   await expect(right.locator('[data-panel-file]')).toHaveText('Designer format.webp');
+   if(!reference)await choose(page,'upload',`Designer format.${ext}`);
    await expect((reference?left:right).locator('[data-panel-file]')).toHaveText(`${reference?'Reference':'Designer'} format.${ext}`);
    for(const p of [left,right]){
     await expect(p.locator('[data-panel-image]')).toBeVisible();
@@ -411,13 +413,15 @@ test('single-file controls stay disabled and gallery synchronization preserves a
  await right.getByRole('button',{name:'Zoom in',exact:true}).click();
  runDjangoCode(`from management.models import PatternDesignImage; PatternDesignImage.objects.filter(pk=${ids.single_upload}).update(title='Single upload updated.png')`);
  await expect(page.locator(`.fabro-design-tile[data-file-id="${ids.single_upload}"] .tile-title`)).toHaveText('Single upload updated.png',{timeout:20000});
- await expect(dialog).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Single upload.png');await expect(right.locator('[data-panel-zoom]')).toHaveText('125%');
+ await expect(dialog).toBeVisible();await expect(right.locator('[data-panel-file]')).toHaveText('Single upload updated.png');await expect(right.locator('[data-panel-zoom]')).toHaveText('125%');
  await expect(left.locator('[data-panel-file]')).toHaveText('Single reference.png');await page.keyboard.press('Escape');
 });
 
 async function reviewWorkspace(page:Page,username=workflowUsers.cad.username){
  await login(page,username);await page.goto(`/car-details/?vehicle_id=${ids.review_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
  await page.locator(`.fabro-design-tile[data-file-id="${ids.review_primary}"] [data-design-image-id]`).click();
+ await expect(panel(page,'upload').locator('[data-panel-file]')).toHaveText('Workspace sibling.pdf');
+ await choose(page,'upload','Workspace primary.png');
  const root=viewer(page).locator(`.comparison-approval-document[data-design-id="${ids.review_primary}"]`);await expect(root).toBeAttached();return root;
 }
 
@@ -485,6 +489,7 @@ test('integrated Admin preserves drafts by file and stage and uses the existing 
  await root.locator('#cadReviewForm button[value="approved"]').click();await expect(root.locator('#cadReviewForm button[value="approved"]')).toBeDisabled();
  await root.locator('#cadReviewForm').evaluate(form=>(form as HTMLFormElement).requestSubmit(form.querySelector('button[value="approved"]') as HTMLButtonElement));
  release();expect((await response).status()).toBe(302);await expect(root.locator('[data-workspace-feedback]')).toContainText('recorded');
+  await expect(dialog).toHaveAttribute('data-review-saving','false');
  await expect(root.locator('#review-tab-cad')).toBeDisabled();await expect(root.locator('#review-cad')).toHaveAttribute('data-stage-status','approved');await root.locator('#review-tab-ed').click();await expect(root.locator('#edCommentInput')).toHaveValue('Admin ED draft');
  await expect(root.locator('[data-history-cycle="2"] .workspace-event-comment')).toContainText('Admin CAD draft');
  await expect(root.locator('[data-history-cycle="2"] .workspace-event-meta')).toContainText('comparison_browser_admin');expect(submissions).toBe(1);
@@ -492,6 +497,7 @@ test('integrated Admin preserves drafts by file and stage and uses the existing 
  page.once('dialog',dialog=>dialog.dismiss());await root.locator('#edReviewForm button[value="rejected"]').click();await expect(root.locator('#edReviewForm')).toBeVisible();expect(submissions).toBe(1);
  page.once('dialog',dialog=>dialog.accept());await root.locator('#edReviewForm button[value="rejected"]').click();await expect(root.locator('#review-tab-ed')).toBeDisabled();
  await expect(root.locator('.workspace-approval-heading .review-status')).toHaveText('Changes Required');expect(submissions).toBe(2);
+  await expect(dialog).toHaveAttribute('data-review-saving','false');
  await choose(page,'upload','Workspace sibling.pdf');await expect(sibling.locator('#cadCommentInput')).toHaveValue('Sibling draft stays separate');
  page.once('dialog',dialog=>dialog.accept());await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
  await page.goto(`/car-details/?vehicle_id=${ids.single_vehicle}#design-options`);await page.locator('#sidebarNav3DDesignBtn').click();
@@ -511,8 +517,10 @@ test('integrated voice draft survives file switching and submits through the exi
  expect(await form.locator('[name="voice_note"]').evaluate((input:HTMLInputElement)=>input.files!.length)).toBe(1);
  page.once('dialog',dialog=>dialog.dismiss());await page.keyboard.press('Escape');await expect(dialog).toBeVisible();
  await form.locator('button[value="approved"]').click();await expect(form).toHaveCount(0);await expect(root.locator('[data-workspace-feedback]')).toContainText('recorded');
+  await expect(dialog).toHaveAttribute('data-review-saving','false');
  const bubble=root.locator('.workspace-history .review-voice-bubble');await expect(bubble).toHaveCount(1);await bubble.getByRole('button',{name:'Play voice note',exact:true}).click();await expect(bubble.locator('audio')).toHaveJSProperty('paused',false);
- await expect.poll(()=>bubble.locator('input[type="range"]').inputValue()).not.toBe('0');
+ await bubble.locator('audio').evaluate(el=>{const a=el as HTMLAudioElement;a.currentTime=1;a.dispatchEvent(new Event('timeupdate'));});
+  await expect.poll(()=>bubble.locator('input[type="range"]').inputValue()).not.toBe('0');
  await choose(page,'upload','Workspace primary.png');await expect(dialog.locator(`.comparison-approval-document[data-design-id="${ids.review_primary}"] .workspace-history .review-voice-bubble`)).toHaveCount(0);
  expect(await page.evaluate(()=>(window as any).__voice.stopped)).toBe(1);await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();
 });

@@ -16,7 +16,9 @@ def apply_private_range(request, response, content, size):
             if start >= size or start > end or (not first and int(last) <= 0):
                 raise ValueError
         except ValueError:
-            response.close()
+            # This response was never sent. Closing it would emit request_finished
+            # while the request/session middleware is still using its database.
+            content.close()
             return HttpResponse(status=416, headers={'Content-Range': f'bytes */{size}'})
         content.seek(start)
         def chunks():

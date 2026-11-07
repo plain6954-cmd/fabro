@@ -4,7 +4,7 @@ from PIL import Image
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from management.models import (ApprovalRoles, Brand, Model, SubModel, YearRange,
     WorkflowRoles, PatternDesignFolder, PatternDesignImage, DesignReviewVoiceNote, Notification, ActivityLog)
@@ -38,6 +38,12 @@ class DesignComparisonTests(TestCase):
     def manifest(self,image=None,user=None):
         if user: self.client.force_login(user)
         return self.client.get(reverse('design_comparison_manifest',args=[(image or self.image).pk]))
+    def response_bytes(self,response):
+        try:
+            # Range streams close their underlying file when exhausted.
+            return b''.join(response.streaming_content)
+        finally:
+            if getattr(response,'file_to_stream',None):response.file_to_stream.close()
     def test_actual_context_contains_all_authorized_sets_and_only_same_pattern(self):
         sibling=self.file(vehicle=None,folder=self.folder,title='Folder upload.obj')
         folder_ref=self.file(vehicle=None,folder=self.folder,title='Folder reference.pdf',is_reference=True)
@@ -165,19 +171,30 @@ class DesignComparisonTests(TestCase):
         self.image.save(update_fields=['image','thumbnail'])
         url=reverse('design_comparison_file',args=[self.image.pk])
         response=self.client.get(url)
-        self.assertEqual(b''.join(response.streaming_content),raw)
+        self.assertEqual(self.response_bytes(response),raw)
         self.assertEqual(response['Content-Type'],'image/png')
         self.assertIn('private',response['Cache-Control']);self.assertIn('no-store',response['Cache-Control'])
         self.assertEqual(response['X-Content-Type-Options'],'nosniff')
         for header,expected in [('bytes=0-7',raw[:8]),('bytes=-5',raw[-5:])]:
             response=self.client.get(url,HTTP_RANGE=header)
             self.assertEqual(response.status_code,206)
-            self.assertEqual(b''.join(response.streaming_content),expected)
-            response.close()
+            self.assertEqual(self.response_bytes(response),expected)
         self.assertEqual(self.client.get(url,HTTP_RANGE='bytes=99999999-').status_code,416)
         self.assertEqual(self.client.get(url,HTTP_RANGE='bytes=0-1,2-3').status_code,416)
-        response=self.client.get(url+'?thumbnail=1');self.assertEqual(b''.join(response.streaming_content),raw);response.close()
-        response=self.client.get(url+'?download=1');self.assertIn('attachment',response['Content-Disposition']);response.close()
+        response=self.client.get(url+'?thumbnail=1');self.assertEqual(self.response_bytes(response),raw)
+        response=self.client.get(url+'?download=1');self.assertIn('attachment',response['Content-Disposition']);self.response_bytes(response)
+    def test_invalid_range_closes_content_without_finishing_the_active_request(self):
+        from django.http import FileResponse
+        from management.services.private_media import apply_private_range
+        content=io.BytesIO(b'0123456789')
+        response=FileResponse(content)
+        request=RequestFactory().get('/private-file',HTTP_RANGE='bytes=99-')
+        with patch('django.core.signals.request_finished.send') as finished:
+            result=apply_private_range(request,response,content,10)
+        self.assertEqual(result.status_code,416)
+        self.assertEqual(result['Content-Range'],'bytes */10')
+        self.assertTrue(content.closed)
+        finished.assert_not_called()
     def test_missing_thumbnail_file_and_pdf_or_other_types_remain_safe(self):
         url=reverse('design_comparison_file',args=[self.image.pk])
         self.assertEqual(self.client.get(url+'?thumbnail=1').status_code,404)
@@ -189,7 +206,7 @@ class DesignComparisonTests(TestCase):
         obj.save(update_fields=['image'])
         response=self.client.get(reverse('design_comparison_file',args=[obj.pk]))
         self.assertEqual(response['Content-Type'],'application/octet-stream')
-        self.assertIn('attachment',response['Content-Disposition']);response.close()
+        self.assertIn('attachment',response['Content-Disposition']);self.response_bytes(response)
         self.assertEqual(self.manifest(self.reference).status_code,200)
     def test_readonly_manifest_does_not_change_notifications_audit_or_decisions(self):
         submit_design_for_approval(self.image,self.owner)
@@ -208,11 +225,11 @@ class DesignComparisonTests(TestCase):
         with patch('management.storage_backends.download_content',return_value=b'private image bytes') as read, patch('management.storage_backends.create_signed_download_url') as signed:
             url=reverse('design_comparison_file',args=[self.image.pk])
             response=self.client.get(url)
-            self.assertEqual(b''.join(response.streaming_content),b'private image bytes')
+            self.assertEqual(self.response_bytes(response),b'private image bytes')
             self.assertNotIn('Location',response)
             read.assert_called_once_with(self.image.image.name)
             self.assertIn('no-store',response['Cache-Control'])
-            response.close();signed.assert_not_called()
+            signed.assert_not_called()
 
     def test_workspace_fragment_uses_existing_role_permissions_and_forms(self):
         submit_design_for_approval(self.image,self.owner)

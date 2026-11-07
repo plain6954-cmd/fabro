@@ -1,0 +1,35 @@
+/* 3D Status uses the existing Pattern Master palette and controls. */
+#patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) { max-width:100%; overflow-x:auto; }
+#patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) .pattern-subtaskbar-capsule { min-width:max-content; }
+.design-status-workspace { min-width:0; max-width:100%; padding:1rem; border:1px solid var(--border-color,#30343b); border-radius:12px; background:var(--dark-card,#191c21); color:var(--text-primary,#f5f5f7); box-sizing:border-box; }
+.design-status-toolbar { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+.design-status-toolbar h2 { margin:0; font-size:1.15rem; }
+.design-status-toolbar h2 small { color:var(--text-secondary,#9da3ae); }
+.design-status-search { display:flex; align-items:center; flex:1; flex-wrap:wrap; gap:.5rem; min-width:0; }
+.design-status-search input[type=search] { flex:1 1 200px; min-width:0; margin:0; }
+.design-status-search label { display:flex; align-items:center; gap:.3rem; font-size:.8rem; }
+.design-status-search select { width:auto; color:inherit; border:1px solid var(--border-color,#30343b); border-radius:6px; background:var(--dark-bg,#15171b); padding:.5rem; }
+.design-status-scroll { overflow:auto; max-width:100%; max-height:72dvh; overscroll-behavior:contain; border:1px solid var(--border-color,#30343b); border-radius:8px; }
+.design-status-table { width:100%; min-width:1200px; border-collapse:collapse; font-size:.8rem; }
+.design-status-table th,.design-status-table td { padding:.7rem; text-align:left; vertical-align:top; border-bottom:1px solid var(--border-color,#30343b); max-width:220px; overflow-wrap:anywhere; }
+.design-status-table th { position:sticky; top:0; z-index:1; background:var(--dark-card,#191c21); }
+.design-status-table a { color:inherit; text-decoration:none; }
+.design-status-table a:hover { text-decoration:underline; }
+.design-status-table small { display:block; margin-top:.3rem; color:var(--text-secondary,#9da3ae); }
+.design-status-table .btn { display:block; width:fit-content; padding:.3rem .5rem; margin-top:.4rem; font-size:.75rem; }
+.design-status-badge { display:inline-block; padding:.2rem .4rem; margin:.15rem 0; border-radius:5px; font-size:.7rem; background:rgba(245,158,11,.14); color:#fbbf24; }
+.design-status-badge.approved { color:#4ade80; background:rgba(34,197,94,.14); }
+.design-status-badge.rejected { color:#f87171; background:rgba(239,68,68,.14); }
+.design-status-badge.skipped_uploader,.design-status-badge.not_required,.design-status-badge.not_submitted,.design-status-badge.restricted { color:var(--text-secondary,#9da3ae); background:rgba(128,128,128,.15); }
+.design-status-stage time { display:block; font-size:.7rem; white-space:nowrap; }
+.design-status-pagination { display:flex; justify-content:center; align-items:center; gap:1rem; padding:.8rem 0 0; font-size:.8rem; }
+.design-status-pagination a { color:var(--primary-color,#ed1724); }
+.design-status-empty { text-align:center !important; padding:2rem !important; }
+.design-status-feedback:empty { display:none; }
+.design-status-workspace :focus-visible { outline:2px solid var(--primary-color,#ed1724); outline-offset:2px; }
+#patternSubtaskbarContainer .pattern-subtaskbar-btn:focus-visible { outline:2px solid var(--primary-color,#ed1724) !important; outline-offset:2px; }
+@media(max-width:600px) { .design-status-workspace { padding:.6rem; } .design-status-search { width:100%; } }
+@media(max-width:480px) {
+ #patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) .pattern-subtaskbar-capsule { min-width:0; width:100%; }
+ #patternSubtaskbarContainer:has(#subtaskbarBtn3DStatus) .pattern-subtaskbar-btn { min-width:0; padding:.35rem .3rem !important; gap:.25rem !important; font-size:.7rem !important; }
+}

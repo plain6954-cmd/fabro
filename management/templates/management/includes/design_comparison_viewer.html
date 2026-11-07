@@ -1,6 +1,6 @@
 {% load static i18n %}
 <dialog id="designComparisonViewer" class="design-comparison-viewer" aria-labelledby="comparisonTitle" tabindex="-1">
-    <header class="comparison-toolbar"><div class="comparison-brand"><img src="{% static 'fabro-logo.png' %}" alt="FABRO"><div><h1 id="comparisonTitle">{% translate 'Design Comparison Viewer' %}</h1><p>{% translate 'Design comparison & approval workspace' %}</p></div></div><div class="comparison-toolbar-actions">
+    <header class="comparison-toolbar"><div class="comparison-brand"><img src="{% static 'fabro-logo.png' %}" alt="FABRO"><div><h1 id="comparisonTitle">{% translate 'Design Comparison Viewer' %}</h1><p class="comparison-identity" data-comparison-identity></p></div></div><div class="comparison-toolbar-actions">
         <button type="button" data-comparison-action="fit" title="{% translate 'Fit both viewers' %}">{% translate 'Fit Both' %}</button>
         <button type="button" data-comparison-action="split" title="{% translate 'Restore split view' %}">{% translate 'Split View' %}</button>
         <a data-comparison-download download title="{% translate 'Download the file in the active panel' %}">{% translate 'Download' %}</a>

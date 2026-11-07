@@ -1,5 +1,11 @@
 {% load i18n activity_access %}
-<section class="measurement-panel" id="panelPickedColors" {% activity_attrs 'picked_colors.view' %}>
-  <header class="measurement-panel-header"><div class="panel-header-left"><span class="panel-number-badge">4</span><h3 class="measurement-panel-title">{% translate 'Picked Colors' %}</h3></div><span id="pickedColorsCount">0</span></header>
-  <div class="measurement-panel-body"><p id="pickedColorsFeedback" role="status" aria-live="polite"></p><div id="pickedColorsList" class="picked-colors-list"></div></div>
-</section>
+<div class="saved-colors-column" id="savedColorsColumn">
+  <section class="measurement-panel" id="panelPickedColors" {% activity_attrs 'picked_colors.view' %}>
+    <header class="measurement-panel-header"><div class="panel-header-left"><span class="panel-number-badge">4</span><h3 class="measurement-panel-title">{% translate 'Interior Match Color' %}</h3></div><span id="pickedColorsCount" aria-label="{% translate 'Interior Match saved-color count' %}">0</span></header>
+    <div class="measurement-panel-body"><p id="pickedColorsFeedback" role="status" aria-live="polite"></p><div id="pickedColorsList" class="picked-colors-list"></div></div>
+  </section>
+  <section class="measurement-panel" id="panelFabroColors" {% activity_attrs 'picked_colors.view' %}>
+    <header class="measurement-panel-header"><div class="panel-header-left"><span class="panel-number-badge">5</span><h3 class="measurement-panel-title">{% translate 'Fabro Color Options' %}</h3></div><span id="fabroColorsCount" aria-label="{% translate 'Fabro Color saved-color count' %}">0</span></header>
+    <div class="measurement-panel-body"><div id="fabroColorsList" class="picked-colors-list"></div></div>
+  </section>
+</div>

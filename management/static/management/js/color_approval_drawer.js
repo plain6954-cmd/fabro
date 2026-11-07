@@ -149,11 +149,24 @@
         const swatchSec = document.getElementById('drawerSwatchPhotoSection');
         const swatchImg = document.getElementById('drawerSwatchPhotoImg');
         const swatchLink = document.getElementById('drawerSwatchPhotoLink');
+        const additionalPhotos = document.getElementById('drawerAdditionalSwatchPhotos');
+        additionalPhotos?.replaceChildren();
         if (swatchSec && swatchImg && swatchLink) {
             if (data.swatch_url) {
-                swatchSec.style.display = 'block';
-                swatchImg.src = data.swatch_url;
-                swatchLink.href = data.swatch_url;
+                const photos = data.swatch_photos?.length ? data.swatch_photos : [{url:data.swatch_url,filename:'Matching swatch photo'}];
+                const safePhotos = photos.filter(photo => {
+                    try { const url = new URL(photo.url, location.origin); return url.origin === location.origin && /^\/(?:color-selections\/\d+\/(?:photos\/\d+\/)?file\/|picked-colors\/\d+\/swatch\/)$/.test(url.pathname); }
+                    catch (_) { return false; }
+                });
+                swatchSec.style.display = safePhotos.length ? 'flex' : 'none';
+                swatchSec.style.gap = '0.4rem'; swatchSec.style.flexWrap = 'wrap';
+                safePhotos.forEach((photo, index) => {
+                    const link = index === 0 ? swatchLink : swatchLink.cloneNode(false);
+                    const image = index === 0 ? swatchImg : swatchImg.cloneNode(false);
+                    if (index) { link.removeAttribute('id'); image.removeAttribute('id'); link.append(image); additionalPhotos?.append(link); }
+                    image.src = photo.url; image.alt = photo.filename || 'Matching swatch photo';
+                    link.href = photo.url; link.title = image.alt; link.setAttribute('aria-label', 'Open ' + image.alt);
+                });
             } else {
                 swatchSec.style.display = 'none';
             }

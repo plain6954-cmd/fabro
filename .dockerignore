@@ -32,6 +32,14 @@ media/profile_photos/
 .e2e-media/
 
 # Test / development output
+output/
+.e2e*
+*.bak
+*.backup*
+backup_*.json
+*-test-results.txt
+*-failure.txt
+local_*test*.py
 test-results/
 playwright-report/
 scratch/

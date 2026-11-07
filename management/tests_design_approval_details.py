@@ -119,7 +119,6 @@ class DesignApprovalDetailsTests(TestCase):
         response = self.client.get(media_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(b''.join(response.streaming_content), b'private fixture')
-        response.close()
 
     def test_review_defaults_and_optional_remarks_remain_intact(self):
         from management.services.design_approvals import submit_design_for_approval

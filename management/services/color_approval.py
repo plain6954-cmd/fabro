@@ -353,6 +353,8 @@ def _integrate_approved_colors_into_color_master(selection):
 
 def serialize_color_selection(selection, current_user=None):
     from management.services.activity_permissions import granted
+    from management.services.swatch_photos import selection_gallery
+    photos = selection_gallery(selection, current_user)
     can_history = bool(current_user and granted(current_user, 'color.history'))
     decisions = list(selection.decisions.select_related('approver').all())
     decisions_map = {d.department: d for d in decisions}
@@ -405,7 +407,8 @@ def serialize_color_selection(selection, current_user=None):
         'is_new_color': selection.is_new_color,
         'status': selection.status,
         'status_display': selection.get_status_display(),
-        'swatch_url': reverse('color_selection_file', args=[selection.pk]) if selection.swatch_image else '',
+        'swatch_url': reverse('color_selection_file', args=[selection.pk]) if selection.swatch_image else (photos[0]['url'] if photos else ''),
+        'swatch_photos': photos,
         'submitted_by': selection.submitted_by.username if selection.submitted_by else '',
         'submitted_at': timezone.localtime(selection.created_at).strftime('%b %d, %Y %H:%M'),
         'inner_color': {
