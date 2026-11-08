@@ -1,7 +1,7 @@
 """Feature gates layered on top of FABRO's existing role/object/state authorization.
 
-No override rows are created for existing users. Empty dictionaries inherit the
-compatibility defaults below. Never use a feature grant as object authorization.
+Persisted role defaults and individual overrides retain existing workflow identity.
+Never use a feature grant as object authorization.
 """
 from dataclasses import dataclass
 from django.conf import settings
@@ -20,6 +20,8 @@ CATEGORIES = (
     ('master', _('Master Settings')), ('notification', _('Notifications')),
     ('chat', _('Internal Chat')), ('reports', _('Reports & Activity')),
     ('erp', _('ERP Administration')), ('users', _('User & Access Management')),
+    ('roles', _('Roles Management')), ('approvals', _('Approvals Workspace')),
+    ('design_status', _('3D Status')),
 )
 
 @dataclass(frozen=True)
@@ -95,8 +97,13 @@ activities('erp', [('view', 'Open ERP Admin', 'erp'), ('control_tower', 'View Co
     ('sessions_view', 'View active sessions', 'erp'), ('sessions_terminate', 'Terminate sessions', 'erp')])
 activities('users', [('create', 'Create user accounts', 'admin'), ('manage', 'Manage user accounts', 'erp'), ('permissions', 'Manage activity permissions', 'admin'),
     ('groups', 'Manage Django groups', 'admin'), ('password', 'Reset user passwords', 'erp'), ('photo_delete', 'Remove user profile photos', 'erp')])
+activities('roles', [('view', 'View roles', 'admin'), ('create', 'Create roles', 'admin'),
+    ('edit', 'Edit roles', 'admin'), ('delete', 'Delete unassigned custom roles', 'admin'), ('permissions', 'Manage role permissions', 'admin')])
+activities('pattern', [('list', 'View Pattern Master list', 'authenticated', ('pattern.view',))])
+activities('design_status', [('view', 'View 3D Status', 'authenticated', ('pattern.view',))])
+activities('approvals', [('workspace', 'Open Approvals workspace')])
 
-ADMIN_KEYS = frozenset(key for key, item in REGISTRY.items() if (item.category in ('erp', 'users', 'master', 'reports') and item.policy in ('erp', 'admin')) or (item.category in ('vehicle', 'sku', 'color', 'pattern') and item.policy == 'catalog') or key in ('vehicle.view', 'sku.view', 'color.view', 'pattern.view', 'folder.view', 'folder.create', 'folder.rename'))
+ADMIN_KEYS = frozenset(key for key, item in REGISTRY.items() if (item.category in ('erp', 'users', 'roles', 'master', 'reports') and item.policy in ('erp', 'admin')) or (item.category in ('vehicle', 'sku', 'color', 'pattern') and item.policy == 'catalog') or key in ('vehicle.view', 'sku.view', 'color.view', 'pattern.view', 'folder.view', 'folder.create', 'folder.rename'))
 
 def profile(user):
     from management.services.workflow import get_user_profile
@@ -122,7 +129,7 @@ def identity(user):
         file_delete = bool(user.is_superuser or user.user_permissions.filter(codename='delete_patterndesignimage', content_type__app_label='management').exists() or user.groups.filter(permissions__codename='delete_patterndesignimage', permissions__content_type__app_label='management').exists())
     return {'role': getattr(p, 'role', ''), 'approval_role': getattr(p, 'approval_role', ''), 'is_active': bool(user.is_active),
             'is_staff': bool(user.is_staff), 'is_superuser': bool(user.is_superuser),
-            'file_delete': file_delete}
+            'file_delete': file_delete, 'activity_role_id': getattr(p, 'activity_role_id', None)}
 
 def eligible(policy, identity):
     role, stage = identity.get('role', ''), identity.get('approval_role', '')
@@ -151,7 +158,7 @@ def eligible(policy, identity):
     }
     return bool(policies[policy])
 
-def role_defaults(info):
+def legacy_role_defaults(info):
     """Compatibility defaults; optional policy configuration never mutates overrides."""
     defaults = {key: (False if key == 'design.delete_uploaded' else eligible(item.policy, info)) for key, item in REGISTRY.items()}
     role_key = info.get('approval_role') if info.get('role') == R.APPROVER else info.get('role')
@@ -166,16 +173,39 @@ def role_defaults(info):
             defaults[item.key] = False
     return defaults
 
+
+def activity_role_for(info):
+    from management.models import ActivityRole
+    if info.get('activity_role_id'):
+        return ActivityRole.objects.get(pk=info['activity_role_id'])
+    return None
+
+
+_ROLE_UNSET = object()
+
+
+def role_defaults(info, *, role=_ROLE_UNSET):
+    role = activity_role_for(info) if role is _ROLE_UNSET else role
+    if role is None:
+        return legacy_role_defaults(info)
+    from management.services.role_hierarchy import ancestors_enabled
+    return {key: bool(role.permissions.get(key, False)) and eligible(item.policy, info) and ancestors_enabled(role, key)
+            for key, item in REGISTRY.items()}
+
 def granted(user, key):
     if key not in REGISTRY or not user or not user.is_authenticated or not user.is_active:
         return False
     cache = getattr(user, '_activity_grants', None)
     if cache is None:
         info = identity(user)
-        defaults = role_defaults(info)
+        person = profile(user)
+        role = person.activity_role if person.activity_role_id else None
+        user._activity_role_config = role
+        defaults = role_defaults(info, role=role)
         overrides = getattr(profile(user), 'activity_permissions', {}) or {}
         # Explicit grants can extend role eligibility; inherited defaults cannot.
-        cache = {name: (overrides[name] == 'allow' if name in overrides else value and eligible(REGISTRY[name].policy, info)) for name, value in defaults.items()}
+        from management.services.role_hierarchy import ancestors_enabled
+        cache = {name: (overrides[name] == 'allow' if name in overrides else value and eligible(REGISTRY[name].policy, info)) and ancestors_enabled(role, name) for name, value in defaults.items()}
         user._activity_grants = cache
     return cache[key] and all(granted(user, dependency) for dependency in REGISTRY[key].requires)
 
@@ -230,12 +260,15 @@ def validate_overrides(data, info, *, superuser_editor=False, existing=None):
             raise ValidationError(_('Protected administrative access cannot be removed.'))
         if not superuser_editor and value == 'allow' and not eligible(REGISTRY[key].policy, info) and existing.get(key) != value:
             raise ValidationError(_('An activity grant cannot confer administrative or reviewer authority.'))
-    effective = {key: data.get(key, 'allow' if default else 'deny') == 'allow' for key, default in defaults.items()}
+    from management.services.role_hierarchy import ancestors_enabled
+    role = activity_role_for(info)
+    effective = {key: data.get(key, 'allow' if default else 'deny') == 'allow' and ancestors_enabled(role,key)
+                 for key, default in defaults.items()}
     for key, value in effective.items():
         if value and any(not effective[dep] for dep in REGISTRY[key].requires):
             raise ValidationError(_('Enable the required view/remarks activity before its dependent actions.'))
     # Canonical tri-state representation: absence means inherit.
-    return {key: value for key, value in data.items() if (value == 'allow') != defaults[key]}
+    return {key: value for key, value in data.items() if (value == 'allow') != defaults[key] or existing.get(key) == value}
 
 
 def lock_eligible_files(queryset, user=None):

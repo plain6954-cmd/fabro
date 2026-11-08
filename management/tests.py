@@ -5120,8 +5120,6 @@ class PatternMasterPaginationBubblesTests(TestCase):
         YearRange.objects.bulk_create(vehicles)
 
     def setUp(self):
-        from django.db import connection
-        connection.close_if_unusable_or_obsolete()
         self.client = Client()
         self.client.force_login(self.admin)
 
@@ -5491,9 +5489,12 @@ class AdminPanelUsersSectionTests(TestCase):
         self.country_exec = User.objects.create_user(username='country_exec', email='ce@test.com', password='password123')
         self.factory_exec = User.objects.create_user(username='factory_exec', email='fe@test.com', password='password123')
 
-        UserProfile.objects.filter(user=self.admin).update(role=WorkflowRoles.ADMIN)
-        UserProfile.objects.filter(user=self.country_exec).update(role=WorkflowRoles.COUNTRY_EXECUTIVE)
-        UserProfile.objects.filter(user=self.factory_exec).update(role=WorkflowRoles.FACTORY_EXECUTIVE)
+        # Exercise normal profile saves so workflow identity and the built-in
+        # activity-role binding are initialized together, as in the actual form.
+        for user,role in ((self.admin,WorkflowRoles.ADMIN),
+                          (self.country_exec,WorkflowRoles.COUNTRY_EXECUTIVE),
+                          (self.factory_exec,WorkflowRoles.FACTORY_EXECUTIVE)):
+            profile=user.workflow_profile;profile.role=role;profile.save()
 
     def test_role_counts_populated_for_users_section(self):
         self.client.force_login(self.admin)

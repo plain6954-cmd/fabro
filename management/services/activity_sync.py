@@ -17,6 +17,8 @@ def access_snapshot(user):
     info = identity(user)
     scope = [user.pk, info, getattr(person, 'country_id', None),
              getattr(person, 'can_receive_factory_assignments', False), permissions]
+    role = getattr(user, '_activity_role_config', None)
+    scope.append([role.pk, role.revision, role.name] if role else None)
     version = hashlib.sha256(json.dumps(scope, sort_keys=True).encode()).hexdigest()
     business = [user.pk, {key: info[key] for key in ('role', 'approval_role', 'is_staff', 'is_superuser')},
                 getattr(person, 'country_id', None), getattr(person, 'can_receive_factory_assignments', False)]

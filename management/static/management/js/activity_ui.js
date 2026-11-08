@@ -9,8 +9,9 @@
     try { permissions = JSON.parse(document.getElementById('fabro-activity-data')?.textContent || '{}'); } catch (_) {}
     try { const data = JSON.parse(document.getElementById('fabro-activity-sync')?.textContent || '{}'); version = data.version || ''; contextVersion = data.context_version; userId = data.user_id; } catch (_) {}
     const allowed = key => permissions[key] === true;
-    const blocked = node => node.dataset.activityAll ? !node.dataset.activityAll.split(' ').every(allowed)
-        : node.dataset.activityAny ? !node.dataset.activityAny.split(' ').some(allowed) : !allowed(node.dataset.activity);
+    const blocked = node => Boolean((node.dataset.activity && !allowed(node.dataset.activity))
+        || (node.dataset.activityAll && !node.dataset.activityAll.split(' ').every(allowed))
+        || (node.dataset.activityAny && !node.dataset.activityAny.split(' ').some(allowed)));
     async function fragments(previous, expected) {
         if (fragmentRunning) return;
         const hosts = Array.from(document.querySelectorAll('[data-access-fragment]')).filter(host =>

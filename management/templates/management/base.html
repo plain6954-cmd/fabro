@@ -3,7 +3,7 @@
 <link href="{% static 'css/fabro-global.css' %}?v=20260912-audit1" rel="stylesheet">
 {{ activity_data|json_script:'fabro-activity-data' }}
 {{ activity_sync|json_script:'fabro-activity-sync' }}
-<script src="{% static 'management/js/activity_ui.js' %}?v=20261104-live" defer></script>
+<script src="{% static 'management/js/activity_ui.js' %}?v=20261108-role-hierarchy" defer></script>
 <style>[data-activity][hidden], [data-activity-any][hidden], [data-activity-all][hidden] { display: none !important; }</style>
 <script>window.FABRO_LANGUAGE = '{{ current_language|default:LANGUAGE_CODE|default:"en"|escapejs }}';</script>
 <script src="{% url 'javascript-catalog' %}"></script>
@@ -2619,7 +2619,7 @@
                 <i class="fas fa-car"></i>
                 <span>{% translate "Patterns" %}</span>
             </a>
-            <a href="{% url 'approvals_list' %}?stage=designer&status=all" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals" {% activity_attrs 'design_approval.view' %}>
+            <a href="{% url 'approvals_list' %}?stage=designer&status=all" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals" data-activity-all="approvals.workspace" {% activity_attrs 'design_approval.view' %}>
                 <i class="fas fa-clipboard-check"></i>
                 <span>{% translate "Approvals" %}</span>
             </a>
@@ -2658,7 +2658,7 @@
                 <span>{% translate "SKU" %}</span>
             </a>
             {% if can_view_approvals %}
-            <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals" {% activity_attrs 'workflow.view' %}>
+            <a href="{% url 'approvals_list' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals" data-activity-all="approvals.workspace" {% activity_attrs 'workflow.view' %}>
                 <i class="fas fa-clipboard-check"></i>
                 <span>{% translate "Approvals" %}</span>
                 {% if pending_approvals_count %}
@@ -2737,7 +2737,7 @@
                 </a>
 
                 {% if can_view_approvals %}
-                <a href="{% url 'approvals_list' %}" class="dropdown-item" {% activity_attrs 'workflow.view' %}>
+                <a href="{% url 'approvals_list' %}" class="dropdown-item" data-activity-all="approvals.workspace" {% activity_attrs 'workflow.view' %}>
                     <i class="fas fa-clipboard-check"></i>
                     <span>{% translate "Approvals Workspace" %}</span>
                 </a>
@@ -2810,7 +2810,7 @@
             <span>{% translate "Patterns" %}</span>
         </a>
         {% if can_view_approvals %}
-        <a href="{% url 'approvals_list' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals" {% activity_attrs 'workflow.view' %}>
+        <a href="{% url 'approvals_list' %}" class="mobile-bottom-nav-item {% if request.resolver_match.url_name == 'approvals_list' or request.resolver_match.url_name == 'approval_inbox' or request.resolver_match.url_name == 'approval_review' or request.resolver_match.url_name == 'design_approval_detail' %}active{% endif %}" data-shell-badge-host="approvals" data-activity-all="approvals.workspace" {% activity_attrs 'workflow.view' %}>
             <i class="fas fa-clipboard-check"></i>
             <span>{% translate "Approvals" %}</span>
             {% if pending_approvals_count %}

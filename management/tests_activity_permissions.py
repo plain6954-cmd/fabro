@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
@@ -129,8 +130,8 @@ class ActivityPermissionTests(TestCase):
                     user.workflow_profile.refresh_from_db()
                     self.assertEqual(user.workflow_profile.photo.name, previous)
 
-    def test_registry_has_nineteen_real_categories_and_all_routes_are_inventoried(self):
-        self.assertEqual(len(CATEGORIES), 19)
+    def test_registry_has_twenty_two_real_categories_and_all_routes_are_inventoried(self):
+        self.assertEqual(len(CATEGORIES), 22)
         self.assertEqual(set(category for category, _ in CATEGORIES), {item.category for item in REGISTRY.values()})
         from management.urls import urlpatterns
         names = {pattern.name for pattern in urlpatterns}
@@ -148,14 +149,28 @@ class ActivityPermissionTests(TestCase):
         self.assertEqual(self.cad.workflow_profile.approval_role, 'CAD')
         self.assertTrue(self.cad.groups.filter(pk=self.group.pk).exists())
 
-    @override_settings(ACTIVITY_ROLE_DEFAULTS={R.FACTORY_VIEWER: {'chat.send': False}})
+    @contextmanager
+    def configured_role_defaults(self, user, changes):
+        # Persisted roles are authoritative after initialization; unmigrated
+        # compatibility fixtures still exercise the original settings fallback.
+        p=type(user.workflow_profile).objects.select_related('activity_role').get(user=user)
+        if p.activity_role_id:
+            role=p.activity_role;original=dict(role.permissions)
+            role.permissions=original|changes;role.save(update_fields=['permissions'])
+            try:yield
+            finally:role.permissions=original;role.save(update_fields=['permissions'])
+        else:
+            code=p.approval_role if p.role==R.APPROVER else p.role
+            with override_settings(ACTIVITY_ROLE_DEFAULTS={code:changes}):yield
+
     def test_role_configuration_changes_inheritance_and_explicit_allow_can_override_default_deny(self):
-        fresh = User.objects.get(pk=self.viewer.pk)
-        self.assertFalse(granted(fresh, 'chat.send'))
-        self.override(fresh, {'chat.send': 'allow'})
-        self.assertTrue(granted(fresh, 'chat.send'))
-        with override_settings(ACTIVITY_ROLE_DEFAULTS={}):
-            self.assertTrue(granted(User.objects.get(pk=self.viewer.pk), 'chat.send'))
+        with self.configured_role_defaults(self.viewer, {'chat.send':False}):
+            fresh = User.objects.get(pk=self.viewer.pk)
+            self.assertFalse(granted(fresh, 'chat.send'))
+            self.override(fresh, {'chat.send': 'allow'})
+            self.assertTrue(granted(fresh, 'chat.send'))
+        self.override(fresh,{})
+        self.assertTrue(granted(User.objects.get(pk=self.viewer.pk), 'chat.send'))
 
     def test_explicit_deny_beats_default_allow_and_is_immediate_without_logout(self):
         self.client.force_login(self.viewer)
@@ -759,7 +774,7 @@ class ActivityPermissionTests(TestCase):
         def current():
             return access_snapshot(User.objects.get(pk=self.designer.pk))['version']
         before = current()
-        with override_settings(ACTIVITY_ROLE_DEFAULTS={R.FREELANCE_3D_DESIGNER: {'chat.send': False}}):
+        with self.configured_role_defaults(self.designer, {'chat.send':False}):
             self.assertNotEqual(before, current())
         self.assertEqual(before, current())
         self.designer.groups.add(self.group)

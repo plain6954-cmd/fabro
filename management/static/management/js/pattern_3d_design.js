@@ -286,6 +286,7 @@
 
     async function load3DDesignWorkspace(vehicleId) {
         if (!vehicleId) return;
+        if (window.fabroActivityAllowed && !['folder.view','design.view_own','design.view_all','reference.view_own','reference.view_all'].some(window.fabroActivityAllowed)) return;
         const requestId = ++state.loadRequestId;
         state.vehicleId = vehicleId;
         state.galleryLoading = true;

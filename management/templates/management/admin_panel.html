@@ -18,10 +18,12 @@
     <script src="{% static 'management/js/gallery_sync.js' %}?v=20261104-interval" defer></script>
     <script src="{% static 'management/js/control_tower.js' %}?v=20261104-live" defer></script>
     <link rel="stylesheet" href="{% static 'management/css/user_control_panel.css' %}?v=20261104">
-    <script src="{% static 'management/js/user_control_panel.js' %}?v=20261104-superuser" defer></script>
+    <script src="{% static 'management/js/user_control_panel.js' %}?v=20261108-roles" defer></script>
+    <link rel="stylesheet" href="{% static 'management/css/roles.css' %}?v=20261108">
+    <script src="{% static 'management/js/roles.js' %}?v=20261108" defer></script>
 {{ activity_data|json_script:'fabro-activity-data' }}
 {{ activity_sync|json_script:'fabro-activity-sync' }}
-<script src="{% static 'management/js/activity_ui.js' %}?v=20261104-live" defer></script>
+<script src="{% static 'management/js/activity_ui.js' %}?v=20261108-role-hierarchy" defer></script>
 <style>[data-activity][hidden], [data-activity-any][hidden], [data-activity-all][hidden] { display: none !important; }</style>
 </head>
 <body>
@@ -43,6 +45,7 @@
                 <div class="erp-nav-tab" onclick="switchErpTab('users')" {% activity_attrs 'users.manage' %}>
                     <i class="fas fa-users"></i> {% translate "Users" %}
                 </div>
+                {% if can_manage_roles %}<div class="erp-nav-tab" onclick="switchErpTab('roles')" {% activity_attrs 'roles.view' %}><i class="fas fa-shield-alt"></i> {% translate 'Roles' %}</div>{% endif %}
                 <div class="erp-nav-tab" onclick="switchErpTab('skus')" {% activity_attrs 'sku.view' %}>
                     <i class="fas fa-box-open"></i> {% translate "SKUs" %}{% if total_skus_count %} <span style="font-size:0.68rem; background:rgba(88,166,255,0.18); color:#58a6ff; padding:1px 6px; border-radius:10px; margin-left:3px; font-weight:600;">{{ total_skus_count }}</span>{% endif %}
                 </div>
@@ -91,6 +94,7 @@
                 <i class="fas fa-users"></i>
                 <span>{% translate "Users" %}</span>
             </button>
+            {% if can_manage_roles %}<button type="button" class="erp-sidebar-btn" id="side-roles" onclick="switchErpTab('roles')" title="{% translate 'Roles' %}" {% activity_attrs 'roles.view' %}><i class="fas fa-shield-alt"></i><span>{% translate 'Roles' %}</span></button>{% endif %}
             <button class="erp-sidebar-btn" id="side-skus" onclick="switchErpTab('skus')" title="{% translate "SKU Catalog" %}" {% activity_attrs 'sku.view' %}>
                 <i class="fas fa-box-open"></i>
                 <span>{% translate "SKUs" %}</span>
@@ -281,6 +285,7 @@
                                     <span>{% translate "Admin" %}</span>
                                     <span class="erp-filter-count">{{ role_counts.admin }}</span>
                                 </div>
+                                {% for activity_role in custom_activity_roles %}<div class="erp-filter-item" data-filter-type="role" data-filter-val="activity:{{ activity_role.pk }}" onclick="applyFacetedFilter('role', 'activity:{{ activity_role.pk }}', this)"><span>{{ activity_role.name }}</span><span class="erp-filter-count">{{ activity_role.user_count }}</span></div>{% endfor %}
                             </div>
                         </div>
 
@@ -315,8 +320,8 @@
                                  data-last-name="{{ u.last_name }}"
                                  data-full-name="{{ u.first_name }} {{ u.last_name }}"
                                  data-phone="{{ u.workflow_profile.phone_number|default:'' }}"
-                                 data-role="{% if u.workflow_profile.role == 'approver' and u.workflow_profile.approval_role %}{{ u.workflow_profile.approval_role }}{% else %}{{ u.workflow_profile.role }}{% endif %}"
-                                 data-role-display="{{ u.workflow_profile.display_role|default:'User' }}"
+                                 data-role="{{ u.workflow_profile.activity_role_value }}"
+                                 data-role-display="{{ u.workflow_profile.activity_role_label|default:'User' }}"
                                  data-country-id="{{ u.workflow_profile.country_id|default:'' }}"
                                  data-country-name="{{ u.workflow_profile.country.name|default:'' }}"
                                  data-department="{{ u.workflow_profile.department|default:'' }}"
@@ -352,7 +357,7 @@
                                     </div>
 
                                     <div class="erp-card-role-title">
-                                        {{ u.workflow_profile.display_role|default:"User" }}
+                                        {{ u.workflow_profile.activity_role_label|default:"User" }}
                                     </div>
 
                                     <div class="erp-card-info-item">
@@ -428,7 +433,7 @@
                                         <td>{{ u.first_name }} {{ u.last_name }}</td>
                                         <td>
                                             <span style="color: #ff6b77; font-weight: 700;">
-                                                {{ u.workflow_profile.display_role|default:"User" }}
+                                                {{ u.workflow_profile.activity_role_label|default:"User" }}
                                             </span>
                                         </td>
                                         <td>{{ u.email|default:"—" }}</td>
@@ -466,6 +471,7 @@
             <!-- ========================================================
                  TAB 3: SKUs MASTER
                  ======================================================== -->
+            {% if can_manage_roles %}<div id="tab-roles" class="erp-tab-pane" {% activity_attrs 'roles.view' %}>{% include 'management/includes/roles_workspace.html' %}</div>{% endif %}
             <div id="tab-skus" class="erp-tab-pane">
                 <div class="erp-action-subheader">
                     <span class="erp-module-title"><i class="fas fa-box-open" style="color: #58a6ff;"></i> {% translate "SKU Master Catalog" %}{% if total_skus_count %} <span style="font-size:0.8rem; color:var(--erp-text-muted); font-weight:normal;">({{ total_skus_count }})</span>{% endif %}</span>
@@ -801,6 +807,7 @@
     async function switchErpTab(tabKey, { historyMode = 'push', preservePage = false, skipLoad = false } = {}) {
         if (!tabKey) tabKey = 'dashboard';
         tabKey = tabKey.replace(/^#/, '');
+        if (window.erpActiveTab === 'roles' && tabKey !== 'roles' && window.fabroRoles && !window.fabroRoles.confirmLeave()) return;
 
         const targetPane = document.getElementById('tab-' + tabKey);
         if (!targetPane) return;
@@ -846,6 +853,7 @@
             }
         });
 
+        if (tabKey === 'roles') { await window.fabroRoles?.open(); return; }
         if (!skipLoad && tabKey !== 'dashboard' && (!window.erpLoadedSections.has(tabKey) || (!preservePage && window.erpLoadedSectionPages.get(tabKey) !== '1'))) {
             targetPane.setAttribute('aria-busy', 'true');
             const controller = new AbortController();

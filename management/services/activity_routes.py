@@ -84,6 +84,9 @@ routes('admin_panel admin_panel_alias', 'erp.view')
 routes('admin_control_tower', 'erp.control_tower')
 routes('admin_brand_tree', 'vehicle.view')
 routes('edit_user user_control_data user_control_save delete_user', 'users.manage')
+routes('role_control_data', 'roles.view')
+routes('role_control_save', 'roles.view')
+routes('role_control_delete', 'roles.delete')
 routes('delete_user_photo', 'users.photo_delete')
 routes('terminate_session terminate_all_sessions', 'erp.sessions_terminate')
 routes('api_complaints_list_create', 'complaint.view', 'complaint.create')
@@ -145,18 +148,38 @@ def request_keys(request, name=None):
         keys = [{'api_complaint_detail': 'complaint.delete', 'api_sku_detail': 'sku.delete', 'api_vehicle_detail': 'vehicle.delete'}.get(name, write)]
     if name in ('admin_panel', 'admin_panel_alias'):
         sections = {'users': 'users.manage', 'sessions': 'erp.sessions_view', 'logs': 'reports.activity',
-                    'dashboard': 'erp.control_tower', 'brands': 'vehicle.view', 'skus': 'sku.view', 'master': 'master.view'}
+                    'dashboard': 'erp.control_tower', 'brands': 'vehicle.view', 'skus': 'sku.view', 'master': 'master.view', 'roles':'roles.view'}
         keys.append(sections.get(request.GET.get('section', 'dashboard'), 'erp.control_tower'))
         if mutation:
             keys.append('users.create' if 'add_user' in data else 'users.groups')
     if name == 'user_control_save' and mutation and not data.get('user_id'):
         keys.append('users.create')
+    if name == 'role_control_save' and mutation:
+        keys.append('roles.edit' if data.get('id') else 'roles.create')
+    if name == 'car_details' and not mutation:
+        subwindow = (request.GET.get('subwindow') or request.GET.get('view') or 'patterns').strip().lower()
+        if subwindow == '3d-status':
+            keys.append('design_status.view')
+        elif subwindow == 'colors':
+            keys.append('color.view')
+        elif not request.GET.get('vehicle_id') and request.GET.get('tab') != 'design-options':
+            keys.append('pattern.list')
+    if name in ('pattern_vehicle_list_api','pattern_vehicle_count_api'):
+        keys.append('pattern.list')
+    if name == 'get_design_folders_api':
+        if request.GET.get('context_only') == '1':
+            keys = ['pattern.view']
+        elif granted(request.user, 'folder.view') or any(granted(request.user, key) for key in
+                ('design.view_own','design.view_all','reference.view_own','reference.view_all')):
+            # The shared loader also serves direct files; folder data is filtered
+            # separately by the view. File/vehicle authorization remains intact.
+            keys = ['pattern.view']
     if name == 'edit_user' and mutation and 'reset_password' in data:
         keys.append('users.password')
     if name == 'approvals_list':
         from management.services.activity_permissions import profile
         stage = request.GET.get('stage', 'designer' if getattr(profile(request.user), 'role', '') == 'freelance_3d_designer' else 'plan')
-        keys = ['design_approval.view' if stage == 'designer' else 'color.history' if stage == 'colors' else 'workflow.view']
+        keys = ['approvals.workspace', 'design_approval.view' if stage == 'designer' else 'color.history' if stage == 'colors' else 'workflow.view']
     if name in ('upload_design_images_api', 'upload_vehicle_design_images_api'):
         keys = ['reference.upload' if str(data.get('is_reference', '')).lower() in ('1', 'true', 'yes', 'on') or data.get('upload_category') == 'reference' else 'design.upload']
     if mutation and name in ('approve_design_image_api', 'reject_design_image_api', 'design_approval_detail'):

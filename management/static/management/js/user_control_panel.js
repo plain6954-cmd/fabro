@@ -6,6 +6,7 @@
     const form = modal.querySelector('form'), byId = id => document.getElementById(id);
     const text = value => window.FabroI18n?.gettext(value) || value;
     const state = {open: false, dirty: false, manual: false, data: null, rows: new Map(), previousRole: '', request: null};
+    state.permissionTouched = new Set();
     let returnFocus, inertNodes = [], oldOverflow;
     const securityValues = () => ({is_staff: byId('editIsStaff')?.checked || false, is_superuser: byId('editIsSuperuser')?.checked || false, groups: [...byId('ucpGroups').selectedOptions].map(option => option.value)});
     function restoreSecurity(value) { for (const [id, flag] of [['editIsStaff', 'is_staff'], ['editIsSuperuser', 'is_superuser']]) if (byId(id)) byId(id).checked = value[flag]; for (const option of byId('ucpGroups').options) option.selected = value.groups.includes(option.value); }
@@ -31,7 +32,7 @@
             if (row.input.checked) selected++;
             const inherited = row.input.checked === row.default;
             row.label.dataset.override = String(!inherited && !row.input.disabled);
-            row.status.textContent = text(!inherited && row.input.disabled ? (row.input.checked ? 'Superuser-managed: Allow' : 'Superuser-managed: Deny') : row.protected && !state.data.can_override_all_activities ? 'Protected administrative access' : inherited ? 'Inherited from role' : row.input.checked ? 'Override: Allow — business rules still apply' : 'Override: Deny');
+            row.status.textContent = text(row.parentDisabled ? 'Disabled by role window' : !inherited && row.input.disabled ? (row.input.checked ? 'Superuser-managed: Allow' : 'Superuser-managed: Deny') : row.protected && !state.data.can_override_all_activities ? 'Protected administrative access' : inherited ? 'Inherited from role' : row.input.checked ? 'Override: Allow — business rules still apply' : 'Override: Deny');
         }
         for (const category of modal.querySelectorAll('.ucp-category')) {
             const inputs = [...category.querySelectorAll('input')];
@@ -44,8 +45,10 @@
         for (const [key, row] of state.rows) {
             row.default = Boolean(role.defaults[key]); row.eligible = Boolean(role.eligible[key]);
             row.protected = role.protected && row.mandatory;
-            row.input.disabled = !state.data.can_manage_permissions || (!state.data.can_override_all_activities && (!row.eligible || row.protected));
-            const selections = row.input.disabled ? state.data.overrides : overrides;
+            row.parentDisabled = role.parents_enabled?.[key] === false;
+            row.securityDisabled = !state.data.can_manage_permissions || (!state.data.can_override_all_activities && (!row.eligible || row.protected));
+            row.input.disabled = row.parentDisabled || row.securityDisabled;
+            const selections = row.securityDisabled ? state.data.overrides : overrides;
             row.input.checked = key in selections ? selections[key] === 'allow' : row.default;
         }
         counts();
@@ -65,6 +68,7 @@
                 const status = document.createElement('small'); content.append(status); label.append(input, content); checklist.append(label);
                 state.rows.set(item.key, {input, label, status, mandatory: item.protected, dependencies: item.requires});
                 input.addEventListener('change', () => {
+                    state.permissionTouched.add(item.key);
                     state.manual = state.dirty = true;
                     // Enable required activities when selecting a dependent action.
                     if (input.checked) for (const dependency of item.requires) {
@@ -98,6 +102,7 @@
             inertNodes.forEach(([node]) => { node.inert = true; });
         }
         state.open = true; state.dirty = state.manual = false;
+        state.permissionTouched.clear(); state.resetDefaults = false;
         form.reset(); modal.style.display = 'flex'; busy(true); tab('details'); feedback(text('Loading user controls…'));
         modal.querySelectorAll('.ucp-details input, .ucp-details select, .ucp-details button').forEach(input => { input.disabled = false; });
         modal.querySelector('.erp-modal-close').focus();
@@ -108,6 +113,7 @@
             const data = await response.json(); if (!state.open) return;
             state.data = data;
             const user = data.user || {};
+            byId('editRole').replaceChildren(...data.role_options.map(([value,label]) => new Option(label,value)));
             const fields = {editUserId: 'id', editUsername: 'username', editEmail: 'email', editFirstName: 'first_name', editLastName: 'last_name', editPhone: 'phone', editCountry: 'country_id', editDepartment: 'department'};
             for (const [id, key] of Object.entries(fields)) byId(id).value = user[key] || '';
             byId('editRole').value = user.role || 'factory_viewer'; state.previousRole = byId('editRole').value;
@@ -154,13 +160,16 @@
         if (state.manual && !window.confirm(text('Switching roles will replace unsaved permission selections with the new role defaults. Continue?'))) {
             byId('editRole').value = state.previousRole; return;
         }
-        state.previousRole = byId('editRole').value; state.manual = false; state.dirty = true; setPermissions();
+        state.previousRole = byId('editRole').value; state.manual = false; state.dirty = true; state.resetDefaults = true; state.permissionTouched.clear(); setPermissions();
     });
     function permissionOverrides() {
-        const role = currentRole(), overrides = {};
+        const role = currentRole(), overrides = state.resetDefaults ? {} : {...state.data.overrides};
         for (const [key, row] of state.rows) {
-            if (row.input.disabled && key in state.data.overrides) overrides[key] = state.data.overrides[key];
-            else if (!row.input.disabled && row.input.checked !== Boolean(role.defaults[key])) overrides[key] = row.input.checked ? 'allow' : 'deny';
+            if (row.securityDisabled && key in state.data.overrides) overrides[key] = state.data.overrides[key];
+            else if (!row.securityDisabled && (state.resetDefaults || state.permissionTouched.has(key))) {
+                if (row.input.checked !== Boolean(role.defaults[key])) overrides[key] = row.input.checked ? 'allow' : 'deny';
+                else delete overrides[key];
+            }
         }
         return overrides;
     }
@@ -192,7 +201,7 @@
         modal.querySelectorAll('.ucp-category').forEach(category => { category.open = expanded; });
     });
     modal.querySelector('[data-ucp-reset]').addEventListener('click', () => {
-        if (window.confirm(text('Replace current permission selections with role defaults?'))) { setPermissions(); state.manual = false; state.dirty = true; }
+        if (window.confirm(text('Replace current permission selections with role defaults?'))) { state.resetDefaults = true; state.permissionTouched.clear(); setPermissions(); state.manual = false; state.dirty = true; }
     });
     byId('ucpSearch').addEventListener('input', event => {
         const needle = event.target.value.toLocaleLowerCase().trim();

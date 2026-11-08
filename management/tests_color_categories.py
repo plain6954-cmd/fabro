@@ -170,6 +170,7 @@ class ColorCategoryMigrationTests(TransactionTestCase):
         self.assertTrue(connection.settings_dict['NAME'].startswith('test_'))
         old, new = ('management','0052_picked_color_photos'), ('management','0053_picked_color_category')
         executor = MigrationExecutor(connection)
+        leaves = executor.loader.graph.leaf_nodes()
         executor.migrate([old])
         try:
             apps = executor.loader.project_state([old]).apps
@@ -205,4 +206,4 @@ class ColorCategoryMigrationTests(TransactionTestCase):
             self.assertEqual(list(retained.approval_selections.values_list('pk',flat=True)), [source.pk])
             self.assertEqual(apps.get_model('management','PickedColorSelection').objects.count(), 1)
         finally:
-            MigrationExecutor(connection).migrate([new])
+            MigrationExecutor(connection).migrate(leaves)

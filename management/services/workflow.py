@@ -108,7 +108,7 @@ def get_user_profile(user):
     if not user or not user.is_authenticated:
         return None
     if not hasattr(user, '_workflow_profile'):
-        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile, _ = UserProfile.objects.select_related('activity_role').get_or_create(user=user)
         user._workflow_profile = profile
     return user._workflow_profile
 

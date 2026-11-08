@@ -1152,6 +1152,8 @@ def car_details(request):
         'material_options__material',
         'material_options__variant'
     ).order_by('color_code', 'id')
+    if not activity_granted(request.user, 'color.view'):
+        color_qs = color_qs.none()
     if color_search:
         clean_q = color_search.lstrip('#').strip()
         if color_search_by == 'serial_number':
@@ -1246,8 +1248,9 @@ def car_details(request):
         for m in material_settings
     ]
 
-    total_colors_count = ColorMaster.objects.count()
-    total_patterns_count = YearRange.objects.count()
+    total_colors_count = ColorMaster.objects.count() if activity_granted(request.user,'color.view') else 0
+    can_list_patterns = activity_granted(request.user,'pattern.list')
+    total_patterns_count = YearRange.objects.count() if can_list_patterns else 0
 
     user_profile = get_user_profile(request.user)
     is_designer_user = bool(user_profile and user_profile.role == WorkflowRoles.FREELANCE_3D_DESIGNER)
@@ -1257,7 +1260,9 @@ def car_details(request):
         **(status_context(request) if active_subwindow == '3d-status' else {}),
         'can_view_3d_status': can_view_status(request.user),
         'form': form,
-        'car_data': car_data,
+        'car_data': car_data if can_list_patterns else [],
+        'can_list_patterns': can_list_patterns,
+        'can_view_colors': activity_granted(request.user,'color.view'),
         'countries': countries,
         'next_serial_number': next_serial_number,
         'show_duplicate_modal': show_duplicate_modal,
@@ -1276,8 +1281,8 @@ def car_details(request):
         'can_approve_designs': _can_approve_design_assets(request.user),
         'is_designer': is_designer_user,
         'user_approval_role': user_approval_role,
-        'page_obj': vehicle_page,
-        'pagination_bubbles': pagination_bubbles,
+        'page_obj': vehicle_page if can_list_patterns else Paginator([],50).get_page(1),
+        'pagination_bubbles': pagination_bubbles if can_list_patterns else [],
         'pagination_querystring': pagination_params.urlencode(),
         'colors': colors_list,
         'total_colors_count': total_colors_count,
@@ -2430,6 +2435,8 @@ def _design_gallery_snapshot(user, vehicle_id, user_info):
     visible = _visible_design_images_qs(user, PatternDesignImage.objects.filter(
         Q(vehicle_id=vehicle_id) | Q(folder__vehicle_id=vehicle_id), is_reference=False,
     )).exclude(image='')
+    if not activity_granted(user, 'folder.view'):
+        visible = visible.filter(folder__isnull=True)
     # One compact revision query; no storage access or full approval history serialization.
     rows = visible.values('pk', 'title', 'file_size', 'image', 'thumbnail', 'approval_status',
                           'uploaded_by_id', 'uploaded_by__username', 'approved_at', 'rejected_at',
@@ -2486,12 +2493,17 @@ def get_design_folders_api(request):
     if vehicle_id:
         try:
             yr = YearRange.objects.select_related('sub_model__model__brand').get(id=vehicle_id)
-            _, gallery_manifest, gallery_revision = _design_gallery_snapshot(request.user, yr.pk, _design_gallery_user_info(request.user))
             brand_name = yr.sub_model.model.brand.name if yr.sub_model and yr.sub_model.model and yr.sub_model.model.brand else ''
             model_name = yr.sub_model.model.name if yr.sub_model and yr.sub_model.model else ''
             sub_name = yr.sub_model.name if yr.sub_model and yr.sub_model.name != '-' else ''
             years = f"{yr.year_start}-{yr.year_end}" if yr.year_start and yr.year_end else ''
             formatted_name = vehicle_identity(yr)['heading']
+            photo_url = yr.photo.url if yr.photo else ''
+            if not photo_url and request.GET.get('context_only') != '1':
+                preview = _visible_design_images_qs(request.user,
+                    PatternDesignImage.objects.filter(vehicle=yr,folder__isnull=True)).exclude(image='').order_by('-uploaded_at').first()
+                if preview:
+                    photo_url = reverse('design_comparison_file',args=[preview.pk])
             vehicle_info = {
                 'id': yr.id,
                 'name': formatted_name,
@@ -2500,10 +2512,15 @@ def get_design_folders_api(request):
                 'model': model_name,
                 'year_range': years,
                 'sub_model': sub_name,
-                'photo_url': yr.photograph_url,
-                'google_drive_url': yr.google_drive_url or '',
-                'drive_links': _get_vehicle_drive_links_data(yr),
+                'photo_url': photo_url,
+                'google_drive_url': (yr.google_drive_url or '') if activity_granted(request.user,'pattern.drive_view') else '',
+                'drive_links': _get_vehicle_drive_links_data(yr) if activity_granted(request.user,'pattern.drive_view') else [],
             }
+            if request.GET.get('context_only') == '1':
+                # Measurements reuse the existing vehicle bootstrap, without
+                # requiring or exposing unrelated design files/folders.
+                return JsonResponse({'status':'success','vehicle':vehicle_info})
+            _, gallery_manifest, gallery_revision = _design_gallery_snapshot(request.user, yr.pk, _design_gallery_user_info(request.user))
             folders = PatternDesignFolder.objects.filter(vehicle=yr).annotate(protected_assets=Exists(activity_protected_files(PatternDesignImage.objects.filter(folder_id=OuterRef('pk')))), image_total=Count('images', filter=Q(images__pk__in=_visible_design_images_qs(request.user, PatternDesignImage.objects.all()).values('pk')))).order_by('-created_at', '-pk')
             direct_page = Paginator(
                 _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(vehicle=yr, folder__isnull=True).prefetch_related('approval_requests').order_by('-uploaded_at')),
@@ -2536,6 +2553,8 @@ def get_design_folders_api(request):
                 request.user,
                 PatternDesignImage.objects.filter(Q(vehicle=yr) | Q(folder__vehicle=yr), is_reference=False).select_related('uploaded_by', 'folder').prefetch_related('approval_requests__cad_reviewer', 'approval_requests__ed_reviewer', 'approval_requests__md_reviewer', 'approval_requests__voice_notes').distinct().order_by('-uploaded_at')
             )
+            if not activity_granted(request.user, 'folder.view'):
+                all_vehicle_design_images = all_vehicle_design_images.filter(folder__isnull=True)
             for d_img in all_vehicle_design_images:
                 serialized = _serialize_design_image_details(d_img, request.user)
                 if serialized:
@@ -2550,6 +2569,8 @@ def get_design_folders_api(request):
         folders = PatternDesignFolder.objects.annotate(protected_assets=Exists(activity_protected_files(PatternDesignImage.objects.filter(folder_id=OuterRef('pk')))), image_total=Count('images', filter=Q(images__pk__in=_visible_design_images_qs(request.user, PatternDesignImage.objects.all()).values('pk')))).order_by('-created_at', '-pk')
         direct_page = Paginator(PatternDesignImage.objects.none(), 4).get_page(1)
 
+    if not activity_granted(request.user, 'folder.view'):
+        folders = folders.none()
     folder_page = Paginator(folders, 20).get_page(request.GET.get('folder_page'))
     data = []
     preview_rows = _visible_design_images_qs(request.user, PatternDesignImage.objects.filter(
@@ -6339,7 +6360,8 @@ def edit_sku(request, sku_id):
 
 @user_passes_test(is_workflow_admin)
 def admin_panel_view(request):
-    from .services.activity_permissions import self_access_recovery
+    from .services.activity_permissions import self_access_recovery, protected_admin
+    from .models import ActivityRole
     access_recovery_only = self_access_recovery(request.user) and request.GET.get('section') == 'users'
     user_form = UserCreationForm()
     if not request.user.is_superuser:
@@ -6401,8 +6423,11 @@ def admin_panel_view(request):
                 messages.success(request, _('%(username)s was assigned to %(group)s.') % {'username': user.username, 'group': group.name})
         
     section = request.GET.get('section', 'dashboard').strip().lower()
-    if section not in {'dashboard', 'users', 'skus', 'brands', 'master', 'sessions', 'logs'}:
+    if section not in {'dashboard', 'users', 'roles', 'skus', 'brands', 'master', 'sessions', 'logs'}:
         section = 'dashboard'
+    if section == 'roles':
+        from .services.roles import authorize
+        authorize(request.user)
 
     needs_session_details = not access_recovery_only and section in {'dashboard', 'users', 'sessions'} and activity_granted(request.user, 'erp.sessions_view')
     active_users = get_active_users() if needs_session_details else []
@@ -6412,7 +6437,7 @@ def admin_panel_view(request):
         else 0 if access_recovery_only else Session.objects.filter(expire_date__gte=now()).count()
     )
     online_user_ids = {entry['user'].pk for entry in active_users}
-    users_qs = User.objects.select_related('workflow_profile__country').order_by('username')
+    users_qs = User.objects.select_related('workflow_profile__country','workflow_profile__activity_role').order_by('username')
     if access_recovery_only:
         users_qs = users_qs.filter(pk=request.user.pk)
     users_page = Paginator(users_qs, 25).get_page(request.GET.get('section_page')) if section == 'users' else None
@@ -6434,6 +6459,7 @@ def admin_panel_view(request):
     }
     if section in {'dashboard', 'users'}:
         profile_counts = UserProfile.objects.filter(user=request.user) if access_recovery_only else UserProfile.objects.all()
+        profile_counts = profile_counts.filter(Q(activity_role__isnull=True)|Q(activity_role__system_code__isnull=False))
         for role, approval_role, count in profile_counts.values_list('role', 'approval_role').annotate(count=Count('pk')):
             role_key = approval_role if role == WorkflowRoles.APPROVER else role
             role_counts[role_key] = role_counts.get(role_key, 0) + count
@@ -6487,6 +6513,8 @@ def admin_panel_view(request):
         'complaints_resolved_count': complaint_stats['resolved'],
         'complaints_in_progress_count': complaint_stats['in_progress'],
         'role_counts': role_counts,
+        'custom_activity_roles': ActivityRole.objects.filter(system_code=None).annotate(user_count=Count('members')) if not access_recovery_only else [],
+        'can_manage_roles': protected_admin(request.user),
         'total_skus_count': 0 if access_recovery_only else SKU.objects.count(),
         'total_brands_count': 0 if access_recovery_only else Brand.objects.count(),
         'skus': sku_page.object_list if sku_page else [],

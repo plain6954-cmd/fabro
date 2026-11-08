@@ -45,7 +45,7 @@ def latest_designer_upload(images):
 
 
 def can_view_status(user):
-    return granted(user, 'pattern.view') and any(granted(user, key) for key in ('design.view_own', 'design.view_all'))
+    return granted(user, 'pattern.view') and granted(user, 'design_status.view') and any(granted(user, key) for key in ('design.view_own', 'design.view_all'))
 
 
 STATUS_PAGE_SIZE = 80

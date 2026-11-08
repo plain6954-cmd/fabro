@@ -393,6 +393,37 @@ class MaterialVariant(models.Model):
         return f"{self.material.name} - {self.name}"
 
 
+class ActivityRole(models.Model):
+    """Activity defaults only; never a replacement for workflow identity."""
+    name = models.CharField(max_length=150)
+    name_key = models.CharField(max_length=450, unique=True, editable=False)
+    short_name = models.CharField(max_length=20, blank=True)
+    system_code = models.CharField(max_length=40, unique=True, null=True, blank=True, editable=False)
+    permissions = models.JSONField(default=dict, blank=True)
+    windows = models.JSONField(default=dict, blank=True)
+    revision = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ('name_key',)
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip()
+        self.name_key = self.name.casefold()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class RoleAccessAudit(models.Model):
+    actor = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='role_access_changes')
+    role = models.ForeignKey(ActivityRole, null=True, on_delete=models.SET_NULL, related_name='audit_records')
+    action = models.CharField(max_length=30)
+    before = models.JSONField(default=dict)
+    after = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class UserProfile(models.Model):
     LANGUAGE_CHOICES = [
         ('en', 'English'),
@@ -416,6 +447,7 @@ class UserProfile(models.Model):
     can_receive_factory_assignments = models.BooleanField(default=False)
     # Missing entries inherit role defaults; no existing roles/groups are rewritten.
     activity_permissions = models.JSONField(default=dict, blank=True)
+    activity_role = models.ForeignKey(ActivityRole, null=True, blank=True, on_delete=models.PROTECT, related_name='members')
     photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
     preferred_language = models.CharField(
         max_length=5,
@@ -479,6 +511,16 @@ class UserProfile(models.Model):
         return self.get_role_display() or 'User'
 
     @property
+    def activity_role_value(self):
+        if self.activity_role_id:
+            return self.activity_role.system_code or f'activity:{self.activity_role_id}'
+        return self.approval_role if self.role == WorkflowRoles.APPROVER else self.role
+
+    @property
+    def activity_role_label(self):
+        return self.activity_role.name if self.activity_role_id else self.display_role
+
+    @property
     def net_role_display(self):
         return self.display_role
 
@@ -487,6 +529,16 @@ class UserProfile(models.Model):
 
     def save(self, *args, **kwargs):
         """Keep the profile country authoritative, even for non-form callers."""
+        # Bind new legacy accounts to one built-in activity role. Custom activity
+        # roles never follow workflow-identity changes automatically.
+        code = self.approval_role if self.role == WorkflowRoles.APPROVER and self.approval_role else self.role
+        current_role = self.activity_role if self.activity_role_id else None
+        if current_role is None or (current_role.system_code and current_role.system_code != code and not self.user.is_superuser):
+            binding = ActivityRole.objects.filter(system_code=WorkflowRoles.ADMIN if self.user.is_superuser and current_role is None else code).first()
+            if binding:
+                self.activity_role = binding
+                if kwargs.get('update_fields') is not None:
+                    kwargs['update_fields'] = set(kwargs['update_fields']) | {'activity_role'}
         if self.role != WorkflowRoles.COUNTRY_EXECUTIVE:
             india, _ = MasterSetting.objects.get_or_create(
                 category='Country', name='India'

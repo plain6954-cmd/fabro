@@ -1,0 +1,35 @@
+{% load i18n %}
+<div class="erp-roles" id="rolesWorkspace" data-config-url="{% url 'role_control_data' %}" data-save-url="{% url 'role_control_save' %}" data-delete-url="{% url 'role_control_delete' %}">
+  <header class="erp-roles-heading"><h1><i class="fas fa-shield-alt" aria-hidden="true"></i> {% translate 'Roles' %}</h1><p>{% translate 'Create, edit and manage roles with activity permissions' %}</p></header>
+  <div class="erp-roles-layout">
+    <aside class="erp-roles-list-panel" aria-label="{% translate 'Existing roles' %}">
+      <button type="button" class="btn-primary btn-erp-new" data-role-action="new"><i class="fas fa-plus" aria-hidden="true"></i> {% translate 'New Role' %}</button>
+      <div class="erp-roles-list" data-role-list aria-label="{% translate 'Select role' %}"></div>
+    </aside>
+    <form class="erp-role-editor" data-role-form novalidate>
+      {% csrf_token %}
+      <header class="erp-role-editor-header"><h2><i class="fas fa-shield-alt" aria-hidden="true"></i> <span data-role-editor-title>{% translate 'Edit Role' %}</span></h2>
+        <div class="erp-role-actions">
+          <button type="button" class="btn-secondary" data-role-action="duplicate"><i class="far fa-copy" aria-hidden="true"></i> {% translate 'Duplicate' %}</button>
+          <button type="button" class="btn-secondary erp-role-delete" data-role-action="delete"><i class="fas fa-trash" aria-hidden="true"></i> {% translate 'Delete' %}</button>
+          <button type="button" class="btn-secondary" data-role-action="cancel">{% translate 'Cancel' %}</button>
+          <button type="submit" class="btn-primary btn-erp-new" data-role-action="save"><i class="far fa-save" aria-hidden="true"></i> {% translate 'Save' %}</button>
+        </div>
+      </header>
+      <div class="erp-role-fields">
+        <label class="erp-form-label" for="roleName">{% translate 'Role Name' %} <span aria-hidden="true">*</span><input id="roleName" class="erp-form-input" name="name" required maxlength="150" autocomplete="off"></label>
+        <label class="erp-form-label" for="roleShortName">{% translate 'Short Name (Optional)' %}<input id="roleShortName" class="erp-form-input" name="short_name" maxlength="20" autocomplete="off"></label>
+      </div>
+      <p class="erp-role-feedback" data-role-feedback role="status" aria-live="polite"></p>
+      <section class="erp-role-permissions" aria-labelledby="rolePermissionsTitle">
+        <header class="erp-role-permission-tools">
+          <div><h3 id="rolePermissionsTitle"><i class="fas fa-layer-group" aria-hidden="true"></i> {% translate 'Activity Permissions' %}</h3><p>{% translate 'Configure windows, subwindows and actions. Existing workflow restrictions still apply.' %}</p></div>
+          <input type="search" class="erp-form-input" data-role-search aria-label="{% translate 'Search permissions' %}" placeholder="{% translate 'Search permissions…' %}">
+          <div class="erp-role-expansion"><button type="button" class="btn-secondary" data-role-action="expand"><i class="fas fa-chevron-down" aria-hidden="true"></i> {% translate 'Expand All' %}</button><button type="button" class="btn-secondary" data-role-action="collapse"><i class="fas fa-chevron-up" aria-hidden="true"></i> {% translate 'Collapse All' %}</button></div>
+        </header>
+        <div class="erp-role-tree" data-role-tree></div>
+        <p class="erp-role-counts" data-role-counts aria-live="polite"></p>
+      </section>
+    </form>
+  </div>
+</div>

@@ -38,6 +38,18 @@ test('own/all download choices cannot expose the all-only control', () => {
     assert.equal(own.hidden, false); assert.equal(other.hidden, true);
 });
 
+test('shared window gates and own/all gates must all pass together', () => {
+    for (const [windowGranted, fileGranted, expected] of [[false,true,true],[true,false,true],[true,true,false]]) {
+        const control = node('design_status.view');
+        control.dataset.activityAny = 'design.view_own design.view_all';
+        harness({'design_status.view':windowGranted,'design.view_own':fileGranted},[control],()=>{});
+        assert.equal(control.hidden,expected);
+    }
+    const control=node('workflow.view');control.dataset.activityAll='approvals.workspace';
+    harness({'workflow.view':true,'approvals.workspace':false},[control],()=>{});
+    assert.equal(control.hidden,true);
+});
+
 test('permission updates restore only controls disabled by the feature gate', async () => {
     const button = node('chat.send');
     const h = harness({'chat.send': false}, [button], async () => ({ok: true, json: async () => ({user_id: 7, version: 'next', permissions: {'chat.send': true}})}));

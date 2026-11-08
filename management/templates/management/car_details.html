@@ -1100,6 +1100,7 @@
                 <button type="button"
                         class="pattern-subtaskbar-btn {% if active_subwindow == 'patterns' %}is-active{% endif %}"
                         id="subtaskbarBtnPatterns"
+                        {% activity_attrs 'pattern.list' %}
                         role="tab"
                         aria-selected="{% if active_subwindow == 'patterns' %}true{% else %}false{% endif %}"
                         aria-controls="tab-pane-pattern-list"
@@ -1111,6 +1112,7 @@
                 <button type="button"
                         class="pattern-subtaskbar-btn {% if active_subwindow == 'colors' %}is-active{% endif %}"
                         id="subtaskbarBtnColors"
+                        {% activity_attrs 'color.view' %}
                         role="tab"
                         aria-selected="{% if active_subwindow == 'colors' %}true{% else %}false{% endif %}"
                         aria-controls="tab-pane-color-master"
@@ -1119,12 +1121,12 @@
                     <span>{% translate "Color Master" %}</span>
                     <span class="subtaskbar-counter-pill" id="subtaskbarColorCount">{{ total_colors_count }}</span>
                 </button>
-                {% if can_view_3d_status %}<button type="button" class="pattern-subtaskbar-btn {% if active_subwindow == '3d-status' %}is-active{% endif %}" id="subtaskbarBtn3DStatus" data-activity-any="design.view_own design.view_all" role="tab" aria-selected="{% if active_subwindow == '3d-status' %}true{% else %}false{% endif %}" aria-controls="tab-pane-3d-status" onclick="switchSubwindow('3d-status')"><i class="fas fa-cube" aria-hidden="true"></i><span>{% translate '3D Status' %}</span>{% if status_total_count or status_page.paginator.count %}<span class="subtaskbar-counter-pill" id="subtaskbar3DStatusCount">{{ status_total_count|default:status_page.paginator.count }}</span>{% endif %}</button>{% endif %}
+                <button type="button" class="pattern-subtaskbar-btn {% if active_subwindow == '3d-status' %}is-active{% endif %}" id="subtaskbarBtn3DStatus" data-activity="design_status.view" data-activity-any="design.view_own design.view_all" role="tab" aria-selected="{% if active_subwindow == '3d-status' %}true{% else %}false{% endif %}" aria-controls="tab-pane-3d-status" onclick="switchSubwindow('3d-status')"><i class="fas fa-cube" aria-hidden="true"></i><span>{% translate '3D Status' %}</span>{% if status_total_count or status_page.paginator.count %}<span class="subtaskbar-counter-pill" id="subtaskbar3DStatusCount">{{ status_total_count|default:status_page.paginator.count }}</span>{% endif %}</button>
             </div>
         </div>
 
         <!-- Tab 1: Pattern list (All existing tools, filters, search, table) -->
-        <div id="tab-pane-pattern-list" class="pattern-tab-pane" style="{% if active_subwindow != 'patterns' %}display: none;{% endif %}">
+        <div id="tab-pane-pattern-list" class="pattern-tab-pane" data-access-loaded="{{ can_list_patterns|yesno:'true,false' }}" {% activity_attrs 'pattern.list' %} style="{% if active_subwindow != 'patterns' %}display: none;{% endif %}">
             <!-- Pattern Toolbar: Title on left, controls on right on the same horizontal row -->
             <div class="pattern-toolbar">
                 <div class="pattern-toolbar__header">
@@ -1939,7 +1941,7 @@
         </div>
 
         <!-- Tab 2: Color Master (TILES ONLY sub-window) -->
-        <div id="tab-pane-color-master" class="pattern-tab-pane color-master-pane" style="{% if active_subwindow != 'colors' %}display: none;{% endif %}">
+        <div id="tab-pane-color-master" class="pattern-tab-pane color-master-pane" data-access-loaded="{{ can_view_colors|yesno:'true,false' }}" {% activity_attrs 'color.view' %} style="{% if active_subwindow != 'colors' %}display: none;{% endif %}">
             <!-- Color Master Toolbar -->
             <div class="color-master-toolbar">
                 <div class="color-master-title-wrap">
@@ -2350,7 +2352,7 @@
         </div>
 
         <!-- Design options (Folders & 2x2 Matrix Image Gallery) -->
-        <section id="tab-pane-3d-status" class="pattern-tab-pane design-status-workspace" data-activity-any="design.view_own design.view_all" style="{% if active_subwindow != '3d-status' %}display: none;{% endif %}" aria-labelledby="subtaskbarBtn3DStatus">{% if active_subwindow == '3d-status' %}{% include 'management/includes/design_status_table.html' %}{% endif %}</section>
+        <section id="tab-pane-3d-status" class="pattern-tab-pane design-status-workspace" data-activity="design_status.view" data-activity-any="design.view_own design.view_all" style="{% if active_subwindow != '3d-status' %}display: none;{% endif %}" aria-labelledby="subtaskbarBtn3DStatus">{% if active_subwindow == '3d-status' %}{% include 'management/includes/design_status_table.html' %}{% endif %}</section>
         <div id="tab-pane-design-options" class="pattern-tab-pane" style="display: none;">
             <form id="designOptionsGlobalCsrf" style="display: none;" aria-hidden="true">
                 {% csrf_token %}
@@ -2447,11 +2449,11 @@
 
                         <!-- Sidebar Navigation: Strictly 2 Options (Measurements & 3D Design) -->
                         <div class="sidebar-nav-card" style="padding: 0.35rem 0;">
-                            <button type="button" class="sidebar-nav-item is-active" id="sidebarNavMeasurementsBtn" onclick="window.switchSidebarSection('measurements')">
+                            <button type="button" class="sidebar-nav-item is-active" id="sidebarNavMeasurementsBtn" data-activity-any="measurement.view_own measurement.view_all picked_colors.view" onclick="window.switchSidebarSection('measurements')">
                                 <i class="fas fa-ruler-combined"></i>
                                 <span>{% translate "Measurements" %}</span>
                             </button>
-                            <button type="button" class="sidebar-nav-item" id="sidebarNav3DDesignBtn" onclick="window.switchSidebarSection('3d-design')">
+                            <button type="button" class="sidebar-nav-item" id="sidebarNav3DDesignBtn" data-activity-any="design.view_own design.view_all reference.view_own reference.view_all folder.view" onclick="window.switchSidebarSection('3d-design')">
                                 <i class="fas fa-cube"></i>
                                 <span>{% translate "3D Design" %}</span>
                             </button>
@@ -3898,6 +3900,11 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             const panePatterns = document.getElementById('tab-pane-pattern-list');
             const paneColors = document.getElementById('tab-pane-color-master');
             const paneDesign = document.getElementById('tab-pane-design-options');
+            const requestedPane = subwindow === 'colors' ? paneColors : subwindow === 'patterns' ? panePatterns : null;
+            if (requestedPane?.dataset.accessLoaded === 'false' && window.fabroActivityAllowed?.(subwindow === 'colors' ? 'color.view' : 'pattern.list')) {
+                window.location.href = '{% url "car_details" %}?subwindow=' + encodeURIComponent(subwindow);
+                return;
+            }
             const pageContainer = document.querySelector('.page-container');
             [pageContainer, document.body, document.documentElement].forEach(el => el?.classList.remove('is-design-tab'));
 
@@ -7337,6 +7344,9 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             });
             if (targetVehicleId) {
                 params.set('vehicle_id', targetVehicleId);
+            }
+            if (window.fabroActivityAllowed && !['folder.view','design.view_own','design.view_all','reference.view_own','reference.view_all'].some(window.fabroActivityAllowed)) {
+                params.set('context_only', '1');
             }
             pageScope.fetch(`/api/design-folders/?${params}`)
                 .then(r => r.json())

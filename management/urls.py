@@ -1,5 +1,6 @@
 # pyrefly: ignore [missing-import]
 from django.urls import path
+from . import role_views
 from .security import RateLimitedLoginView
 from . import views, picked_color_views
 from .api_views import (
@@ -144,6 +145,9 @@ urlpatterns = [
     path('admin-panel/brands/<int:brand_id>/', views.admin_brand_tree, name='admin_brand_tree'),
     path('admin-panel/users/control/', views.user_control_data, name='user_control_data'),
     path('admin-panel/users/save/', views.user_control_save, name='user_control_save'),
+    path('admin-panel/roles/control/', role_views.role_control_data, name='role_control_data'),
+    path('admin-panel/roles/save/', role_views.role_control_save, name='role_control_save'),
+    path('admin-panel/roles/delete/', role_views.role_control_delete, name='role_control_delete'),
     path('admin-panel/edit-user/', views.edit_user, name='edit_user'),
     path('admin-panel/users/<int:user_id>/photo/', views.delete_user_photo, name='delete_user_photo'),
     path('admin-panel/delete-user/', views.delete_user, name='delete_user'),

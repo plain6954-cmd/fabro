@@ -10,7 +10,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext as _
 from management.forms import UserCreationForm, UserWorkflowProfileForm, UnifiedWorkflowRoles
-from management.models import ActivityLog, UserAccessAudit, PatternDesignApproval, WorkflowRoles
+from management.models import ActivityLog, ActivityRole, UserAccessAudit, PatternDesignApproval, WorkflowRoles
 from management.services.activity_permissions import (ADMIN_KEYS, CATEGORIES, REGISTRY, eligible, granted,
     identity, protected_admin, administrative_account, role_defaults, validate_overrides, self_access_recovery)
 
@@ -28,8 +28,8 @@ def public_user(user):
     return {'id': user.pk, 'username': user.username, 'email': user.email,
         'first_name': user.first_name, 'last_name': user.last_name,
         'full_name': user.get_full_name() or user.username, 'phone': p.phone_number,
-        'role': p.approval_role if p.role == WorkflowRoles.APPROVER else p.role,
-        'role_label': str(p.display_role), 'approval_role': p.approval_role,
+        'role': p.activity_role_value,
+        'role_label': str(p.activity_role_label), 'approval_role': p.approval_role,
         'country_id': str(p.country_id or ''), 'country_name': p.country.name if p.country else '',
         'country_flag_url': p.country_flag_url or '', 'department': p.department,
         'can_factory': int(p.can_receive_factory_assignments), 'is_staff': int(user.is_staff),
@@ -45,17 +45,28 @@ def control_data(actor, target=None, prospective=None):
     if prospective:
         info.update(prospective)
     role_options = [(value, str(label)) for value, label in UnifiedWorkflowRoles.CHOICES if value != WorkflowRoles.APPROVER]
+    records = list(ActivityRole.objects.all())
+    by_code = {role.system_code:role for role in records if role.system_code}
+    role_options = [(value, by_code[value].name if value in by_code else label) for value,label in role_options]
+    role_options += [(f'activity:{role.pk}',role.name) for role in records if not role.system_code]
     role_maps = {}
+    from management.services.role_hierarchy import ancestors_enabled
     for value, label in role_options:
-        candidate = dict(info, role=WorkflowRoles.APPROVER if value in ('CAD', 'ED', 'MD', 'PM', 'OM') else value,
-                         approval_role=value if value in ('CAD', 'ED', 'MD', 'PM', 'OM') else '')
-        role_maps[value] = {'defaults': role_defaults(candidate),
+        custom = value.startswith('activity:')
+        record = next((role for role in records if str(role.pk)==value.split(':')[-1]),None) if custom else by_code.get(value)
+        candidate = dict(info) if custom else dict(info, role=WorkflowRoles.APPROVER if value in ('CAD','ED','MD','PM','OM') else value,
+                         approval_role=value if value in ('CAD','ED','MD','PM','OM') else '')
+        if target and record and target.workflow_profile.activity_role_id == record.pk:
+            candidate.update(role=info['role'],approval_role=info['approval_role'])
+        candidate['activity_role_id'] = record.pk if record else None
+        role_maps[value] = {'defaults': role_defaults(candidate, role=record), 'workflow_role':candidate['role'],
+            'parents_enabled':{key:ancestors_enabled(record,key) for key in REGISTRY},
             'eligible': {key: eligible(item.policy, candidate) for key, item in REGISTRY.items()},
             'protected': bool(candidate['is_superuser'] or candidate['role'] == WorkflowRoles.ADMIN)}
     return {'user': public_user(target) if target else None,
         'overrides': target.workflow_profile.activity_permissions if target else {},
         'can_delete_user': bool(target and target.pk != actor.pk and not PatternDesignApproval.objects.filter(Q(designer=target) | Q(cad_reviewer=target) | Q(ed_reviewer=target) | Q(md_reviewer=target)).exists()),
-        'can_manage_permissions': bool(can_edit), 'recovery_only': recovery,
+        'can_manage_permissions': bool(can_edit), 'recovery_only': recovery, 'role_options':role_options,
         'can_manage_security': superuser_editor and not recovery, 'can_override_all_activities': superuser_editor and can_edit, 'role_maps': role_maps,
         'groups': list((target.groups if recovery else Group.objects).order_by('name').values('id', 'name')),
         'categories': [{'key': key, 'label': str(label), 'actions': [
@@ -113,6 +124,21 @@ def save_control_user(request, *, creating=False):
         record_access_audit(actor, target, old_role, old_overrides, old_groups, old_groups, overrides)
         ActivityLog.objects.create(user=actor, action='restored activity access', object_type='User', object_name=target.username)
         return target
+    selected_role = None
+    selected_value = data.get('role','')
+    if selected_value.startswith('activity:'):
+        try:
+            selected_role = ActivityRole.objects.select_for_update().get(pk=selected_value.split(':',1)[1],system_code=None)
+        except (ActivityRole.DoesNotExist,ValueError):
+            raise ValidationError(_('Invalid activity role.'))
+        data = data.copy()
+        data['role'] = (target.workflow_profile.approval_role if target.workflow_profile.role == WorkflowRoles.APPROVER else target.workflow_profile.role) if target else WorkflowRoles.FACTORY_VIEWER
+    else:
+        system_value = selected_value.split('_',1)[1] if selected_value.startswith('approver_') else data.get('approval_role','') if selected_value == WorkflowRoles.APPROVER else selected_value
+        selected_role = ActivityRole.objects.select_for_update().filter(system_code=system_value).first()
+        if target and target.is_superuser and selected_role and selected_role.system_code == WorkflowRoles.ADMIN and target.workflow_profile.activity_role_id == selected_role.pk:
+            data = data.copy()
+            data['role'] = target.workflow_profile.approval_role if target.workflow_profile.role == WorkflowRoles.APPROVER else target.workflow_profile.role
     if creating:
         if data.get('control_panel') == '1' and data.get('password') != data.get('confirm_password'):
             raise ValidationError(_('The two password fields did not match.'))
@@ -143,6 +169,7 @@ def save_control_user(request, *, creating=False):
             candidate['is_superuser'] = data.get('is_superuser') == 'on'
             candidate['is_staff'] = data.get('is_staff') == 'on' or candidate['is_superuser']
         target.is_superuser, target.is_staff = candidate['is_superuser'], candidate['is_staff']
+    candidate['activity_role_id'] = selected_role.pk if selected_role else None
     if not protected_admin(actor) and (creating or candidate != old_role):
         raise PermissionDenied(_('Only Admin may assign roles or reviewer authority.'))
     group_ids = old_groups
@@ -154,6 +181,10 @@ def save_control_user(request, *, creating=False):
         if Group.objects.filter(pk__in=group_ids).count() != len(set(group_ids)):
             raise ValidationError(_('Invalid group selection.'))
     candidate['file_delete'] = bool(candidate.get('is_superuser') or Group.objects.filter(pk__in=group_ids, permissions__codename='delete_patterndesignimage', permissions__content_type__app_label='management').exists() or (target.pk and target.user_permissions.filter(codename='delete_patterndesignimage', content_type__app_label='management').exists()))
+    if selected_role and (candidate.get('is_superuser') or candidate.get('role') == WorkflowRoles.ADMIN):
+        from management.services.role_hierarchy import ancestors_enabled
+        if any(not ancestors_enabled(selected_role,key) or not selected_role.permissions.get(key) for key in ADMIN_KEYS):
+            raise ValidationError(_('Protected administrators require administrative role defaults and enabled parent windows.'))
     overrides = old_overrides
     if 'activity_permissions' in data:
         if not protected_admin(actor) or not granted(actor, 'users.permissions'):
@@ -185,7 +216,8 @@ def save_control_user(request, *, creating=False):
     else:
         saved_profile = profile_form.save()
     saved_profile.activity_permissions = overrides
-    saved_profile.save(update_fields=['activity_permissions'])
+    saved_profile.activity_role = selected_role
+    saved_profile.save(update_fields=['activity_permissions','activity_role'])
     target.groups.set(group_ids)
     target._state.fields_cache['workflow_profile'] = saved_profile
     for attr in ('_activity_grants', '_workflow_profile', '_perm_cache', '_user_perm_cache', '_group_perm_cache'):
