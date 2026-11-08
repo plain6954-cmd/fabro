@@ -661,6 +661,9 @@ class UserWorkflowProfileForm(forms.ModelForm):
         return cleaned_data
 
     def clean_photo(self):
+        # Without a new upload, ModelForm returns the existing stored photo.
+        if not self.files.get(self.add_prefix('photo')):
+            return self.cleaned_data.get('photo')
         return validate_profile_photo(self.cleaned_data.get('photo'))
 
     def save(self, commit=True):

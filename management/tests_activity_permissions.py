@@ -66,6 +66,69 @@ class ActivityPermissionTests(TestCase):
         data.update(kwargs)
         return self.client.post(reverse('user_control_save'), data)
 
+    def test_user_control_photo_is_optional_on_create_and_edit(self):
+        response = self.post_user()
+        self.assertEqual(response.status_code, 200, response.content)
+        user = User.objects.get(username='new-access-user')
+        self.assertFalse(user.workflow_profile.photo)
+        response = self.post_user(user, first_name='Updated without a photo')
+        self.assertEqual(response.status_code, 200, response.content)
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, 'Updated without a photo')
+        self.assertFalse(user.workflow_profile.photo)
+
+    def test_user_control_edit_without_upload_preserves_existing_photo(self):
+        from tempfile import TemporaryDirectory
+        from django.core.files.storage import FileSystemStorage
+        field = self.viewer.workflow_profile._meta.get_field('photo')
+        with TemporaryDirectory() as media, patch.object(field, 'storage', FileSystemStorage(location=media)):
+            profile = self.viewer.workflow_profile
+            profile.photo = self.profile_photo_upload('PNG')
+            profile.save(update_fields=['photo'])
+            original = profile.photo.name
+            with patch.object(field.storage, 'open', side_effect=AssertionError('Existing photo must not be revalidated')):
+                response = self.post_user(self.viewer, first_name='Keep existing photo')
+            self.assertEqual(response.status_code, 200, response.content)
+            profile.refresh_from_db()
+            self.assertEqual(profile.photo.name, original)
+            self.assertTrue(field.storage.exists(original))
+
+    @staticmethod
+    def profile_photo_upload(format):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        image = io.BytesIO()
+        Image.new('RGB', (4, 4), 'red').save(image, format=format)
+        extension = 'jpg' if format == 'JPEG' else format.lower()
+        return SimpleUploadedFile('profile.'+extension, image.getvalue(), content_type='image/'+('jpeg' if format == 'JPEG' else extension))
+
+    def test_user_control_validates_only_new_profile_photo_uploads(self):
+        from tempfile import TemporaryDirectory
+        from django.core.files.storage import FileSystemStorage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        field = self.viewer.workflow_profile._meta.get_field('photo')
+        with TemporaryDirectory() as media, patch.object(field, 'storage', FileSystemStorage(location=media)):
+            for format in ('JPEG', 'PNG', 'WEBP', 'GIF'):
+                with self.subTest(format=format):
+                    username = 'photo-upload-'+format.lower()
+                    response = self.post_user(username=username, photo=self.profile_photo_upload(format))
+                    self.assertEqual(response.status_code, 200, response.content)
+                    user = User.objects.get(username=username)
+                    previous = user.workflow_profile.photo.name
+                    response = self.post_user(user, photo=self.profile_photo_upload(format))
+                    self.assertEqual(response.status_code, 200, response.content)
+                    user.workflow_profile.refresh_from_db()
+                    self.assertTrue(user.workflow_profile.photo)
+                    self.assertNotEqual(user.workflow_profile.photo.name, previous)
+            previous = user.workflow_profile.photo.name
+            for upload in (self.profile_photo_upload('BMP'), SimpleUploadedFile('fake.png', b'not an image', content_type='image/png')):
+                with self.subTest(invalid=upload.name):
+                    response = self.post_user(user, photo=upload)
+                    self.assertEqual(response.status_code, 400, response.content)
+                    user.workflow_profile.refresh_from_db()
+                    self.assertEqual(user.workflow_profile.photo.name, previous)
+
     def test_registry_has_nineteen_real_categories_and_all_routes_are_inventoried(self):
         self.assertEqual(len(CATEGORIES), 19)
         self.assertEqual(set(category for category, _ in CATEGORIES), {item.category for item in REGISTRY.values()})
