@@ -4,7 +4,7 @@
 
 /* Workspace Integration: full-height flex matching Pattern Master */
 #tab-pane-3d-status:not([style*="display: none"]) {
-    display: flex !important;
+    display: flex;
     flex-direction: column !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;

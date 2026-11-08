@@ -13,7 +13,7 @@
     {% include 'management/includes/favicons.html' %}
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'management/css/pattern-master.css' %}?v=20261015-colormaster-v2" data-fabro-page-asset>
-    <link rel="stylesheet" href="{% static 'management/css/design_status.css' %}?v=20261107" data-fabro-page-asset>
+    <link rel="stylesheet" href="{% static 'management/css/design_status.css' %}?v=20261108-isolation" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/measurements_redesign.css' %}?v=20261107-color-categories" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_review_voice.css' %}?v=20261031" data-fabro-page-asset>
     <link rel="stylesheet" href="{% static 'management/css/design_review_drawer.css' %}?v=20261101" data-fabro-page-asset>
@@ -2350,7 +2350,7 @@
         </div>
 
         <!-- Design options (Folders & 2x2 Matrix Image Gallery) -->
-        <section id="tab-pane-3d-status" class="pattern-tab-pane design-status-workspace" data-activity-any="design.view_own design.view_all" style="{% if active_subwindow != '3d-status' %}display:none;{% endif %}" aria-labelledby="subtaskbarBtn3DStatus">{% if active_subwindow == '3d-status' %}{% include 'management/includes/design_status_table.html' %}{% endif %}</section>
+        <section id="tab-pane-3d-status" class="pattern-tab-pane design-status-workspace" data-activity-any="design.view_own design.view_all" style="{% if active_subwindow != '3d-status' %}display: none;{% endif %}" aria-labelledby="subtaskbarBtn3DStatus">{% if active_subwindow == '3d-status' %}{% include 'management/includes/design_status_table.html' %}{% endif %}</section>
         <div id="tab-pane-design-options" class="pattern-tab-pane" style="display: none;">
             <form id="designOptionsGlobalCsrf" style="display: none;" aria-hidden="true">
                 {% csrf_token %}
@@ -3885,7 +3885,12 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             }
         }
 
-        function switchSubwindow(subwindow) {
+        function updatePatternNavigationUrl(url, mode = 'push') {
+            if (mode === 'none' || url.href === window.location.href) return;
+            history[mode === 'replace' ? 'replaceState' : 'pushState'](null, '', url.toString());
+        }
+
+        function switchSubwindow(subwindow, historyMode = 'push') {
             const paneStatus = document.getElementById('tab-pane-3d-status');
             const btnStatus = document.getElementById('subtaskbarBtn3DStatus');
             const btnPatterns = document.getElementById('subtaskbarBtnPatterns');
@@ -3894,6 +3899,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             const paneColors = document.getElementById('tab-pane-color-master');
             const paneDesign = document.getElementById('tab-pane-design-options');
             const pageContainer = document.querySelector('.page-container');
+            [pageContainer, document.body, document.documentElement].forEach(el => el?.classList.remove('is-design-tab'));
 
             if (subwindow === '3d-status') {
                 if (!paneStatus || !paneStatus.children.length) {
@@ -3917,8 +3923,10 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.set('subwindow', '3d-status');
                     newUrl.searchParams.delete('vehicle_id');
+                    newUrl.searchParams.delete('design_only');
+                    newUrl.searchParams.delete('tab');
                     newUrl.hash = '';
-                    history.replaceState(null, '', newUrl.toString());
+                    updatePatternNavigationUrl(newUrl, historyMode);
                 } catch(e) {}
                 window.scrollTo({ top: 0, behavior: 'instant' });
                 return;
@@ -3952,8 +3960,10 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.set('subwindow', 'colors');
                     newUrl.searchParams.delete('vehicle_id');
+                    newUrl.searchParams.delete('design_only');
+                    newUrl.searchParams.delete('tab');
                     newUrl.hash = '';
-                    history.replaceState(null, '', newUrl.toString());
+                    updatePatternNavigationUrl(newUrl, historyMode);
                 } catch(e) {}
             } else {
                 if (pageContainer) pageContainer.classList.remove('is-color-subwindow');
@@ -3983,7 +3993,11 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                 try {
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.set('subwindow', 'patterns');
-                    history.replaceState(null, '', newUrl.toString());
+                    newUrl.searchParams.delete('vehicle_id');
+                    newUrl.searchParams.delete('design_only');
+                    newUrl.searchParams.delete('tab');
+                    newUrl.hash = '';
+                    updatePatternNavigationUrl(newUrl, historyMode);
                 } catch(e) {}
             }
             window.scrollTo({ top: 0, behavior: 'instant' });
@@ -5421,42 +5435,38 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             }
         }
 
-        function switchPatternTab(tabName) {
+        function switchPatternTab(tabName, historyMode = 'push') {
             const paneList = document.getElementById('tab-pane-pattern-list');
             const paneDesign = document.getElementById('tab-pane-design-options');
             const pageContainer = document.querySelector('.page-container');
+            const params = new URLSearchParams(window.location.search);
+            const parent = params.get('subwindow') === '3d-status' ? '3d-status' : 'patterns';
 
             if (tabName === 'pattern-list') {
-                if (paneList) {
-                    paneList.style.display = 'flex';
-                    paneList.style.flexDirection = 'column';
-                }
-                if (paneDesign) paneDesign.style.display = 'none';
-                if (pageContainer) pageContainer.classList.remove('is-design-tab');
-                document.body.classList.remove('is-design-tab');
-                document.documentElement.classList.remove('is-design-tab');
-                try {
-                    const newUrl = new URL(window.location.href);
-                    newUrl.searchParams.delete('vehicle_id');
-                    newUrl.hash = '';
-                    history.replaceState(null, '', newUrl.pathname + (newUrl.search ? newUrl.search : ''));
-                } catch(e) {}
-                window.scrollTo({ top: 0, behavior: 'instant' });
+                switchSubwindow(parent, historyMode);
             } else if (tabName === 'design-options') {
+                switchSubwindow(parent, 'none');
+                [paneList, document.getElementById('tab-pane-color-master'), document.getElementById('tab-pane-3d-status')]
+                    .forEach(pane => { if (pane) pane.style.display = 'none'; });
                 if (paneDesign) paneDesign.style.display = 'block';
-                if (paneList) paneList.style.display = 'none';
                 if (pageContainer) pageContainer.classList.add('is-design-tab');
                 document.body.classList.add('is-design-tab');
                 document.documentElement.classList.add('is-design-tab');
+                const designOnly = params.get('design_only') === '1';
+                const measurementsButton = document.getElementById('sidebarNavMeasurementsBtn');
+                if (measurementsButton) measurementsButton.style.display = designOnly ? 'none' : '';
+                const section = designOnly || /^#(?:3d-design|3d|design-folder-)/.test(window.location.hash) ? '3d-design' : 'measurements';
+                if (typeof window.switchSidebarSection === 'function') window.switchSidebarSection(section);
                 try {
                     const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('subwindow', parent);
                     if (typeof currentVehicleId !== 'undefined' && currentVehicleId) {
                         newUrl.searchParams.set('vehicle_id', currentVehicleId);
                     }
                     if (!newUrl.hash || newUrl.hash === '#pattern-list') {
                         newUrl.hash = 'design-options';
                     }
-                    history.replaceState(null, '', newUrl.toString());
+                    updatePatternNavigationUrl(newUrl, historyMode);
                 } catch(e) {}
                 if (typeof loadDesignFolders === 'function') {
                     loadDesignFolders(typeof currentVehicleId !== 'undefined' ? currentVehicleId : null);
@@ -5466,20 +5476,23 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             }
         }
 
-        pageScope.listen(window, 'hashchange', function() {
-            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-') || window.location.hash.includes('design') || window.location.hash.includes('measurements')) {
-                switchPatternTab('design-options');
+        function restorePatternNavigation() {
+            const params = new URLSearchParams(window.location.search);
+            const subwindow = (params.get('subwindow') || params.get('view') || 'patterns').toLowerCase();
+            const vehicleId = params.get('vehicle_id');
+            if (subwindow !== 'colors' && (vehicleId || params.get('tab') === 'design-options' || /^#(?:design-options|measurements|3d-design|3d|design-folder-)/.test(window.location.hash))) {
+                currentVehicleId = vehicleId ? parseInt(vehicleId, 10) : currentVehicleId;
+                window.currentVehicleId = currentVehicleId;
+                switchPatternTab('design-options', 'none');
             } else {
-                switchPatternTab('pattern-list');
+                switchSubwindow(subwindow, 'none');
             }
-        });
+        }
+
+        pageScope.listen(window, 'hashchange', restorePatternNavigation);
 
         // Initialize
         window.fabroOnPageLoad(function() {
-            if (window.location.hash === '#design-options' || window.location.hash.startsWith('#design-folder-') || window.location.hash.includes('design') || window.location.hash.includes('measurements') || window.location.search.includes('vehicle_id')) {
-                switchPatternTab('design-options');
-            }
-
             // Logo preview filename display
             const brandLogoInput = document.getElementById('brandLogoInput');
             const logoPreviewName = document.getElementById('logoPreviewName');
@@ -7254,21 +7267,6 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
                 applyColorFilters();
             }
 
-            // Check hash or query param on page load
-            const urlParams = new URLSearchParams(window.location.search);
-            const vParam = urlParams.get('vehicle_id');
-            if (vParam) {
-                currentVehicleId = parseInt(vParam, 10);
-                window.currentVehicleId = currentVehicleId;
-            }
-            if (window.location.hash === '#design-options' || window.location.hash === '#measurements' || window.location.hash === '#3d-design' || window.location.hash === '#3d' || window.location.hash.startsWith('#design-folder-') || window.location.search.includes('tab=design-options') || vParam) {
-                switchPatternTab('design-options');
-                if (window.location.hash === '#measurements' && typeof window.switchSidebarSection === 'function') {
-                    window.switchSidebarSection('measurements');
-                } else if ((window.location.hash === '#3d-design' || window.location.hash === '#3d') && typeof window.switchSidebarSection === 'function') {
-                    window.switchSidebarSection('3d-design');
-                }
-            }
         });
 
         // ========================================================
@@ -7343,6 +7341,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             pageScope.fetch(`/api/design-folders/?${params}`)
                 .then(r => r.json())
                 .then(data => {
+                    if (!document.getElementById('tab-pane-design-options')?.getClientRects().length || String(targetVehicleId || '') !== String(currentVehicleId || '')) return;
                     if (data.status === 'success') {
                         designFoldersState = data.folders || [];
                         directImagesState = data.direct_images || [];
@@ -9830,15 +9829,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
         }
 
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const initialSub = (urlParams.get('subwindow') || '{{ active_subwindow }}' || 'patterns').toLowerCase();
-            if (initialSub === 'colors') {
-                switchSubwindow('colors');
-            } else if (initialSub === '3d-status') {
-                switchSubwindow('3d-status');
-            } else {
-                updateSubtaskbarGlider();
-            }
+            window.fabroOnPageLoad(restorePatternNavigation);
 
             // Initialize Color Master view toggle (Cards vs List) & listeners
             const colorToggle = document.getElementById('colorViewToggle');
@@ -9862,14 +9853,7 @@ window.canUserDeleteDesigns = {% if can_delete_design_assets %}true{% else %}fal
             initColorMasterView();
 
             pageScope.listen(window, 'resize', () => updateSubtaskbarGlider());
-            pageScope.listen(window, 'popstate', () => {
-                const p = new URLSearchParams(window.location.search);
-                const subwindow = p.get('subwindow') || 'patterns';
-                switchSubwindow(subwindow);
-                if (subwindow !== 'colors' && (p.has('vehicle_id') || /^#(?:design-options|measurements|3d-design|3d|design-folder-)/.test(window.location.hash))) {
-                    switchPatternTab('design-options');
-                }
-            });
+            pageScope.listen(window, 'popstate', restorePatternNavigation);
             pageScope.onCleanup(() => {
                 document.body.classList.remove('is-color-subwindow', 'modal-open');
                 document.documentElement.classList.remove('is-color-subwindow');

@@ -91,7 +91,7 @@
     {% for row in status_rows %}
       <tr data-status-pattern="{{ row.vehicle.pk }}" data-status-upload="{{ row.image.pk }}" data-work-priority="{{ row.priority }}">
         <td class="col-pattern text-center">
-          <a href="{% url 'car_details' %}?vehicle_id={{ row.vehicle.pk }}#3d-design" class="status-pattern-link" title="{{ row.identity.full }}">
+          <a href="{% url 'car_details' %}?{{ status_pagination }}&amp;status_page={{ status_page.number }}&amp;vehicle_id={{ row.vehicle.pk }}&amp;design_only=1#3d-design" class="status-pattern-link" title="{{ row.identity.full }}">
             {{ row.identity.pattern }}
           </a>
           <span class="sr-only" data-outcome="{{ row.outcome }}">{% translate 'Overall' %}: {{ row.outcome_label }}</span>
@@ -122,7 +122,7 @@
           </div>
         </td>
         <td class="col-view text-center">
-          <a href="{% url 'car_details' %}?vehicle_id={{ row.vehicle.pk }}#3d-design"
+          <a href="{% url 'car_details' %}?{{ status_pagination }}&amp;status_page={{ status_page.number }}&amp;vehicle_id={{ row.vehicle.pk }}&amp;design_only=1#3d-design"
              class="status-view-icon-btn"
              aria-label="{% blocktranslate with pattern=row.identity.pattern %}Open 3D Designer for pattern {{ pattern }}{% endblocktranslate %}"
              title="{% blocktranslate with pattern=row.identity.pattern %}Open 3D Designer for pattern {{ pattern }}{% endblocktranslate %}">

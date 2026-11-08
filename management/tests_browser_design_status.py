@@ -120,6 +120,89 @@ class DesignStatusBrowserTests(StaticLiveServerTestCase):
         self.page.locator('[data-comparison-carousel="upload"]').get_by_role('button',name=title,exact=True).click()
         self.selected(title)
 
+    def assert_only_workspace(self, active):
+        for name in ('pattern-list','color-master','3d-status','design-options'):
+            pane=self.page.locator('#tab-pane-'+name)
+            if name==active:expect(pane).to_be_visible()
+            else:
+                expect(pane).not_to_be_visible()
+                self.assertEqual(pane.evaluate('(el)=>el.getClientRects().length'),0)
+
+    def test_subwindows_are_exclusive_after_scroll_refresh_rapid_switch_and_history(self):
+        for width,height in ((1440,900),(390,844)):
+            self.page.set_viewport_size({'width':width,'height':height})
+            for subwindow,pane in (('patterns','pattern-list'),('colors','color-master'),('3d-status','3d-status')):
+                self.page.goto(f'{self.live_server_url}/car-details/?subwindow={subwindow}')
+                self.assert_only_workspace(pane)
+                self.page.evaluate('window.scrollTo(0,document.documentElement.scrollHeight)')
+                self.assert_only_workspace(pane)
+                self.page.reload();self.assert_only_workspace(pane)
+            self.page.evaluate("() => {for(let n=0;n<6;n++){switchSubwindow('colors');switchSubwindow('patterns');switchSubwindow('3d-status');}}")
+            self.assert_only_workspace('3d-status')
+            self.page.go_back();self.assert_only_workspace('pattern-list')
+            self.page.go_forward();self.assert_only_workspace('3d-status')
+        # An in-flight status refresh must not reveal its now-inactive workspace.
+        fragment=self.page.request.get(f'{self.live_server_url}/car-details/?subwindow=3d-status&status_fragment=1').text()
+        held=[];route='**/car-details/?*status_fragment=1*'
+        self.page.route(route,lambda request:held.append(request))
+        with self.page.expect_request(lambda request:'status_fragment=1' in request.url):
+            self.page.evaluate("document.activeElement?.blur();document.dispatchEvent(new CustomEvent('fabro:design-review-saved'))")
+        self.page.locator('#subtaskbarBtnColors').click()
+        self.assertTrue(held)
+        try:
+            for request in held:request.fulfill(status=200,content_type='text/html',body=fragment)
+        finally:
+            self.page.unroute(route)
+        self.page.evaluate('() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+        self.assert_only_workspace('color-master')
+
+    def test_design_entry_origin_and_back_forward_preserve_the_correct_workspace(self):
+        other=self.pattern(br='Other pattern');other_upload=self.design(other,'Other pattern.png')
+        self.page.goto(f'{self.live_server_url}/car-details/?subwindow=3d-status&status_search={other.serial_number}&status_sort=uploaded&status_direction=desc')
+        self.page.locator(f'[data-status-pattern="{other.pk}"] .status-view-icon-btn').click()
+        self.assert_only_workspace('design-options')
+        expect(self.page.locator('#pattern3DDesignWorkspace')).to_be_visible()
+        expect(self.page.locator('#patternMeasurementsWorkspace')).not_to_be_visible()
+        expect(self.page.locator('#sidebarNavMeasurementsBtn')).not_to_be_visible()
+        expect(self.page.locator(f'#design3DFilesGallery [data-file-id="{other_upload.pk}"]')).to_be_visible()
+        expect(self.page.locator('#btnUpload3DDesigns')).to_be_visible()
+        expect(self.page.locator('#btnOpenTopApprovalWorkflow')).to_be_visible()
+        expect(self.page.locator(f'[data-file-id="{other_upload.pk}"] .tile-delete-btn')).not_to_be_visible()
+        self.page.reload();self.assert_only_workspace('design-options')
+        expect(self.page.locator('#patternMeasurementsWorkspace')).not_to_be_visible()
+        self.page.locator('.pattern-back-btn').click();self.assert_only_workspace('3d-status')
+        self.assertEqual(self.page.evaluate("new URLSearchParams(location.search).get('status_search')"),other.serial_number)
+        self.assertEqual(self.page.evaluate("new URLSearchParams(location.search).get('status_sort')"),'uploaded')
+        self.page.go_back();self.assert_only_workspace('design-options')
+        expect(self.page.locator('#sidebarNavMeasurementsBtn')).not_to_be_visible()
+        self.page.go_forward();self.assert_only_workspace('3d-status')
+        self.page.locator('#subtaskbarBtnPatterns').click()
+        self.page.locator(f'#row-view-{self.vehicle.pk} .pattern-row-select').check()
+        self.page.locator('#patternActionsToggleBtn').click()
+        self.page.locator('#actionBtnDesign').click()
+        self.assert_only_workspace('design-options')
+        expect(self.page.locator('#patternMeasurementsWorkspace')).to_be_visible()
+        expect(self.page.locator('#sidebarNavMeasurementsBtn')).to_be_visible()
+        self.page.locator('#sidebarNav3DDesignBtn').click()
+        expect(self.page.locator('#pattern3DDesignWorkspace')).to_be_visible()
+        expect(self.page.locator(f'#design3DFilesGallery [data-file-id="{self.pending.pk}"]')).to_be_visible()
+        self.page.locator('#sidebarNavMeasurementsBtn').click()
+        expect(self.page.locator('#patternMeasurementsWorkspace')).to_be_visible()
+        self.page.locator('.pattern-back-btn').click();self.assert_only_workspace('pattern-list')
+        self.page.go_back();self.assert_only_workspace('design-options')
+        expect(self.page.locator('#sidebarNavMeasurementsBtn')).to_be_visible()
+        self.page.go_forward();self.assert_only_workspace('pattern-list')
+        self.page.goto(f'{self.live_server_url}/car-details/?vehicle_id={self.vehicle.pk}&tab=design-options')
+        self.assert_only_workspace('design-options')
+        self.page.locator('#subtaskbarBtnPatterns').click()
+        self.page.reload();self.assert_only_workspace('pattern-list')
+        self.assertIsNone(self.page.evaluate("new URLSearchParams(location.search).get('tab')"))
+        profile=self.users['CAD'].workflow_profile
+        profile.activity_permissions={'design.delete_uploaded':'allow'};profile.save(update_fields=['activity_permissions'])
+        self.login(self.users['CAD'])
+        self.page.goto(f'{self.live_server_url}/car-details/?subwindow=3d-status&vehicle_id={other.pk}&design_only=1#3d-design')
+        expect(self.page.locator(f'#design3DFilesGallery [data-file-id="{other_upload.pk}"] .tile-delete-btn')).to_be_visible()
+
     def test_three_versions_manual_reference_zoom_refresh_and_stale_responses(self):
         self.workspace();self.open()
         self.selected('Version3.png')
